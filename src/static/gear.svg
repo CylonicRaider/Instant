@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<svg version="1.1" baseProfile="full" xmlns="http://www.w3.org/2000/svg"
+     xmlns:xlink="http://www.w3.org/1999/xlink"
+     viewBox="-16,-16 32,32">
+  <title>Gear</title>
+  <defs>
+    <rect id="tooth" x="-3" y="-16" width="6" height="6" stroke="none"/>
+  </defs>
+  <g fill="#808080" stroke="#808080">
+    <circle r="9" fill="none" stroke-width="6"/>
+    <use xlink:href="#tooth"/>
+    <use xlink:href="#tooth" transform="rotate(45)"/>
+    <use xlink:href="#tooth" transform="rotate(90)"/>
+    <use xlink:href="#tooth" transform="rotate(135)"/>
+    <use xlink:href="#tooth" transform="rotate(180)"/>
+    <use xlink:href="#tooth" transform="rotate(225)"/>
+    <use xlink:href="#tooth" transform="rotate(270)"/>
+    <use xlink:href="#tooth" transform="rotate(315)"/>
+  </g>
+</svg>

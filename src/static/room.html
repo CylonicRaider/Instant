@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <title>Instant</title>
+    <script type="application/javascript" src="/static/main.js"
+      async="async"></script>
+    <link rel="stylesheet" type="text/css" href="/static/base.css"></style>
+    <link rel="stylesheet" type="text/css" href="/static/room.css"></style>
+    <link rel="alternate stylesheet" type="text/css"
+      href="/static/room-dark.css" title="Dark" id="dark-style"></style>
+    <link rel="shortcut icon" type="image/png"
+      href="/static/logo-static_128x128.png"/>
+  </head>
+  <body onLoad="init()">
+    <div class="breadcrumbs standalone"><a href="/" target="_blank"
+      class="logo-small"><img src="/static/logo-static.svg"/><strong
+      >Instant</strong></a> &raquo; <a href="/about.html" target="_blank"
+      >About</a></div>
+    <div id="main">
+      <div class="message-pane message-box">
+        <div class="input-bar">
+          <span class="cell input-nick-cell">
+            <span class="input-nick-sizer"></span>
+            <input type="text" class="input-nick"/>
+          </span>
+          <span class="cell input-message-cell">
+            <textarea class="span input-message"
+              placeholder="&#8592; Enter your nick"
+              ></textarea>
+          </span>
+        </div>
+      </div>
+      <div class="sidebar">
+        <div class="sidebar-top">
+          <a href="" class="room-name">...</a>
+          <span class="online-status" title="..."></span>
+          <div class="settings-wrapper"><button class="settings"><img
+            src="/static/gear.svg"/></button><div class="settings-content">
+              <label><input type="checkbox" onClick="toggleTheme();"
+                id="dark-theme-toggle"/> Dark theme</label>
+            </div></div>
+        </div>
+        <div class="user-list"></div>
+      </div>
+    </div>
+    <div id="load-wrapper">
+      <div class="logo">
+        <img src="/static/logo.svg"/>
+        <!-- >:D -->
+        <h1><span class="hidden">*** </span>Instant<span class="hidden">
+          ***</span></h1>
+      </div>
+      <hr/>
+      <div class="content-box">
+        <div id="loading-message">
+          <p class="wait">Loading...</p>
+          <!--[if IE]>
+            <p class="wait">Doom <em>awaits IE users...</em></p>
+          <!-->
+        </div>
+        <noscript>
+          <div class="note"><span>NOTE:</span>
+            <span>You've got JS disabled, right?</span>
+          </div>
+        </noscript>
+        <div id="splash-messages" class="message-box notimes"></div>
+      </div>
+    </div>
+  </body>
+</html>

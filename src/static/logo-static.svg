@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<svg version="1.1" baseProfile="full" xmlns="http://www.w3.org/2000/svg"
+     xmlns:xlink="http://www.w3.org/1999/xlink"
+     viewBox="0,0 32,32">
+  <title>Instant</title>
+  <defs>
+    <clipPath id="inner-clip">
+      <circle r="15"/>
+    </clipPath>
+  </defs>
+  <g id="main" fill="none" transform="translate(16,16)">
+    <circle r="15" fill="white"/>
+    <g clip-path="url(#inner-clip)">
+      <rect x="-12" y="-12" width="4" height="4" fill="#ff0000"/>
+      <rect x="-7" y="-10" width="4" height="4" fill="#e0e000"/>
+      <rect x="-2" y="-6" width="4" height="4" fill="#00e000"/>
+      <rect x="3" y="0" width="4" height="4" fill="#00e0e0"/>
+      <rect x="8" y="8" width="4" height="4" fill="#0000ff"/>
+    </g>
+    <circle r="15" stroke="black" stroke-width="2"/>
+  </g>
+</svg>
