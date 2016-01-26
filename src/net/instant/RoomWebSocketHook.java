@@ -63,10 +63,12 @@ public class RoomWebSocketHook extends WebSocketHook {
             sendError(conn, ProtocolError.INVALID_TYPE);
             return;
         }
-        Object seq = data.opt("key");
-        Object d = data.get("data");
+        Object seq = data.opt("seq");
+        Object d = data.opt("data");
         String from = distr.connectionID(conn);
-        if ("unicast".equals(type)) {
+        if ("ping".equals(type)) {
+            conn.send(new Message("pong").seq(seq).data(d).makeString());
+        } else if ("unicast".equals(type)) {
             /* Flow analysis should show that this will never be
              * uninitialized, but if statements are exempt from
              * it... :( */

@@ -1,6 +1,4 @@
 
-// TODO: Static pages; Scribe.
-
 window.Instant = (window.Instant || {});
 
 (function() {
@@ -48,10 +46,11 @@ if (Instant.roomName) {
    *               5: Hostname
    *               6: Port
    *               7: Path
+   *            8: Nick-name @-mentioned.
    */
   var INTERESTING = '\\B&([a-zA-Z](?:[a-zA-Z0-9_-]*[a-zA-Z0-9])?)\\b|' +
-    '<(([a-zA-Z]+://)?([a-zA-Z0-9._~-]+@)?([a-zA-Z0-9.-]+)' +
-    '(:[0-9]+)?(/[^>]*)?)>';
+    '<(((?!javascript:)[a-zA-Z]+://)?([a-zA-Z0-9._~-]+@)?([a-zA-Z0-9.-]+)' +
+    '(:[0-9]+)?(/[^>]*)?)>|\\B@([^.,:;:!?\\s]+)\\b';
   /* Nick-names */
   var hueHashCache = {};
   function normalizeNick(name) {
@@ -209,6 +208,9 @@ if (Instant.roomName) {
         node.textContent = m[2];
         out.push(node);
         out.push(makeSpan('>', '#808080'));
+      } else if (m[8]) {
+        out.push(makeSpan(m[0], 'hsl(' + Instant.hueHash(m[8]) +
+          ', 75%, 40%)'));
       } else if (m[0]) {
         out.push(m[0]);
       }
@@ -274,6 +276,32 @@ if (Instant.roomName) {
       Instant.updateUnread(Instant.unreadMessages + 1);
     return msg;
   }
+  function sortComments(parent) {
+    if (parent == null) {
+      parent = $sel('.message-pane', Instant.mainPane);
+    } else if (typeof parent == 'string') {
+      parent = messages[parent];
+      if (! parent) parent = $sel('.message-pane', Instant.mainPane);
+    }
+    if (! parent) throw 'Trying to sort nonexisting message!';
+    var replies = $sel('.replies', parent);
+    if (! replies) return;
+    var children = [], och = replies.children;
+    for (var i = 0; i < och.length; i++) {
+      children.push(och[i]);
+    }
+    children.sort(function(a, b) {
+      if (! a.classList.contains('message') ||
+          ! b.classList.contains('message'))
+        return (a < b) ? -1 : (a > b) ? 1 : 0;
+      var ida = a.getAttribute('data-message-id');
+      var idb = b.getAttribute('data-message-id');
+      return (ida < idb) ? -1 : (ida > idb) ? 1 : 0;
+    });
+    for (var i = 0; i < children.length; i++) {
+      replies.appendChild(children[i]);
+    }
+  }
   /* Input bar management */
   function updateInput(parent) {
     if (! Instant.mainPane) return;
@@ -287,7 +315,7 @@ if (Instant.roomName) {
       parent = makeReplies(parent);
     }
     parent.appendChild(bar);
-    el.focus();
+    $sel('.input-message', bar).focus();
   }
   function navigateInput(dir) {
     if (! Instant.mainPane) return;
@@ -633,6 +661,12 @@ if (Instant.roomName) {
         to: to, data: data}));
       return id;
     };
+    Instant.connection.sendPing = function(data) {
+      var id = this.seqid++;
+      var msg = {type: 'ping', seq: id};
+      if (data !== undefined) msg.data = data;
+      this.send(JSON.stringify(msg));
+    }
     Instant.connection.onopen = function() {
       connStatus.classList.add('connected');
       connStatus.classList.remove('broken');
@@ -645,6 +679,14 @@ if (Instant.roomName) {
       Instant.logs.clear();
       Instant.connection.sendBroadcast({type: 'who'});
       Instant.connection.sendBroadcast({type: 'log-query'});
+      var conn = Instant.connection;
+      var iid = setInterval(function() {
+        if (conn.readyState != WebSocket.OPEN) {
+          clearInterval(iid);
+          return;
+        }
+        conn.sendPing();
+      }, 30000);
     };
     if (Instant.connection.readyState == WebSocket.OPEN) {
       Instant.connection.onopen();
@@ -725,15 +767,25 @@ if (Instant.roomName) {
             Instant.connection.sendUnicast(msg.from, reply);
           } else if (msgt == 'log') {
             /* Incorporate given logs into data */
+            var sort = {};
             var keys = Instant.logs.merge(msgd.data);
             for (var i = 0; i < keys.length; i++) {
               var ent = Instant.logs.messages[keys[i]];
+              if (messages[ent.id]) continue;
               Instant.addComment(ent.parent, {id: ent.id,
                 timestamp: ent.timestamp, nick: ent.nick,
                 text: ent.text});
+              sort[ent.parent] = true;
+            }
+            for (var k in sort) {
+              if (! sort.hasOwnProperty(k)) continue;
+              Instant.sortComments(k);
             }
             Instant.updateInput();
           }
+          break;
+        case 'pong':
+          /* NOP */
           break;
         default:
           console.error('Unknown message type:', msg);
@@ -775,6 +827,9 @@ if (Instant.roomName) {
     innick.value = Instant.nickname || '';
     innick.selectionStart = innick.selectionEnd = innick.value.length;
     inmsg.value = '';
+    bar.addEventListener('click', function(event) {
+      event.stopPropagation();
+    });
     installChange(innick, function() {
       sizenick.textContent = innick.value;
       sizenick.style.background = 'hsl(' + Instant.hueHash(innick.value) +
@@ -865,6 +920,7 @@ if (Instant.roomName) {
   Instant.createMessage = createMessage;
   Instant.getMessageID = getMessageID;
   Instant.addComment = addComment;
+  Instant.sortComments = sortComments;
   Instant.updateInput = updateInput;
   Instant.navigateInput = navigateInput;
   Instant.toggleSettings = toggleSettings;
