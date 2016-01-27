@@ -10,7 +10,7 @@
     <link rel="stylesheet" type="text/css" href="/static/room.css"></style>
     <link rel="alternate stylesheet" type="text/css"
       href="/static/room-dark.css" title="Dark" id="dark-style"></style>
-    <link rel="shortcut icon" type="image/png"
+    <link rel="shortcut icon" id="favicon" type="image/png"
       href="/static/logo-static_128x128.png"/>
   </head>
   <body onLoad="init()">
@@ -18,18 +18,20 @@
       class="logo-small"><img src="/static/logo-static.svg"/><strong
       >Instant</strong></a> &raquo; <a href="/about.html" target="_blank"
       >About</a></div>
-    <div id="main">
-      <div class="message-pane message-box">
-        <div class="input-bar">
-          <span class="cell input-nick-cell">
-            <span class="input-nick-sizer"></span>
-            <input type="text" class="input-nick"/>
-          </span>
-          <span class="cell input-message-cell">
-            <textarea class="span input-message"
-              placeholder="&#8592; Enter your nick"
-              ></textarea>
-          </span>
+    <div id="main" class="main-pane">
+      <div class="message-pane-wrapper">
+        <div class="message-pane message-box">
+          <div class="input-bar">
+            <span class="input-nick-cell">
+              <span class="input-nick-sizer"></span>
+              <input type="text" class="input-nick"/>
+            </span>
+            <span class="input-message-cell">
+              <textarea class="input-message"
+                placeholder="&#8592; Enter your nick there"
+                ></textarea>
+            </span>
+          </div>
         </div>
       </div>
       <div class="sidebar">
@@ -40,6 +42,21 @@
             src="/static/gear.svg"/></button><div class="settings-content">
               <label><input type="checkbox" onClick="toggleTheme();"
                 id="dark-theme-toggle"/> Dark theme</label>
+              <div>
+                <p><em>Notifications:</em></p>
+                <label class="indent"><input type="radio" name="notifies"
+                  id="notifies-none" onClick="updateNotifications();"
+                  checked="checked"/> None</label>
+                <label class="indent"><input type="radio" name="notifies"
+                  id="notifies-ping" onClick="updateNotifications();"
+                  /> When pinged</label>
+                <label class="indent"><input type="radio" name="notifies"
+                  id="notifies-reply" onClick="updateNotifications();"
+                  /> When replied</label>
+                <label class="indent"><input type="radio" name="notifies"
+                  id="notifies-any" onClick="updateNotifications();"
+                  /> On activity</label>
+              </div>
             </div></div>
         </div>
         <div class="user-list"></div>

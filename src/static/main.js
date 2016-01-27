@@ -38,6 +38,7 @@ if (Instant.roomName) {
   var MONTH_NAMES = { 1: 'Jan',  2: 'Feb',  3: 'Mar',  4: 'Apr',
                       5: 'May',  6: 'Jun',  7: 'Jul',  8: 'Aug',
                       9: 'Sep', 10: 'Oct', 11: 'Nov', 12: 'Dec'};
+  var NOTIFY_LEVELS = {'none': 0, 'ping': 1, 'reply': 2, 'any': 3};
   var INACTIVITY_TIMEOUT = 600000;
   /* Groupings: 1: Room name matched
    *            2: Full URL matched
@@ -54,7 +55,7 @@ if (Instant.roomName) {
   /* Nick-names */
   var hueHashCache = {};
   function normalizeNick(name) {
-    return name.replace(/\s/, '').toLowerCase();
+    return name.replace(/\s+/g, '').toLowerCase();
   }
   function hueHashRaw(name) {
     var hash = 0;
@@ -100,13 +101,15 @@ if (Instant.roomName) {
     } else {
       msgNode.className = 'message';
     }
-    // .time-wrapper nested inside .nick-wrapper as a nasty hack to
-    // fix Chrome rendering issues. :(
-    msgNode.innerHTML = '<div class="line"><span class="nick-wrapper">' +
-      '<span class="time-wrapper"><time></time></span><span ' +
+    if (data.ping)
+      msgNode.className += ' ping';
+    if (data.mine)
+      msgNode.setAttribute('data-mine', 'true');
+    msgNode.innerHTML = '<div class="line"><span class="time-wrapper">' +
+      '<time></time></span><span class="nick-wrapper"><span ' +
       'class="hidden" data-key="indent"></span><span class="hidden">&lt;' +
       '</span><span class="nick"></span><span data-key="after-nick" ' +
-      'class="hidden">&gt;</span></span><span class="content"><span ' +
+      'class="hidden">&gt; </span></span><span class="content"><span ' +
       'class="text"></span></span></div>';
     var hue = Instant.hueHash(nick);
     msgNode.setAttribute('data-hue', hue);
@@ -132,16 +135,22 @@ if (Instant.roomName) {
       zpad(date.getSeconds(), 2));
     time.textContent = (zpad(date.getHours(), 2) + ':' +
       zpad(date.getMinutes(), 2));
+    msgNode.addEventListener('mousedown', function(event) {
+      var el = $sel('[data-was-active=true]');
+      if (el) el.removeAttribute('data-was-active');
+      if (document.activeElement)
+        document.activeElement.setAttribute('data-was-active', true);
+      event.stopPropagation();
+    });
     msgNode.addEventListener('click', function(event) {
-      if (! Instant.mainPane) return;
       var bar = $sel('.input-bar', Instant.mainPane);
       var sparent = getParent(msgNode);
       var bparent = getParent(bar);
       if (! $sel('.input-bar', sparent) || bparent == msgNode) {
         updateInput(getParent(msgNode) ||
-          $sel('.message-pane', Instant.mainPane));
+          $sel('.message-pane', Instant.mainPane), 'last-active');
       } else {
-        updateInput(msgNode);
+        updateInput(msgNode, 'last-active');
       }
       event.stopPropagation();
     });
@@ -163,7 +172,11 @@ if (Instant.roomName) {
     } else {
       msgo.emote = false;
     }
+    msgo.ping = false;
+    msgo.mine = (Instant.identity && msgo.from &&
+        msgo.from == Instant.identity);
     msgo.text = msgo.text.trim();
+    msgo.rawText = msgo.text;
     // Highlight quick replies.
     var color = null;
     if (/^\+1$/.test(msgo.text)) {
@@ -202,7 +215,7 @@ if (Instant.roomName) {
         out.push(makeSpan('<', '#808080'));
         var node = document.createElement('a');
         var url = m[2];
-        if (! m[3]) url = "http://" + url;
+        if (! m[3]) url = 'http://' + url;
         node.href = url;
         node.target = '_blank';
         node.textContent = m[2];
@@ -211,6 +224,9 @@ if (Instant.roomName) {
       } else if (m[8]) {
         out.push(makeSpan(m[0], 'hsl(' + Instant.hueHash(m[8]) +
           ', 75%, 40%)'));
+        if (normalizeNick(m[8]) == normalizeNick(Instant.nickname)) {
+          msgo.ping = true;
+        }
       } else if (m[0]) {
         out.push(m[0]);
       }
@@ -232,6 +248,17 @@ if (Instant.roomName) {
       msg = msg.parentNode;
     } while (msg && ! (msg.classList && msg.classList.contains('message')));
     return msg;
+  }
+  function getPreceding(msg) {
+    if (! msg) return null;
+    var par = getParent(msg);
+    if (! (par && par.classList.contains('message'))) return null;
+    var prev = msg.previousElementSibling;
+    if (prev && prev.classList.contains('message')) {
+      return prev;
+    } else {
+      return par;
+    }
   }
   function getMessageID(msg) {
     while (msg && ! (msg.classList && msg.classList.contains('message')))
@@ -303,22 +330,70 @@ if (Instant.roomName) {
     }
   }
   /* Input bar management */
-  function updateInput(parent) {
-    if (! Instant.mainPane) return;
-    var el = document.activeElement;
+  function _findPane(el) {
+    while (el && ! (el.classList && el.classList.contains('message-pane'))) {
+      el = el.parentNode;
+    }
+    return el;
+  }
+  function _findWrapper(el) {
+    while (el && ! (el.classList &&
+        el.classList.contains('message-pane-wrapper')))
+      el = el.parentNode;
+    return el;
+  }
+  function _prepareScroll(bar) {
+    var pane = _findPane(bar);
+    var wr = _findWrapper(pane);
+    if (wr) {
+      return pane.offsetTop + bar.offsetTop + bar.offsetHeight -
+        wr.scrollTop;
+    } else {
+      return null;
+    }
+  }
+  function _applyScroll(bar, cookie) {
+    if (cookie != null) {
+      var pane = _findPane(bar);
+      var wr = _findWrapper(pane);
+      if (wr)
+        wr.scrollTop = pane.offsetTop + bar.offsetTop + bar.offsetHeight -
+          cookie;
+    }
+  }
+  function _updateInput(parent, focus, scrollTo) {
     var bar = $sel('.input-bar', Instant.mainPane);
+    var el = document.activeElement;
     if (! parent) {
-      var sib = bar.nextElementSibling;
-      if (! sib || ! sib.classList.contains('message')) return;
       parent = bar.parentNode;
     } else if (parent.classList.contains('message')) {
       parent = makeReplies(parent);
     }
     parent.appendChild(bar);
-    $sel('.input-message', bar).focus();
+    if (focus == 'bar') {
+      $sel('.input-message', bar).focus();
+    } else if (focus == 'last-active') {
+      el = $sel('[data-was-active=true]');
+      if (el) el.focus();
+    } else if (focus == 'active') {
+      if (el) el.focus();
+    } else if (typeof focus != 'string' && focus) {
+      focus.focus();
+    }
+    _applyScroll(bar, scrollTo);
+  }
+  function prepareInputUpdate() {
+    var focus = document.activeElement;
+    var bar = $sel('.input-bar', Instant.mainPane);
+    var scrollTo = _prepareScroll(bar);
+    return function(parent) {
+      _updateInput(parent, focus, scrollTo);
+    };
+  }
+  function updateInput(parent, focus) {
+    _updateInput(parent, focus);
   }
   function navigateInput(dir) {
-    if (! Instant.mainPane) return;
     var bar = $sel('.input-bar', Instant.mainPane);
     var prev = bar.previousElementSibling;
     var parent = null;
@@ -347,9 +422,16 @@ if (Instant.roomName) {
         }
         if (prev) {
           // Ascend until just after most nested child.
-          while (prev && ($sel('.message', prev) || allowNest)) {
+          while (prev && (allowNest || $sel('.message', prev))) {
             parent = prev;
-            prev = $sel('.message:last-child', prev);
+            var replies = $sel('.replies', prev);
+            prev = null;
+            if (replies) {
+              var ch = replies.children;
+              for (var i = 0; i < ch.length; i++) {
+                if (ch[i].classList.contains('message')) prev = ch[i];
+              }
+            }
           }
         }
       }
@@ -388,35 +470,84 @@ if (Instant.roomName) {
         parent = prev;
       }
     }
-    Instant.updateInput(parent);
+    Instant.updateInput(parent, 'active');
   }
   /* Miscellaneous */
   function toggleSettings() {
     var btn = $sel('.settings', Instant.mainPane);
     var cnt = $sel('.settings-content', Instant.mainpane);
-    var vis = (btn.getAttribute('data-visible') != "yes");
-    btn.setAttribute('data-visible', (vis) ? "yes" : "no");
+    var vis = (btn.getAttribute('data-visible') != 'yes');
+    btn.setAttribute('data-visible', (vis) ? 'yes' : 'no');
     if (vis) {
       btn.style.borderRadius = '0';
       btn.style.borderBottomWidth = '0';
       btn.style.paddingBottom = '1px';
       btn.style.boxShadow = 'none';
       cnt.style.display = 'block';
-      cnt.style.opacity = '1';
-      if (cnt.getAttribute('data-timeout')) {
-        clearTimeout(cnt.getAttribute('data-timeout'));
-        cnt.setAttribute('data-timeout', null);
-      }
     } else {
       btn.style.borderRadius = '';
       btn.style.borderBottomWidth = '';
       btn.style.paddingBottom = '';
       btn.style.boxShadow = '';
-      cnt.style.opacity = '';
-      cnt.setAttribute('data-timeout', setTimeout(function() {
-        cnt.style.display = 'none';
-        cnt.setAttribute('data-timeout', null);
-      }, 250));
+      cnt.style.display = '';
+    }
+  }
+  function setNotificationStatus(notifies) {
+    if (notifies == 'none') {
+      Instant.notifies = 'none';
+      return;
+    }
+    if (Notification.permission == 'default') {
+      // Work around partial support.
+      var ret = Notification.requestPermission(function() {
+        setNotificationStatus(notifies);
+      });
+      if (ret && ret.then) ret.then(function() {
+        setNotificationStatus(notifies);
+      });
+      return;
+    }
+    if (Notification.permission == 'denied') {
+      Instant.notifies = 'none';
+      $id('notifies-none').checked = true;
+      return;
+    }
+    Instant.notifies = notifies;
+  }
+  function checkNotifications(msg) {
+    var notifyLevel = 'any';
+    if (msg.ping) {
+      notifyLevel = 'ping';
+    } else {
+      var prev = getPreceding(messages[msg.id]);
+      if (prev && prev.getAttribute('data-mine') == 'true')
+        notifyLevel = 'reply';
+    }
+    if (NOTIFY_LEVELS[notifyLevel] <= NOTIFY_LEVELS[Instant.notifies]) {
+      if (Notification.permission != 'granted' ||
+          Instant.pendingNotification || ! Instant.blurred)
+        return;
+      var t;
+      if (msg.emote) {
+        t = '* ' + msg.nick + ' ' + msg.rawText;
+      } else {
+        t = '<' + msg.nick + '> ' + msg.rawText;
+      }
+      // Seems like I'm supposed just to construct it...
+      var n = Instant.pendingNotification = new Notification(
+        '&' + Instant.roomName, {'body': t});
+      n.onshow = function() {
+        Instant.pendingNotification = n;
+      }
+      n.onclose = function() {
+        Instant.pendingNotification = null;
+      };
+      n.onclick = function() {
+        Instant.updateInput(messages[msg.id], 'bar');
+        window.focus();
+        n.close();
+      };
+      console.log(n);
     }
   }
   function updateUnread(amount) {
@@ -724,22 +855,36 @@ if (Instant.roomName) {
           if (msgt == 'post') {
             /* Message format: {type: 'post', nick: <nick>, text: <text>,
              * parent: <id>}. ID and timestamp supplied by backend. */
+            // Sanitize input.
+            var nick = msgd.nick;
+            var text = msgd.text;
+            if (typeof nick != 'string') nick = '';
+            if (typeof text != 'string')
+              // HACK: Serialize text to something remotely senseful.
+              text = JSON.stringify(text);
+            // Data for the various message processing functions.
             var ent = {id: msg.id, parent: msgd.parent || null,
-              timestamp: msg.timestamp, nick: msgd.nick, text: msgd.text};
+              timestamp: msg.timestamp, from: msg.from, nick: nick,
+              text: text};
             // Post message.
+            var upd = Instant.prepareInputUpdate();
             Instant.addComment(ent.parent, ent);
-            Instant.updateInput();
+            Instant.checkNotifications(ent);
+            upd();
             // Scrape for nick changes
-            Instant.userList.add(msg.from, msgd.nick);
+            Instant.userList.add(msg.from, nick);
             Instant.userList.update();
-            // Update logs.
-            var logent = {id: msg.id, timestamp: msg.timestamp,
-              nick: msgd.nick, text: msgd.text};
-            if (msgd.parent) logent.parent = msgd.parent;
+            // Update logs (stores raw values).
+            var logent = {id: msg.id, parent: msgd.parent,
+              timestamp: msg.timestamp, from: msg.from, nick: msgd.nick,
+              text: msgd.text};
             Instant.logs.add(logent);
           } else if (msgt == 'nick') {
             /* Message format: {type: 'nick', nick: <nick>} */
-            Instant.userList.add(msg.from, msgd.nick);
+            // Sanitize input
+            var nick = msgd.nick;
+            if (typeof nick != 'string') nick = '';
+            Instant.userList.add(msg.from, nick);
             Instant.userList.update();
           } else if (msgt == 'who') {
             /* Unicast a nick message back */
@@ -767,21 +912,26 @@ if (Instant.roomName) {
             Instant.connection.sendUnicast(msg.from, reply);
           } else if (msgt == 'log') {
             /* Incorporate given logs into data */
+            var upd = Instant.prepareInputUpdate();
             var sort = {};
             var keys = Instant.logs.merge(msgd.data);
             for (var i = 0; i < keys.length; i++) {
               var ent = Instant.logs.messages[keys[i]];
               if (messages[ent.id]) continue;
-              Instant.addComment(ent.parent, {id: ent.id,
-                timestamp: ent.timestamp, nick: ent.nick,
-                text: ent.text});
+              var e = {id: ent.id, timestamp: ent.timestamp,
+                from: ent.from, nick: ent.nick, text: ent.text};
+              // Sanitize values.
+              if (typeof e.nick != 'string') e.nick = '';
+              if (typeof e.text != 'string') e.text = JSON.stringify(e.text);
+              Instant.addComment(ent.parent, e);
+              Instant.checkNotifications(e);
               sort[ent.parent] = true;
             }
             for (var k in sort) {
               if (! sort.hasOwnProperty(k)) continue;
               Instant.sortComments(k);
             }
-            Instant.updateInput();
+            upd();
           }
           break;
         case 'pong':
@@ -841,8 +991,10 @@ if (Instant.roomName) {
       }
     });
     installChange(inmsg, function() {
+      var c = _prepareScroll(bar);
       inmsg.style.height = '';
       inmsg.style.height = inmsg.scrollHeight + 'px';
+      _applyScroll(bar, c);
     });
     innick.addEventListener('keydown', function(event) {
       if (event.keyCode == 13) {
@@ -864,10 +1016,11 @@ if (Instant.roomName) {
         inmsg.value = '';
         if (text) {
           if (! Instant.connection) {
+            var upd = Instant.prepareInputUpdate();
             var msgid = 'local-' + (Instant.connection.seqid++);
             Instant.addComment(bar.parentNode, Instant.createMessage(msgid,
               innick.value, inmsg.value, false, true));
-            Instant.updateInput();
+            upd();
           } else {
             var bar = $sel('.input-bar', Instant.mainPane);
             var parent = Instant.getMessageID(bar);
@@ -921,15 +1074,20 @@ if (Instant.roomName) {
   Instant.getMessageID = getMessageID;
   Instant.addComment = addComment;
   Instant.sortComments = sortComments;
+  Instant.prepareInputUpdate = prepareInputUpdate;
   Instant.updateInput = updateInput;
   Instant.navigateInput = navigateInput;
   Instant.toggleSettings = toggleSettings;
+  Instant.setNotificationStatus = setNotificationStatus;
+  Instant.checkNotifications = checkNotifications;
   Instant.updateUnread = updateUnread;
   Instant.init = init;
   Instant.mainPane = null;
   Instant.identity = null;
   Instant.nickname = '';
   Instant.blurred = false;
+  Instant.notifies = 'none';
+  Instant.pendingNotification = null;
   Instant.unreadMessages = 0;
 })();
 
@@ -968,6 +1126,7 @@ function init() {
     Instant.init($id('main'));
   }
   toggleTheme();
+  updateNotifications();
 }
 
 function toggleTheme() {
@@ -982,4 +1141,18 @@ function toggleTheme() {
     link.rel = 'alternate stylesheet';
     link.title = link.getAttribute('data-orig-title');
   }
+}
+
+function updateNotifications() {
+  var notifies = null;
+  if ($id('notifies-none').checked) {
+    notifies = 'none';
+  } else if ($id('notifies-ping').checked) {
+    notifies = 'ping';
+  } else if ($id('notifies-reply').checked) {
+    notifies = 'reply';
+  } else if ($id('notifies-any').checked) {
+    notifies = 'any';
+  }
+  Instant.setNotificationStatus(notifies);
 }

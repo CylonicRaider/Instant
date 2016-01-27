@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
 # -*- coding: ascii -*-
 
-# TODO: Parse args.
+# TODO: Parse from field.
 
 import sys, re, time, heapq, bisect, json, errno
 import ast
 import websocket
 
 NICKNAME = 'Scribe'
+VERSION = 'v1.2'
 MAXLEN = None
 
 class LogEntry(dict):
@@ -185,7 +186,6 @@ def on_open(ws):
 def on_message(ws, msg, _context={'oid': None, 'id': None,
                                   'src': None, 'from': None}):
     def send_request(ws, rid):
-        print ((_context, ws, rid))
         if _context['id'] != rid: return
         send_unicast(ws, _context['src'], {'type': 'log-request',
                                            'from': _context['from']})
@@ -195,23 +195,27 @@ def on_message(ws, msg, _context={'oid': None, 'id': None,
         data = json.loads(msg)
         if data.get('type') == 'identity':
             _context['oid'] = data.get('data', {}).get('id')
-        if data.get('type') not in ('unicast', 'broadcast'):
+        elif data.get('type') not in ('unicast', 'broadcast'):
             return
-        msgt = data.get('data', {}).get('type')
+        msgd = data.get('data', {})
+        msgt = msgd.get('type')
         # Protocollary replies / other handling
         if msgt == 'who':
             # Own nick
             send_unicast(ws, data.get('from'), {'type': 'nick',
                                                 'nick': NICKNAME})
+        elif msgt == 'nick':
+            log('NICK id=%r nick=%r' % (data.get('from'), msgd.get('nick')))
         elif msgt == 'post':
             # A single mesage
-            msgd = data.get('data', {})
             post = LogEntry(id=data.get('id'), parent=msgd.get('parent'),
                             nick=msgd.get('nick'), text=msgd.get('text'),
-                            timestamp=data.get('timestamp'))
-            log('POST id=%r parent=%r nick=%r text=%r' %
-                (post['id'], post['parent'], post['nick'], post['text']))
-            bisect.insort(LOGS, post)
+                            timestamp=data.get('timestamp'),
+                            **{'from': data.get('from')})
+            log('POST id=%r parent=%r from=%r nick=%r text=%r' %
+                (post['id'], post['parent'], post['from'], post['nick'],
+                 post['text']))
+            merge_logs(LOGS, [post], MAXLEN)
         elif msgt == 'log-query':
             # Someone querying how far my logs go
             if LOGS:
@@ -231,7 +235,6 @@ def on_message(ws, msg, _context={'oid': None, 'id': None,
                 EVENTS.add(1, lambda: send_request(ws, rid))
         elif msgt == 'log-request':
             # Someone requesting chat logs
-            msgd = data.get('data', {})
             lfrom = msgd.get('from')
             lto = msgd.get('to')
             amount = msgd.get('amount')
@@ -270,14 +273,14 @@ def on_message(ws, msg, _context={'oid': None, 'id': None,
                 if not isinstance(e, dict): continue
                 logs.append(LogEntry(id=e.get('id'), parent=e.get('parent'),
                     nick=e.get('nick'), timestamp=e.get('timestamp'),
-                    text=e.get('text')))
+                    text=e.get('text'), **{'from': e.get('from')}))
             logs.sort()
             added = merge_logs(LOGS, logs, MAXLEN)
             for e in logs:
                 eid = e['id']
                 if eid not in added: continue
-                log('LOGPOST id=%r parent=%r nick=%r text=%r' %
-                    (eid, e['parent'], e['nick'], e['text']))
+                log('LOGPOST id=%r parent=%r from=%r nick=%r text=%r' %
+                    (eid, e['parent'], e['from'], e['nick'], e['text']))
     except (ValueError, TypeError, AttributeError) as e:
         return
 def on_error(ws, exc):
@@ -323,7 +326,7 @@ def main():
     if addr is None:
         sys.stderr.write('ERROR: No address specified.\n')
         sys.exit(1)
-    log('SCRIBE version=1.0')
+    log('SCRIBE version=%s' % VERSION)
     for fn in toread:
         log('READING file=%r maxlen=%r' % (fn, MAXLEN))
         try:

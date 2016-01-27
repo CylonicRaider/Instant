@@ -52,6 +52,14 @@ a.logo-small {
   color: black;
 }
 
+.sidebar {
+  background: rgba(0, 0, 0, 0.5);
+}
+
+.user-list .nick-wrapper:not(.active) .nick {
+  color: #808080;
+}
+
 .input-bar .input-message {
   color: white;
   background: black;

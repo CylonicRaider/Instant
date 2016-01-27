@@ -3,8 +3,8 @@ body {
   position: absolute;
   top: 0;
   left: 0;
-  bottom: 0;
-  right: 0;
+  width: 100%;
+  height: 100%;
   text-align: center;
   overflow: hidden;
   color: black;
@@ -53,6 +53,11 @@ body {
   padding-right: 1ch;
 }
 
+.indent {
+  display: block;
+  margin-left: 1em;
+}
+
 .hidden {
   display: inline-block;
   overflow: hidden;
@@ -68,43 +73,48 @@ body {
 .message-box:not(.notimes) {
   padding-left: 3em;
 }
+.message-box.notimes .message > .line .time-wrapper {
+  display: none;
+}
+.main-pane > .message-pane {
+  padding-top: 1.5em;
+}
 
 .message > .line {
-  display: table;
+  display: -webkit-flex;
+  display: flex;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+.message.ping > .line {
+  background: #ffffc0;
+}
+.message > .line .nick-wrapper .nick {
+  display: inline-block;
 }
 .message > .line .time-wrapper {
-  display: inline-block;
-  height: 0;
-  vertical-align: top;
   user-select: none;
   -moz-user-select: none;
   -webkit-user-select: none;
 }
-.message > .line time {
-  display: inline-block;
+.message > .line .time-wrapper time {
   position: absolute;
   left: 0;
   width: 3em;
-  height: 1em;
-  padding-top: 1px;
   text-align: center;
   color: #808080;
 }
-.message > .line .nick-wrapper, .message > .line .content {
-  display: table-cell;
-}
-.message > .line .nick-wrapper .nick {
-  display: inline-block;
-  height: 100%;
-  min-height: 1em;
+.message.ping > .line .time-wrapper time {
+  color: #000000;
 }
 .message > .line .content {
-  padding-left: 0.25em;
+  min-width: 0;
 }
-.message > .line .text {
-  white-space: pre-wrap;
+.message > .line .content .text {
+  display: block;
+  padding: 1px 0 1px 0.25em;
 }
-.message.emote > .line .content {
+.message.emote > .line .content .text {
   padding-right: 0.25em;
 }
 
@@ -120,12 +130,9 @@ body {
   margin-top: 2px;
 }
 
-.message-box.notimes .message .line time {
-  display: none;
-}
-
 .nick {
   padding: 1px 2px;
+  background: #c0c0c0;
 }
 
 @media (max-width: 400px) {
@@ -135,11 +142,14 @@ body {
     padding: 0 0 0 10px;
     text-indent: -10px;
   }
-  .message > .line .nick-wrapper, .message > .line .content {
-    display: inline;
+  .message > .line > * {
+    text-indent: 0;
   }
-  .message > .line .content {
-    padding: 0;
+  .message > .line .nick-wrapper, .message > .line .content,
+  .message > .line .content .text {
+    display: inline;
+    position: static;
+    margin: 0;
   }
 
   .nick {
@@ -157,8 +167,6 @@ body {
   height: 100%;
   text-align: left;
   transition: opacity 1s;
-  overflow-x: auto;
-  overflow-y: scroll;
 }
 
 .sidebar {
@@ -168,6 +176,8 @@ body {
   padding: 5px;
   margin-right: 15px; /* For scrollbar */
   text-align: right;
+  background: rgba(255, 255, 255, 0.5);
+  transition: background 0.5s;
 }
 
 .room-name, a.room-name {
@@ -208,7 +218,6 @@ body {
   outline: 0;
   background: #ffffff;
   cursor: pointer;
-  transition: border-radius 0.25s, color 0.5s, background 0.5s;
 }
 .settings::-moz-focus-inner {
   margin: 0;
@@ -230,11 +239,10 @@ body {
   border: 1px solid black;
   padding: 5px;
   z-index: -1;
+  text-align: left;
   white-space: nowrap;
   background: #ffffff;
   color: #000000;
-  opacity: 0;
-  transition: opacity 0.25s, color 0.5s, background 0.5s;
 }
 
 .user-list {
@@ -249,13 +257,27 @@ body {
   color: #000000;
 }
 
+.message-pane-wrapper {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  overflow-x: auto;
+  overflow-y: scroll;
+}
 .message-pane {
   position: absolute;
   bottom: 0;
+  left: 0;
   width: 100%;
+  height: auto;
   max-height: 100%;
   box-sizing: border-box;
   padding: 5px;
+}
+#main > .message-pane-wrapper > .message-pane {
+  padding-top: 1.5em;
 }
 
 .input-bar {
@@ -264,24 +286,17 @@ body {
   margin: 5px 0;
   box-shadow: 0 0 5px #808080;
 }
-.input-bar .cell {
+.input-bar .input-nick-cell, .input-bar .input-message-cell {
   display: table-cell;
   position: relative;
   vertical-align: top;
-}
-.input-bar .shrink {
-  width: 0;
-}
-.input-bar .span {
-  box-sizing: border-box;
-  width: 100%;
 }
 .input-bar .input-nick-cell {
   width: 0;
 }
 .input-bar .input-message-cell {
   width: 100%;
-  padding: 1px 0 1px 5px;
+  padding: 1px 0 1px 0.25em;
 }
 .input-bar .input-nick-sizer, .input-bar .input-nick,
 .input-bar .input-message {
@@ -296,7 +311,7 @@ body {
   padding: 1px 2px;
   white-space: pre;
   min-height: 1.2em;
-  line-height: 1.2em;
+  line-height: 1.2;
   vertical-align: bottom;
   color: transparent;
   background: #c0c0c0;
@@ -307,15 +322,16 @@ body {
   top: 1px;
   left: 2px;
   min-width: 100%;
-  line-height: 1.2em;
+  line-height: 1.2;
   color: black;
   background: transparent;
 }
 .input-bar .input-message {
   margin: 0;
   border: 0;
+  width: 100%;
   height: 1.2em;
-  line-height: 1.2em;
+  line-height: 1.2;
   color: black;
   background: transparent;
   overflow: hidden;
@@ -333,7 +349,22 @@ body {
   margin: 3px 0 5px 0;
 }
 
+@media (max-width: 400px) {
+
+  .input-bar .input-message-cell {
+    padding: 0 0 0 0.25em;
+  }
+  .input-bar .input-nick-sizer {
+    padding: 0 1px;
+  }
+  .input-bar .input-nick {
+    top: 0;
+    left: 1px;
+  }
+
+}
+
 body, .breadcrumbs.standalone *, .sidebar-top > *,
-.input-bar .input-message {
+.sidebar-top > .settings-wrapper > *, .input-bar .input-message {
   transition: color 0.5s, background 0.5s;
 }

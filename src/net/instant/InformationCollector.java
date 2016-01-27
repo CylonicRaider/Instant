@@ -4,6 +4,7 @@ import java.net.InetAddress;
 import java.util.Calendar;
 import java.util.IdentityHashMap;
 import java.util.Locale;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.logging.Logger;
 import org.java_websocket.WebSocket;
@@ -32,11 +33,13 @@ public class InformationCollector {
         private String method, url, version;
         private String referer, userAgent;
         private String rfc1413, auth;
+        private final ExtraData extra;
         private short code = -1;
         private long length = -1;
 
         public Datum() {
             timestamp = System.currentTimeMillis();
+            extra = new ExtraData();
         }
 
         protected void setWebSocket(WebSocket s) {
@@ -106,6 +109,10 @@ public class InformationCollector {
             return auth;
         }
 
+        public ExtraData getExtra() {
+            return extra;
+        }
+
         public short getCode() {
             return code;
         }
@@ -121,12 +128,15 @@ public class InformationCollector {
         }
 
         public String formatLogEntry() {
-            return String.format("%s %s %s %s %s %s %s %s %s",
+            String ret = String.format("%s %s %s %s %s %s %s %s %s",
                 formatElement(sourceIP), formatElement(rfc1413),
                 formatElement(auth), formatElementDatetime(timestamp),
                 formatElementQuoted(statusLine), formatElement(code),
                 formatElement(length), formatElementQuoted(referer),
                 formatElementQuoted(userAgent));
+            if (! extra.isEmpty())
+                ret += " " + escapeQuotes(extra.formatLogField(), true);
+            return ret;
         }
 
         public void setResponseInfo(ServerHandshakeBuilder response,
@@ -165,6 +175,22 @@ public class InformationCollector {
             } else {
                 return s.replaceAll(" ", "%20").replaceAll("\"", "%22");
             }
+        }
+
+    }
+
+    public static class ExtraData extends LinkedHashMap<String, Object> {
+
+        public String formatLogField() {
+            StringBuilder sb = new StringBuilder();
+            for (Map.Entry<String, Object> e : entrySet()) {
+                if (e.getValue() == null) continue;
+                if (sb.length() != 0) sb.append(' ');
+                sb.append(e.getKey());
+                sb.append('=');
+                sb.append(e.getValue());
+            }
+            return sb.toString();
         }
 
     }
@@ -216,6 +242,9 @@ public class InformationCollector {
                             Handshakedata eff_resp) {
         get(request).setReferer(getValue(request, "Referer"));
         get(request).setUserAgent(getValue(request, "User-Agent"));
+        String fwd = getValue(request, "X-Forwarded-For");
+        if (fwd != null) fwd = fwd.replace(" ", "");
+        get(request).getExtra().put("real-ip", fwd);
         if (hook != null) hook.postProcessRequest(request, response, eff_resp);
     }
 
