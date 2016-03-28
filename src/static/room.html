@@ -40,8 +40,18 @@
           <span class="online-status" title="..."></span>
           <div class="settings-wrapper"><button class="settings"><img
             src="/static/gear.svg"/></button><div class="settings-content">
-              <label><input type="checkbox" onClick="toggleTheme();"
-                id="dark-theme-toggle"/> Dark theme</label>
+              <div>
+                <p><em>Theme:</em></p>
+                <label class="indent"><input type="radio" name="theme"
+                  id="theme-bright" onClick="toggleTheme();"
+                  checked="checked"/> Bright</label>
+                <label class="indent"><input type="radio" name="theme"
+                  id="theme-dark" onClick="toggleTheme();"
+                  /> Dark</label>
+                <label class="indent"><input type="radio" name="theme"
+                  id="theme-verydark" onClick="toggleTheme();"
+                  /> Very dark</label>
+              </div>
               <div>
                 <p><em>Notifications:</em></p>
                 <label class="indent"><input type="radio" name="notifies"

@@ -1,19 +1,27 @@
 #!/usr/bin/env python3
 # -*- coding: ascii -*-
 
-# TODO: Parse from field.
-
-import sys, re, time, heapq, bisect, json, errno
-import ast
+import sys, re, time
+import heapq, bisect
+import signal, errno
+import ast, json
 import websocket
 
 NICKNAME = 'Scribe'
-VERSION = 'v1.2'
+VERSION = 'v1.2.1'
 MAXLEN = None
+
+def parse_version(s):
+    if s.startswith('v'): s = s[1:]
+    try:
+        return tuple(map(int, s.split('.')))
+    except (TypeError, ValueError):
+        return ()
 
 class LogEntry(dict):
     @staticmethod
     def derive_timestamp(msgid):
+        # NOTE: Returns milliseconds since Epoch.
         return (int(msgid, 16) >> 10)
     def __cmp__(self, other):
         if isinstance(other, LogEntry):
@@ -107,23 +115,20 @@ WHITESPACE = re.compile(r'\s+')
 PARAM = re.compile(r'([a-zA-Z0-9_-]+)=([^"\']\S*'
     r'|"([^"\\]|\\.)*"|\'([^\'\\]|\\.)*\')(?=\s|$)')
 CONSTANTS = {'None': None, 'True': True, 'False': False}
-def read_logs(src, maxlen=None):
-    ret = []
+def read_logs(src):
     for line in src:
         m = LOGLINE_START.match(line)
         if not m: continue
-        if m.group(2) not in ('POST', 'LOGPOST'): continue
-        args, idx, valid = m.group(3), 0, True
-        values, l = LogEntry(), len(args)
+        ts, tag = m.group(1), m.group(2)
+        args, idx = m.group(3), 0
+        values, l = {}, len(args)
         while idx < len(args):
             m = WHITESPACE.match(args, idx)
             if m:
                 idx = m.end()
                 continue
             m = PARAM.match(args, idx)
-            if not m:
-                valid = False
-                break
+            if not m: break
             idx = m.end()
             name, val = m.group(1), m.group(2)
             if val in CONSTANTS:
@@ -131,17 +136,55 @@ def read_logs(src, maxlen=None):
             elif val and val[0] in '\'"':
                 val = ast.literal_eval(val)
             values[name] = val
-        if not valid: continue
-        if 'timestamp' not in values and 'id' in values:
+        else:
+            yield (ts, tag, values)
+def read_posts(src, maxlen=None):
+    cver, froms, ret = (), {}, []
+    for ts, tag, values in read_logs(src):
+        if tag == 'SCRIBE':
+            cver = parse_version(values.get('version'))
+            continue
+        if tag in ('POST', 'LOGPOST'):
+            pass
+        elif cver < (1, 2) and tag == 'MESSAGE':
+            try:
+                msg = json.loads(values.get('content'))
+            except (TypeError, ValueError):
+                continue
+            if msg.get('type') not in ('broadcast', 'unicast'):
+                continue
+            try:
+                msgid = msg['id']
+            except KeyError:
+                continue
+            msgd = msg.get('data', {})
+            if msgd.get('type') == 'post':
+                froms[msgid] = msg.get('from')
+            elif msgd.get('type') == 'log':
+                for v in msgd.get('data', ()):
+                    try:
+                        froms[v['id']] = v['from']
+                    except KeyError:
+                        pass
+            continue
+        else:
+            continue
+        if 'id' not in values: continue
+        values = LogEntry(values)
+        if 'timestamp' not in values:
             values['timestamp'] = LogEntry.derive_timestamp(values['id'])
         if 'text' not in values and 'content' in values:
             values['text'] = values['content']
+            del values['content']
         ret.append(values)
         if maxlen is not None and len(ret) >= maxlen * 2:
             ret.sort()
             ret = ret[-maxlen:]
     ret.sort()
     if maxlen is not None: ret = ret[-maxlen:]
+    for e in ret:
+        if 'from' not in ret and e['id'] in froms:
+            e['from'] = froms[e['id']]
     return ret
 
 def merge_logs(base, add, maxlen=None):
@@ -290,6 +333,8 @@ def on_close(ws):
 
 def main():
     global MAXLEN
+    def interrupt(signum, frame):
+        raise KeyboardInterrupt
     def settimeout(ws, t):
         if t is None or t > 0:
             ws.settimeout(t)
@@ -326,12 +371,16 @@ def main():
     if addr is None:
         sys.stderr.write('ERROR: No address specified.\n')
         sys.exit(1)
+    try:
+        signal.signal(signal.SIGTERM, interrupt)
+    except Exception:
+        pass
     log('SCRIBE version=%s' % VERSION)
     for fn in toread:
         log('READING file=%r maxlen=%r' % (fn, MAXLEN))
         try:
             with open(fn) as f:
-                merge_logs(LOGS, read_logs(f, MAXLEN), MAXLEN)
+                merge_logs(LOGS, read_posts(f, MAXLEN), MAXLEN)
         except IOError as e:
             log('ERROR reason=%r' % repr(e))
     ws = None
@@ -370,7 +419,10 @@ def main():
             ws = None
             time.sleep(10)
     except KeyboardInterrupt:
-        log('INTERRUPTED')
-        if ws: on_close(ws)
+        try:
+            log('INTERRUPTED')
+            if ws: on_close(ws)
+        except Exception:
+            pass
 
 if __name__ == '__main__': main()

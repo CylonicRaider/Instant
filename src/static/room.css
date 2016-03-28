@@ -92,6 +92,11 @@ body {
 .message > .line .nick-wrapper .nick {
   display: inline-block;
 }
+.message > .line .nick-wrapper .nick::before {
+  content: "";
+  display: inline-block;
+  height: 1em;
+}
 .message > .line .time-wrapper {
   user-select: none;
   -moz-user-select: none;
@@ -105,7 +110,7 @@ body {
   color: #808080;
 }
 .message.ping > .line .time-wrapper time {
-  color: #000000;
+  color: black;
 }
 .message > .line .content {
   min-width: 0;
@@ -216,7 +221,7 @@ body {
   font-size: 100%;
   line-height: 0;
   outline: 0;
-  background: #ffffff;
+  background: white;
   cursor: pointer;
 }
 .settings::-moz-focus-inner {
@@ -241,8 +246,8 @@ body {
   z-index: -1;
   text-align: left;
   white-space: nowrap;
-  background: #ffffff;
-  color: #000000;
+  background: white;
+  color: black;
 }
 
 .user-list {
@@ -254,7 +259,7 @@ body {
   color: #808080;
 }
 .user-list .nick-wrapper.active {
-  color: #000000;
+  color: black;
 }
 
 .message-pane-wrapper {

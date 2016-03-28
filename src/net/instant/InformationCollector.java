@@ -134,8 +134,8 @@ public class InformationCollector {
                 formatElementQuoted(statusLine), formatElement(code),
                 formatElement(length), formatElementQuoted(referer),
                 formatElementQuoted(userAgent));
-            if (! extra.isEmpty())
-                ret += " " + escapeQuotes(extra.formatLogField(), true);
+            String ef = extra.formatLogField();
+            if (! ef.isEmpty()) ret += " " + escapeQuotes(ef, true);
             return ret;
         }
 

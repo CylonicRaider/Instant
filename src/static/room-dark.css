@@ -51,6 +51,9 @@ a.logo-small {
 .nick, .message.emote > .line .content {
   color: black;
 }
+.message.ping > .line .time-wrapper time {
+  color: white;
+}
 
 .sidebar {
   background: rgba(0, 0, 0, 0.5);
@@ -63,4 +66,11 @@ a.logo-small {
 .input-bar .input-message {
   color: white;
   background: black;
+}
+
+#main > * {
+  transition: color 0.5s, background 0.5s, opacity 0.5s;
+}
+#main.very-dark > * {
+  opacity: 0.5;
 }

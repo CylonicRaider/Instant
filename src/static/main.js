@@ -6,7 +6,9 @@ window.Instant = (window.Instant || {});
   var roomPaths = /^(\/room\/([a-z](?:[a-zA-Z0-9_-]*[a-zA-Z0-9])?))\/?/;
   var roomMatch = roomPaths.exec(document.location.pathname);
   if (roomMatch) {
-    var wsURL = 'ws://' + document.location.host + roomMatch[1] + '/ws';
+    var scheme = (document.location.protocol == 'https:') ? 'wss' : 'ws';
+    var wsURL = scheme + '://' + document.location.host +
+      roomMatch[1] + '/ws';
     Instant.connectionURL = wsURL;
     Instant.roomName = roomMatch[2];
   } else {
@@ -49,9 +51,11 @@ if (Instant.roomName) {
    *               7: Path
    *            8: Nick-name @-mentioned.
    */
-  var INTERESTING = '\\B&([a-zA-Z](?:[a-zA-Z0-9_-]*[a-zA-Z0-9])?)\\b|' +
+  var mc = '[^.,:;:!?()\\s]';
+  var INTERESTING = ('\\B&([a-zA-Z](?:[a-zA-Z0-9_-]*[a-zA-Z0-9])?)\\b|' +
     '<(((?!javascript:)[a-zA-Z]+://)?([a-zA-Z0-9._~-]+@)?([a-zA-Z0-9.-]+)' +
-    '(:[0-9]+)?(/[^>]*)?)>|\\B@([^.,:;:!?\\s]+)\\b';
+    '(:[0-9]+)?(/[^>]*)?)>|\\B@(%%MC%%+(?:\\(%%MC%%*\\)%%MC%%*)*)'
+    ).replace(/%%MC%%/g, mc);
   /* Nick-names */
   var hueHashCache = {};
   function normalizeNick(name) {
@@ -211,7 +215,7 @@ if (Instant.roomName) {
         node.target = '_blank';
         node.textContent = m[0];
         out.push(node);
-      } else if (m[2]) {
+      } else if (m[2] && /\./.test(m[5])) {
         out.push(makeSpan('<', '#808080'));
         var node = document.createElement('a');
         var url = m[2];
@@ -957,6 +961,9 @@ if (Instant.roomName) {
       elem.addEventListener('keydown', func);
       elem.addEventListener('keyup', func);
       elem.addEventListener('keypress', func);
+      elem.addEventListener('paste', function(e) {
+        setTimeout(function() { func(e); }, 0);
+      });
       elem.addEventListener('change', func);
       elem.addEventListener('blur', func);
       func();
@@ -1134,12 +1141,17 @@ function toggleTheme() {
   if (! link.getAttribute('data-orig-title')) {
     link.setAttribute('data-orig-title', link.title);
   }
-  if ($id('dark-theme-toggle').checked) {
+  if ($id('theme-dark').checked || $id('theme-verydark').checked) {
     link.rel = 'stylesheet';
     link.title = '';
   } else {
     link.rel = 'alternate stylesheet';
     link.title = link.getAttribute('data-orig-title');
+  }
+  if ($id('theme-verydark').checked) {
+    $id('main').classList.add('very-dark');
+  } else {
+    $id('main').classList.remove('very-dark');
   }
 }
 
