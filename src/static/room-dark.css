@@ -1,0 +1,85 @@
+
+/* Dark theme. */
+
+body {
+  color: white;
+  background: black;
+}
+
+a {
+  color: #0080ff;
+}
+a:visited {
+  color: #c000c0;
+}
+
+.breadcrumbs.standalone {
+  color: white;
+  background: black;
+}
+
+#load-wrapper {
+  background: black;
+}
+
+.logo img {
+  box-shadow: 0 0 30px white;
+}
+
+a.logo-small {
+  color: white;
+}
+.logo-small img {
+  box-shadow: 0 0 2px white;
+}
+.logo-small strong {
+  color: white;
+}
+
+.room-name, a.room-name {
+  color: white;
+}
+.online-status, .settings, .settings-content {
+  border-color: white;
+  box-shadow: 0 0 5px white;
+}
+.settings, .settings-content {
+  color: white;
+  background: black;
+}
+
+.nick, .message.emote > .line .content {
+  color: black;
+}
+.message.ping > .line {
+  color: black;
+}
+.message.ping > .line .time-wrapper time {
+  color: white;
+}
+
+.sidebar > * {
+  background: rgba(0, 0, 0, 0.5);
+}
+
+.user-list .nick-wrapper:not(.active) .nick {
+  color: #808080;
+}
+
+.input-bar, .input-bar .input-message-cell .input-message {
+  color: white;
+  background: black;
+}
+
+.input-bar .input-info-cell .wrapper,
+.input-bar .input-message-cell .input-nick-prompt img {
+  filter: invert(1);
+  -webkit-filter: invert(1);
+}
+
+#main > * {
+  transition: color 0.5s, background 0.5s, opacity 0.5s;
+}
+#main.very-dark > * {
+  opacity: 0.5;
+}

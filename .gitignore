@@ -1,0 +1,4 @@
+# Files to be ignored
+archive/
+*.pyc
+*.class
