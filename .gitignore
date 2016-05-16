@@ -1,4 +1,7 @@
 # Files to be ignored
 archive/
+local/
 *.pyc
 *.class
+*.sqlite
+*.log
