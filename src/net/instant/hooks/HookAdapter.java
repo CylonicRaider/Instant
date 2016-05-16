@@ -1,5 +1,7 @@
-package net.instant;
+package net.instant.hooks;
 
+import net.instant.InformationCollector;
+import net.instant.InstantWebSocketServer;
 import java.nio.ByteBuffer;
 import org.java_websocket.WebSocket;
 import org.java_websocket.handshake.ClientHandshake;

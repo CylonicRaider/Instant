@@ -1,12 +1,19 @@
 package net.instant;
 
 import net.instant.InstantWebSocketServer;
+import net.instant.hooks.Error404Hook;
+import net.instant.hooks.RoomWebSocketHook;
+import net.instant.hooks.RedirectHook;
+import net.instant.hooks.StaticFileHook;
+import net.instant.proto.MessageDistributor;
+import net.instant.util.FileCache;
+import net.instant.util.Util;
 import org.java_websocket.server.WebSocketServer;
 
 public class Main implements Runnable {
 
     public static final String VERSION = "1.0";
-    protected static final String ROOM_RE =
+    public static final String ROOM_RE =
         "[a-zA-Z](?:[a-zA-Z0-9_-]*[a-zA-Z0-9])?";
 
     static {

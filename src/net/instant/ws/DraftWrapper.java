@@ -1,8 +1,9 @@
-package net.instant;
+package net.instant.ws;
 
 import java.nio.ByteBuffer;
 import java.util.Collections;
 import java.util.List;
+import net.instant.InformationCollector;
 import org.java_websocket.drafts.Draft;
 import org.java_websocket.exceptions.InvalidDataException;
 import org.java_websocket.exceptions.InvalidHandshakeException;

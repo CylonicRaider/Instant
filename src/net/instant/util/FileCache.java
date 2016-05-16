@@ -1,4 +1,4 @@
-package net.instant;
+package net.instant.util;
 
 import java.io.File;
 import java.io.FileInputStream;

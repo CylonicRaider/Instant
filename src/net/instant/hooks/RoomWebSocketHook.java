@@ -1,8 +1,14 @@
-package net.instant;
+package net.instant.hooks;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Pattern;
+import net.instant.InformationCollector;
+import net.instant.InstantWebSocketServer;
+import net.instant.Main;
+import net.instant.proto.Message;
+import net.instant.proto.MessageDistributor;
+import net.instant.proto.ProtocolError;
 import org.java_websocket.WebSocket;
 import org.java_websocket.framing.CloseFrame;
 import org.java_websocket.handshake.ClientHandshake;

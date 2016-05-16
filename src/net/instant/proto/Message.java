@@ -1,5 +1,6 @@
-package net.instant;
+package net.instant.proto;
 
+import net.instant.util.Util;
 import org.json.JSONObject;
 
 public class Message {

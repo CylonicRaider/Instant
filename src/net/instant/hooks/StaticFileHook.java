@@ -1,4 +1,4 @@
-package net.instant;
+package net.instant.hooks;
 
 import java.io.File;
 import java.io.InputStream;
@@ -10,6 +10,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import net.instant.InformationCollector;
+import net.instant.InstantWebSocketServer;
+import net.instant.util.FileCache;
+import net.instant.util.Util;
+import net.instant.ws.Draft_Raw;
 import org.java_websocket.WebSocket;
 import org.java_websocket.handshake.ClientHandshake;
 import org.java_websocket.handshake.Handshakedata;

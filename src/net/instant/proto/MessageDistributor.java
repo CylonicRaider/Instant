@@ -1,4 +1,4 @@
-package net.instant;
+package net.instant.proto;
 
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
@@ -7,6 +7,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import net.instant.util.UniqueCounter;
 import org.java_websocket.WebSocket;
 
 public class MessageDistributor {

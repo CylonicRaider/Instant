@@ -1,4 +1,4 @@
-package net.instant;
+package net.instant.util;
 
 import java.nio.ByteBuffer;
 import java.security.SecureRandom;

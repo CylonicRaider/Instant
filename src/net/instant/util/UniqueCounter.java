@@ -1,4 +1,4 @@
-package net.instant;
+package net.instant.util;
 
 public class UniqueCounter {
 

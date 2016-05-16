@@ -1,4 +1,4 @@
-package net.instant;
+package net.instant.proto;
 
 public enum ProtocolError {
 
