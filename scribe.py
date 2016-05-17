@@ -496,7 +496,12 @@ def on_open(ws):
 def on_message(ws, msg, _context={'oid': None, 'id': None, 'src': None,
                                   'from': None, 'to': None, 'done': False}):
     def send_request(ws, rid):
-        if _context['id'] != rid: return
+        if rid is Ellipsis:
+            if _context['id'] is None:
+                _context['done'] = True
+            return
+        elif rid !=  _context['id']:
+            return
         send_unicast(ws, _context['src'], {'type': 'log-request',
                                            'to': _context['to']})
     log('MESSAGE content=%r' % msg)
@@ -505,6 +510,7 @@ def on_message(ws, msg, _context={'oid': None, 'id': None, 'src': None,
         data = json.loads(msg)
         if data.get('type') == 'identity':
             _context['oid'] = data.get('data', {}).get('id')
+            return
         elif data.get('type') not in ('unicast', 'broadcast'):
             return
         msgd = data.get('data', {})
@@ -535,7 +541,9 @@ def on_message(ws, msg, _context={'oid': None, 'id': None, 'src': None,
                      'to': bounds[1], 'length': bounds[2]})
         elif msgt == 'log-info':
             # Log availability report
-            if data.get('from') == _context['oid'] or DONTPULL:
+            if data.get('from') == _context['oid']:
+                EVENTS.add(1, lambda: send_request(ws, Ellipsis))
+            elif DONTPULL:
                 return
             oldest = data.get('data', {}).get('from')
             if oldest is None:
@@ -586,7 +594,7 @@ def on_message(ws, msg, _context={'oid': None, 'id': None, 'src': None,
         elif msgt == 'log-inquiry':
             # Someone asks whether we're done with pulling logs
             if _context['done']:
-                send_broadcast(ws, {'type': 'log-done'})
+                send_unicast(ws, data.get('from'), {'type': 'log-done'})
         elif msgt == 'log-done':
             # Logs were transferred
             if DONTPULL and DONTSTAY:
