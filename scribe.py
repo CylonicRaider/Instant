@@ -10,6 +10,11 @@ import ast, json
 import websocket
 import sqlite3
 
+try:
+    from queue import Queue, Empty as QueueEmpty
+except ImportError:
+    from Queue import Queue, Empty as QueueEmpty
+
 NICKNAME = 'Scribe'
 VERSION = 'v1.3'
 MAXLEN = None
@@ -339,6 +344,34 @@ class EventScheduler:
         while self.run(): pass
 EVENTS = EventScheduler()
 
+class BackgroundWebSocket:
+    def __init__(self, url):
+        self.url = url
+        self.queue = Queue()
+        self.ws = None
+    def connect(self):
+        self.ws = websocket.create_connection(self.url)
+        thr = threading.Thread(target=self._reader)
+        thr.setDaemon(True)
+        thr.start()
+    def _reader(self):
+        try:
+            while 1:
+                self.queue.put(self.ws.recv())
+        except BaseException as e:
+            self.queue.put(e)
+    def recv(self, timeout=None):
+        try:
+            ret = self.queue.get(timeout=timeout)
+        except QueueEmpty:
+            raise websocket.WebSocketTimeoutException
+        if isinstance(ret, BaseException): raise ret
+        return ret
+    def send(self, datum):
+        self.ws.send(datum)
+    def close(self):
+        self.ws.close()
+
 LOGLINE_START = re.compile(r'^\[([0-9 Z:-]+)\]\s+([A-Z_-]+)\s+(.*)$')
 WHITESPACE = re.compile(r'\s+')
 PARAM = re.compile(r'([a-zA-Z0-9_-]+)=([^"\']\S*'
@@ -572,11 +605,6 @@ def main():
                 yield f
     def interrupt(signum, frame):
         raise SystemExit
-    def settimeout(ws, t):
-        if t is None or t > 0:
-            ws.settimeout(t)
-        else:
-            ws.settimeout(0)
     def run_push_logs():
         while push_logs:
             peer = push_logs.pop(0)
@@ -653,21 +681,22 @@ def main():
         while 1:
             log('CONNECT url=%r' % addr)
             try:
-                ws = websocket.create_connection(addr)
+                ws = BackgroundWebSocket(addr)
+                ws.connect()
             except Exception as e:
                 log('ERROR reason=%r' % repr(e))
                 time.sleep(reconnect)
                 reconnect += 1
                 continue
-            EVENTS.sleep = lambda t: settimeout(ws, t)
+            EVENTS.time = time.time
+            EVENTS.sleep = ws.recv
             EVENTS.clear()
             EVENTS.add(0.5, run_push_logs)
             on_open(ws)
             reconnect = 0
             while 1:
-                EVENTS.run()
                 try:
-                    msg = ws.recv()
+                    msg = EVENTS.run()
                 except websocket.WebSocketTimeoutException as e:
                     continue
                 except websocket.WebSocketConnectionClosedException as e:
@@ -675,9 +704,6 @@ def main():
                 except IOError as e:
                     if (e.errno == errno.EAGAIN or
                             e.errno == errno.EWOULDBLOCK):
-                        continue
-                    elif isinstance(e, ssl.SSLError) and e.args[0] == 2:
-                        # SSLWantReadError -- retry.
                         continue
                     on_error(ws, e)
                     break
