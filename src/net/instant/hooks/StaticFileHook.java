@@ -240,7 +240,7 @@ public class StaticFileHook extends HookAdapter {
             String etag = cell.getETag();
             if (etag != null) {
                 String fullETag = "w/\"" + etag + '"';
-                response.put("Cache-Control", "public, max-age=600");
+                response.put("Cache-Control", "public, max-age=3600");
                 response.put("ETag", fullETag);
                 String ifNoneMatch = request.getFieldValue("If-None-Match");
                 if (ifNoneMatch.equals(fullETag)) cached = true;
