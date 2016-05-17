@@ -1,7 +1,10 @@
 # Files to be ignored
-archive/
-local/
+/archive/
+/local/
 *.pyc
-*.class
 *.sqlite
 *.log
+
+# Other packages contain class files only
+/src/*.class
+/src/net/instant/**/*.class
