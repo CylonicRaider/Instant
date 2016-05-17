@@ -327,19 +327,17 @@ class EventScheduler:
             self.pending[:] = []
     def run(self):
         wait = None
-        try:
-            while 1:
-                with self:
-                    if not self.pending: break
-                    now = self.time()
-                    head = self.pending[0]
-                    if head.time > now:
-                        wait = head.time - now
-                        break
-                    heapq.heappop(self.pending)
-                head()
-        finally:
-            return self.sleep(wait)
+        while 1:
+            with self:
+                if not self.pending: break
+                now = self.time()
+                head = self.pending[0]
+                if head.time > now:
+                    wait = head.time - now
+                    break
+                heapq.heappop(self.pending)
+            head()
+        return self.sleep(wait)
     def main(self):
         while self.run(): pass
 EVENTS = EventScheduler()
@@ -494,7 +492,7 @@ def on_open(ws):
     log('OPENED')
     EVENTS.add(1, send_greetings)
 def on_message(ws, msg, _context={'oid': None, 'id': None, 'src': None,
-                                  'from': None, 'to': None}):
+                                  'from': None, 'to': None, 'done': False}):
     def send_request(ws, rid):
         if _context['id'] != rid: return
         send_unicast(ws, _context['src'], {'type': 'log-request',
@@ -579,9 +577,14 @@ def on_message(ws, msg, _context={'oid': None, 'id': None, 'src': None,
                 _context['to'] = None
                 send_broadcast(ws, {'type': 'log-query'})
             else:
+                _context['done'] = True
                 send_broadcast(ws, {'type': 'log-done'})
                 if DONTSTAY:
                     raise SystemExit
+        elif msgt == 'log-inquiry':
+            # Someone asks whether we're done with pulling logs
+            if _context['done']:
+                send_broadcast(ws, {'type': 'log-done'})
         elif msgt == 'log-done':
             # Logs were transferred
             if DONTPULL and DONTSTAY:
@@ -610,6 +613,7 @@ def main():
             peer = push_logs.pop(0)
             log('LOGPUSH to=%r' % peer)
             send_logs(ws, peer)
+        send_broadcast(ws, {'type': 'log-inquiry'})
     try:
         it, at_args = iter(sys.argv[1:]), False
         maxlen, toread, msgdb, push_logs = MAXLEN, [], None, []
@@ -711,7 +715,7 @@ def main():
                     on_error(ws, e)
                     break
                 on_message(ws, msg)
-            EVENTS.sleep = time.sleep
+            EVENTS.sleep = EVENTS._sleep
             on_close(ws)
             ws = None
             time.sleep(reconnect)

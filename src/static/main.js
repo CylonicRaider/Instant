@@ -1289,6 +1289,10 @@ if (Instant.roomName) {
               Instant.updateScroll();
               upd();
               break;
+            case 'log-inquiry':
+            case 'log-done':
+              /* Both for log scraper interaction, not interesting to us */
+              break;
           }
           break;
         case 'pong':
