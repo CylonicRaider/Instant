@@ -634,7 +634,7 @@ def main():
         except IOError as e:
             log('ERROR reason=%r' % repr(e))
     log('LOGBOUNDS from=%r to=%r amount=%r' % LOGS.bounds())
-    ws = None
+    ws, reconnect = None, 0
     try:
         while 1:
             log('CONNECT url=%r' % addr)
@@ -642,12 +642,14 @@ def main():
                 ws = websocket.create_connection(addr)
             except Exception as e:
                 log('ERROR reason=%r' % repr(e))
-                time.sleep(10)
+                time.sleep(reconnect)
+                reconnect += 1
                 continue
             EVENTS.sleep = lambda t: settimeout(ws, t)
             EVENTS.clear()
             EVENTS.add(0.5, run_push_logs)
             on_open(ws)
+            reconnect = 0
             while 1:
                 EVENTS.run()
                 try:
@@ -672,7 +674,8 @@ def main():
             EVENTS.sleep = time.sleep
             on_close(ws)
             ws = None
-            time.sleep(10)
+            time.sleep(reconnect)
+            reconnect += 1
     except (KeyboardInterrupt, SystemExit) as e:
         try:
             if isinstance(e, SystemExit):
