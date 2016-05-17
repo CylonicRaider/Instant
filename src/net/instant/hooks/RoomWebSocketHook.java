@@ -50,7 +50,9 @@ public class RoomWebSocketHook extends WebSocketHook {
         String name = url.substring(ROOM_PREF.length(), cutoff);
         String id = distr.makeID();
         info.getExtra().put("id", id);
-        conn.send(new Message("identity").makeData("id", id).makeString());
+        conn.send(new Message("identity").makeData("id", id,
+            "version", Main.VERSION,
+            "revision", Main.FINE_VERSION).makeString());
         distr.add(name, conn, id);
         distr.get(conn).broadcast(prepare("joined").makeData("id", id));
     }

@@ -221,6 +221,9 @@ public class InstantWebSocketServer extends WebSocketServer
         byte[] rand = Util.getRandomness(16);
         response.put("X-Magic-Cookie", '"' + Util.toBase64(rand) + '"');
         Util.clear(rand);
+        response.put("X-Instant-Version", Main.VERSION);
+        if (Main.FINE_VERSION != null)
+            response.put("X-Instant-Revision", Main.FINE_VERSION);
         synchronized (hooks) {
             for (Hook hook : hooks) {
                 hook.postProcessRequest(this, info, request,

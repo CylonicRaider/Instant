@@ -1,5 +1,9 @@
 package net.instant;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.URL;
+import java.util.jar.Manifest;
 import net.instant.InstantWebSocketServer;
 import net.instant.hooks.Error404Hook;
 import net.instant.hooks.RoomWebSocketHook;
@@ -12,14 +16,30 @@ import org.java_websocket.server.WebSocketServer;
 
 public class Main implements Runnable {
 
-    public static final String VERSION = "1.0";
+    public static final String VERSION = "1.3";
     public static final String ROOM_RE =
         "[a-zA-Z](?:[a-zA-Z0-9_-]*[a-zA-Z0-9])?";
+    public static final String FINE_VERSION;
 
     static {
         System.setProperty("java.util.logging.SimpleFormatter.format",
                            "[%1$tY-%1$tm-%1$td %1$tH:%1$tM:%1$tS.%1$tL " +
                            "%4$-7s %3$-20s] %5$s %6$s%n");
+        String v;
+        InputStream stream = null;
+        try {
+            stream = new URL(Main.class.getResource(""),
+                             "/META-INF/MANIFEST.MF").openStream();
+            Manifest mf = new Manifest(stream);
+            v = mf.getMainAttributes().getValue("X-Git-Commit");
+        } catch (IOException exc) {
+            v = null;
+        } finally {
+            try {
+                if (stream != null) stream.close();
+            } catch (IOException exc) {}
+        }
+        FINE_VERSION = v;
     }
 
     private final String[] args;
