@@ -2,6 +2,7 @@
 # -*- coding: ascii -*-
 
 import sys, re, time
+import threading
 import heapq, bisect
 import contextlib
 import signal, errno, ssl
@@ -274,10 +275,7 @@ IDENTIFIER = Sequence()
 class EventScheduler:
     @staticmethod
     def sleep(delay):
-        if delay is None:
-            time.sleep(None)
-        elif delay > 0:
-            time.sleep(delay)
+        if delay is not None: time.sleep(delay)
     class Event:
         def __init__(self, time, callback):
             self.time = time
@@ -296,34 +294,50 @@ class EventScheduler:
             return self.time <= other.time
         def __lt__(self, other):
             return self.time < other.time
-    def __init__(self, time, sleep):
+    def __init__(self, time=None, sleep=None):
+        if time is None: time = self._time
+        if sleep is None: sleep = self._sleep
         self.pending = []
         self.time = time
         self.sleep = sleep
+        self.cond = threading.Condition()
+    def __enter__(self):
+        return self.cond.__enter__()
+    def __exit__(self, *args):
+        return self.cond.__exit__(*args)
+    def _time(self):
+        return time.time()
+    def _sleep(self, delay):
+        return self.cond.wait(delay)
     def add_abs(self, timestamp, callback):
-        heapq.heappush(self.pending, self.Event(timestamp, callback))
+        with self:
+            heapq.heappush(self.pending, self.Event(timestamp, callback))
+            self.cond.notify()
     def add(self, delay, callback):
         return self.add_abs(self.time() + delay, callback)
+    def add_now(self, callback):
+        return self.add_abs(self.time(), callback)
     def clear(self):
-        self.pending[:] = []
+        with self:
+            self.pending[:] = []
     def run(self):
+        wait = None
         try:
-            while self.pending:
-                now = self.time()
-                head = self.pending[0]
-                if head.time > now: return
-                heapq.heappop(self.pending)
+            while 1:
+                with self:
+                    if not self.pending: break
+                    now = self.time()
+                    head = self.pending[0]
+                    if head.time > now:
+                        wait = head.time - now
+                        break
+                    heapq.heappop(self.pending)
                 head()
         finally:
-            if self.pending:
-                diff = self.time() - self.pending[0].time
-                self.sleep(diff)
-            else:
-                self.sleep(None)
+            return self.sleep(wait)
     def main(self):
-        while self.pending:
-            self.run()
-EVENTS = EventScheduler(time.time, time.sleep)
+        while self.run(): pass
+EVENTS = EventScheduler()
 
 LOGLINE_START = re.compile(r'^\[([0-9 Z:-]+)\]\s+([A-Z_-]+)\s+(.*)$')
 WHITESPACE = re.compile(r'\s+')
