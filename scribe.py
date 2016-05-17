@@ -21,6 +21,8 @@ MAXLEN = None
 DONTSTAY = False
 DONTPULL = False
 
+PING_DELAY = 2700 # 45 min
+
 def parse_version(s):
     if s.startswith('v'): s = s[1:]
     try:
@@ -459,16 +461,16 @@ def log(msg):
 def send(ws, msg, verbose=True):
     if verbose: log('SEND content=%r' % msg)
     ws.send(msg)
+def send_seq(ws, msg, verbose=True):
+    seq = SEQUENCE()
+    msg['seq'] = seq
+    send(ws, json.dumps(msg, separators=(',', ':')), verbose)
+    return seq
 def send_unicast(ws, dest, msg, verbose=True):
-    seq = SEQUENCE()
-    send(ws, json.dumps({'type': 'unicast', 'seq': seq, 'to': dest,
-                         'data': msg}, separators=(',', ':')), verbose)
-    return seq
+    return send_seq(ws, {'type': 'unicast', 'to': dest, 'data': msg},
+                    verbose)
 def send_broadcast(ws, msg, verbose=True):
-    seq = SEQUENCE()
-    send(ws, json.dumps({'type': 'broadcast', 'seq': seq, 'data': msg},
-                        separators=(',', ':')), verbose)
-    return seq
+    return send_seq(ws, {'type': 'broadcast', 'data': msg}, verbose)
 
 def send_logs(ws, peer, lfrom=None, lto=None, amount=None):
     ret = LOGS.query(lfrom, lto, amount)
@@ -614,6 +616,9 @@ def main():
             log('LOGPUSH to=%r' % peer)
             send_logs(ws, peer)
         send_broadcast(ws, {'type': 'log-inquiry'})
+    def run_ping():
+        EVENTS.add(PING_DELAY, run_ping)
+        send_seq(ws, {'type': 'ping'})
     try:
         it, at_args = iter(sys.argv[1:]), False
         maxlen, toread, msgdb, push_logs = MAXLEN, [], None, []
@@ -696,6 +701,7 @@ def main():
             EVENTS.sleep = ws.recv
             EVENTS.clear()
             EVENTS.add(0.5, run_push_logs)
+            EVENTS.add(PING_DELAY, run_ping)
             on_open(ws)
             reconnect = 0
             while 1:
