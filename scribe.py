@@ -13,6 +13,7 @@ NICKNAME = 'Scribe'
 VERSION = 'v1.3'
 MAXLEN = None
 DONTSTAY = False
+DONTPULL = False
 
 def parse_version(s):
     if s.startswith('v'): s = s[1:]
@@ -440,7 +441,8 @@ def send_logs(ws, peer, lfrom=None, lto=None, amount=None):
 def on_open(ws):
     def send_greetings():
         send_broadcast(ws, {'type': 'who'})
-        send_broadcast(ws, {'type': 'log-query'})
+        if not DONTPULL:
+            send_broadcast(ws, {'type': 'log-query'})
         send_broadcast(ws, {'type': 'nick', 'nick': NICKNAME})
     log('OPENED')
     EVENTS.add(1, send_greetings)
@@ -451,7 +453,7 @@ def on_message(ws, msg, _context={'oid': None, 'id': None, 'src': None,
         send_unicast(ws, _context['src'], {'type': 'log-request',
                                            'to': _context['to']})
     log('MESSAGE content=%r' % msg)
-    # Try to extract message parameters.
+    # Try to extract message parameters
     try:
         data = json.loads(msg)
         if data.get('type') == 'identity':
@@ -486,7 +488,7 @@ def on_message(ws, msg, _context={'oid': None, 'id': None, 'src': None,
                      'to': bounds[1], 'length': bounds[2]})
         elif msgt == 'log-info':
             # Log availability report
-            if data.get('from') == _context['oid']:
+            if data.get('from') == _context['oid'] or DONTPULL:
                 return
             oldest = data.get('data', {}).get('from')
             if oldest is None:
@@ -504,6 +506,7 @@ def on_message(ws, msg, _context={'oid': None, 'id': None, 'src': None,
                       msgd.get('to'), msgd.get('amount'))
         elif msgt == 'log':
             # Someone delivering chat logs
+            if DONTPULL: return
             raw, logs = data.get('data', {}).get('data', []), []
             for e in raw:
                 if not isinstance(e, dict): continue
@@ -517,7 +520,7 @@ def on_message(ws, msg, _context={'oid': None, 'id': None, 'src': None,
                 if eid not in added: continue
                 log('LOGPOST id=%r parent=%r from=%r nick=%r text=%r' %
                     (eid, e['parent'], e['from'], e['nick'], e['text']))
-            # Request more if applicable.
+            # Request more if applicable
             oldest = LOGS.bounds()[0]
             oldestRemote = data.get('data', {}).get('from')
             if oldestRemote is None: oldestRemote = _context['from']
@@ -528,7 +531,13 @@ def on_message(ws, msg, _context={'oid': None, 'id': None, 'src': None,
                 _context['from'] = None
                 _context['to'] = None
                 send_broadcast(ws, {'type': 'log-query'})
-            elif DONTSTAY:
+            else:
+                send_broadcast(ws, {'type': 'log-done'})
+                if DONTSTAY:
+                    raise SystemExit
+        elif msgt == 'log-done':
+            # Logs were transferred
+            if DONTPULL and DONTSTAY:
                 raise SystemExit
     except (ValueError, TypeError, AttributeError) as e:
         log('FAULT reason=%r' % repr(e))
@@ -539,7 +548,7 @@ def on_close(ws):
     log('CLOSED')
 
 def main():
-    global LOGS, NICKNAME, DONTSTAY
+    global LOGS, NICKNAME, DONTSTAY, DONTPULL
     @contextlib.contextmanager
     def openarg(fname):
         if fname == '-':
@@ -568,7 +577,8 @@ def main():
                 if arg == '--help':
                     sys.stderr.write('USAGE: %s [--help] [--maxlen maxlen] '
                         '[--msgdb file] [--read-file file] [--push-logs id] '
-                        '[--dont-stay] [--nick name] url\n' % sys.argv[0])
+                        '[--dont-stay] [--dont-pull] [--nick name] url\n' %
+                        sys.argv[0])
                     sys.exit(0)
                 elif arg == '--maxlen':
                     maxlen = int(next(it))
@@ -580,6 +590,8 @@ def main():
                     push_logs.append(next(it))
                 elif arg == '--dont-stay':
                     DONTSTAY = True
+                elif arg == '--dont-pull':
+                    DONTPULL = True
                 elif arg == '--nick':
                     NICKNAME = next(it)
                 elif arg == '--':
