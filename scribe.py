@@ -4,7 +4,7 @@
 import sys, re, time
 import heapq, bisect
 import contextlib
-import signal, errno
+import signal, errno, ssl
 import ast, json
 import websocket
 import sqlite3
@@ -405,8 +405,9 @@ def read_posts(src, maxlen=None):
     return ret
 
 def log(msg):
-    sys.stdout.write('[%s] %s\n' % (
-        time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime()), msg))
+    m = '[%s] %s\n' % (time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime()),
+                       msg)
+    sys.stdout.write(m.encode('ascii', 'backslashreplace').decode('ascii'))
     sys.stdout.flush()
 
 def send(ws, msg, verbose=True):
@@ -646,6 +647,9 @@ def main():
                 except IOError as e:
                     if (e.errno == errno.EAGAIN or
                             e.errno == errno.EWOULDBLOCK):
+                        continue
+                    elif isinstance(e, ssl.SSLError) and e.args[0] == 2:
+                        # SSLWantReadError -- retry.
                         continue
                     on_error(ws, e)
                     break
