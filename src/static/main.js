@@ -116,7 +116,7 @@ if (Instant.roomName) {
   }
   function makeNick(text) {
     var node = document.createElement('span');
-    var hue = hutHash(text);
+    var hue = hueHash(text);
     node.class = 'nick';
     node.textContent = text;
     node.style.background = 'hsl(' + hue + ', 75%, 80%)';
