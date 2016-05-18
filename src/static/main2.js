@@ -31,6 +31,10 @@ function $suffLength(text, char) {
 
 /* Early preparation; define most of the functionality */
 window.Instant = function() {
+  /* Locale-agnostic abbreviated month name table */
+  var MONTH_NAMES = { 1: 'Jan',  2: 'Feb',  3: 'Mar',  4: 'Apr',
+                      5: 'May',  6: 'Jun',  7: 'Jul',  8: 'Aug',
+                      9: 'Sep', 10: 'Oct', 11: 'Nov', 12: 'Dec'};
   var Instant = {};
   /* Prepare connection */
   var roomPaths = /^(\/room\/([a-zA-Z](?:[a-zA-Z0-9_-]*[a-zA-Z0-9])?))\/?/;
@@ -51,6 +55,25 @@ window.Instant = function() {
     $sel('title').innerHTML = Instant.baseTitle;
   } else {
     Instant.baseTitle = 'Instant';
+  }
+  /* Left-pad a string */
+  function leftpad(s, l, c) {
+    s = s.toString();
+    while (s.length < l) s = c + s;
+    return s;
+    /* Was it that hard? */
+  }
+  /* Format a date sensibly */
+  function formatDate(date) {
+    /* Zero-pad a number */
+    function zpad(n, l) {
+      return leftpad(n, l, '0');
+    }
+    /* Compose result */
+    return (zpad(date.getFullYear(), 4) + '-' +
+      MONTH_NAMES[date.getMonth() + 1] + '-' + zpad(date.getDate(), 2) + ' ' +
+      zpad(date.getHours(), 2) + ':' + zpad(date.getMinutes(), 2) + ':' +
+      zpad(date.getSeconds(), 2));
   }
   /* Nick-name handling */
   Instant.nick = function() {
@@ -108,10 +131,6 @@ window.Instant = function() {
   Instant.message = function() {
     /* Message ID -> DOM node */
     var nodes = {};
-    /* Locale-agnostic abbreviated month name table */
-    var MONTH_NAMES = { 1: 'Jan',  2: 'Feb',  3: 'Mar',  4: 'Apr',
-                        5: 'May',  6: 'Jun',  7: 'Jul',  8: 'Aug',
-                        9: 'Sep', 10: 'Oct', 11: 'Nov', 12: 'Dec'};
     /* Interesting substring regex.
      * Groupings:  1: Room name matched
      *             2: Full URL matched (without surrounding marks)
@@ -290,6 +309,76 @@ window.Instant = function() {
         }
         /* Done! */
         return stack[0];
+      },
+      /* Scan for @-mentions of a given nickname in a message */
+      scanMentions: function(content, nick) {
+        var ret = 0, children = content.children;
+        for (var i = 0; i < children.length; i++) {
+          if (children[i].classList.contains('mention')) {
+            /* If nick is correct, one instance found */
+            if (children[i].getAttribute('data-nick') == nick)
+              ret++;
+          } else {
+            /* Scan recursively */
+            ret += Instant.message.scanMentions(children[i], nick);
+          }
+        }
+        return ret;
+      },
+      /* Generate a DOM node for the specified message parameters. */
+      makeMessage: function(params) {
+        /* Allocate return value; fill in basic values */
+        var msgNode = document.createNode('div');
+        msgNode.id = 'message-' + params.id;
+        msgNode.setAttribute('data-id', params.id);
+        /* Filter out emotes */
+        var emote = /^\/me/.test(params.text);
+        var text = (emote) ? params.text.substr(3) : params.text;
+        /* Parse content */
+        var content = Instant.message.parseContent(text);
+        /* Assign classes */
+        msgNode.className = 'message';
+        if (emote)
+          msgNode.className += 'emote';
+        if (params.sender == Instant.identity.id)
+          msgNode.className += ' mine';
+        if (Instant.message.scanMentions(content, Instant.identity.nick))
+          msgNode.className += ' ping';
+        if (params.isNew)
+          msgNode.className += ' new';
+        /* Assign children */
+        msgNode.innerHTML = '<div class="line">' +
+          '<time></time>' +
+          '<span class="nick-wrapper">' +
+            '<span class="hidden" data-key="indent"></span>' +
+            '<span class="hidden" data-key="before-nick">&lt;</span>' +
+            '<span class="hidden" data-key="after-nick">&gt; </span>' +
+          '</span>' +
+          '<span class="content"></span></div>';
+        /* Fill in timestamp */
+        var timeNode = $sel('time', msgNode);
+        var date = new Date(params.timestamp);
+        timeNode.setAttribute('datetime', date.toISOString());
+        timeNode.title = formatDate(date);
+        timeNode.textContent = (leftpad(date.getHours(), 2, '0') + ':' +
+          leftpad(date.getMinutes(), 2, '0'));
+        /* Embed nick */
+        var afterNick = $sel("[data-key=after-nick]", msgNode);
+        afterNick.parentNode.insertBefore(Instant.nick.makeNode(params.nick),
+                                          afterNick);
+        /* Add emote styles */
+        if (emote) {
+          var hue = Instant.nick.hueHash(params.nick);
+          afterNick.textContent += '/me ';
+          $sel('.content', msgNode).style.background = 'hsl(' + hue +
+                                                       ', 75%, 90%)';
+        }
+        /* Insert text */
+        $sel('.content', msgNode).appendChild(content);
+        /* Add to global registry */
+        messages[params.id] = msgNode;
+        /* Done */
+        return msgNode;
       }
     };
   }();
