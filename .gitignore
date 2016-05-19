@@ -5,6 +5,9 @@
 *.sqlite
 *.log
 
+# Intermediate build file
+/.build.jar
+
 # Other packages contain class files only
 /src/*.class
 /src/net/instant/**/*.class
