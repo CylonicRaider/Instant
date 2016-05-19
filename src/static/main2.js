@@ -106,7 +106,7 @@ window.Instant = function() {
         var hash = cache[name];
         if (! hash) {
           hash = Instant.nick._hueHash(name);
-          hueHashCache[name] = hash;
+          cache[name] = hash;
         }
         return hash;
       },
@@ -137,8 +137,8 @@ window.Instant = function() {
   /* Message handling */
   Instant.message = function() {
     /* Message ID -> DOM node */
-    var nodes = {};
-    /* Interesting substring regex.
+    var messages = {};
+    /* Interesting substring regex
      * Groupings:  1: Room name matched
      *             2: Full URL matched (without surrounding marks)
      *                 3: Scheme (with colon and double slash)
@@ -153,16 +153,19 @@ window.Instant = function() {
      *                12: Marker before (same)
      *                13: Marker after (same as well)
      */
-    var mc = /[^.,:;!?()\s]/;
-    var ALLOW_AROUND = /[^a-zA-Z0-9_]|^|$/;
+    var mc = '[^.,:;!?()\\s]';
+    var aa = '[^a-zA-Z0-9_]|^|$';
     var INTERESTING = (
       '\\B&([a-zA-Z](?:[a-zA-Z0-9_-]*[a-zA-Z0-9])?)\\b|' +
       '<(((?!javascript:)[a-zA-Z]+://)?([a-zA-Z0-9._~-]+@)?' +
         '([a-zA-Z0-9.-]+)(:[0-9]+)?(/[^>]*)?)>|' +
-      '\\B(@%%MC%%+(?:\\(%MC%*\\)%MC%*)*)|' +
+      '\\B(@%MC%+(?:\\(%MC%*\\)%MC%*)*)|' +
       '((?:[+-]1|:[D)|/(CSP\\\\oO]|[SD)/|(C\\\\oO]:|\\^\\^|;\\))(?=%AA%))|' +
       '((?:\\*+([^*\\s]+)\\*+|\\*+([^*\\s]+)|([^*\\s]+)\\*+)(?=%AA%))'
-      ).replace(/%MC%/g, mc).replace(/%AA%/g, ALLOW_AROUND);
+      ).replace(/%MC%/g, mc).replace(/%AA%/g, aa);
+    var ALLOW_AROUND = new RegExp(aa);
+    /* Smiley table
+     * Keep in sync with the regex above */
     var SMILEYS = {'+1': '#008000', '-1': '#c00000',
       ':D': '#c0c000', ':)': '#c0c000', ':|': '#c0c000', ':/': '#c0c000',
       ':(': '#c0c000', ':C': '#c0c000', ':S': '#c0c000', ':P': '#c0c000',
@@ -201,21 +204,21 @@ window.Instant = function() {
         /* Regular expression instance */
         var re = new RegExp(INTERESTING, 'g');
         /* Intermediate output; last character of input processed */
-        var out = [], l = 0;
+        var out = [], l = 0, s;
         /* Extract the individual goodies from the input */
         for (;;) {
           /* Match regex */
           var m = re.exec(text);
           if (m == null) {
             /* Append ending */
-            s = msgo.text.substring(l);
+            s = text.substring(l);
             if (s) out.push(s);
             break;
           }
           /* Calculate beginning and end */
           var start = m.index, end = m.index + m[0].length;
           /* Insert text between matches */
-          var s = msgo.text.substring(l, start);
+          s = text.substring(l, start);
           if (s) out.push(s);
           /* Character immediately before match */
           var before = (start == 0) ? '' : text.substr(start - 1, 1);
@@ -293,7 +296,7 @@ window.Instant = function() {
          * combinations in between) */
         stack = [makeNode(null, 'message-text')];
         for (var i = 0; i < out.length; i++) {
-          var top = stack[stack.length - 1];
+          var e = out[i], top = stack[stack.length - 1];
           /* Drain non-metadata parts into the current node */
           if (typeof e == 'string') {
             top.appendChild(document.createTextNode(e));
@@ -309,6 +312,7 @@ window.Instant = function() {
             if (emphLevel & 1) node.style.fontStyle = 'italic';
             if (emphLevel & 2) node.style.fontWeight = 'bold';
             if (emphLevel & 4) node.style.fontVariant = 'small-caps';
+            top.appendChild(node);
             stack.push(node);
           } else if (e.emphRem) {
             stack.pop();
@@ -335,22 +339,23 @@ window.Instant = function() {
       /* Generate a DOM node for the specified message parameters */
       makeMessage: function(params) {
         /* Allocate return value; fill in basic values */
-        var msgNode = document.createNode('div');
+        var msgNode = document.createElement('div');
         msgNode.id = 'message-' + params.id;
         msgNode.setAttribute('data-id', params.id);
-        if (params.parent)
+        if (typeof params.parent == 'string')
           msgNode.setAttribute('data-parent', params.parent);
         if (params.from)
           msgNode.setAttribute('data-from', params.from);
-        /* Filter out emotes */
+        /* Filter out emotes and whitespace */
         var emote = /^\/me/.test(params.text);
         var text = (emote) ? params.text.substr(3) : params.text;
+        text = text.trim();
         /* Parse content */
         var content = Instant.message.parseContent(text);
         /* Assign classes */
         msgNode.className = 'message';
         if (emote)
-          msgNode.className += 'emote';
+          msgNode.className += ' emote';
         if (params.from == Instant.identity.id)
           msgNode.className += ' mine';
         if (Instant.message.scanMentions(content, Instant.identity.nick))
@@ -368,11 +373,15 @@ window.Instant = function() {
           '<span class="content"></span></div>';
         /* Fill in timestamp */
         var timeNode = $sel('time', msgNode);
-        var date = new Date(params.timestamp);
-        timeNode.setAttribute('datetime', date.toISOString());
-        timeNode.title = formatDate(date);
-        timeNode.textContent = (leftpad(date.getHours(), 2, '0') + ':' +
-          leftpad(date.getMinutes(), 2, '0'));
+        if (typeof params.timestamp == 'number') {
+          var date = new Date(params.timestamp);
+          timeNode.setAttribute('datetime', date.toISOString());
+          timeNode.title = formatDate(date);
+          timeNode.textContent = (leftpad(date.getHours(), 2, '0') + ':' +
+            leftpad(date.getMinutes(), 2, '0'));
+        } else {
+          timeNode.innerHTML = '<i>N/A</i>';
+        }
         /* Embed nick */
         var afterNick = $sel('[data-key=after-nick]', msgNode);
         afterNick.parentNode.insertBefore(Instant.nick.makeNode(params.nick),
@@ -433,15 +442,17 @@ window.Instant = function() {
       makeReplies: function(message) {
         var lc = message.lastElementChild;
         if (! lc || ! lc.classList.contains('replies')) {
+          var nick = $sel('.nick', message);
           lc = document.createElement('div');
           lc.className = 'replies';
+          lc.style.borderColor = nick.style.backgroundColor;
           message.appendChild(lc);
         }
         return lc;
       },
       /* Scan an array of messages where to insert */
       bisect: function(array, id) {
-        if (! array) return null;
+        if (! array || ! array.length) return null;
         var f = 0, t = array.length - 1;
         for (;;) {
           /* |0 to cast to integer */
@@ -486,7 +497,8 @@ window.Instant = function() {
             throw new Error('Adding message with nonexistant parent');
         }
         /* Validate parent is a DOM node */
-        if (typeof parent != 'object' || parent.nodeType === undefined)
+        if (! parent || typeof parent != 'object' ||
+            parent.nodeType === undefined)
           throw new Error('Invalid parent');
         /* Complete parent resolving */
         var messageParent = null;
@@ -533,3 +545,24 @@ window.Instant = function() {
   /* To be assigned in window */
   return Instant;
 }();
+
+function init() {
+  var wrapper = $id('load-wrapper');
+  var main = $id('main');
+  wrapper.style.boxShadow = '0 0 30px #808080';
+  $id('loading-message').style.display = 'none';
+  var m = $id('splash-messages');
+  Instant.message.addReply({id: 'loading-0-wait', nick: 'Loading',
+    text: 'Please wait...'}, m);
+  var isIE = /*@cc_on!@*/0;
+  if (isIE) Instant.message.addReply({id: 'loading-1-ie', nick: 'Doom',
+    text: '/me awaits IE users...'}, m);
+  if (! Instant.connectionURL) {
+    var c = Instant.message.addReply({id: 'loading-2-conn',
+      nick: 'Connection', text: '/me is missing.'}, m);
+    Instant.message.addReply({id: 'loading-3-comment', nick: 'Loading',
+      text: 'Prepare for a long wait...', parent: 'loading-2-conn'});
+    Instant.message.addReply({id: 'loading-4-comment', nick: 'Loading',
+      text: 'Or, try solving the issue somehow.', parent: 'loading-2-conn'});
+  }
+}

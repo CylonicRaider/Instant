@@ -1,0 +1,144 @@
+
+body {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  text-align: center;
+  overflow: hidden;
+  color: black;
+  background: white;
+}
+
+:focus {
+  outline: 1px dotted black;
+}
+
+#load-wrapper {
+display: inline-block;
+background: white;
+padding: 30px;
+margin: 30px auto;
+transition: all 0.25s, box-shadow 0.5s;
+z-index: 100;
+}
+
+#load-wrapper hr {
+margin: 10px 0;
+border: 1px solid black;
+}
+
+.content-box {
+  display: block;
+  text-align: justify;
+}
+
+#load-wrapper .wait {
+font-weight: bold;
+margin: 10px 0;
+}
+
+.note {
+  display: table-row;
+}
+.note > span {
+  display: table-cell;
+}
+.note > :first-child {
+  font-weight: bold;
+  padding-right: 1ch;
+}
+
+.indent {
+  display: block;
+  margin-left: 1em;
+}
+
+.hidden {
+  display: inline-block;
+  overflow: hidden;
+  width: 0;
+  height: 0;
+  opacity: 0;
+}
+
+.message-box {
+  text-align: left;
+  position: relative;
+}
+.message-box:not(.notimes) {
+  padding-left: 3.5em;
+}
+.message-box.notimes .message > .line time {
+  display: none;
+}
+.main-pane > .message-pane {
+  padding-top: 1.5em;
+}
+
+.message > .line {
+  display: -webkit-flex;
+  display: flex;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+.message.ping > .line {
+  background: #ffffc0;
+}
+.message > .line .nick-wrapper .nick {
+  display: inline-block;
+}
+.message > .line .nick-wrapper .nick::before {
+  content: "";
+  display: inline-block;
+  min-height: 1em;
+}
+.message > .line time {
+  display: inline-block;
+  position: absolute;
+  left: 0;
+  width: 3.5em;
+  padding: 1px 0;
+  text-align: center;
+  color: #808080;
+  user-select: none;
+  -moz-user-select: none;
+  -webkit-user-select: none;
+}
+.message.ping > .line time {
+  color: black;
+}
+.message > .line .content {
+  min-width: 0;
+}
+.message > .line .content .message-text {
+  display: block;
+  padding: 1px 0 1px 0.25em;
+}
+.message.emote > .line .content .message-text {
+  padding-left: 0.1em;
+  padding-right: 0.25em;
+}
+
+.message > .replies {
+  border-left: 2px solid #c0c0c0;
+  padding: 2px 0 0 8px;
+}
+.message > .replies:empty {
+  display: none;
+}
+
+.message + .message {
+  margin-top: 2px;
+}
+
+.nick {
+  padding: 1px 2px;
+  background: #c0c0c0;
+  white-space: pre;
+}
+
+.input-bar, .sidebar {
+  display: none;
+}
