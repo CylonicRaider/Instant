@@ -16,7 +16,7 @@ Instant.jar: .build.jar $(LIBRARIES) $(ASSETS)
 	cd src && jar cfe ../.build.jar Main $(_JAVA_SOURCES) \
 	$(patsubst %.java,%.class,$(_JAVA_SOURCES))
 
-infuse-commit: Instant.jar
+infuse-commit:
 	(printf "X-Git-Commit: "; git rev-parse HEAD) > .git-commit
 	jar ufm Instant.jar .git-commit
 	rm .git-commit
