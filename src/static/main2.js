@@ -75,6 +75,13 @@ window.Instant = function() {
       zpad(date.getHours(), 2) + ':' + zpad(date.getMinutes(), 2) + ':' +
       zpad(date.getSeconds(), 2));
   }
+  /* Own identity */
+  Instant.identity = {
+    /* The session ID */
+    id: null,
+    /* The (current) nickname */
+    nick: null
+  };
   /* Nick-name handling */
   Instant.nick = function() {
     /* Nick -> Hue hash */
@@ -267,7 +274,7 @@ window.Instant = function() {
         for (var i = 0; i < out.length; i++) {
           var e = out[i];
           /* Filter such that only user-made objects remain */
-          if (typeof e != 'object' || e.nodeType != undefined) continue;
+          if (typeof e != 'object' || e.nodeType !== undefined) continue;
           /* Add or remove emphasis, respectively */
           if (e.emphAdd) {
             stack.push(e);
@@ -290,7 +297,7 @@ window.Instant = function() {
           /* Drain non-metadata parts into the current node */
           if (typeof e == 'string') {
             top.appendChild(document.createTextNode(e));
-          } else if (e.nodeType != undefined) {
+          } else if (e.nodeType !== undefined) {
             top.appendChild(e);
           }
           /* Process emphasis nodes */
@@ -325,12 +332,16 @@ window.Instant = function() {
         }
         return ret;
       },
-      /* Generate a DOM node for the specified message parameters. */
+      /* Generate a DOM node for the specified message parameters */
       makeMessage: function(params) {
         /* Allocate return value; fill in basic values */
         var msgNode = document.createNode('div');
         msgNode.id = 'message-' + params.id;
         msgNode.setAttribute('data-id', params.id);
+        if (params.parent)
+          msgNode.setAttribute('data-parent', params.parent);
+        if (params.from)
+          msgNode.setAttribute('data-from', params.from);
         /* Filter out emotes */
         var emote = /^\/me/.test(params.text);
         var text = (emote) ? params.text.substr(3) : params.text;
@@ -340,7 +351,7 @@ window.Instant = function() {
         msgNode.className = 'message';
         if (emote)
           msgNode.className += 'emote';
-        if (params.sender == Instant.identity.id)
+        if (params.from == Instant.identity.id)
           msgNode.className += ' mine';
         if (Instant.message.scanMentions(content, Instant.identity.nick))
           msgNode.className += ' ping';
@@ -363,7 +374,7 @@ window.Instant = function() {
         timeNode.textContent = (leftpad(date.getHours(), 2, '0') + ':' +
           leftpad(date.getMinutes(), 2, '0'));
         /* Embed nick */
-        var afterNick = $sel("[data-key=after-nick]", msgNode);
+        var afterNick = $sel('[data-key=after-nick]', msgNode);
         afterNick.parentNode.insertBefore(Instant.nick.makeNode(params.nick),
                                           afterNick);
         /* Add emote styles */
@@ -375,10 +386,147 @@ window.Instant = function() {
         }
         /* Insert text */
         $sel('.content', msgNode).appendChild(content);
-        /* Add to global registry */
-        messages[params.id] = msgNode;
         /* Done */
         return msgNode;
+      },
+      /* Get the parent of the message */
+      getParent: function(message) {
+        if (! message.parentNode ||
+            ! message.parentNode.classList.contains('replies') ||
+            ! message.parentNode.parentNode ||
+            ! message.parentNode.parentNode.classList.contains('message')) {
+          return message.parentNode;
+        } else {
+          return message.parentNode.parentNode;
+        }
+      },
+      /* Same as getParent(), but ensure it is a message */
+      getParentMessage: function(message) {
+        if (! message.parentNode ||
+            ! message.parentNode.classList.contains('replies') ||
+            ! message.parentNode.parentNode ||
+            ! message.parentNode.parentNode.classList.contains('message')) {
+          return null;
+        } else {
+          return message.parentNode.parentNode;
+        }
+      },
+      /* Get all the (direct) replies to a message */
+      getReplies: function(message) {
+        var children;
+        if (message.classList.contains('message')) {
+          var lc = message.lastElementChild;
+          if (! lc || ! lc.classList.contains('replies'))
+            return [];
+          children = lc;
+        } else {
+          children = message;
+        }
+        var ret = [];
+        for (var i = 0; i < children.length; i++) {
+          if (children[i].classList.contains('message'))
+            ret.push(children[i]);
+        }
+        return ret;
+      },
+      /* Add a reply section to a message if necessary and return it */
+      makeReplies: function(message) {
+        var lc = message.lastElementChild;
+        if (! lc || ! lc.classList.contains('replies')) {
+          lc = document.createElement('div');
+          lc.className = 'replies';
+          message.appendChild(lc);
+        }
+        return lc;
+      },
+      /* Scan an array of messages where to insert */
+      bisect: function(array, id) {
+        if (! array) return null;
+        var f = 0, t = array.length - 1;
+        for (;;) {
+          /* |0 to cast to integer */
+          var c = (f + t) / 2 | 0;
+          /* Element ID-s should sort identially to message ID-s */
+          if (id < array[c].id) {
+            if (f == t) {
+              return array[c];
+            } else if (c == f) {
+              /* Ensure t is not less than f */
+              t = c;
+            } else {
+              t = c - 1;
+            }
+          } else if (array[c].id < id) {
+            if (f == t) {
+              return array[c].nextElementSibling;
+            } else {
+              /* c will never be equal to t unless f == t */
+              f = c + 1;
+            }
+          } else {
+            /* Replace old node */
+            var ret = array[c].nextElementSibling;
+            parent.removeChild(array[c]);
+            return ret;
+          }
+        }
+      },
+      /* Add a reply to a message or a message to a container, sorted
+       * properly */
+      addReply: function(child, parent) {
+        /* Parse child if necessary */
+        if (typeof child == 'object' && child.nodeType === undefined)
+          child = Instant.message.makeMessage(child);
+        /* Retrieve parent from child */
+        if (! parent) parent = child.getAttribute('data-parent');
+        /* Retrieve parent by ID */
+        if (typeof parent == 'string') {
+          parent = messages[parent];
+          if (! parent)
+            throw new Error('Adding message with nonexistant parent');
+        }
+        /* Validate parent is a DOM node */
+        if (typeof parent != 'object' || parent.nodeType === undefined)
+          throw new Error('Invalid parent');
+        /* Complete parent resolving */
+        var messageParent = null;
+        if (parent.classList.contains('message')) {
+          messageParent = parent;
+          parent = Instant.message.makeReplies(parent);
+        }
+        /* Add child to registry */
+        messages[child.getAttribute('data-id')] = child;
+        /* Insert child */
+        var before = Instant.message.bisect(parent.children, child.id);
+        parent.insertBefore(child, before);
+        /* Return the (possibly processed) child */
+        return child;
+      },
+      /* Update the indent string of the given message and all of its
+       * children (if any; recursively) */
+      updateIndents: function(message, indent) {
+        if (! indent) {
+          var par = Instant.message.parentMessage(message);
+          if (par) {
+            indent = $sel('[data-key=indent]', par).textContent + '| ';
+          } else {
+            indent = '';
+          }
+        }
+        $sel('[data-key=indent]', message).textContent = indent;
+        indent += '| ';
+        var children = Instant.message.getReplies(message);
+        for (var i = 0; i < children.length; i++) {
+          Instant.message.updateIndents(children[i], indent);
+        }
+      },
+      /* Return the message identified by this is, or undefined if none */
+      get: function(id) {
+        return messages[id];
+      },
+      /* Clear the internal message registry */
+      clear: function() {
+        mesages = {};
       }
     };
   }();
