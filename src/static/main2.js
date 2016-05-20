@@ -18,6 +18,12 @@ function $parentWithClass(el, cls) {
   return el;
 }
 
+function $moveCh(from, to) {
+  if (! from) return;
+  while (from.childNodes.length)
+    to.appendChild(from.firstChild);
+}
+
 function $prefLength(text, char) {
   var ret = 0;
   while (text[ret] == char) ret++;
@@ -138,6 +144,7 @@ window.Instant = function() {
   Instant.message = function() {
     /* Message ID -> DOM node */
     var messages = {};
+    var fakeMessages = {};
     /* Interesting substring regex
      * Groupings:  1: Room name matched
      *             2: Full URL matched (without surrounding marks)
@@ -336,6 +343,26 @@ window.Instant = function() {
         }
         return ret;
       },
+      /* Generate a fake message node */
+      makeFakeMessage: function(id) {
+        /* Allocate result; populate attributes */
+        var msgNode = document.createElement('div');
+        msgNode.id = 'message-' + id;
+        msgNode.className = 'message message-fake';
+        msgNode.setAttribute('data-id', id);
+        /* Populate contents */
+        msgNode.innerHTML = '<div class="line">' +
+          '<time><a class="permalink">N/A</a></time>' +
+          '<span class="nick-wrapper">' +
+            '<span class="hidden" data-key="indent"></span>' +
+            '<span class="nick">...</span>' +
+          '</span></div>';
+        /* Populate inner attributes */
+        $sel('.line', msgNode).title = 'Message absent or not loaded (yet)';
+        $sel('.permalink', msgNode).href = '#' + msgNode.id;
+        /* Done */
+        return msgNode;
+      },
       /* Generate a DOM node for the specified message parameters */
       makeMessage: function(params) {
         /* Allocate return value; fill in basic values */
@@ -356,7 +383,7 @@ window.Instant = function() {
         msgNode.className = 'message';
         if (emote)
           msgNode.className += ' emote';
-        if (params.from == Instant.identity.id)
+        if (params.from && params.from == Instant.identity.id)
           msgNode.className += ' mine';
         if (Instant.message.scanMentions(content, Instant.identity.nick))
           msgNode.className += ' ping';
@@ -364,7 +391,7 @@ window.Instant = function() {
           msgNode.className += ' new';
         /* Assign children */
         msgNode.innerHTML = '<div class="line">' +
-          '<time></time>' +
+          '<time><a class="permalink"></a></time>' +
           '<span class="nick-wrapper">' +
             '<span class="hidden" data-key="indent"></span>' +
             '<span class="hidden" data-key="before-nick">&lt;</span>' +
@@ -373,14 +400,16 @@ window.Instant = function() {
           '<span class="content"></span></div>';
         /* Fill in timestamp */
         var timeNode = $sel('time', msgNode);
+        var permalink = $sel('.permalink', msgNode);
+        permalink.href = '#' + msgNode.id;
         if (typeof params.timestamp == 'number') {
           var date = new Date(params.timestamp);
           timeNode.setAttribute('datetime', date.toISOString());
           timeNode.title = formatDate(date);
-          timeNode.textContent = (leftpad(date.getHours(), 2, '0') + ':' +
+          permalink.textContent = (leftpad(date.getHours(), 2, '0') + ':' +
             leftpad(date.getMinutes(), 2, '0'));
         } else {
-          timeNode.innerHTML = '<i>N/A</i>';
+          permalink.innerHTML = '<i>N/A</i>';
         }
         /* Embed nick */
         var afterNick = $sel('[data-key=after-nick]', msgNode);
@@ -445,7 +474,8 @@ window.Instant = function() {
           var nick = $sel('.nick', message);
           lc = document.createElement('div');
           lc.className = 'replies';
-          lc.style.borderColor = nick.style.backgroundColor;
+          if (nick.style.backgroundColor)
+            lc.style.borderColor = nick.style.backgroundColor;
           message.appendChild(lc);
         }
         return lc;
@@ -507,12 +537,46 @@ window.Instant = function() {
           parent = Instant.message.makeReplies(parent);
         }
         /* Add child to registry */
-        messages[child.getAttribute('data-id')] = child;
+        if (child.classList.contains('fake')) {
+          fakeMessages[child.getAttribute('data-id')] = child;
+        } else {
+          messages[child.getAttribute('data-id')] = child;
+        }
         /* Insert child */
         var before = Instant.message.bisect(parent.children, child.id);
         parent.insertBefore(child, before);
         /* Return the (possibly processed) child */
         return child;
+      },
+      /* Integrate a message into a hierarchy */
+      importMessage: function(message, root) {
+        /* Parse content */
+        if (typeof message == 'object' && message.nodeType === undefined)
+          message = Instant.message.makeMessage(message);
+        /* Determine or generate parent */
+        var parID = message.getAttribute('data-parent'), parent = root;
+        if (parID) {
+          if (messages[parID]) {
+            parent = messages[parID];
+          } else {
+            parent = Instant.message.makeFakeMessage(parID);
+            Instant.message.addReply(parent, root);
+          }
+        }
+        /* Resolve fake messages */
+        var fake = fakeMessages[message.getAttribute('data-id')];
+        if (fake) {
+          $moveCh(Instant.message.getReplies(fake),
+                  Instant.message.makeReplies(message));
+          fake.parentNode.removeChild(fake);
+          delete fakeMessages[message.getAttribute('data-id')];
+        }
+        /* Add message to parent */
+        Instant.message.addReply(message, parent);
+        /* Update indents */
+        Instant.message.updateIndents(message);
+        /* Done */
+        return message;
       },
       /* Update the indent string of the given message and all of its
        * children (if any; recursively) */
@@ -539,6 +603,7 @@ window.Instant = function() {
       /* Clear the internal message registry */
       clear: function() {
         mesages = {};
+        fakeMessages = {};
       }
     };
   }();
