@@ -467,6 +467,25 @@ window.Instant = function() {
         }
         return ret;
       },
+      /* Return whether a message has direct replies (and therefore replies
+       * at all) */
+      hasReplies: function(message) {
+        var children;
+        if (message.classList.contains('message')) {
+          var lc = message.lastElementChild;
+          if (! lc || ! lc.classList.contains('replies'))
+            return false;
+          children = lc;
+        } else {
+          children = message;
+        }
+        var ret = [];
+        for (var i = 0; i < children.length; i++) {
+          if (children[i].classList.contains('message'))
+            return true;
+        }
+        return false;
+      },
       /* Add a reply section to a message if necessary and return it */
       makeReplies: function(message) {
         var lc = message.lastElementChild;
@@ -604,6 +623,31 @@ window.Instant = function() {
       clear: function() {
         mesages = {};
         fakeMessages = {};
+      }
+    };
+  }();
+  /* Input bar management */
+  Instant.input = function () {
+    /* The DOM node containing the input bar */
+    var inputNode = null;
+    return {
+      /* Move the input bar into the given message/container */
+      jumpTo: function(parent) {
+        /* Handle message parents */
+        if (parent.classList.contains('message'))
+          parent = Instant.message.makeReplies(parent);
+        /* Actually relocate the input */
+        parent.appendChild(inputNode);
+      },
+      /* Move the input bar to the given message, or to its parent if the
+       * bar is already there. */
+      moveTo: function(message) {
+        if (message.classList.contains('message') &&
+            inputNode.parentNode == Instant.getReplies(message)) {
+          Instant.input.jumpTo(Instant.message.getParent(message);
+        } else {
+          Instant.input.jumpTo(message);
+        }
       }
     };
   }();
