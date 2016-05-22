@@ -427,12 +427,17 @@ window.Instant = function() {
         /* Done */
         return msgNode;
       },
+      /* Check if a node is a message at all */
+      isMessage: function(node) {
+        return (node && node.classList &&
+                node.classList.contains('message'));
+      },
       /* Get the parent of the message */
       getParent: function(message) {
         if (! message.parentNode ||
             ! message.parentNode.classList.contains('replies') ||
             ! message.parentNode.parentNode ||
-            ! message.parentNode.parentNode.classList.contains('message')) {
+            ! Instant.message.isMessage(message.parentNode.parentNode)) {
           return message.parentNode;
         } else {
           return message.parentNode.parentNode;
@@ -443,7 +448,7 @@ window.Instant = function() {
         if (! message.parentNode ||
             ! message.parentNode.classList.contains('replies') ||
             ! message.parentNode.parentNode ||
-            ! message.parentNode.parentNode.classList.contains('message')) {
+            ! Instant.message.isMessage(message.parentNode.parentNode)) {
           return null;
         } else {
           return message.parentNode.parentNode;
@@ -451,7 +456,7 @@ window.Instant = function() {
       },
       /* Same as getParent(), but fail if the current node is not a message */
       getParentOfMessage: function(message) {
-        if (! message.classList.contains('message'))
+        if (! Instant.message.isMessage(message))
           return null;
         return Instant.message.getParent(message);
       },
@@ -467,21 +472,21 @@ window.Instant = function() {
       /* Get the message immediately preceding the current one */
       getPrecedessor: function(message) {
         var prev = message.previousElementSibling;
-        if (! prev || ! prev.classList.contains('message'))
+        if (! prev || ! Instant.message.isMessage(prev))
           return null;
         return prev;
       },
       /* Get the message immediately following the current one */
       getSuccessor: function(message) {
         var next = message.nextElementSibling;
-        if (! next || ! next.classList.contains('message'))
+        if (! next || ! Instant.message.isMessage(next))
           return null;
         return next;
       },
       /* Get the node hosting the replies to the given message, or the message
        * itself if it's actually none at all */
       _getReplyNode: function(message) {
-        if (message.classList.contains('message')) {
+        if (Instant.message.isMessage(message)) {
           var lc = message.lastElementChild;
           if (! lc || ! lc.classList.contains('replies'))
             return null;
@@ -602,7 +607,7 @@ window.Instant = function() {
           throw new Error('Invalid parent');
         /* Complete parent resolving */
         var messageParent = null;
-        if (parent.classList.contains('message')) {
+        if (Instant.message.isMessage(parent)) {
           messageParent = parent;
           parent = Instant.message.makeReplies(parent);
         }
@@ -685,7 +690,7 @@ window.Instant = function() {
       /* Move the input bar into the given message/container */
       jumpTo: function(parent) {
         /* Handle message parents */
-        if (parent.classList.contains('message'))
+        if (Instant.message.isMessage(parent))
           parent = Instant.message.makeReplies(parent);
         /* Actually relocate the input */
         parent.appendChild(inputNode);
@@ -693,7 +698,7 @@ window.Instant = function() {
       /* Move the input bar to the given message, or to its parent if the
        * bar is already there. */
       moveTo: function(message) {
-        if (message.classList.contains('message') &&
+        if (Instant.message.isMessage(message) &&
             inputNode.parentNode == Instant.getReplies(message)) {
           Instant.input.jumpTo(Instant.message.getParent(message));
         } else {
