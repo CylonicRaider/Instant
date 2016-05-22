@@ -1,7 +1,7 @@
 
-SOURCES = $(shell find src/ -name '*.java')
-LIBRARIES = $(shell find src/org/)
-ASSETS = $(shell find src/static/ src/pages/)
+SOURCES = $(shell find src/ -name '*.java' 2>/dev/null)
+LIBRARIES = $(shell find src/org/ 2>/dev/null)
+ASSETS = $(shell find src/static/ src/pages/ 2>/dev/null)
 
 _JAVA_SOURCES = $(patsubst src/%,%,$(SOURCES))
 
