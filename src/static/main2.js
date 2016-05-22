@@ -485,56 +485,56 @@ window.Instant = function() {
       },
       /* Get the node hosting the replies to the given message, or the message
        * itself if it's actually none at all */
-      _getReplyNode: function(message) {
+      _getReplyNodeList: function(message) {
         if (Instant.message.isMessage(message)) {
           var lc = message.lastElementChild;
           if (! lc || ! lc.classList.contains('replies'))
             return null;
-          return lc;
+          return lc.children;
         } else {
-          return message;
+          return message.children;
         }
       },
       /* Return whether a message has direct replies (and therefore replies
        * at all) */
       hasReplies: function(message) {
-        var children = Instant.message._getReplyNode(message);
+        var children = Instant.message._getReplyNodeList(message);
         if (! children) return false;
         for (var i = 0; i < children.length; i++) {
-          if (children[i].classList.contains('message'))
+          if (Instant.message.isMessage(children[i]))
             return true;
         }
         return false;
       },
       /* Get all the (direct) replies to a message */
       getReplies: function(message) {
-        var children = Instant.message._getReplyNode(message), ret = [];
+        var children = Instant.message._getReplyNodeList(message), ret = [];
         if (! children) return ret;
         for (var i = 0; i < children.length; i++) {
-          if (children[i].classList.contains('message'))
+          if (Instant.message.isMessage(children[i]))
             ret.push(children[i]);
         }
         return ret;
       },
       /* Get the nth reply to the message, counting from the beginning */
       getReply: function(message, n) {
-        var replies = Instant.message._getReplyNode(message);
+        var replies = Instant.message._getReplyNodeList(message);
         if (! replies) return null;
         if (! n) n = 0;
         for (var i = 0, j = 0; i < replies.length; i++) {
-          if (! replies[i].classList.contains('message')) continue;
-          if (j++ == n) return reples[i];
+          if (! Instant.message.isMessage(replies[i])) continue;
+          if (j++ == n) return replies[i];
         }
         return null;
       },
       /* Get the nth reply to the message, counting from the end */
       getLastReply: function(message, n) {
-        var replies = Instant.message._getReplyNode(message);
+        var replies = Instant.message._getReplyNodeList(message);
         if (! replies) return null;
         if (! n) n = 0;
         for (var i = replies.length - 1, j = 0; i >= 0; i--) {
-          if (! replies[i].classList.contains('message')) continue;
-          if (j++ == n) return reples[i];
+          if (! Instant.message.isMessage(replies[i])) continue;
+          if (j++ == n) return replies[i];
         }
         return null;
       },
@@ -557,7 +557,7 @@ window.Instant = function() {
         var f = 0, t = array.length - 1;
         var last = null;
         /* Exclude input bar */
-        while (t >= 0 && ! array[t].classList.contains('message'))
+        while (t >= 0 && ! Instant.message.isMessage(array[t]))
           last = array[t--];
         if (t < 0) return last;
         /* Main loop */
@@ -728,7 +728,6 @@ window.Instant = function() {
         /* Update status when nick changes */
         inputNick.addEventListener('change', function() {
           Instant.identity.nick = inputNick.value;
-          console.log('nick', Instant.identity.nick);
         });
         /* Reinforce nick editing prompt */
         promptNick.addEventListener('click', function() {
@@ -742,10 +741,10 @@ window.Instant = function() {
         });
         /* Handle special keys */
         inputMsg.addEventListener('keydown', function(event) {
+          var text = inputMsg.value;
           if (event.keyCode == 13 && ! event.shiftKey) { // Return
             /* Send message! */
             /* Retrieve input text */
-            var text = inputMsg.value;
             inputMsg.value = '';
             event.preventDefault();
             updateMessage();
@@ -757,6 +756,32 @@ window.Instant = function() {
               {id: msgid, nick: Instant.identity.nick || '', text: text,
                 parent: Instant.input.getParentID(), timestamp: Date.now()},
               Instant.message.getRoot(inputNode));
+          } else if (event.keyCode == 27) { // Escape
+            Instant.input.navigate('root');
+            inputMsg.focus();
+            event.preventDefault();
+          }
+          if (text.indexOf('\n') == -1) {
+            if (event.keyCode == 38) { // Up
+              Instant.input.navigate('up');
+              inputMsg.focus();
+              event.preventDefault();
+            } else if (event.keyCode == 40) { // Down
+              Instant.input.navigate('down');
+              inputMsg.focus();
+              event.preventDefault();
+            }
+            if (! text) {
+              if (event.keyCode == 37) { // Left
+                Instant.input.navigate('left');
+                inputMsg.focus();
+                event.preventDefault();
+              } else if (event.keyCode == 39) { // Right
+                Instant.input.navigate('right');
+                inputMsg.focus();
+                event.preventDefault();
+              }
+            }
           }
         });
         /* Focus the nick input */
@@ -790,7 +815,7 @@ window.Instant = function() {
         }
       },
       /* Move the input bar relative to its current position */
-      navigateInput: function(direction) {
+      navigate: function(direction) {
         /* Find root */
         var root = Instant.message.getRoot(inputNode);
         switch (direction) {
@@ -803,7 +828,7 @@ window.Instant = function() {
               par = Instant.message.getParentMessage(par);
             }
             /* If no parent has a precedessor, cannot do anything */
-            if (! prev) return;
+            if (! prev) break;
             par = prev;
             /* Descend into its children until we find one with no replies;
              * stop just beneath it */
@@ -818,10 +843,12 @@ window.Instant = function() {
           case 'down':
             /* Special case: message without replies or successor */
             var par = Instant.message.getParentMessage(inputNode);
-            if (! Instant.message.hasReplies(par) &&
+            if (! par) {
+              break;
+            } else if (! Instant.message.hasReplies(par) &&
                 ! Instant.message.getSuccessor(par)) {
               Instant.input.jumpTo(Instant.message.getParent(par));
-              return;
+              break;
             }
             /* Traverse parents until we have a successor */
             var next;
@@ -833,7 +860,7 @@ window.Instant = function() {
             /* Moved all the way up -> main thread */
             if (! next) {
               Instant.input.jumpTo(root);
-              return;
+              break;
             }
             /* Descend into the current message as far as possible */
             par = next;
@@ -845,8 +872,10 @@ window.Instant = function() {
             break;
           case 'left':
             /* Switch to the parent of the current host (or to the root) */
+            var par = Instant.message.getParentMessage(inputNode);
+            if (! par) break;
             Instant.input.jumpTo(
-              Instant.message.getParentMessage(inputNode) || root);
+              Instant.message.getParentMessage(par) || root);
             break;
           case 'right':
             /* Switch to the last child to the current host (if any) */
@@ -859,7 +888,7 @@ window.Instant = function() {
             Instant.input.jumpTo(root);
             break;
           default:
-            throw new Error('Invalid direction for navigateInput: ' +
+            throw new Error('Invalid direction for input.navigate(): ' +
               direction);
         }
       }
