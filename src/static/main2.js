@@ -556,10 +556,13 @@ window.Instant = function() {
         if (! array || ! array.length) return null;
         var f = 0, t = array.length - 1;
         var last = null;
+        /* Exclude baloon */
+        while (f <= t && ! Instant.message.isMessage(array[f]))
+          f++;
         /* Exclude input bar */
         while (t >= 0 && ! Instant.message.isMessage(array[t]))
           last = array[t--];
-        if (t < 0) return last;
+        if (t < f) return last;
         /* Main loop */
         for (;;) {
           /* |0 to cast to integer */
