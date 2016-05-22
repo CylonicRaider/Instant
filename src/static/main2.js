@@ -449,42 +449,89 @@ window.Instant = function() {
           return message.parentNode.parentNode;
         }
       },
-      /* Get all the (direct) replies to a message */
-      getReplies: function(message) {
-        var children;
+      /* Same as getParent(), but fail if the current node is not a message */
+      getParentOfMessage: function(message) {
+        if (! message.classList.contains('message'))
+          return null;
+        return Instant.message.getParent(message);
+      },
+      /* Get the root of a message tree */
+      getRoot: function(message) {
+        var cur = Instant.message.getParent(message), root;
+        do {
+          root = cur;
+          cur = Instant.message.getParentOfMessage(cur);
+        } while (cur);
+        return root;
+      },
+      /* Get the message immediately preceding the current one */
+      getPrecedessor: function(message) {
+        var prev = message.previousElementSibling;
+        if (! prev || ! prev.classList.contains('message'))
+          return null;
+        return prev;
+      },
+      /* Get the message immediately following the current one */
+      getSuccessor: function(message) {
+        var next = message.nextElementSibling;
+        if (! next || ! next.classList.contains('message'))
+          return null;
+        return next;
+      },
+      /* Get the node hosting the replies to the given message, or the message
+       * itself if it's actually none at all */
+      _getReplyNode: function(message) {
         if (message.classList.contains('message')) {
           var lc = message.lastElementChild;
           if (! lc || ! lc.classList.contains('replies'))
-            return [];
-          children = lc;
+            return null;
+          return lc;
         } else {
-          children = message;
+          return message;
         }
-        var ret = [];
+      },
+      /* Return whether a message has direct replies (and therefore replies
+       * at all) */
+      hasReplies: function(message) {
+        var children = Instant.message._getReplyNode(message);
+        if (! children) return false;
+        for (var i = 0; i < children.length; i++) {
+          if (children[i].classList.contains('message'))
+            return true;
+        }
+        return false;
+      },
+      /* Get all the (direct) replies to a message */
+      getReplies: function(message) {
+        var children = Instant.message._getReplyNode(message), ret = [];
+        if (! children) return ret;
         for (var i = 0; i < children.length; i++) {
           if (children[i].classList.contains('message'))
             ret.push(children[i]);
         }
         return ret;
       },
-      /* Return whether a message has direct replies (and therefore replies
-       * at all) */
-      hasReplies: function(message) {
-        var children;
-        if (message.classList.contains('message')) {
-          var lc = message.lastElementChild;
-          if (! lc || ! lc.classList.contains('replies'))
-            return false;
-          children = lc;
-        } else {
-          children = message;
+      /* Get the nth reply to the message, counting from the beginning */
+      getReply: function(message, n) {
+        var replies = Instant.message._getReplyNode(message);
+        if (! replies) return null;
+        if (! n) n = 0;
+        for (var i = 0, j = 0; i < replies.length; i++) {
+          if (! replies[i].classList.contains('message')) continue;
+          if (j++ == n) return reples[i];
         }
-        var ret = [];
-        for (var i = 0; i < children.length; i++) {
-          if (children[i].classList.contains('message'))
-            return true;
+        return null;
+      },
+      /* Get the nth reply to the message, counting from the end */
+      getLastReply: function(message, n) {
+        var replies = Instant.message._getReplyNode(message);
+        if (! replies) return null;
+        if (! n) n = 0;
+        for (var i = replies.length - 1, j = 0; i >= 0; i--) {
+          if (! replies[i].classList.contains('message')) continue;
+          if (j++ == n) return reples[i];
         }
-        return false;
+        return null;
       },
       /* Add a reply section to a message if necessary and return it */
       makeReplies: function(message) {
@@ -644,9 +691,83 @@ window.Instant = function() {
       moveTo: function(message) {
         if (message.classList.contains('message') &&
             inputNode.parentNode == Instant.getReplies(message)) {
-          Instant.input.jumpTo(Instant.message.getParent(message);
+          Instant.input.jumpTo(Instant.message.getParent(message));
         } else {
           Instant.input.jumpTo(message);
+        }
+      },
+      /* Move the input bar relative to its current position */
+      navigateInput: function(direction) {
+        /* Find root */
+        var root = Instant.message.getRoot(inputNode);
+        switch (direction) {
+          case 'up':
+            /* Traverse parents until we have a precedessor */
+            var par = inputNode, prev;
+            while (par) {
+              prev = Instant.message.getPrecedessor(par);
+              if (prev) break;
+              par = Instant.message.getParentMessage(par);
+            }
+            /* If no parent has a precedessor, cannot do anything */
+            if (! prev) return;
+            par = prev;
+            /* Descend into its children until we find one with no replies;
+             * stop just beneath it */
+            for (;;) {
+              var ch = Instant.message.getLastReply(par);
+              if (! ch || ! Instant.message.hasReplies(ch)) break;
+              par = ch;
+            }
+            /* End up here */
+            Instant.input.jumpTo(par);
+            break;
+          case 'down':
+            /* Special case: message without replies or successor */
+            var par = Instant.message.getParentMessage(inputNode);
+            if (! Instant.message.hasReplies(par) &&
+                ! Instant.message.getSuccessor(par)) {
+              Instant.input.jumpTo(Instant.message.getParent(par));
+              return;
+            }
+            /* Traverse parents until we have a successor */
+            var next;
+            while (par) {
+              next = Instant.message.getSuccessor(par);
+              if (next) break;
+              par = Instant.message.getParentMessage(par);
+            }
+            /* Moved all the way up -> main thread */
+            if (! next) {
+              Instant.input.jumpTo(root);
+              return;
+            }
+            /* Descend into the current message as far as possible */
+            par = next;
+            while (Instant.message.hasReplies(par)) {
+              par = Instant.message.getReply(par);
+            }
+            /* Settle here */
+            Instant.input.jumpTo(par);
+            break;
+          case 'left':
+            /* Switch to the parent of the current host (or to the root) */
+            Instant.input.jumpTo(
+              Instant.message.getParentMessage(inputNode) || root);
+            break;
+          case 'right':
+            /* Switch to the last child to the current host (if any) */
+            var child = Instant.message.getLastReply(
+              Instant.message.getParent(inputNode));
+            if (child) Instant.input.jumpTo(child);
+            break;
+          case 'root':
+            /* Just return to the root */
+            Instant.input.jumpTo(root);
+            break;
+          default:
+            throw new Error('Invalid direction for navigateInput: ' +
+              direction);
         }
       }
     };
