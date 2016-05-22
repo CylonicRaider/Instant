@@ -550,6 +550,10 @@ window.Instant = function() {
       bisect: function(array, id) {
         if (! array || ! array.length) return null;
         var f = 0, t = array.length - 1;
+        /* Exclude input bar */
+        while (t >= 0 && ! array[t].classList.contains('message')) t--;
+        if (t < 0) return null;
+        /* Main loop */
         for (;;) {
           /* |0 to cast to integer */
           var c = (f + t) / 2 | 0;
