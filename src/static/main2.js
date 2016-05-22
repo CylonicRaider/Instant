@@ -899,22 +899,26 @@ window.Instant = function() {
 }();
 
 function init() {
+  /* Callback for below */
   function hideGreeter() {
-    var wrapper = $id('load-wrapper');
     wrapper.style.marginTop = '-30px';
     wrapper.style.opacity = '0';
     setTimeout(function() { wrapper.style.display = 'none'; }, 1000);
   }
+  /* Obtain nodes */
   var wrapper = $id('load-wrapper');
   var main = $id('main');
+  /* Apply some animations */
   wrapper.style.boxShadow = '0 0 30px #808080';
   $id('loading-message').style.display = 'none';
+  /* Display splash messages */
   var m = $id('splash-messages');
   Instant.message.addReply({id: 'loading-0-wait', nick: 'Loading',
     text: 'Please wait...'}, m);
   var isIE = /*@cc_on!@*/0;
   if (isIE) Instant.message.addReply({id: 'loading-1-ie', nick: 'Doom',
     text: '/me awaits IE users...'}, m);
+  /* Display "no connection" messages */
   if (! Instant.connectionURL && false) {
     var c = Instant.message.addReply({id: 'loading-2-conn',
       nick: 'Connection', text: '/me is missing.'}, m);
@@ -927,14 +931,18 @@ function init() {
     $sel('.room-name').innerHTML = '<i>local</i>';
     $sel('.online-status').style.background = '#808080';
     $sel('.settings').style.display = 'none';
+    /* Show main element */
     main.style.opacity = '1';
+    /* Install global Escape handler */
     document.documentElement.addEventListener('keydown', function(event) {
       if (event.keyCode == 27) {
         $sel('.input-message', main).focus();
         event.preventDefault();
       }
     });
+    /* Initialize submodules */
     Instant.input.init($sel('.input-bar', main));
+    /* Hide greeter manually since Instant does not (for now) */
     hideGreeter();
   }
 }
