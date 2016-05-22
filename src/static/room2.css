@@ -16,17 +16,17 @@ body {
 }
 
 #load-wrapper {
-display: inline-block;
-background: white;
-padding: 30px;
-margin: 30px auto;
-transition: all 0.25s, box-shadow 0.5s;
-z-index: 100;
+  display: inline-block;
+  background: white;
+  padding: 30px;
+  margin: 30px auto;
+  transition: all 0.25s, box-shadow 0.5s;
+  z-index: 100;
 }
 
 #load-wrapper hr {
-margin: 10px 0;
-border: 1px solid black;
+  margin: 10px 0;
+  border: 1px solid black;
 }
 
 .content-box {
@@ -35,8 +35,8 @@ border: 1px solid black;
 }
 
 #load-wrapper .wait {
-font-weight: bold;
-margin: 10px 0;
+  font-weight: bold;
+  margin: 10px 0;
 }
 
 .note {
@@ -101,12 +101,14 @@ margin: 10px 0;
   width: 3.5em;
   padding: 1px 0;
   text-align: center;
-  color: #808080;
   user-select: none;
   -moz-user-select: none;
   -webkit-user-select: none;
 }
-.message.ping > .line time {
+.message > .line time, .message > .line time a {
+  color: #808080;
+}
+.message.ping > .line time, .message.ping > .line time a {
   color: black;
 }
 .message > .line .content {
@@ -138,6 +140,338 @@ margin: 10px 0;
   white-space: pre;
 }
 
-.input-bar, .sidebar {
+@media (max-width: 400px) {
+
+  .message > .line {
+    display: block;
+    padding: 0 0 0 10px;
+    text-indent: -10px;
+  }
+  .message > .line > * {
+    text-indent: 0;
+  }
+  .message > .line .nick-wrapper, .message > .line .content,
+  .message > .line .content .text {
+    display: inline;
+    position: static;
+    margin: 0;
+  }
+
+  .nick {
+    padding: 0 1px;
+  }
+
+}
+
+#main {
+  opacity: 0;
+  text-align: left;
+  transition: opacity 1s;
+}
+
+.sidebar {
+  position: fixed;
+  top: 0;
+  right: 0;
+  margin-right: 15px; /* For scrollbar */
+  text-align: right;
+  transition: background 0.5s;
+}
+.sidebar > * {
+  background: rgba(255, 255, 255, 0.5);
+  padding: 5px;
+}
+.sidebar > :not(:first-child) {
+  padding-top: 0;
+}
+
+
+.room-name, a.room-name {
+  font-weight: bold;
+  text-decoration: none;
+  color: black;
+}
+
+.online-status, .settings {
+  display: inline-block;
+  width: 1em;
+  height: 1em;
+  vertical-align: bottom;
+  border-radius: 50%;
+  border: 1px solid black;
+  box-sizing: content-box;
+}
+
+.online-status {
+  background: #ffff00;
+  transition: background 0.5s linear;
+}
+.online-status.connected {
+  background: #00c000;
+}
+.online-status.broken {
+  background: #c00000;
+}
+
+.settings-wrapper {
+  display: inline-block;
+  position: relative;
+  z-index: 10;
+}
+.settings {
+  font-size: 100%;
+  line-height: 0;
+  background: white;
+  cursor: pointer;
+}
+.settings::-moz-focus-inner {
+  margin: 0;
+  border: 0;
+  padding: 0;
+}
+.settings img {
+  padding: 2px;
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+}
+.settings-content {
   display: none;
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: -1px;
+  border: 1px solid black;
+  padding: 5px;
+  z-index: -1;
+  text-align: left;
+  white-space: nowrap;
+  background: white;
+  color: black;
+}
+
+.user-list-wrapper {
+  display: inline-block;
+  position: relative;
+  right: 5px;
+  padding-right: 0;
+  max-height: 75vh;
+  overflow: auto;
+}
+.user-list-inner-wrapper {
+  display: inline-table;
+}
+.user-list {
+  display: table-cell;
+}
+.user-list .nick-wrapper {
+  padding: 2px 0 2px 2px;
+  color: #808080;
+}
+.user-list .nick-wrapper.active {
+  color: black;
+}
+
+.message-pane-wrapper {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  overflow-x: auto;
+  overflow-y: scroll;
+}
+.message-pane {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: auto;
+  max-height: 100%;
+  box-sizing: border-box;
+  padding: 5px 5px 0;
+}
+#main > .message-pane-wrapper > .message-pane {
+  padding-top: 1.5em;
+}
+
+.input-bar {
+  display: -webkit-flex;
+  display: flex;
+  align-content: stretch;
+  width: 100%;
+  margin: 5px 0;
+  background: white;
+  box-shadow: 0 0 5px #808080;
+}
+.input-bar .input-info-cell {
+  display: inline-block;
+  position: absolute;
+  left: 0;
+  width: 3.5em;
+}
+.input-bar .input-nick-cell, .input-bar .input-message-cell {
+  display: inline-block;
+  position: relative;
+}
+.input-bar .input-message-cell {
+  -webkit-flex-grow: 1;
+  flex-grow: 1;
+  padding: 1px 0 1px 0.25em;
+}
+.input-bar .input-info-cell .wrapper {
+  display: block;
+  padding: 1px 0;
+  min-height: 1.2em;
+  line-height: 0;
+  text-align: center;
+}
+.input-bar .input-info-cell img {
+  display: inline-block;
+  width: 1.2em;
+  height: 1.2em;
+  cursor: pointer;
+}
+.input-bar .input-info-cell .wrapper :not(.visible) {
+  visibility: hidden;
+}
+.input-bar .input-nick-sizer, .input-bar .input-nick,
+.input-bar .input-message {
+  display: block;
+  margin: 0;
+  border: 0;
+  padding: 0;
+  font: inherit;
+}
+.input-bar .input-nick-cell .input-nick-sizer {
+  display: inline-block;
+  padding: 1px 2px;
+  white-space: pre;
+  min-height: 1.2em;
+  line-height: 1.2;
+  vertical-align: bottom;
+  color: transparent;
+  background: #c0c0c0;
+  transition: background 0.1s linear, color 0.5s, background 0.5s;
+}
+.input-bar .input-nick-cell .input-nick {
+  position: absolute;
+  top: 1px;
+  left: 2px;
+  min-width: 100%;
+  line-height: 1.2;
+  color: black;
+  background: transparent;
+}
+.input-bar .input-message-cell .input-nick-prompt {
+  display: inline-block;
+  position: absolute;
+  top: 0;
+  left: 0;
+  border: 1px solid #808080;
+  padding-right: 0.25em;
+  height: 1.2em;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.input-bar .input-message-cell .input-nick-prompt img {
+  width: auto;
+  height: 100%;
+  vertical-align: bottom;
+}
+.input-bar .input-message-cell .input-message {
+  width: 100%;
+  height: 1.2em;
+  line-height: 1.2;
+  color: black;
+  background: transparent;
+  overflow: hidden;
+  resize: none;
+}
+
+.input-bar input, .input-bar textarea {
+  outline: none;
+}
+
+.message-pane > .input-bar:last-child {
+  margin-bottom: 5px;
+}
+
+.message-box > .message:last-child {
+  margin-bottom: 2px;
+}
+.replies > .input-bar:first-child {
+  margin: 3px 0 5px 0;
+}
+
+.message-box.notimes .input-bar .input-info-cell {
+  display: none;
+}
+
+.turn {
+  transform: rotate(180deg);
+  -webkit-transform: rotate(180deg);
+}
+.turn-left {
+  transform: rotate(270deg);
+  -webkit-transform: rotate(270deg);
+}
+
+.message.new:not(.mine):not(.ping) > .line {
+  background: rgba(128, 128, 128, 0.3);
+  /* Have to define explicitly so that the pausing selector
+   * has a chance */
+  animation-name: bgfade;
+  animation-duration: 10s;
+  animation-timing-function: linear;
+  animation-fill-mode: both;
+  -webkit-animation-name: bgfade;
+  -webkit-animation-duration: 10s;
+  -webkit-animation-timing-function: linear;
+  -webkit-animation-fill-mode: both;
+}
+.message.new > .line .time-wrapper::after {
+  content: "";
+  display: block;
+  position: absolute;
+  top: 0;
+  right: 2px;
+  width: 2px;
+  height: 100%;
+  background: #808080;
+  animation-name: bgfade;
+  animation-duration: 60s;
+  animation-timing-function: linear;
+  animation-fill-mode: both;
+  -webkit-animation-name: bgfade;
+  -webkit-animation-duration: 60s;
+  -webkit-animation-timing-function: linear;
+  -webkit-animation-fill-mode: both;
+}
+.message.new.offscreen > .line,
+.message.new.offscreen > .line .time-wrapper::after {
+  animation-play-state: paused;
+  -webkit-animation-play-state: paused;
+}
+@keyframes bgfade { to { background: transparent; } }
+@-webkit-keyframes bgfade { to { background: transparent; } }
+
+@media (max-width: 400px) {
+
+  .input-bar .input-message-cell {
+    padding: 0 0 0 0.25em;
+  }
+  .input-bar .input-nick-sizer {
+    padding: 0 1px;
+  }
+  .input-bar .input-nick {
+    top: 0;
+    left: 1px;
+  }
+
+}
+
+body, .breadcrumbs.standalone *, .sidebar > *, .sidebar-top > *,
+.sidebar-top > .settings-wrapper > *, .input-bar, .input-bar .input-message {
+  transition: color 0.5s, background 0.5s;
 }

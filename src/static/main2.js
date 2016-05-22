@@ -555,9 +555,11 @@ window.Instant = function() {
       bisect: function(array, id) {
         if (! array || ! array.length) return null;
         var f = 0, t = array.length - 1;
+        var last = null;
         /* Exclude input bar */
-        while (t >= 0 && ! array[t].classList.contains('message')) t--;
-        if (t < 0) return null;
+        while (t >= 0 && ! array[t].classList.contains('message'))
+          last = array[t--];
+        if (t < 0) return last;
         /* Main loop */
         for (;;) {
           /* |0 to cast to integer */
@@ -657,7 +659,7 @@ window.Instant = function() {
        * children (if any; recursively) */
       updateIndents: function(message, indent) {
         if (! indent) {
-          var par = Instant.message.parentMessage(message);
+          var par = Instant.message.getParentMessage(message);
           if (par) {
             indent = $sel('[data-key=indent]', par).textContent + '| ';
           } else {
@@ -687,6 +689,88 @@ window.Instant = function() {
     /* The DOM node containing the input bar */
     var inputNode = null;
     return {
+      /* Initialize input bar control with the given node */
+      init: function(node) {
+        /* Helpers for below */
+        function updateNick() {
+          sizerNick.textContent = inputNick.value;
+          sizerNick.style.background = 'hsl(' +
+          Instant.nick.hueHash(inputNick.value) + ', 75%, 80%)';
+          if (inputNick.value) {
+            sizerNick.style.minWidth = '';
+          } else {
+            sizerNick.style.minWidth = '1em';
+          }
+        }
+        function updateMessage() {
+          inputMsg.style.height = '0';
+          inputMsg.style.height = inputMsg.scrollHeight + 'px';
+          promptNick.style.display = 'none';
+        }
+        var fakeSeq = 0;
+        /* Assign inputNode */
+        inputNode = node;
+        /* Install event handlers */
+        var inputNick = $sel('.input-nick', inputNode);
+        var sizerNick = $sel('.input-nick-sizer', inputNode);
+        var promptNick = $sel('.input-nick-prompt', inputNode);
+        var inputMsg = $sel('.input-message', inputNode);
+        /* Update nick background */
+        inputNick.addEventListener('input', updateNick);
+        updateNick();
+        /* End nick editing on Return */
+        inputNick.addEventListener('keydown', function(event) {
+          if (event.keyCode == 13) { // Return
+            inputMsg.focus();
+            event.preventDefault();
+          }
+        });
+        /* Update status when nick changes */
+        inputNick.addEventListener('change', function() {
+          Instant.identity.nick = inputNick.value;
+          console.log('nick', Instant.identity.nick);
+        });
+        /* Reinforce nick editing prompt */
+        promptNick.addEventListener('click', function() {
+          inputNick.focus();
+        });
+        /* Auto-size input bar; remove nick setting prompt */
+        inputMsg.addEventListener('input', updateMessage);
+        /* Remove nick setting prompt */
+        inputMsg.addEventListener('focus', function() {
+          promptNick.style.display = 'none';
+        });
+        /* Handle special keys */
+        inputMsg.addEventListener('keydown', function(event) {
+          if (event.keyCode == 13 && ! event.shiftKey) { // Return
+            /* Send message! */
+            /* Retrieve input text */
+            var text = inputMsg.value;
+            inputMsg.value = '';
+            event.preventDefault();
+            updateMessage();
+            /* Ignore empty sends */
+            if (! text) return;
+            /* Currently only fake messages */
+            var msgid = 'local-' + leftpad(fakeSeq++, 8, '0');
+            Instant.message.importMessage(
+              {id: msgid, nick: Instant.identity.nick || '', text: text,
+                parent: Instant.input.getParentID(), timestamp: Date.now()},
+              Instant.message.getRoot(inputNode));
+          }
+        });
+        /* Focus the nick input */
+        inputNick.focus();
+        Instant.identity.nick = inputNick.value;
+        inputNick.selectionStart = inputNick.value.length;
+        inputNick.selectionEnd = inputNick.value.length;
+      },
+      /* Get the message ID of the parent of the input bar */
+      getParentID: function() {
+        var parent = Instant.message.getParentMessage(inputNode);
+        if (! parent) return null;
+        return parent.getAttribute('data-id');
+      },
       /* Move the input bar into the given message/container */
       jumpTo: function(parent) {
         /* Handle message parents */
@@ -786,6 +870,12 @@ window.Instant = function() {
 }();
 
 function init() {
+  function hideGreeter() {
+    var wrapper = $id('load-wrapper');
+    wrapper.style.marginTop = '-30px';
+    wrapper.style.opacity = '0';
+    setTimeout(function() { wrapper.style.display = 'none'; }, 1000);
+  }
   var wrapper = $id('load-wrapper');
   var main = $id('main');
   wrapper.style.boxShadow = '0 0 30px #808080';
@@ -796,12 +886,26 @@ function init() {
   var isIE = /*@cc_on!@*/0;
   if (isIE) Instant.message.addReply({id: 'loading-1-ie', nick: 'Doom',
     text: '/me awaits IE users...'}, m);
-  if (! Instant.connectionURL) {
+  if (! Instant.connectionURL && false) {
     var c = Instant.message.addReply({id: 'loading-2-conn',
       nick: 'Connection', text: '/me is missing.'}, m);
     Instant.message.addReply({id: 'loading-3-comment', nick: 'Loading',
       text: 'Prepare for a long wait...', parent: 'loading-2-conn'});
     Instant.message.addReply({id: 'loading-4-comment', nick: 'Loading',
       text: 'Or, try solving the issue somehow.', parent: 'loading-2-conn'});
+  } else {
+    /* Testing modifications */
+    $sel('.room-name').innerHTML = '<i>local</i>';
+    $sel('.online-status').style.background = '#808080';
+    $sel('.settings').style.display = 'none';
+    main.style.opacity = '1';
+    document.documentElement.addEventListener('keydown', function(event) {
+      if (event.keyCode == 27) {
+        $sel('.input-message', main).focus();
+        event.preventDefault();
+      }
+    });
+    Instant.input.init($sel('.input-bar', main));
+    hideGreeter();
   }
 }
