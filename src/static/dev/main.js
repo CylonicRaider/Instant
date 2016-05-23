@@ -43,7 +43,8 @@ window.Instant = function() {
                       9: 'Sep', 10: 'Oct', 11: 'Nov', 12: 'Dec'};
   var Instant = {};
   /* Prepare connection */
-  var roomPaths = /^(\/room\/([a-zA-Z](?:[a-zA-Z0-9_-]*[a-zA-Z0-9])?))\/?/;
+  var roomPaths = new RegExp('^(?:/[a-zA-Z0-9-]+)?(\/room\/' +
+    '([a-zA-Z](?:[a-zA-Z0-9_-]*[a-zA-Z0-9])?))\/?');
   var roomMatch = roomPaths.exec(document.location.pathname);
   if (roomMatch) {
     var scheme = (document.location.protocol == 'https:') ? 'wss' : 'ws';
@@ -1022,9 +1023,14 @@ function init() {
     Instant.message.addReply({id: 'loading-4-comment', nick: 'Loading',
       text: 'Or, try solving the issue somehow.', parent: 'loading-2-conn'});
   } else {
-    /* Testing modifications */
-    $sel('.room-name').innerHTML = '<i>local</i>';
-    $sel('.online-status').style.background = '#808080';
+    /* Show room name, or none in local mode */
+    if (Instant.roomName) {
+      $sel('.room-name').textContent = '&' + Instant.roomName;
+    } else {
+      $sel('.room-name').innerHTML = '<i>local</i>';
+    }
+    /* Currently NYI */
+    $sel('.online-status').style.background = '#c0c0c0';
     $sel('.settings').style.display = 'none';
     /* Show main element */
     main.style.opacity = '1';
