@@ -706,9 +706,11 @@ window.Instant = function() {
           }
         }
         function updateMessage() {
+          var restore = Instant.pane.saveScrollState(inputNode, 1);
           inputMsg.style.height = '0';
           inputMsg.style.height = inputMsg.scrollHeight + 'px';
           promptNick.style.display = 'none';
+          restore();
         }
         var fakeSeq = 0;
         /* Assign inputNode */
@@ -753,12 +755,16 @@ window.Instant = function() {
             updateMessage();
             /* Ignore empty sends */
             if (! text) return;
+            /* Save scroll state */
+            var restore = Instant.pane.saveScrollState(inputNode, 1);
             /* Currently only fake messages */
             var msgid = 'local-' + leftpad(fakeSeq++, 8, '0');
             Instant.message.importMessage(
               {id: msgid, nick: Instant.identity.nick || '', text: text,
                 parent: Instant.input.getParentID(), timestamp: Date.now()},
               Instant.message.getRoot(inputNode));
+            /* Restore scroll state */
+            restore();
           } else if (event.keyCode == 27) { // Escape
             Instant.input.navigate('root');
             inputMsg.focus();
@@ -792,6 +798,10 @@ window.Instant = function() {
         Instant.identity.nick = inputNick.value;
         inputNick.selectionStart = inputNick.value.length;
         inputNick.selectionEnd = inputNick.value.length;
+      },
+      /* Return the input bar */
+      getNode: function() {
+        return inputNode;
       },
       /* Get the message ID of the parent of the input bar */
       getParentID: function() {
@@ -894,6 +904,43 @@ window.Instant = function() {
             throw new Error('Invalid direction for input.navigate(): ' +
               direction);
         }
+      }
+    };
+  }();
+  Instant.pane = function() {
+    return {
+      /* Get the message-box containing this DOM node */
+      getBox: function(node) {
+        return $parentWithClass(node, 'message-box');
+      },
+      /* Get the message-pane containing this DOM node */
+      getPane: function(node) {
+        return $parentWithClass(node, 'message-pane');
+      },
+      /* Save the current (vertical) scrolling position of the pane
+       * containing the given node for later restoration
+       * If focus is true, the currently focused element is saved as well.
+       * The exact line to be stored is determined by hf, which can be
+       * (for example):
+       * 0.0 -- Restore the top of the child
+       * 0.5 -- Restore the middle of the child
+       * 1.0 -- Restore the bottom of the child */
+      saveScrollState: function(node, hf, focus) {
+        var pane = Instant.pane.getPane(node);
+        var focused = focus && document.activeElement;
+        var nodeRect = node.getBoundingClientRect();
+        var paneRect = pane.getBoundingClientRect();
+        /* Cookie value stays invariant */
+        var cookie = nodeRect.top - paneRect.top + nodeRect.height * hf -
+          pane.scrollTop;
+        return function() {
+          /* Restore values */
+          nodeRect = node.getBoundingClientRect();
+          paneRect = pane.getBoundingClientRect();
+          pane.scrollTop = nodeRect.top - paneRect.top +
+            nodeRect.height * hf - cookie;
+          if (focused) focused.focus();
+        };
       }
     };
   }();
