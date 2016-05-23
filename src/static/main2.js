@@ -689,6 +689,8 @@ window.Instant = function() {
   }();
   /* Input bar management */
   Instant.input = function () {
+    /* The distance to keep the input bar away from the screen edges */
+    var DISTANCE = 50;
     /* The DOM node containing the input bar */
     var inputNode = null;
     return {
@@ -766,29 +768,39 @@ window.Instant = function() {
             /* Restore scroll state */
             restore();
           } else if (event.keyCode == 27) { // Escape
-            Instant.input.navigate('root');
+            if (Instant.input.navigate('root')) {
+              Instant.pane.scrollIntoView(inputNode, DISTANCE);
+              event.preventDefault();
+            }
             inputMsg.focus();
-            event.preventDefault();
           }
           if (text.indexOf('\n') == -1) {
             if (event.keyCode == 38) { // Up
-              Instant.input.navigate('up');
+              if (Instant.input.navigate('up')) {
+                Instant.pane.scrollIntoView(inputNode, DISTANCE);
+                event.preventDefault();
+              }
               inputMsg.focus();
-              event.preventDefault();
             } else if (event.keyCode == 40) { // Down
-              Instant.input.navigate('down');
+              if (Instant.input.navigate('down')) {
+                Instant.pane.scrollIntoView(inputNode, DISTANCE);
+                event.preventDefault();
+              }
               inputMsg.focus();
-              event.preventDefault();
             }
             if (! text) {
               if (event.keyCode == 37) { // Left
-                Instant.input.navigate('left');
+                if (Instant.input.navigate('left')) {
+                  Instant.pane.scrollIntoView(inputNode, DISTANCE);
+                  event.preventDefault();
+                }
                 inputMsg.focus();
-                event.preventDefault();
               } else if (event.keyCode == 39) { // Right
-                Instant.input.navigate('right');
+                if (Instant.input.navigate('right')) {
+                  Instant.pane.scrollIntoView(inputNode, DISTANCE);
+                  event.preventDefault();
+                }
                 inputMsg.focus();
-                event.preventDefault();
               }
             }
           }
@@ -841,7 +853,7 @@ window.Instant = function() {
               par = Instant.message.getParentMessage(par);
             }
             /* If no parent has a precedessor, cannot do anything */
-            if (! prev) break;
+            if (! prev) return false;
             par = prev;
             /* Descend into its children until we find one with no replies;
              * stop just beneath it */
@@ -852,16 +864,16 @@ window.Instant = function() {
             }
             /* End up here */
             Instant.input.jumpTo(par);
-            break;
+            return true;
           case 'down':
             /* Special case: message without replies or successor */
             var par = Instant.message.getParentMessage(inputNode);
             if (! par) {
-              break;
+              return false;
             } else if (! Instant.message.hasReplies(par) &&
                 ! Instant.message.getSuccessor(par)) {
               Instant.input.jumpTo(Instant.message.getParent(par));
-              break;
+              return true;
             }
             /* Traverse parents until we have a successor */
             var next;
@@ -873,7 +885,7 @@ window.Instant = function() {
             /* Moved all the way up -> main thread */
             if (! next) {
               Instant.input.jumpTo(root);
-              break;
+              return true;
             }
             /* Descend into the current message as far as possible */
             par = next;
@@ -882,24 +894,27 @@ window.Instant = function() {
             }
             /* Settle here */
             Instant.input.jumpTo(par);
-            break;
+            return true;
           case 'left':
             /* Switch to the parent of the current host (or to the root) */
             var par = Instant.message.getParentMessage(inputNode);
-            if (! par) break;
+            if (! par) return false;
             Instant.input.jumpTo(
               Instant.message.getParentMessage(par) || root);
-            break;
+            return true;
           case 'right':
             /* Switch to the last child to the current host (if any) */
             var child = Instant.message.getLastReply(
               Instant.message.getParent(inputNode));
-            if (child) Instant.input.jumpTo(child);
-            break;
+            if (child) {
+              Instant.input.jumpTo(child);
+              return true;
+            }
+            return false;
           case 'root':
             /* Just return to the root */
             Instant.input.jumpTo(root);
-            break;
+            return true;
           default:
             throw new Error('Invalid direction for input.navigate(): ' +
               direction);
@@ -941,6 +956,20 @@ window.Instant = function() {
             nodeRect.height * hf - cookie;
           if (focused) focused.focus();
         };
+      },
+      /* Scroll the pane containing node (vertically) such that the latter is
+       * well in view
+       * The dist parameter specifies which minimal distance to maintain from
+       * the pane's boundaries */
+      scrollIntoView: function(node, dist) {
+        var pane = Instant.pane.getPane(node);
+        var nodeRect = node.getBoundingClientRect();
+        var paneRect = pane.getBoundingClientRect();
+        if (nodeRect.top < paneRect.top + dist) {
+          pane.scrollTop -= paneRect.top + dist - nodeRect.top;
+        } else if (nodeRect.bottom > paneRect.bottom - dist) {
+          pane.scrollTop -= paneRect.bottom - dist - nodeRect.bottom;
+        }
       }
     };
   }();
@@ -983,7 +1012,7 @@ function init() {
     $sel('.settings').style.display = 'none';
     /* Show main element */
     main.style.opacity = '1';
-    /* Install global Escape handler */
+    /* Focus input bar if Escape pressed and not focused */
     document.documentElement.addEventListener('keydown', function(event) {
       if (event.keyCode == 27) {
         $sel('.input-message', main).focus();
