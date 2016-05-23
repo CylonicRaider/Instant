@@ -424,6 +424,14 @@ window.Instant = function() {
         }
         /* Insert text */
         $sel('.content', msgNode).appendChild(content);
+        /* Add event handler */
+        $sel('.line', msgNode).addEventListener('click', function(event) {
+          Instant.input.moveTo(msgNode);
+          $sel('.input-message', Instant.input.getNode()).focus();
+          Instant.pane.scrollIntoView(msgNode);
+          event.stopPropagation();
+          event.preventDefault();
+        });
         /* Done */
         return msgNode;
       },
@@ -485,15 +493,22 @@ window.Instant = function() {
       },
       /* Get the node hosting the replies to the given message, or the message
        * itself if it's actually none at all */
-      _getReplyNodeList: function(message) {
+      _getReplyNode: function(message) {
         if (Instant.message.isMessage(message)) {
           var lc = message.lastElementChild;
           if (! lc || ! lc.classList.contains('replies'))
             return null;
-          return lc.children;
+          return lc;
         } else {
-          return message.children;
+          return message;
         }
+      },
+      /* Get an array of replies to the given message (which may be empty),
+       * or null if none */
+      _getReplyNodeList: function(message) {
+        var repl = Instant.message._getReplyNode(message);
+        if (! repl) return null;
+        return repl.children;
       },
       /* Return whether a message has direct replies (and therefore replies
        * at all) */
@@ -689,8 +704,6 @@ window.Instant = function() {
   }();
   /* Input bar management */
   Instant.input = function () {
-    /* The distance to keep the input bar away from the screen edges */
-    var DISTANCE = 50;
     /* The DOM node containing the input bar */
     var inputNode = null;
     return {
@@ -769,7 +782,7 @@ window.Instant = function() {
             restore();
           } else if (event.keyCode == 27) { // Escape
             if (Instant.input.navigate('root')) {
-              Instant.pane.scrollIntoView(inputNode, DISTANCE);
+              Instant.pane.scrollIntoView(inputNode);
               event.preventDefault();
             }
             inputMsg.focus();
@@ -777,13 +790,13 @@ window.Instant = function() {
           if (text.indexOf('\n') == -1) {
             if (event.keyCode == 38) { // Up
               if (Instant.input.navigate('up')) {
-                Instant.pane.scrollIntoView(inputNode, DISTANCE);
+                Instant.pane.scrollIntoView(inputNode);
                 event.preventDefault();
               }
               inputMsg.focus();
             } else if (event.keyCode == 40) { // Down
               if (Instant.input.navigate('down')) {
-                Instant.pane.scrollIntoView(inputNode, DISTANCE);
+                Instant.pane.scrollIntoView(inputNode);
                 event.preventDefault();
               }
               inputMsg.focus();
@@ -791,13 +804,13 @@ window.Instant = function() {
             if (! text) {
               if (event.keyCode == 37) { // Left
                 if (Instant.input.navigate('left')) {
-                  Instant.pane.scrollIntoView(inputNode, DISTANCE);
+                  Instant.pane.scrollIntoView(inputNode);
                   event.preventDefault();
                 }
                 inputMsg.focus();
               } else if (event.keyCode == 39) { // Right
                 if (Instant.input.navigate('right')) {
-                  Instant.pane.scrollIntoView(inputNode, DISTANCE);
+                  Instant.pane.scrollIntoView(inputNode);
                   event.preventDefault();
                 }
                 inputMsg.focus();
@@ -833,7 +846,7 @@ window.Instant = function() {
        * bar is already there. */
       moveTo: function(message) {
         if (Instant.message.isMessage(message) &&
-            inputNode.parentNode == Instant.getReplies(message)) {
+            inputNode.parentNode == Instant.message._getReplyNode(message)) {
           Instant.input.jumpTo(Instant.message.getParent(message));
         } else {
           Instant.input.jumpTo(message);
@@ -923,6 +936,8 @@ window.Instant = function() {
     };
   }();
   Instant.pane = function() {
+    /* The distance to keep nodes away from the screen edges */
+    var OUTER_DIST = 50;
     return {
       /* Get the message-box containing this DOM node */
       getBox: function(node) {
@@ -962,6 +977,7 @@ window.Instant = function() {
        * The dist parameter specifies which minimal distance to maintain from
        * the pane's boundaries */
       scrollIntoView: function(node, dist) {
+        if (dist === null || dist === undefined) dist = OUTER_DIST;
         var pane = Instant.pane.getPane(node);
         var nodeRect = node.getBoundingClientRect();
         var paneRect = pane.getBoundingClientRect();
