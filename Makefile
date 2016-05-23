@@ -24,5 +24,5 @@ infuse-commit:
 clean:
 	rm -f .build.jar Instant.jar
 
-run: infuse-commit
+run: Instant.jar infuse-commit
 	java -jar Instant.jar 8080

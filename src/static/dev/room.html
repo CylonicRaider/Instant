@@ -4,14 +4,15 @@
     <meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1"/>
     <title>Instant</title>
-    <script type="application/javascript" src="main2.js"
+    <script type="application/javascript" src="/static/dev/main.js"
       async="async"></script>
-    <link rel="stylesheet" type="text/css" href="base.css"></style>
-    <link rel="stylesheet" type="text/css" href="room2.css"></style>
+    <link rel="stylesheet" type="text/css" href="/static/base.css"></style>
+    <link rel="stylesheet" type="text/css"
+      href="/static/dev/room.css"></style>
     <link rel="alternate stylesheet" type="text/css"
-      href="room-dark.css" title="Dark" id="dark-style"></style>
+      href="/static/room-dark.css" title="Dark" id="dark-style"></style>
     <link rel="shortcut icon" id="favicon" type="image/png"
-      href="logo-static_128x128.png"/>
+      href="/static/logo-static_128x128.png"/>
   </head>
   <body onLoad="init()">
     <div id="main" class="main-pane">
@@ -20,8 +21,8 @@
           <div class="input-bar">
             <span class="input-info-cell">
               <span class="wrapper">
-                <img class="above-alert" src="arrow-up.svg"/><img
-                  class="turn below-alert" src="arrow-up.svg"/>
+                <img class="above-alert" src="/static/arrow-up.svg"/><img
+                  class="turn below-alert" src="/static/arrow-up.svg"/>
               </span>
             </span>
             <span class="input-nick-cell">
@@ -29,7 +30,7 @@
               <input type="text" class="input-nick"/>
             </span>
             <span class="input-message-cell">
-              <span class="input-nick-prompt"><img src="arrow-up.svg"
+              <span class="input-nick-prompt"><img src="/static/arrow-up.svg"
                 class="turn-left"/><span> Enter your nick into the colored
                 box</span></span>
               <textarea class="input-message"></textarea>
@@ -41,13 +42,13 @@
         <div class="sidebar-top">
           <div class="breadcrumbs collapse"><a href="/" target="_blank"
             class="collapse-show logo-small"><img class="collapse-show"
-            src="logo-static.svg"/><strong>Instant</strong></a
+            src="/static/logo-static.svg"/><strong>Instant</strong></a
             ><span> &raquo; </span><a href="/about.html" target="_blank"
             >About</a></div>
           <a href="" class="room-name">...</a>
           <span class="online-status" title="..."></span>
           <div class="settings-wrapper"><button class="settings"><img
-            src="gear.svg"/></button><div class="settings-content">
+            src="/static/gear.svg"/></button><div class="settings-content">
               <div>
                 <p><em>Theme:</em></p>
                 <label class="indent"><input type="radio" name="theme"
@@ -82,7 +83,7 @@
     </div>
     <div id="load-wrapper">
       <div class="logo">
-        <img src="logo.svg"/>
+        <img src="/static/logo.svg"/>
         <!-- >:D -->
         <h1><span class="hidden">*** </span>Instant<span class="hidden">
           ***</span></h1>
