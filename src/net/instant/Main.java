@@ -19,6 +19,7 @@ public class Main implements Runnable {
     public static final String VERSION = "1.3";
     public static final String ROOM_RE =
         "[a-zA-Z](?:[a-zA-Z0-9_-]*[a-zA-Z0-9])?";
+    public static final String STAGING_RE = "[a-zA-Z0-9-]+";
     public static final String FINE_VERSION;
 
     static {
@@ -100,6 +101,8 @@ public class Main implements Runnable {
         getServer().addHook(new RoomWebSocketHook(distr));
         getServer().addHook(new RedirectHook("/room/(" + ROOM_RE + ")",
             "/room/\\1/"));
+        getServer().addHook(new RedirectHook("/(" + STAGING_RE + ")/room/(" +
+            ROOM_RE + ")", "/\\1/room/\\2/"));
         StaticFileHook files = new StaticFileHook(new FileCache());
         files.whitelistCWD("/static/.*");
         files.whitelistCWD("/pages/.*");
@@ -109,6 +112,8 @@ public class Main implements Runnable {
         files.alias("/favicon.ico", "/static/logo-static_128x128.ico");
         files.alias("/([^/]+\\.html)", "/pages/\\1", true);
         files.alias("/room/" + ROOM_RE + "/", "/static/room.html");
+        files.alias("/(" + STAGING_RE + ")/room/" + ROOM_RE + "/",
+                    "/static/\\1/room.html", true);
         files.matchContentType(".*\\.html", "text/html; charset=utf-8");
         files.matchContentType(".*\\.css", "text/css; charset=utf-8");
         files.matchContentType(".*\\.js", "application/javascript; " +
