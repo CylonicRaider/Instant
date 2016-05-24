@@ -5,8 +5,9 @@
 *.sqlite
 *.log
 
-# Intermediate build file
+# Intermediate build/run files
 /.build.jar
+/Instant-run.jar
 
 # Other packages contain class files only
 /src/*.class
