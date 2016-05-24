@@ -41,20 +41,23 @@ window.Instant = function() {
   var MONTH_NAMES = { 1: 'Jan',  2: 'Feb',  3: 'Mar',  4: 'Apr',
                       5: 'May',  6: 'Jun',  7: 'Jul',  8: 'Aug',
                       9: 'Sep', 10: 'Oct', 11: 'Nov', 12: 'Dec'};
+  /* Upcoming return value */
   var Instant = {};
   /* Prepare connection */
-  var roomPaths = new RegExp('^(?:/[a-zA-Z0-9-]+)?(\/room\/' +
+  var roomPaths = new RegExp('^(?:/([a-zA-Z0-9-]+))?(\/room\/' +
     '([a-zA-Z](?:[a-zA-Z0-9_-]*[a-zA-Z0-9])?))\/?');
   var roomMatch = roomPaths.exec(document.location.pathname);
   if (roomMatch) {
     var scheme = (document.location.protocol == 'https:') ? 'wss' : 'ws';
     var wsURL = scheme + '://' + document.location.host +
-      roomMatch[1] + '/ws';
+      roomMatch[2] + '/ws';
     Instant.connectionURL = wsURL;
-    Instant.roomName = roomMatch[2];
+    Instant.roomName = roomMatch[3];
+    Instant.stagingLocation = roomMatch[1];
   } else {
     Instant.connectionURL = null;
     Instant.roomName = null;
+    Instant.stagingLocation = null;
   }
   /* Set window/tab/whatever title */
   if (Instant.roomName) {
@@ -1024,10 +1027,17 @@ function init() {
       text: 'Or, try solving the issue somehow.', parent: 'loading-2-conn'});
   } else {
     /* Show room name, or none in local mode */
+    var nameNode = $sel('.room-name');
     if (Instant.roomName) {
-      $sel('.room-name').textContent = '&' + Instant.roomName;
+      nameNode.textContent = '&' + Instant.roomName;
     } else {
-      $sel('.room-name').innerHTML = '<i>local</i>';
+      nameNode.innerHTML = '<i>local</i>';
+    }
+    if (Instant.stagingLocation) {
+      var stagingNode = document.createElement('span');
+      stagingNode.className = 'staging';
+      stagingNode.textContent = ' (' + Instant.stagingLocation + ')';
+      nameNode.parentNode.insertBefore(stagingNode, nameNode.nextSibling);
     }
     /* Currently NYI */
     $sel('.online-status').style.background = '#c0c0c0';
