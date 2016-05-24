@@ -92,6 +92,103 @@ window.Instant = function() {
     /* The (current) nickname */
     nick: null
   };
+  /* Connection handling */
+  Instant.connection = function() {
+    /* The connection status widget */
+    var connStatus = null;
+    /* Sequence ID of outgoing messages */
+    var seqid = null;
+    /* The actual WebSocket */
+    var ws = null;
+    /* Debugging hook */
+    if (window.logInstantMessages === undefined)
+      window.logInstantMessages = false;
+    return {
+      /* Initialize the submodule, by installing the connection status
+       * widget */
+      init: function(node) {
+        connStatus = node;
+        /* Force update of widget */
+        if (ws && ws.readyState == WebSocket.OPEN) {
+          Instant.connection._connected();
+        }
+      },
+      /* Actually connect */
+      connect: function() {
+        /* Create WebSocket */
+        ws = new WebSocket(Instant.connectionURL);
+        /* Reset sequence ID */
+        seqid = 0;
+        /* Install event handlers */
+        ws.onopen = Instant.connection._connected;
+        ws.onmessage = Instant.connection._message;
+        ws.onclose = Instant.connection._closed;
+        ws.onerror = Instant.connection._error;
+        /* Return result (additionally) */
+        return ws;
+      },
+      /* Re-connect */
+      reconnect: function() {
+        if (ws) {
+          /* Close old connection if necessary */
+          try {
+            ws.close();
+          } catch (e) {
+            console.error(e);
+          }
+          ws.onopen = null;
+          ws.onmessage = null;
+          ws.onclose = null;
+          ws.onerror = null;
+          ws = null;
+        }
+        /* Ensure the close handler has been called */
+        Instant.connection._closed();
+        /* Connect again */
+        Instant.connection.connect();
+      },
+      /* Handle an opened connection */
+      _connected: function(event) {
+        if (connStatus) {
+          /* Update status widget */
+          connStatus.classList.remove('broken');
+          connStatus.classList.add('connected');
+          connStatus.title = 'Connected';
+        }
+      },
+      /* Handle a message */
+      _message: function(event) {
+        /* Implement debugging hook */
+        if (window.logInstantMessages)
+          console.log('Received:', event, event.data);
+        /** NYI **/
+      },
+      /* Handle a dead connection */
+      _closed: function(event) {
+        /* Update status widget */
+        if (connStatus) {
+          /* Update status widget */
+          connStatus.classList.remove('connected');
+          connStatus.classList.add('broken');
+          connStatus.title = 'Broken';
+        }
+        /* Re-connect */
+        if (event)
+          Instant.connection.reconnect();
+      },
+      /* Handle an auxillary error */
+      _error: function(event) {
+        /* Cannnot really do anything */
+        if (event)
+          console.error('WebSocket error:', event);
+        /* Re-connect */
+        if (event)
+          Instant.connection.reconnect();
+      }
+    };
+  }();
+  /* Connect ASAP */
+  Instant.connection.connect();
   /* Nick-name handling */
   Instant.nick = function() {
     /* Nick -> Hue hash */
@@ -1032,6 +1129,8 @@ function init() {
       nameNode.textContent = '&' + Instant.roomName;
     } else {
       nameNode.innerHTML = '<i>local</i>';
+      $sel('.online-status').style.background = '#c0c0c0';
+      $sel('.online-status').title = 'Local';
     }
     if (Instant.stagingLocation) {
       var stagingNode = document.createElement('span');
@@ -1040,7 +1139,6 @@ function init() {
       nameNode.parentNode.insertBefore(stagingNode, nameNode.nextSibling);
     }
     /* Currently NYI */
-    $sel('.online-status').style.background = '#c0c0c0';
     $sel('.settings').style.display = 'none';
     /* Show main element */
     main.style.opacity = '1';
@@ -1052,6 +1150,7 @@ function init() {
       }
     });
     /* Initialize submodules */
+    Instant.connection.init($sel('.online-status', main));
     Instant.input.init($sel('.input-bar', main));
     /* Hide greeter manually since Instant does not (for now) */
     hideGreeter();
