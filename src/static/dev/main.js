@@ -161,6 +161,9 @@ window.Instant = function() {
         /* Implement debugging hook */
         if (window.logInstantMessages)
           console.log('Received:', event, event.data);
+        /* Raw message handler */
+        if (Instant.connection.onRawMessage)
+          Instant.connection.onRawMessage(event);
         /** NYI **/
       },
       /* Handle a dead connection */
@@ -184,7 +187,37 @@ window.Instant = function() {
         /* Re-connect */
         if (event)
           Instant.connection.reconnect();
-      }
+      },
+      /* Most basic sending */
+      sendRaw: function(data) {
+        return ws.send(data);
+      },
+      /* Send an object whilst adding a sequence ID (in-place); return the
+       * sequence ID */
+      sendSeq: function(data) {
+        data.seq = seqid++;
+        Instant.connection.sendRaw(JSON.stringify(data));
+        return data.seq;
+      },
+      /* Send a ping with the given payload (or none at all) to the server */
+      sendPing: function(data) {
+        var msg = {type: 'ping'};
+        if (data !== undefined) msg.data = data;
+        return Instant.connection.sendSeq(msg);
+      },
+      /* Send an unicast message to the given participant with the given
+       * payload */
+      sendUnicast: function(to, data) {
+        return Instant.connection.sendSeq({type: 'unicast', to: to,
+                                           data: data});
+      },
+      /* Send a broadcast message with the given payload */
+      sendBroadcast: function(data) {
+        return Instant.connection.sendSeq({type: 'broadcast',
+                                           data: data});
+      },
+      /* Event handler for WebSocket messages */
+      onRawMessage: null
     };
   }();
   /* Connect ASAP */
