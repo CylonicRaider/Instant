@@ -81,8 +81,10 @@ window.Instant = function() {
     }
     /* Compose result */
     return (zpad(date.getFullYear(), 4) + '-' +
-      MONTH_NAMES[date.getMonth() + 1] + '-' + zpad(date.getDate(), 2) + ' ' +
-      zpad(date.getHours(), 2) + ':' + zpad(date.getMinutes(), 2) + ':' +
+      MONTH_NAMES[date.getMonth() + 1] + '-' +
+      zpad(date.getDate(), 2) + ' ' +
+      zpad(date.getHours(), 2) + ':' +
+      zpad(date.getMinutes(), 2) + ':' +
       zpad(date.getSeconds(), 2));
   }
   /* Own identity */
@@ -90,7 +92,22 @@ window.Instant = function() {
     /* The session ID */
     id: null,
     /* The (current) nickname */
-    nick: null
+    nick: null,
+    /* Server version */
+    serverVersion: null,
+    /* Fine-grained server version */
+    serverRevision: null,
+    /* The nickname as known to the outside */
+    _sentNick: null,
+    /* Broadcast or send the current nickname */
+    sendNick: function(to) {
+      if (Instant.connection.isConnected() &&
+          Instant.identity.nick != Instant.identity._sentNick) {
+        Instant.connection.send(to, {type: 'nick',
+          nick: Instant.identity.nick});
+        Instant.identity._sentNick = Instant.identity.nick;
+      }
+    }
   };
   /* Connection handling */
   Instant.connection = function() {
@@ -100,16 +117,19 @@ window.Instant = function() {
     var seqid = null;
     /* The actual WebSocket */
     var ws = null;
+    /* Whether the WebSocket is connected */
+    var connected = false;
     /* Debugging hook */
     if (window.logInstantMessages === undefined)
       window.logInstantMessages = false;
     return {
       /* Initialize the submodule, by installing the connection status
        * widget */
-      init: function(node) {
-        connStatus = node;
+      init: function(statusNode) {
+        connStatus = statusNode;
         /* Force update of widget */
         if (ws && ws.readyState == WebSocket.OPEN) {
+          console.log('Forcing status update');
           Instant.connection._connected();
         }
       },
@@ -149,6 +169,8 @@ window.Instant = function() {
       },
       /* Handle an opened connection */
       _connected: function(event) {
+        /* Update flag */
+        connected = true;
         if (connStatus) {
           /* Update status widget */
           connStatus.classList.remove('broken');
@@ -162,12 +184,97 @@ window.Instant = function() {
         if (window.logInstantMessages)
           console.log('Received:', event, event.data);
         /* Raw message handler */
-        if (Instant.connection.onRawMessage)
+        if (Instant.connection.onRawMessage) {
           Instant.connection.onRawMessage(event);
-        /** NYI **/
+          if (event.defaultPrevented) return;
+        }
+        /* Extract message data */
+        var msg;
+        try {
+          msg = JSON.parse(event.data);
+        } catch (e) {
+          console.error(e);
+          return;
+        }
+        /* Switch on the message type */
+        switch (msg.type) {
+          case 'error': /* Error */
+            console.error('Error message:', msg);
+            break;
+          case 'identity': /* Own (and server's) identity */
+            Instant.identity.id = msg.data.id;
+            Instant.identity.serverVersion = msg.data.version;
+            Instant.identity.serverRevision = msg.data.revision;
+            break;
+          case 'pong': /* Server replied to a ping */
+          case 'reply': /* Reply to a message sent */
+            /* Nothing to do */
+            break;
+          case 'joined':
+            /* New user joined (might be ourself) -- NYI */
+            break;
+          case 'left':
+            /* User left -- NYI */
+            break;
+          case 'unicast': /* Someone sent a message directly to us */
+          case 'broadcast': /* Someone sent a message to everyone */
+            var data = msg.data || {};
+            switch (data.type) {
+              case 'post': /* Someone sent a message */
+                /* Sanitize input */
+                var nick = data.nick;
+                var text = data.text;
+                if (typeof nick != 'string')
+                  nick = '';
+                if (typeof text != 'string')
+                  /* HACK: Serialize text to something remotely senseful */
+                  text = JSON.stringify(text);
+                /* Prepare message object */
+                var ent = {id: msg.id, parent: data.parent || null,
+                  timestamp: msg.timestamp, from: msg.from, nick: nick,
+                  text: text, isNew: true};
+                /* Only display message when initialized */
+                var inp = Instant.input.getNode();
+                if (inp) {
+                  /* Prepare for scrolling */
+                  var restore = Instant.pane.saveScrollState(inp, 1);
+                  /* Post message */
+                  var box = Instant.pane.getBox(inp);
+                  Instant.message.importMessage(ent, box);
+                  /* Restore scroll state */
+                  restore();
+                }
+                break;
+              case 'nick': /* Someone informs us about their nick */
+                /* NYI */
+                break;
+              case 'who': /* Someone asks about others' nicks */
+                Instant.identity.sendNick(msg.from);
+                break;
+              case 'log-query': /* Someone asks about our logs */
+              case 'log-info': /* Someone informs us about their logs */
+              case 'log-request': /* Someone requests logs from us */
+              case 'log': /* Someone delivers logs to us */
+                /* NYI */
+                break;
+              case 'log-inquiry': /* Are we done pulling logs? */
+              case 'log-done': /* We are done pulling logs? */
+                /* Both for log scraper interaction; not for the JS client */
+                break;
+              default:
+                console.warn('Unknown client message:', data);
+                break;
+            }
+            break;
+          default:
+            console.error('Unknown server message:', msg);
+            break;
+        }
       },
       /* Handle a dead connection */
       _closed: function(event) {
+        /* Update flag */
+        connected = false;
         /* Update status widget */
         if (connStatus) {
           /* Update status widget */
@@ -181,6 +288,8 @@ window.Instant = function() {
       },
       /* Handle an auxillary error */
       _error: function(event) {
+        /* Update flag */
+        connected = false;
         /* Cannnot really do anything */
         if (event)
           console.error('WebSocket error:', event);
@@ -216,12 +325,25 @@ window.Instant = function() {
         return Instant.connection.sendSeq({type: 'broadcast',
                                            data: data});
       },
+      /* Send either a unicast or a broadcast */
+      send: function(to, data) {
+        if (to) {
+          return Instant.connection.sendUnicast(to, data);
+        } else {
+          return Instant.connection.sendBroadcast(data);
+        }
+      },
+      /* Check whether the client is currently connected */
+      isConnected: function() {
+        return connected;
+      },
       /* Event handler for WebSocket messages */
       onRawMessage: null
     };
   }();
   /* Connect ASAP */
-  Instant.connection.connect();
+  if (Instant.connectionURL)
+    Instant.connection.connect();
   /* Nick-name handling */
   Instant.nick = function() {
     /* Nick -> Hue hash */
@@ -337,7 +459,7 @@ window.Instant = function() {
         /* Disable a wrongly-assumed emphasis mark */
         function declassify(elem) {
           elem.disabled = true;
-          elem.className = elem.className.replace(/before/g,
+          elem.node.className = elem.node.className.replace(/before/g,
             'before-false').replace(/after/g, 'after-false');
           elem.node.style.color = '';
           elem.node.style.fontWeight = '';
@@ -423,7 +545,7 @@ window.Instant = function() {
           if (e.emphAdd) {
             stack.push(e);
           } else if (e.emphRem) {
-            if (stack) {
+            if (stack.length) {
               stack.pop();
             } else {
               declassify(e);
@@ -845,14 +967,18 @@ window.Instant = function() {
       init: function(node) {
         /* Helpers for below */
         function updateNick() {
+          var hue = Instant.nick.hueHash(inputNick.value);
           sizerNick.textContent = inputNick.value;
-          sizerNick.style.background = 'hsl(' +
-          Instant.nick.hueHash(inputNick.value) + ', 75%, 80%)';
+          sizerNick.style.background = 'hsl(' + hue + ', 75%, 80%)';
           if (inputNick.value) {
             sizerNick.style.minWidth = '';
           } else {
             sizerNick.style.minWidth = '1em';
           }
+        }
+        function refreshNick() {
+          Instant.identity.nick = inputNick.value;
+          Instant.identity.sendNick();
         }
         function updateMessage() {
           var restore = Instant.pane.saveScrollState(inputNode, 1);
@@ -877,12 +1003,11 @@ window.Instant = function() {
           if (event.keyCode == 13) { // Return
             inputMsg.focus();
             event.preventDefault();
+            refreshNick();
           }
         });
         /* Update status when nick changes */
-        inputNick.addEventListener('change', function() {
-          Instant.identity.nick = inputNick.value;
-        });
+        inputNick.addEventListener('change', refreshNick);
         /* Reinforce nick editing prompt */
         promptNick.addEventListener('click', function() {
           inputNick.focus();
@@ -904,16 +1029,23 @@ window.Instant = function() {
             updateMessage();
             /* Ignore empty sends */
             if (! text) return;
-            /* Save scroll state */
-            var restore = Instant.pane.saveScrollState(inputNode, 1);
-            /* Currently only fake messages */
-            var msgid = 'local-' + leftpad(fakeSeq++, 8, '0');
-            Instant.message.importMessage(
-              {id: msgid, nick: Instant.identity.nick || '', text: text,
-                parent: Instant.input.getParentID(), timestamp: Date.now()},
-              Instant.message.getRoot(inputNode));
-            /* Restore scroll state */
-            restore();
+            if (! Instant.connectionURL) {
+              /* Save scroll state */
+              var restore = Instant.pane.saveScrollState(inputNode, 1);
+              /* Fake messages if not connected */
+              var msgid = 'local-' + leftpad(fakeSeq++, 8, '0');
+              Instant.message.importMessage(
+                {id: msgid, nick: Instant.identity.nick || '', text: text,
+                  parent: Instant.input.getParentID(), timestamp: Date.now()},
+                Instant.message.getRoot(inputNode));
+              /* Restore scroll state */
+              restore();
+            } else if (Instant.connection.isConnected()) {
+              /* Send actual message */
+              Instant.connection.sendBroadcast({type: 'post',
+                nick: Instant.identity.nick, text: text,
+                parent: Instant.input.getParentID()});
+            }
           } else if (event.keyCode == 27) { // Escape
             if (Instant.input.navigate('root')) {
               Instant.pane.scrollIntoView(inputNode);
