@@ -28,4 +28,4 @@ clean:
 	rm -f .build.jar Instant.jar
 
 run: Instant-run.jar
-	java -jar Instant-run.jar 8080
+	cd src && java -jar ../Instant-run.jar 8080
