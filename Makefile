@@ -25,7 +25,7 @@ Instant-run.jar: Instant.jar
 	rm .git-commit
 
 clean:
-	rm -f .build.jar Instant.jar
+	rm -f .build.jar Instant.jar Instant-run.jar
 
 run: Instant-run.jar
 	cd src && java -jar ../Instant-run.jar 8080
