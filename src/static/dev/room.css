@@ -108,6 +108,12 @@ body {
   padding-right: 0.25em;
 }
 
+.message > .line .emph-before, .message > .line .emph-after {
+  font-style: normal;
+  font-weight: normal;
+  font-variant: normal;
+}
+
 .message > .replies {
   display: -webkit-flex;
   display: flex;

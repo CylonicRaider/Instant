@@ -24,6 +24,10 @@ a:visited {
   color: #800080;
 }
 
+.monospace {
+  font-family: "Andale Mono", "Courier New", monospace;
+}
+
 .breadcrumbs {
   font-size: smaller;
 }
