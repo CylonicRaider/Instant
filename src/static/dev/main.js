@@ -686,7 +686,6 @@ window.Instant = function() {
           $sel('.input-message', Instant.input.getNode()).focus();
           Instant.pane.scrollIntoView(msgNode);
           event.stopPropagation();
-          event.preventDefault();
         });
         /* Done */
         return msgNode;

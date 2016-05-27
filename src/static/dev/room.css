@@ -109,16 +109,15 @@ body {
 }
 
 .message > .replies {
+  display: -webkit-flex;
+  display: flex;
+  -webkit-flex-direction: column;
+  flex-direction: column;
   border-left: 2px solid #c0c0c0;
   padding: 2px 0 0 8px;
 }
 .message > .replies:empty {
   display: none;
-}
-.message > .replies::after {
-  /* Ugly hack to disable margin collapsing */
-  content: "";
-  display: table;
 }
 
 .message + .message {
@@ -271,6 +270,7 @@ body {
 .input-bar {
   display: -webkit-flex;
   display: flex;
+  -webkit-align-content: stretch;
   align-content: stretch;
   width: 100%;
   margin: 5px 0;
@@ -397,6 +397,8 @@ body {
 .message-pane > .message-box {
   display: -webkit-flex;
   display: flex;
+  -webkit-flex-direction: column;
+  -webkit-justify-content: flex-end;
   flex-direction: column;
   justify-content: flex-end;
   min-height: 100%;
