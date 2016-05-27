@@ -419,10 +419,12 @@ window.Instant = function() {
      *                15: Markers before and after
      *                16: Marker before
      *                17: Marker after
-     *            18: Block-level monospace marker (check whitespace before)
+     *            18: Block-level monospace marker
+     *                19: Newline before
+     *                20: Newline after
      */
     var mc = '[^.,:;!?()\\s]';
-    var aa = '[^a-zA-Z0-9_]|^|$';
+    var aa = '[^a-zA-Z0-9_]|$';
     var INTERESTING = (
       '\\B&([a-zA-Z](?:[a-zA-Z0-9_-]*[a-zA-Z0-9])?)\\b|' +
       '<(((?!javascript:)[a-zA-Z]+://)?([a-zA-Z0-9._~-]+@)?' +
@@ -431,8 +433,9 @@ window.Instant = function() {
       '((?:[+-]1|:[D)|/(CSP\\\\oO]|[SD)/|(C\\\\oO]:|\\^\\^|;\\))(?=%AA%))|' +
       '((?:\\*+([^*\\s]+)\\*+|\\*+([^*\\s]+)|([^*\\s]+)\\*+)(?=%AA%))|' +
       '((?:`([^`\\s]+)`|`([^`\\s]+)|([^`\\s]+)`)(?=%AA%))|' +
-      '(```(?=%AA%))').replace(/%MC%/g, mc).replace(/%AA%/g, aa);
-    var ALLOW_AROUND = new RegExp(aa);
+      '((\\n)?```(\\n)?)'
+      ).replace(/%MC%/g, mc).replace(/%AA%/g, aa);
+    var ALLOW_BEFORE = /[^a-zA-Z0-9_]|^$/;
     /* Smiley table
      * Keep in sync with the regex above */
     var SMILEYS = {'+1': '#008000', '-1': '#c00000',
@@ -444,31 +447,26 @@ window.Instant = function() {
       ';)': '#c0c000', '^^': '#c0c000',
       ':\\': '#c0c000', '\\:': '#c0c000'
     };
-    /* Color for mark-up sigils */
-    var GRAY = '#808080';
     return {
       /* Detect links, emphasis, and smileys out of a flat string and render
        * those into a DOM node */
       parseContent: function(text) {
         /* Quickly prepare DOM nodes */
-        function makeNode(text, className, color, bold, tag) {
+        function makeNode(text, className, color, tag) {
           var node = document.createElement(tag || 'span');
           if (className) node.className = className;
           if (color) node.style.color = color;
-          if (bold) node.style.fontWeight = 'bold';
           if (text) node.textContent = text;
           return node;
         }
         function makeSigil(text, className) {
-          return makeNode(text, 'sigil ' + className, GRAY);
+          return makeNode(text, 'sigil ' + className);
         }
         /* Disable a wrongly-assumed emphasis mark */
         function declassify(elem) {
           elem.disabled = true;
-          elem.node.className = elem.node.className.replace(/before/g,
-            'before-false').replace(/after/g, 'after-false');
-          elem.node.style.color = '';
-          elem.node.style.fontWeight = '';
+          if (elem.node) elem.node.className += ' false';
+          if (elem.node2) elem.node2.className += ' false';
         }
         /* Regular expression instance */
         var re = new RegExp(INTERESTING, 'g');
@@ -496,7 +494,7 @@ window.Instant = function() {
           /* Switch on match */
           if (m[1]) {
             /* Room link */
-            var node = makeNode(m[0], 'room-link', null, false, 'a');
+            var node = makeNode(m[0], 'room-link', null, 'a');
             node.href = '/room/' + m[1] + '/';
             node.target = '_blank';
             out.push(node);
@@ -506,7 +504,7 @@ window.Instant = function() {
             /* Insert http:// if necessary */
             var url = m[2];
             if (! m[3]) url = 'http://' + url;
-            var node = makeNode(m[2], 'link', null, false, 'a');
+            var node = makeNode(m[2], 'link', null, 'a');
             node.href = url;
             node.target = '_blank';
             out.push(node);
@@ -514,10 +512,10 @@ window.Instant = function() {
           } else if (m[8]) {
             /* @-mention */
             out.push(Instant.nick.makeMention(m[8]));
-          } else if (m[9] && ALLOW_AROUND.test(before)) {
+          } else if (m[9] && ALLOW_BEFORE.test(before)) {
             /* Smiley (allowed characters after are already checked) */
-            out.push(makeNode(m[9], 'smiley', SMILEYS[m[9]], true));
-          } else if (m[10] && ALLOW_AROUND.test(before) && ! mono) {
+            out.push(makeNode(m[9], 'smiley', SMILEYS[m[9]]));
+          } else if (m[10] && ALLOW_BEFORE.test(before) && ! mono) {
             /* Emphasized text (again, only before has to be tested) */
             var pref = $prefLength(m[10], '*');
             var suff = $suffLength(m[10], '*');
@@ -536,7 +534,7 @@ window.Instant = function() {
               out.push({emphRem: true, node: node});
               out.push(node);
             }
-          } else if (m[14] && ALLOW_AROUND.test(before) && ! mono) {
+          } else if (m[14] && ALLOW_BEFORE.test(before) && ! mono) {
             /* Inline monospace */
             /* Leading sigil */
             if (m[15] != null || m[16] != null) {
@@ -552,18 +550,29 @@ window.Instant = function() {
               out.push({monoRem: true, node: node});
               out.push(node);
             }
-          } else if (m[18] && ALLOW_AROUND.test(before)) {
+          } else if (m[18]) {
             /* Block-level monospace marker */
-            if (! mono) {
-              var node = makeSigil(m[18], 'mono-block-before');
+            console.log(m, mono);
+            if (! mono && m[20] != null) {
+              /* Sigil introducing block */
+              var node = makeSigil('```', 'mono-block-before');
+              var nl = makeNode('\n', 'hidden');
               out.push(node);
-              out.push({monoAdd: true, node: node});
+              out.push(nl);
+              out.push({monoAdd: true, monoBlock: true, node: node,
+                        node2: nl});
               mono = true;
-            } else {
-              var node = makeSigil(m[18], 'mono-block-after');
-              out.push({monoRem: true, node: node});
+            } else if (mono && m[19] != null) {
+              /* Sigil terminating block */
+              var node = makeSigil('```', 'mono-block-after');
+              var nl = makeNode('\n', 'hidden');
+              out.push({monoRem: true, monoBlock: true, node: node,
+                        node2: nl});
+              out.push(nl);
               out.push(node);
               mono = false;
+            } else {
+              out.push(m[18]);
             }
           } else if (m[0]) {
             out.push(m[0]);
@@ -583,7 +592,8 @@ window.Instant = function() {
             if (stack.length) {
               /* Check if it actually matches */
               var top = stack[stack.length - 1];
-              if (e.emphRem && top.emphAdd || e.monoRem && top.monoAdd) {
+              if (e.emphRem == top.emphAdd && e.monoRem == top.monoAdd &&
+                  e.monoBlock == top.monoBlock) {
                 stack.pop();
               } else {
                 declassify(e);
@@ -621,6 +631,7 @@ window.Instant = function() {
             stack.push(node);
           } else if (e.monoAdd) {
             var node = makeNode(null, 'monospace');
+            if (e.monoBlock) node.className += ' monospace-block';
             top.appendChild(node);
             stack.push(node);
           } else if (e.emphRem) {

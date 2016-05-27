@@ -108,10 +108,24 @@ body {
   padding-right: 0.25em;
 }
 
+.message > .line .smiley {
+  font-weight: bold;
+}
+.message > .line .sigil {
+  color: #808080;
+}
+.message > .line .false {
+  display: inline;
+  color: inherit;
+}
 .message > .line .emph-before, .message > .line .emph-after {
   font-style: normal;
   font-weight: normal;
   font-variant: normal;
+}
+.message > .line .monospace-block {
+  display: block;
+  background: #f0f0f0;
 }
 
 .message > .replies {
@@ -161,10 +175,12 @@ body {
 
 #main {
   position: absolute;
-  opacity: 0;
-  text-align: left;
+  top: 0;
+  left: 0;
   width: 100%;
   height: 100%;
+  opacity: 0;
+  text-align: left;
   transition: opacity 1s;
 }
 
