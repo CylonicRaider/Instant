@@ -123,9 +123,11 @@ body {
   font-weight: normal;
   font-variant: normal;
 }
+.message > .line .monospace {
+  background: #f0f0f0;
+}
 .message > .line .monospace-block {
   display: block;
-  background: #f0f0f0;
 }
 
 .message > .replies {
