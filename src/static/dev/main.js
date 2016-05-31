@@ -1095,7 +1095,8 @@ window.Instant = function() {
               var msgid = 'local-' + leftpad(fakeSeq++, 8, '0');
               Instant.message.importMessage(
                 {id: msgid, nick: Instant.identity.nick || '', text: text,
-                  parent: Instant.input.getParentID(), timestamp: Date.now()},
+                 parent: Instant.input.getParentID(),
+                 timestamp: Date.now()},
                 Instant.message.getRoot(inputNode));
               /* Restore scroll state */
               restore();
