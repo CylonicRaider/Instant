@@ -555,7 +555,8 @@ window.Instant = function() {
             console.log(m, mono);
             if (! mono && m[20] != null) {
               /* Sigil introducing block */
-              var node = makeSigil('```', 'mono-block-before');
+              var st = (m[19] || '') + '```';
+              var node = makeSigil(st, 'mono-block-before');
               var nl = makeNode('\n', 'hidden');
               out.push(node);
               out.push(nl);
@@ -564,7 +565,8 @@ window.Instant = function() {
               mono = true;
             } else if (mono && m[19] != null) {
               /* Sigil terminating block */
-              var node = makeSigil('```', 'mono-block-after');
+              var st = '```' + (m[20] || '');
+              var node = makeSigil(st, 'mono-block-after');
               var nl = makeNode('\n', 'hidden');
               out.push({monoRem: true, monoBlock: true, node: node,
                         node2: nl});
