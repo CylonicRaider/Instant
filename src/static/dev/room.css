@@ -192,14 +192,14 @@ body {
 .sidebar {
   position: fixed;
   top: 0;
-  right: 0;
+  right: 5px;
   margin-right: 15px; /* For scrollbar */
   text-align: right;
   transition: background 0.5s;
 }
 .sidebar > * {
   background: rgba(255, 255, 255, 0.5);
-  padding: 5px;
+  padding: 5px 0 5px 5px;
 }
 .sidebar > :not(:first-child) {
   padding-top: 0;
@@ -273,18 +273,16 @@ body {
 }
 
 .user-list-wrapper {
-  display: inline-block;
-  position: relative;
-  right: 5px;
-  padding-right: 0;
   max-height: 75vh;
   overflow: auto;
 }
-.user-list-inner-wrapper {
-  display: inline-table;
-}
 .user-list {
-  display: table-cell;
+  display: -webkit-flex;
+  display: flex;
+  -webkit-flex-direction: column;
+  -webkit-align-items: flex-end;
+  flex-direction: column;
+  align-items: flex-end;
 }
 .user-list .nick-wrapper {
   padding: 2px 0 2px 2px;
