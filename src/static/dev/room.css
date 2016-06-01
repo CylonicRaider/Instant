@@ -284,12 +284,12 @@ body {
   flex-direction: column;
   align-items: flex-end;
 }
-.user-list .nick-wrapper {
-  padding: 2px 0 2px 2px;
-  color: #808080;
-}
-.user-list .nick-wrapper.active {
+.user-list .nick {
+  margin: 2px 0 2px 2px;
   color: black;
+}
+.user-list .nick:empty {
+  display: none;
 }
 
 .input-bar {

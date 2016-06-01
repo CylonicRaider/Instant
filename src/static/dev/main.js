@@ -97,16 +97,13 @@ window.Instant = function() {
     serverVersion: null,
     /* Fine-grained server version */
     serverRevision: null,
-    /* The nickname as known to the outside */
-    _sentNick: null,
     /* Broadcast or send the current nickname */
     sendNick: function(to) {
-      if (Instant.connection.isConnected() &&
-          Instant.identity.nick != Instant.identity._sentNick) {
-        Instant.connection.send(to, {type: 'nick',
-          nick: Instant.identity.nick});
-        Instant.identity._sentNick = Instant.identity.nick;
-      }
+      if (! Instant.connection.isConnected() ||
+          Instant.identity.nick == null)
+        return;
+      Instant.connection.send(to, {type: 'nick',
+        nick: Instant.identity.nick});
     }
   };
   /* Connection handling */
@@ -129,7 +126,6 @@ window.Instant = function() {
         connStatus = statusNode;
         /* Force update of widget */
         if (ws && ws.readyState == WebSocket.OPEN) {
-          console.log('Forcing status update');
           Instant.connection._connected();
         }
       },
@@ -205,16 +201,19 @@ window.Instant = function() {
             Instant.identity.id = msg.data.id;
             Instant.identity.serverVersion = msg.data.version;
             Instant.identity.serverRevision = msg.data.revision;
+            /* Ask for others' nicks */
+            Instant.connection.sendBroadcast({type: 'who'});
             break;
           case 'pong': /* Server replied to a ping */
           case 'reply': /* Reply to a message sent */
             /* Nothing to do */
             break;
           case 'joined':
-            /* New user joined (might be ourself) -- NYI */
+            /* New user joined (might be ourself) -- Nothing to do */
             break;
           case 'left':
-            /* User left -- NYI */
+            /* User left */
+            Instant.userList.remove(msg.data.id);
             break;
           case 'unicast': /* Someone sent a message directly to us */
           case 'broadcast': /* Someone sent a message to everyone */
@@ -229,6 +228,8 @@ window.Instant = function() {
                 if (typeof text != 'string')
                   /* HACK: Serialize text to something remotely senseful */
                   text = JSON.stringify(text);
+                /* Scrape for nicknames */
+                Instant.userList.add(msg.from, nick);
                 /* Prepare message object */
                 var ent = {id: msg.id, parent: data.parent || null,
                   timestamp: msg.timestamp, from: msg.from, nick: nick,
@@ -246,7 +247,7 @@ window.Instant = function() {
                 }
                 break;
               case 'nick': /* Someone informs us about their nick */
-                /* NYI */
+                Instant.userList.add(msg.from, data.nick);
                 break;
               case 'who': /* Someone asks about others' nicks */
                 Instant.identity.sendNick(msg.from);
@@ -552,7 +553,6 @@ window.Instant = function() {
             }
           } else if (m[18]) {
             /* Block-level monospace marker */
-            console.log(m, mono);
             if (! mono && m[20] != null) {
               /* Sigil introducing block */
               var st = (m[19] || '') + '```';
@@ -1038,6 +1038,7 @@ window.Instant = function() {
           }
         }
         function refreshNick() {
+          if (Instant.identity.nick == inputNick.value) return;
           Instant.identity.nick = inputNick.value;
           Instant.identity.sendNick();
         }
@@ -1148,7 +1149,6 @@ window.Instant = function() {
         });
         /* Focus the nick input */
         inputNick.focus();
-        Instant.identity.nick = inputNick.value;
         inputNick.selectionStart = inputNick.value.length;
         inputNick.selectionEnd = inputNick.value.length;
       },
@@ -1263,6 +1263,7 @@ window.Instant = function() {
       }
     };
   }();
+  /* Miscellaneous pane utilities */
   Instant.pane = function() {
     /* The distance to keep nodes away from the screen edges */
     var OUTER_DIST = 50;
@@ -1314,6 +1315,78 @@ window.Instant = function() {
         } else if (nodeRect.bottom > paneRect.bottom - dist) {
           pane.scrollTop -= paneRect.bottom - dist - nodeRect.bottom;
         }
+      }
+    };
+  }();
+  /* User list handling */
+  Instant.userList = function() {
+    /* ID -> node */
+    var nicks = {};
+    /* The actual user list. Wrapper is retrieved automatically. */
+    var node = null;
+    return {
+      /* Initialize state with the given node */
+      init: function(listNode) {
+        node = listNode;
+      },
+      /* Scan the list for a place where to insert */
+      bisect: function(name) {
+        /* No need to employ particularly fancy algorithms */
+        if (! node) return null;
+        var children = node.children;
+        var b = 0, e = children.length;
+        for (;;) {
+          // Bounds met? Done.
+          if (b == e)
+            return children[b] || null;
+          // Middle index and text.
+          var m = (b + e) / 2 | 0;
+          var t = children[m].textContent;
+          // Test which half to engage.
+          if (name < t) {
+            e = m;
+          } else if (name > t) {
+            if (b == m) m++;
+            b = m;
+          } else {
+            return children[m] || null;
+          }
+        }
+      },
+      /* Get the node corresponding to id or null */
+      get: function(id) {
+        return nicks[id] || null;
+      },
+      /* Add or update the entry for id */
+      add: function(id, name) {
+        /* Create a new node if necessary */
+        var newNode = nicks[id];
+        if (! newNode) {
+          newNode = document.createElement('span');
+          newNode.className = 'nick';
+          newNode.setAttribute('data-id', id);
+        }
+        /* Apply new parameters to node */
+        newNode.setAttribute('data-last-active', Date.now());
+        newNode.textContent = name;
+        /* Update data */
+        nicks[id] = newNode;
+        /* Abort if no node */
+        if (! node) return null;
+        /* Find insertion position */
+        var insBefore = Instant.userList.bisect(name);
+        /* Insert node into list */
+        node.insertBefore(newNode, insBefore);
+        /* Return something sensible */
+        return newNode;
+      },
+      /* Remove the given entry */
+      remove: function(id) {
+        if (! nicks[id]) return;
+        try {
+          node.removeChild(nicks[id]);
+        } catch (e) {}
+        delete nicks[id];
       }
     };
   }();
@@ -1379,6 +1452,7 @@ function init() {
     /* Initialize submodules */
     Instant.connection.init($sel('.online-status', main));
     Instant.input.init($sel('.input-bar', main));
+    Instant.userList.init($sel('.user-list', main));
     /* Hide greeter manually since Instant does not (for now) */
     hideGreeter();
   }
