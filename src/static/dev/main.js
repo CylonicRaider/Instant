@@ -885,7 +885,8 @@ window.Instant = function() {
         }
         return lc;
       },
-      /* Scan an array of messages where to insert */
+      /* Scan an array of messages where to insert
+       * If a matching node is (already) found, it is removed. */
       bisect: function(array, id) {
         if (! array || ! array.length) return null;
         var f = 0, t = array.length - 1;
@@ -899,7 +900,9 @@ window.Instant = function() {
         if (t < f) return last;
         /* Main loop */
         for (;;) {
-          /* |0 to cast to integer */
+          /* |0 to cast to integer
+           * When we get into ranges where f + t would overflow, we
+           * have problems more grave than that. */
           var c = (f + t) / 2 | 0;
           /* Element ID-s should sort identially to message ID-s */
           if (id < array[c].id) {
@@ -1424,6 +1427,141 @@ window.Instant = function() {
           par.style.minWidth = par.offsetWidth + (par.offsetWidth -
             par.clientWidth) + 'px';
         }
+      }
+    };
+  }();
+  /* Logs! */
+  Instant.logs = function() {
+    /* Sorted key list */
+    var keys = [];
+    /* ID -> object */
+    var messages = {};
+    return {
+      /* Get the bounds (amount of messages, earliest message, latest
+       * message) of the logs */
+      bounds: function() {
+        if (keys.length) {
+          return {from: keys[0], to: keys[keys.length - 1],
+            length: keys.length};
+        } else {
+          return {from: null, to: null, length: 0};
+        }
+      },
+      /* Find where to insert the given key and return the index
+       * If the key is already present, returns the index of it. */
+      bisect: function(key) {
+        var f = 0, t = keys.length - 1;
+        /* The actual algorithm fails with no keys to compare to */
+        if (! keys) return 0;
+        /* Actual bisecting */
+        for (;;) {
+          /* Compare with bounds */
+          if (key <= keys[f]) {
+            return f;
+          } else if (key > keys[t]) {
+            return t + 1;
+          } else if (t - f == 1) {
+            return t;
+          } else if (t - f < 1) {
+            return f;
+          }
+          /* Shift bounds */
+          var c = (f + t) / 2 | 0;
+          if (key < keys[c]) {
+            t = c - 1;
+          } else if (key > keys[c]) {
+            f = c + 1;
+          } else {
+            return c;
+          }
+        }
+      },
+      /* Add the given message, replacing an old one if present */
+      add: function(message) {
+        var pos = Instant.logs.bisect(message.id);
+        if (keys[pos] != message.id) {
+          keys.splice(pos, 0, message.id);
+        }
+        messages[message.id] = message;
+      },
+      /* Remove the message with the given ID */
+      remove: function(id) {
+        var pos = Instant.logs.bisect(id);
+        if (keys[pos] == id) keys.splice(pos, 1);
+        delete messages[id];
+      },
+      /* Purge everything from the logs */
+      clear: function() {
+        keys = [];
+        messages = {};
+      },
+      /* Add multiple log entries (preferably a large amount) */
+      merge: function(logs) {
+        /* Flush keys into current array; embed into storage */
+        var lkeys = logs.map(function(m) {
+          messages[m.id] = m;
+          return m.id;
+        });
+        keys.push.apply(keys, lkeys);
+        /* Sort */
+        keys.sort();
+        /* Deduplicate (it's better than nothing) */
+        var last = null;
+        keys = keys.filter(function(k) {
+          if (last != null && k == last) return false;
+          last = k;
+          return true;
+        });
+      },
+      /* Fetch some portion of the logs */
+      get: function(from, to, length) {
+        var retkeys = [];
+        /* Calculate the keys' indices */
+        var fromidx = (from != null) ? Instant.logs.bisect(from) : null;
+        var toidx = (to != null) ? Instant.logs.bisect(to) : null;
+        if (keys[toidx] == to) toidx++;
+        /* Patch missing indices */
+        if (fromidx != null && toidx != null) {
+          /* Exact range -- nothing to do */
+        } else if (fromidx != null) {
+          /* From a given key, ... */
+          if (length == null) {
+            /* ...until end -- nothing to do. */
+          } else {
+            /* ...until maximum length. */
+            toidx = fromidx + length;
+          }
+        } else if (toidx != null) {
+          /* Up to a given key, ... */
+          if (length == null) {
+            /* ...from the beginning. */
+            fromidx = 0;
+          } else {
+            /* ...from a maximum length. */
+            fromidx = toidx - length;
+            if (fromidx < 0) fromidx = 0;
+          }
+        } else if (length != null) {
+          /* N most recent entries */
+          toidx = keys.length;
+          fromidx = toidx - length;
+          if (fromidx < 0) fromidx = 0;
+        } else {
+          /* Everything! */
+          fromidx = 0;
+        }
+        /* Extract keys; map them to messages; return those. */
+        return keys.slice(fromidx, toidx).map(function(k) {
+          return messages[k];
+        });
+      },
+      /* Obtain the current key array. Do not modify. */
+      getKeys: function() {
+        return keys;
+      },
+      /* Obtain the current message mapping. Do not modify. */
+      getMessages: function() {
+        return messages;
       }
     };
   }();
