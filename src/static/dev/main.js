@@ -1382,6 +1382,8 @@ window.Instant = function() {
         var insBefore = Instant.userList.bisect(name);
         /* Insert node into list */
         node.insertBefore(newNode, insBefore);
+        /* Maintain consistency */
+        Instant.userList.updateWidth();
         /* Return something sensible */
         return newNode;
       },
@@ -1392,11 +1394,27 @@ window.Instant = function() {
           node.removeChild(nicks[id]);
         } catch (e) {}
         delete nicks[id];
+        Instant.userList.updateWidth();
       },
       /* Remove everything from list */
       clear: function() {
         nicks = {};
         while (node.firstChild) node.removeChild(node.firstChild);
+        Instant.userList.updateWidth();
+      },
+      /* Update the width of the user list */
+      updateWidth: function() {
+        /* Determine if the list is wrapped; cannot do anything if not */
+        var par = node.parentNode;
+        if (! par || ! par.classList.contains('user-list-wrapper'))
+          return;
+        /* Make measurements accurate */
+        par.style.minWidth = '';
+        /* HACK to check for scrollbar :P */
+        if (par.clientWidth != par.offsetWidth) {
+          par.style.minWidth = par.offsetWidth + (par.offsetWidth -
+            par.clientWidth) + 'px';
+        }
       }
     };
   }();

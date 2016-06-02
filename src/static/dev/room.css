@@ -272,7 +272,10 @@ body {
   color: black;
 }
 
+/* WARNING: Must have no horizontal margin or padding to avoid scrollbar
+ *          insanities */
 .user-list-wrapper {
+  padding: 5px 0;
   max-height: 75vh;
   overflow: auto;
 }
@@ -284,8 +287,11 @@ body {
   flex-direction: column;
   align-items: flex-end;
 }
+.user-list-wrapper > .user-list {
+  padding: 0 5px;
+}
 .user-list .nick {
-  margin: 2px 0 2px 2px;
+  margin: 2px 0;
   color: black;
 }
 .user-list .nick:empty {
