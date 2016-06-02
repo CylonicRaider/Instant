@@ -1332,7 +1332,7 @@ window.Instant = function() {
         node = listNode;
       },
       /* Scan the list for a place where to insert */
-      bisect: function(name) {
+      bisect: function(id, name) {
         /* No need to employ particularly fancy algorithms */
         if (! node) return null;
         var children = node.children;
@@ -1344,10 +1344,16 @@ window.Instant = function() {
           // Middle index and text.
           var m = (b + e) / 2 | 0;
           var t = children[m].textContent;
+          var i = children[m].getAttribute('data-id');
           // Test which half to engage.
           if (name < t) {
             e = m;
           } else if (name > t) {
+            if (b == m) m++;
+            b = m;
+          } else if (id && id < i) {
+            e = m;
+          } else if (id && id > i) {
             if (b == m) m++;
             b = m;
           } else {
@@ -1363,7 +1369,10 @@ window.Instant = function() {
       add: function(id, name) {
         /* Create a new node if necessary */
         var newNode = nicks[id];
-        if (! newNode) {
+        if (newNode) {
+          /* Do not disturb searching */
+          node.removeChild(newNode);
+        } else {
           newNode = document.createElement('span');
           newNode.className = 'nick';
           newNode.setAttribute('data-id', id);
@@ -1379,7 +1388,7 @@ window.Instant = function() {
         /* Abort if no node */
         if (! node) return null;
         /* Find insertion position */
-        var insBefore = Instant.userList.bisect(name);
+        var insBefore = Instant.userList.bisect(id, name);
         /* Insert node into list */
         node.insertBefore(newNode, insBefore);
         /* Maintain consistency */
