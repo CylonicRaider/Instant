@@ -201,6 +201,8 @@ window.Instant = function() {
             Instant.identity.id = msg.data.id;
             Instant.identity.serverVersion = msg.data.version;
             Instant.identity.serverRevision = msg.data.revision;
+            /* Reset user list */
+            Instant.userList.clear();
             /* Ask for others' nicks */
             Instant.connection.sendBroadcast({type: 'who'});
             break;
@@ -1367,8 +1369,11 @@ window.Instant = function() {
           newNode.setAttribute('data-id', id);
         }
         /* Apply new parameters to node */
+        var hue = Instant.nick.hueHash(name);
         newNode.setAttribute('data-last-active', Date.now());
+        newNode.setAttribute('data-nick', name);
         newNode.textContent = name;
+        newNode.style.background = 'hsl(' + hue + ', 75%, 80%)';
         /* Update data */
         nicks[id] = newNode;
         /* Abort if no node */
@@ -1387,6 +1392,11 @@ window.Instant = function() {
           node.removeChild(nicks[id]);
         } catch (e) {}
         delete nicks[id];
+      },
+      /* Remove everything from list */
+      clear: function() {
+        nicks = {};
+        while (node.firstChild) node.removeChild(node.firstChild);
       }
     };
   }();
