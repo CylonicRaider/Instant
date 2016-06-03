@@ -927,7 +927,7 @@ window.Instant = function() {
           } else {
             /* Replace old node */
             var ret = array[c].nextElementSibling;
-            parent.removeChild(array[c]);
+            array[c].parentNode.removeChild(array[c]);
             return ret;
           }
         }
