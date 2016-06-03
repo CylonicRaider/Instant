@@ -391,12 +391,12 @@ window.Instant = function() {
       /* Generate a DOM node carrying a mention of the nick
        * name is the nickname with an @-sign. */
       makeMention: function(name) {
+        if (name[0] != '@') throw new Error('Bad nick for makeMention()');
         var node = document.createElement('span');
-        var hue = Instant.nick.hueHash(name);
+        var hue = Instant.nick.hueHash(name.substr(1));
         node.className = 'mention';
         node.textContent = name;
         node.style.color = 'hsl(' + hue + ', 75%, 40%)';
-        if (name[0] != '@') throw new Error('Bad nick for makeMention()');
         node.setAttribute('data-nick', name.substr(1));
         return node;
       }
@@ -1418,7 +1418,7 @@ window.Instant = function() {
       /* Remove everything from list */
       clear: function() {
         nicks = {};
-        while (node.firstChild) node.removeChild(node.firstChild);
+        if (node) while (node.firstChild) node.removeChild(node.firstChild);
         Instant.userList.updateWidth();
       },
       /* Update the width of the user list */
