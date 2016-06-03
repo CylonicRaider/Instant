@@ -203,8 +203,9 @@ window.Instant = function() {
             Instant.identity.serverRevision = msg.data.revision;
             /* Reset user list */
             Instant.userList.clear();
-            /* Ask for others' nicks */
             Instant.connection.sendBroadcast({type: 'who'});
+            /* Initiate log pull */
+            Instant.logs.pull.start();
             break;
           case 'pong': /* Server replied to a ping */
           case 'reply': /* Reply to a message sent */
@@ -240,7 +241,7 @@ window.Instant = function() {
                 var inp = Instant.input.getNode();
                 if (inp) {
                   /* Prepare for scrolling */
-                  var restore = Instant.pane.saveScrollState(inp, 1);
+                  var restore = Instant.input.saveScrollState();
                   /* Post message */
                   var box = Instant.pane.getBox(inp);
                   Instant.message.importMessage(ent, box);
@@ -258,7 +259,7 @@ window.Instant = function() {
               case 'log-info': /* Someone informs us about their logs */
               case 'log-request': /* Someone requests logs from us */
               case 'log': /* Someone delivers logs to us */
-                /* NYI */
+                Instant.logs.pull._onmessage(msg);
                 break;
               case 'log-inquiry': /* Are we done pulling logs? */
               case 'log-done': /* We are done pulling logs? */
@@ -285,6 +286,8 @@ window.Instant = function() {
           connStatus.classList.add('broken');
           connStatus.title = 'Broken';
         }
+        /* Inform logs */
+        Instant.logs.pull._disconnected();
         /* Re-connect */
         if (event)
           Instant.connection.reconnect();
@@ -381,7 +384,7 @@ window.Instant = function() {
         var hue = Instant.nick.hueHash(name);
         node.className = 'nick';
         node.textContent = name;
-        node.style.background = 'hsl(' + hue + ', 75%, 80%)';
+        node.style.backgroundColor = 'hsl(' + hue + ', 75%, 80%)';
         node.setAttribute('data-nick', name);
         return node;
       },
@@ -1048,7 +1051,7 @@ window.Instant = function() {
           Instant.identity.sendNick();
         }
         function updateMessage() {
-          var restore = Instant.pane.saveScrollState(inputNode, 1);
+          var restore = Instant.input.saveScrollState();
           inputMsg.style.height = '0';
           inputMsg.style.height = inputMsg.scrollHeight + 'px';
           promptNick.style.display = 'none';
@@ -1098,7 +1101,7 @@ window.Instant = function() {
             if (! text) return;
             if (! Instant.connectionURL) {
               /* Save scroll state */
-              var restore = Instant.pane.saveScrollState(inputNode, 1);
+              var restore = Instant.input.saveScrollState();
               /* Fake messages if not connected */
               var msgid = 'local-' + leftpad(fakeSeq++, 8, '0');
               Instant.message.importMessage(
@@ -1265,6 +1268,10 @@ window.Instant = function() {
             throw new Error('Invalid direction for input.navigate(): ' +
               direction);
         }
+      },
+      /* Convenience wrapper for Instant.pane.saveScrollState() */
+      saveScrollState: function(focus) {
+        return Instant.pane.saveScrollState(inputNode, 1, focus);
       }
     };
   }();
@@ -1436,6 +1443,10 @@ window.Instant = function() {
     var keys = [];
     /* ID -> object */
     var messages = {};
+    /* Earliest and newest log message, respectively */
+    var oldestLog = null, newestLog = null;
+    /* Our logs are up-to-date */
+    var logsLive = true;
     return {
       /* Get the bounds (amount of messages, earliest message, latest
        * message) of the logs */
@@ -1483,6 +1494,8 @@ window.Instant = function() {
           keys.splice(pos, 0, message.id);
         }
         messages[message.id] = message;
+        if (logsLive && message.id > newestMessage)
+          newestMessage = message.id;
       },
       /* Remove the message with the given ID */
       remove: function(id) {
@@ -1494,24 +1507,50 @@ window.Instant = function() {
       clear: function() {
         keys = [];
         messages = {};
+        oldestLog = null;
+        newestLog = null;
+        logsLive = false;
       },
-      /* Add multiple log entries (preferably a large amount) */
-      merge: function(logs) {
-        /* Flush keys into current array; embed into storage */
+      /* Add multiple log entries (preferably a large amount)
+       * If updateIndices is true, the oldest and the newest "log" message
+       * ID-s are updated. */
+      merge: function(logs, updateIndices) {
+        /* No logs, no action */
+        if (! logs) return;
+        /* Flush keys into array; embed into storage */
         var lkeys = logs.map(function(m) {
           messages[m.id] = m;
           return m.id;
         });
+        /* Update oldest and newest log */
+        if ((updateIndices || logsLive) && lkeys) {
+          if (oldestLog == null || oldestLog > lkeys[0])
+            oldestLog = lkeys[0];
+          if (newestLog == null || newestLog < lkeys[lkeys.length - 1])
+            newestLog = lkeys[lkeys.length - 1];
+        }
+        lkeys.sort();
+        /* Actually flush keys into key array */
         keys.push.apply(keys, lkeys);
         /* Sort */
         keys.sort();
         /* Deduplicate (it's better than nothing) */
-        var last = null;
+        var last = null, lkidx = 0, added = [], ladd = null;
         keys = keys.filter(function(k) {
-          if (last != null && k == last) return false;
+          if (last != null && k == last) {
+            if (ladd == k) added.pop();
+            return false;
+          }
+          if (lkeys[lkidx] == k) {
+            added.push(k);
+            ladd = k;
+            lkidx++;
+          }
           last = k;
           return true;
         });
+        /* Return messages actually added */
+        return added;
       },
       /* Fetch some portion of the logs */
       get: function(from, to, length) {
@@ -1562,7 +1601,126 @@ window.Instant = function() {
       /* Obtain the current message mapping. Do not modify. */
       getMessages: function() {
         return messages;
-      }
+      },
+      /* Return the oldest "log" message ID */
+      getOldestLog: function() {
+        return oldestLog;
+      },
+      /* Return the newest "log" message ID */
+      getNewestLog: function() {
+        return newestLog;
+      },
+      /* Submodule */
+      pull: function() {
+        /* Interval to wait before choosing peer */
+        var WAIT_TIME = 1000;
+        /* The pane to add parent-less messages to */
+        var pane = null;
+        /* Waiting for replies to arrive */
+        var timer = null;
+        /* Last time we got a log-info */
+        var lastUpdate = null;
+        /* Peers for oldest and newest messages */
+        var oldestPeer = null, newestPeer = null;
+        /* Which logs exactly are pulled */
+        var pullType = {before: null, after: null};
+        return {
+          /* Initialize the pane node */
+          init: function(paneNode) {
+            pane = paneNode;
+          },
+          /* Actually start pulling logs */
+          _start: function() {
+            Instant.connection.sendBroadcast({type: 'log-query'});
+            lastUpdate = Date.now();
+            if (timer == null)
+              timer = setInterval(Instant.logs.pull._check, WAIT_TIME);
+          },
+          /* Start a round of log pulling */
+          start: function() {
+            pullType.before = true;
+            pullType.after = true;
+            Instant.logs.pull._start();
+          },
+          /* Collect log information */
+          _check: function() {
+            /* Abort if new data arrived while waiting; stop waiting
+             * otherwise */
+            if (Date.now() - lastUpdate < WAIT_TIME) return;
+            clearInterval(timer);
+            timer = null;
+            /* Request logs! */
+            if (oldestPeer) {
+              Instant.connection.sendUnicast(oldestPeer.id,
+                {type: 'log-request', to: oldestLog});
+            }
+            if (newestPeer && ! logsLive) {
+              Instant.connection.sendUnicast(newestPeer.id,
+                {type: 'log-request', from: newestLog});
+            }
+            /* Reset peers */
+            oldestPeer = null;
+            newestPeer = null;
+          },
+          /* Handler for messages */
+          _onmessage: function(msg) {
+            var reply = null, replyTo = msg.from;
+            /* Check message */
+            var data = msg.data;
+            switch (data.type) {
+              case 'log-query': /* Someone asks about our logs */
+                /* FIXME: Does include "live" messages as logs. */
+                reply = Instant.logs.bounds();
+                reply.type = 'log-info';
+                break;
+              case 'log-info': /* Someone informs us about their logs */
+                var from = data.from, to = data.to;
+                if (from && (! oldestPeer || from < oldestPeer.msg))
+                  oldestPeer = {id: msg.from, msg: from};
+                if (to && (! newestPeer || to > newestPeer.msg))
+                  newestPeer = {id: msg.from, msg: to};
+                lastUpdate = Date.now();
+                break;
+              case 'log-request': /* Someone requests logs from us */
+                var from = data.from || null, to = data.to || null;
+                var length = data.length || null;
+                reply = {type: 'log'};
+                if (from) reply.from = from;
+                if (to) reply.to = to;
+                if (length) reply.length = length;
+                reply.data = Instant.logs.get(from, to, length);
+                break;
+              case 'log': /* Someone delivers logs to us */
+                if (! data.data) break;
+                var added = Instant.logs.merge(data.data, true);
+                var restore = Instant.input.saveScrollState(true);
+                added.forEach(function(key) {
+                  Instant.message.importMessage(messages[key], pane);
+                });
+                restore();
+                /* Update internal state; possibly send follow-up requests */
+                pullType.before = false;
+                if (data.from && data.length == 1) {
+                  logsLive = true;
+                  pullType.after = false;
+                } else {
+                  pullType.after = true;
+                  Instant.logs.pull.start();
+                }
+                break;
+              default:
+                throw new Error('Bad message supplied to _onmessage().');
+            }
+            /* Send reply */
+            if (reply != null) Instant.connection.send(replyTo, reply);
+          },
+          /* Handler for disconnects */
+          _disconnected: function() {
+            /* Logs are not up-to-date from now on */
+            logsLive = false;
+          }
+        };
+      }()
     };
   }();
   /* To be assigned in window */
@@ -1628,6 +1786,7 @@ function init() {
     Instant.connection.init($sel('.online-status', main));
     Instant.input.init($sel('.input-bar', main));
     Instant.userList.init($sel('.user-list', main));
+    Instant.logs.pull.init($sel('.message-box', main));
     /* Hide greeter manually since Instant does not (for now) */
     hideGreeter();
   }
