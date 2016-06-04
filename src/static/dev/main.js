@@ -124,6 +124,8 @@ window.Instant = function() {
        * widget */
       init: function(statusNode) {
         connStatus = statusNode;
+        /* Connect */
+        Instant.connection.reconnect();
         /* Force update of widget */
         if (ws && ws.readyState == WebSocket.OPEN) {
           Instant.connection._connected();
@@ -347,9 +349,11 @@ window.Instant = function() {
       onRawMessage: null
     };
   }();
-  /* Connect ASAP */
-  if (Instant.connectionURL)
-    Instant.connection.connect();
+  /* Connect ASAP
+   * Or not, since we're *much* quicker than Heim, and the user should be
+   * entertained by the greeting animation for a few seconds. */
+  /*if (Instant.connectionURL)
+    Instant.connection.connect();*/
   /* Nick-name handling */
   Instant.nick = function() {
     /* Nick -> Hue hash */
@@ -1644,6 +1648,7 @@ window.Instant = function() {
             lastUpdate = Date.now();
             if (timer == null)
               timer = setInterval(Instant.logs.pull._check, WAIT_TIME);
+            Instant.animation.throbber.show('logs');
           },
           /* Start a round of log pulling */
           start: function() {
@@ -1715,10 +1720,13 @@ window.Instant = function() {
                   } else {
                     pullType.after = true;
                     Instant.logs.pull.start();
+                    break;
                   }
                 } else if (data.to && ! data.from) {
                   pullType.before = false;
                 }
+                Instant.animation.greeter.hide();
+                Instant.animation.throbber.hide('logs');
                 break;
               default:
                 throw new Error('Bad message supplied to _onmessage().');
@@ -1735,16 +1743,105 @@ window.Instant = function() {
       }()
     };
   }();
+  /* Special effects */
+  Instant.animation = function() {
+    /* No variables for now */
+    return {
+      /* Greeting pane */
+      greeter: function() {
+        /* The actual node */
+        var node = null;
+        /* Whether the node is visible */
+        var visible = true;
+        /* The timeout to hide it entirely */
+        var hideTimeout = null;
+        return {
+          /* Initialize submodule */
+          init: function(greeterNode) {
+            node = greeterNode;
+            if (visible) {
+              Instant.animation.greeter.show();
+            } else {
+              Instant.animation.greeter.hide();
+            }
+          },
+          /* Show greeter */
+          show: function() {
+            if (! node || visible) return;
+            if (hideTimeout != null) clearTimeout(hideTimeout);
+            node.style.display = 'inline-block';
+            node.style.opacity = '1';
+            visible = true;
+          },
+          /* Hide greeter */
+          hide: function() {
+            if (! node || ! visible) return;
+            if (hideTimeout != null) clearTimeout(hideTimeout);
+            node.style.opacity = '0';
+            hideTimeout = setTimeout(function() {
+              node.style.display = 'none';
+            }, 1000);
+            visible = false;
+          },
+        };
+      }(),
+      /* Throbber indicating ongoing action */
+      throbber: function() {
+        /* Status
+         * The throbber displays as long as at least one of the values in
+         * here it true. */
+        var status = {};
+        /* The actual throbber element */
+        var node = null;
+        return {
+          /* Initialize the submodule with the given node */
+          init: function(throbberNode) {
+            node = throbberNode;
+            Instant.animation.throbber._update();
+          },
+          /* Show the throbber, setting the given status variable */
+          show: function(key) {
+            status[key] = true;
+            Instant.animation.throbber._update();
+          },
+          /* Possibly hide the throbber, but at least mark this task as
+           * done */
+          hide: function(key) {
+            status[key] = false;
+            Instant.animation.throbber._update();
+          },
+          /* Get the status value for the given key */
+          get: function(key) {
+            return status[key];
+          },
+          /* Update the node to accord to the status */
+          _update: function() {
+            if (! node) return;
+            /* Scan for true values */
+            var visible = false;
+            for (var key in status) {
+              if (! status.hasOwnProperty(key)) continue;
+              if (status[key]) {
+                visible = true;
+                break;
+              }
+            }
+            /* Update node accordingly */
+            if (visible) {
+              node.classList.add('visible');
+            } else {
+              node.classList.remove('visible');
+            }
+          }
+        };
+      }()
+    };
+  }();
   /* To be assigned in window */
   return Instant;
 }();
 
 function init() {
-  /* Callback for below */
-  function hideGreeter() {
-    wrapper.style.opacity = '0';
-    setTimeout(function() { wrapper.style.display = 'none'; }, 1000);
-  }
   /* Obtain nodes */
   var wrapper = $id('load-wrapper');
   var main = $id('main');
@@ -1794,11 +1891,11 @@ function init() {
       }
     });
     /* Initialize submodules */
-    Instant.connection.init($sel('.online-status', main));
     Instant.input.init($sel('.input-bar', main));
     Instant.userList.init($sel('.user-list', main));
     Instant.logs.pull.init($sel('.message-box', main));
-    /* Hide greeter manually since Instant does not (for now) */
-    hideGreeter();
+    Instant.animation.greeter.init(wrapper);
+    Instant.animation.throbber.init($sel('.throbber', main));
+    Instant.connection.init($sel('.online-status', main));
   }
 }
