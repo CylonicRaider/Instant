@@ -1742,7 +1742,6 @@ window.Instant = function() {
 function init() {
   /* Callback for below */
   function hideGreeter() {
-    wrapper.style.marginTop = '-30px';
     wrapper.style.opacity = '0';
     setTimeout(function() { wrapper.style.display = 'none'; }, 1000);
   }
