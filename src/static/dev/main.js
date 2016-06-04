@@ -983,14 +983,18 @@ window.Instant = function() {
             Instant.message.addReply(parent, root);
           }
         }
-        /* Resolve fake messages */
-        var fake = fakeMessages[message.getAttribute('data-id')];
-        if (fake) {
-          $moveCh(Instant.message.getReplies(fake),
+        /* Resolve fake or "old" messages */
+        var msgid = message.getAttribute('data-id');
+        var fake = fakeMessages[msgid];
+        var old = messages[msgid];
+        if (fake || old) {
+          var prev = fake || old;
+          $moveCh(Instant.message.getReplies(prev),
                   Instant.message.makeReplies(message));
-          fake.parentNode.removeChild(fake);
-          delete fakeMessages[message.getAttribute('data-id')];
+          fake.parentNode.removeChild(prev);
         }
+        if (fake) delete fakeMessages[msgid];
+        if (old) delete messages[msgid];
         /* Add message to parent */
         Instant.message.addReply(message, parent);
         /* Update indents */
@@ -1181,12 +1185,17 @@ window.Instant = function() {
       /* Move the input bar to the given message, or to its parent if the
        * bar is already there. */
       moveTo: function(message) {
-        if (Instant.message.isMessage(message) &&
-            inputNode.parentNode == Instant.message._getReplyNode(message)) {
-          Instant.input.jumpTo(Instant.message.getParent(message));
-        } else {
-          Instant.input.jumpTo(message);
+        if (Instant.message.isMessage(message)) {
+          var replies = Instant.message._getReplyNode(message);
+          if (inputNode.parentNode == replies ||
+              Instant.message.getPrecedessor(inputNode) != message &&
+              ! Instant.message.hasReplies(message) &&
+              ! Instant.message.getSuccessor(message)) {
+            Instant.input.jumpTo(Instant.message.getParent(message));
+            return;
+          }
         }
+        Instant.input.jumpTo(message);
       },
       /* Move the input bar relative to its current position */
       navigate: function(direction) {
@@ -1699,13 +1708,16 @@ window.Instant = function() {
                 });
                 restore();
                 /* Update internal state; possibly send follow-up requests */
-                pullType.before = false;
-                if (data.from && data.length == 1) {
-                  logsLive = true;
-                  pullType.after = false;
-                } else {
-                  pullType.after = true;
-                  Instant.logs.pull.start();
+                if (data.from && ! data.to) {
+                  if (data.data.length == 1) {
+                    pullType.after = false;
+                    logsLive = true;
+                  } else {
+                    pullType.after = true;
+                    Instant.logs.pull.start();
+                  }
+                } else if (data.to && ! data.from) {
+                  pullType.before = false;
                 }
                 break;
               default:

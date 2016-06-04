@@ -291,8 +291,11 @@ body {
   padding: 0 5px;
 }
 .user-list .nick {
-  margin: 2px 0;
+  margin-bottom: 2px;
   color: black;
+}
+.user-list .nick:last-child {
+  margin-bottom: 0;
 }
 .user-list .nick:empty {
   display: none;
@@ -466,7 +469,7 @@ body {
   -webkit-animation-timing-function: linear;
   -webkit-animation-fill-mode: both;
 }
-.message.new > .line .time-wrapper::after {
+.message.new > .line time::after {
   content: "";
   display: block;
   position: absolute;
@@ -485,7 +488,7 @@ body {
   -webkit-animation-fill-mode: both;
 }
 .message.new.offscreen > .line,
-.message.new.offscreen > .line .time-wrapper::after {
+.message.new.offscreen > .line time::after {
   animation-play-state: paused;
   -webkit-animation-play-state: paused;
 }
