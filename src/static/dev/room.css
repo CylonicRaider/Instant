@@ -503,6 +503,13 @@ body {
 @keyframes bgfade { to { background: transparent; } }
 @-webkit-keyframes bgfade { to { background: transparent; } }
 
+.user-list .nick {
+  animation: clrfade 300s cubic-bezier(0.5, 0.0, 1.0, 0.5) both;
+  -webkit-animation: clrfade 300s cubic-bezier(0.5, 0.0, 1.0, 0.5) both;
+}
+@keyframes clrfade { to { color: #808080; } }
+@-webkit-keyframes clrfade { to { color: #808080; } }
+
 @media (max-width: 400px) {
 
   .input-bar .input-message-cell {
