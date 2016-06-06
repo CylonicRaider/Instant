@@ -1648,12 +1648,20 @@ window.Instant = function() {
             lastUpdate = Date.now();
             if (timer == null)
               timer = setInterval(Instant.logs.pull._check, WAIT_TIME);
-            Instant.animation.throbber.show('logs');
+            if (pullType.before)
+              Instant.animation.throbber.show('logs-before');
+            if (pullType.after)
+              Instant.animation.throbber.show('logs-after');
           },
           /* Start a round of log pulling */
           start: function() {
             pullType.before = true;
             pullType.after = true;
+            Instant.logs.pull._start();
+          },
+          /* Load logs before the current ones */
+          more: function() {
+            pullType.before = true;
             Instant.logs.pull._start();
           },
           /* Collect log information */
@@ -1667,10 +1675,16 @@ window.Instant = function() {
             if (oldestPeer) {
               Instant.connection.sendUnicast(oldestPeer.id,
                 {type: 'log-request', to: oldestLog});
+            } else {
+              Instant.animation.throbber.hide('logs-before');
+              Instant.animation.greeter.hide();
             }
             if (newestPeer && ! logsLive) {
               Instant.connection.sendUnicast(newestPeer.id,
                 {type: 'log-request', from: newestLog});
+            } else {
+              Instant.animation.throbber.hide('logs-after');
+              Instant.animation.greeter.hide();
             }
             /* Reset peers */
             oldestPeer = null;
@@ -1705,7 +1719,13 @@ window.Instant = function() {
                 reply.data = Instant.logs.get(from, to, length);
                 break;
               case 'log': /* Someone delivers logs to us */
-                if (! data.data) break;
+                if (! data.data) {
+                  if (data.from && ! data.to)
+                    Instant.animation.throbber.hide('logs-after');
+                  if (data.to && ! data.from)
+                    Instant.animation.throbber.hide('logs-before');
+                  break;
+                }
                 var added = Instant.logs.merge(data.data, true);
                 var restore = Instant.input.saveScrollState(true);
                 added.forEach(function(key) {
@@ -1717,6 +1737,7 @@ window.Instant = function() {
                   if (data.data.length == 1) {
                     pullType.after = false;
                     logsLive = true;
+                    Instant.animation.throbber.hide('logs-after');
                   } else {
                     pullType.after = true;
                     Instant.logs.pull.start();
@@ -1724,9 +1745,9 @@ window.Instant = function() {
                   }
                 } else if (data.to && ! data.from) {
                   pullType.before = false;
+                  Instant.animation.throbber.hide('logs-before');
                 }
                 Instant.animation.greeter.hide();
-                Instant.animation.throbber.hide('logs');
                 break;
               default:
                 throw new Error('Bad message supplied to _onmessage().');
@@ -1745,8 +1766,19 @@ window.Instant = function() {
   }();
   /* Special effects */
   Instant.animation = function() {
+    /* The main message box */
+    var messageBox = null;
     /* No variables for now */
     return {
+      /* Initialize the submodule */
+      init: function(node) {
+        messageBox = node;
+        var pane = Instant.pane.getPane(messageBox);
+        /* Pull more logs when scrolled to top */
+        pane.addEventListener('scroll', function(event) {
+          if (pane.scrollTop == 0) Instant.logs.pull.more();
+        });
+      },
       /* Greeting pane */
       greeter: function() {
         /* The actual node */
@@ -1894,6 +1926,7 @@ function init() {
     Instant.input.init($sel('.input-bar', main));
     Instant.userList.init($sel('.user-list', main));
     Instant.logs.pull.init($sel('.message-box', main));
+    Instant.animation.init($sel('.message-box', main));
     Instant.animation.greeter.init(wrapper);
     Instant.animation.throbber.init($sel('.throbber', main));
     Instant.connection.init($sel('.online-status', main));
