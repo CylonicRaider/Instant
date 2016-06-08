@@ -1260,6 +1260,7 @@ if (Instant.roomName) {
               if (msgd.from != null) reply.from = msgd.from;
               if (msgd.to != null) reply.to = msgd.to;
               if (msgd.amount != null) reply.amount = msgd.amount;
+              if (msgd.key != null) reply.key = msgd.key;
               reply.data = Instant.logs.get(reply.from, reply.to,
                                             reply.amount);
               Instant.connection.sendUnicast(msg.from, reply);

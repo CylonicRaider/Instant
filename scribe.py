@@ -16,7 +16,7 @@ except ImportError:
     from Queue import Queue, Empty as QueueEmpty
 
 NICKNAME = 'Scribe'
-VERSION = 'v1.3'
+VERSION = 'v1.3.1'
 MAXLEN = None
 DONTSTAY = False
 DONTPULL = False
@@ -472,17 +472,22 @@ def send_unicast(ws, dest, msg, verbose=True):
 def send_broadcast(ws, msg, verbose=True):
     return send_seq(ws, {'type': 'broadcast', 'data': msg}, verbose)
 
-def send_logs(ws, peer, lfrom=None, lto=None, amount=None):
+def send_logs(ws, peer, lfrom=None, lto=None, amount=None, key=None):
     ret = LOGS.query(lfrom, lto, amount)
     reply = {'type': 'log', 'data': ret}
     if lfrom is not None: reply['from'] = lfrom
     if lto is not None: reply['to'] = lto
     if amount is not None: reply['amount'] = amount
+    if key is not None: reply['key'] = key
+    ls = 'LOGSEND to=%r' % (peer,)
     if ret:
-        log('LOGSEND to=%r log-from=%r log-to=%r log-count=%r' % (
-            peer, ret[0]['id'], ret[-1]['id'], len(ret)))
+        ls += ' log-from=%r log-to=%r log-count=%r' % (ret[0]['id'],
+          ret[-1]['id'], len(ret))
     else:
-        log('LOGSEND to=%r log-count=0' % peer)
+        ls += ' log-count=0'
+    if key:
+        ls += ' key=%r' % (key,)
+    log(ls)
     return send_unicast(ws, peer, reply, False)
 
 def on_open(ws):
@@ -558,7 +563,7 @@ def on_message(ws, msg, _context={'oid': None, 'id': None, 'src': None,
         elif msgt == 'log-request':
             # Someone requesting chat logs
             send_logs(ws, data.get('from'), msgd.get('from'),
-                      msgd.get('to'), msgd.get('amount'))
+                      msgd.get('to'), msgd.get('amount'), msgd.get('key'))
         elif msgt == 'log':
             # Someone delivering chat logs
             if DONTPULL: return
