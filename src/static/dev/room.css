@@ -9,7 +9,6 @@ body {
   overflow: hidden;
   color: black;
   background: white;
-  line-height: 1.2;
 }
 
 :focus {
@@ -206,6 +205,10 @@ body {
   padding-top: 0;
 }
 
+.sidebar-top {
+  line-height: 1.2;
+}
+
 .throbber {
   display: none;
   width: 1.2em;
@@ -321,6 +324,7 @@ body {
   margin: 5px 0;
   background: white;
   box-shadow: 0 0 5px #808080;
+  line-height: 1.2;
 }
 .input-bar .input-info-cell {
   display: inline-block;

@@ -1124,6 +1124,10 @@ window.Instant = function() {
               Instant.connection.sendBroadcast({type: 'post',
                 nick: Instant.identity.nick, text: text,
                 parent: Instant.input.getParentID()});
+            } else {
+              /* Roll back */
+              inputMsg.value = text;
+              updateMessage();
             }
           } else if (event.keyCode == 27) { // Escape
             if (Instant.input.navigate('root')) {
@@ -1137,6 +1141,9 @@ window.Instant = function() {
               if (Instant.input.navigate('up')) {
                 Instant.pane.scrollIntoView(inputNode);
                 event.preventDefault();
+              } else {
+                /* Special case: Get more logs */
+                Instant.logs.pull.more();
               }
               inputMsg.focus();
             } else if (event.keyCode == 40) { // Down
@@ -1634,6 +1641,8 @@ window.Instant = function() {
       pull: function() {
         /* Interval to wait before choosing peer */
         var WAIT_TIME = 1000;
+        /* When to poll whether to choose new peer */
+        var POLL_TIME = 250;
         /* The pane to add parent-less messages to */
         var pane = null;
         /* Waiting for replies to arrive */
@@ -1654,12 +1663,12 @@ window.Instant = function() {
             if (timer == null) {
               Instant.connection.sendBroadcast({type: 'log-query'});
               lastUpdate = Date.now();
-              timer = setInterval(Instant.logs.pull._check, WAIT_TIME);
-              if (pullType.before)
-                Instant.animation.throbber.show('logs-before');
-              if (pullType.after)
-                Instant.animation.throbber.show('logs-after');
+              timer = setInterval(Instant.logs.pull._check, POLL_TIME);
             }
+            if (pullType.before)
+              Instant.animation.throbber.show('logs-before');
+            if (pullType.after)
+              Instant.animation.throbber.show('logs-after');
           },
           /* Start a round of log pulling */
           start: function() {
@@ -1682,7 +1691,7 @@ window.Instant = function() {
             timer = null;
             /* Request logs! */
             var sentBefore = false, sentAfter = false;
-            if (! keys) {
+            if (! keys.length) {
               /* Prevent pulling the same logs twice upon initial request */
               var peer = newestPeer || oldestPeer;
               if (peer) {
@@ -1799,8 +1808,10 @@ window.Instant = function() {
       _updateLogs: function() {
         if (! messageBox) return;
         var tp = parseInt(getComputedStyle(messageBox).paddingTop);
+        var pane = Instant.pane.getPane(messageBox);
         var msg = $sel('.message', messageBox);
-        if (msg && msg.offsetTop > tp) Instant.logs.pull.more();
+        if (msg && msg.offsetTop >= tp && pane.scrollTop == 0)
+          Instant.logs.pull.more();
       },
       /* Greeting pane */
       greeter: function() {
