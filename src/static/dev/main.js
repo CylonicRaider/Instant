@@ -1904,6 +1904,22 @@ window.Instant = function() {
       }()
     };
   }();
+  /* Miscellaneous utilities */
+  Instant.util = function() {
+    return {
+      /* Left-pad a string */
+      leftpad: leftpad,
+      /* Format a date-time nicely */
+      formatDate: formatDate,
+      /* Adjust the right margin of an element to account for scrollbars */
+      adjustScrollbar: function(target, measure) {
+        var ch = measure.firstElementChild;
+        if (! ch) return;
+        target.style.marginRight = (measure.offsetWidth -
+          ch.offsetWidth) + 'px';
+      }
+    };
+  }();
   /* To be assigned in window */
   return Instant;
 }();
@@ -1965,5 +1981,7 @@ function init() {
     Instant.animation.greeter.init(wrapper);
     Instant.animation.throbber.init($sel('.throbber', main));
     Instant.connection.init($sel('.online-status', main));
+    Instant.util.adjustScrollbar($sel('.sidebar', main),
+                                 $sel('.message-pane', main));
   }
 }
