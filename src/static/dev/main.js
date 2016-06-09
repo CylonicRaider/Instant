@@ -239,6 +239,8 @@ window.Instant = function() {
                 var ent = {id: msg.id, parent: data.parent || null,
                   timestamp: msg.timestamp, from: msg.from, nick: nick,
                   text: text, isNew: true};
+                /* Add to logs */
+                Instant.logs.add(ent);
                 /* Only display message when initialized */
                 var inp = Instant.input.getNode();
                 if (inp) {
@@ -1551,7 +1553,7 @@ window.Instant = function() {
             newestLog = lkeys[lkeys.length - 1];
         }
         /* Actually flush keys into key array */
-        keys.push.apply(keys, lkeys);
+        Array.prototype.push.apply(keys, lkeys);
         /* Sort */
         keys.sort();
         /* Deduplicate (it's better than nothing) */
@@ -1585,7 +1587,8 @@ window.Instant = function() {
         /* Calculate the keys' indices */
         var fromidx = (from != null) ? Instant.logs.bisect(from) : null;
         var toidx = (to != null) ? Instant.logs.bisect(to) : null;
-        if (keys[toidx] == to) toidx++;
+        if (toidx != null && keys[toidx] == to) toidx++;
+        console.log('[get]', from, to, fromidx, toidx);
         /* Patch missing indices */
         if (fromidx != null && toidx != null) {
           /* Exact range -- nothing to do */
@@ -1616,6 +1619,8 @@ window.Instant = function() {
           /* Everything! */
           fromidx = 0;
         }
+        /* Just leaving it at null seemed not to work */
+        if (toidx == null) toidx = keys.length;
         /* Extract keys; map them to messages; return those. */
         return keys.slice(fromidx, toidx).map(function(k) {
           return messages[k];
