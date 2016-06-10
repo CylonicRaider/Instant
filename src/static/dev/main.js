@@ -88,24 +88,45 @@ window.Instant = function() {
       zpad(date.getSeconds(), 2));
   }
   /* Own identity */
-  Instant.identity = {
-    /* The session ID */
-    id: null,
-    /* The (current) nickname */
-    nick: null,
-    /* Server version */
-    serverVersion: null,
-    /* Fine-grained server version */
-    serverRevision: null,
-    /* Broadcast or send the current nickname */
-    sendNick: function(to) {
-      if (! Instant.connection.isConnected() ||
-          Instant.identity.nick == null)
-        return;
-      Instant.connection.send(to, {type: 'nick',
-        nick: Instant.identity.nick});
-    }
-  };
+  Instant.identity = function() {
+    /* Node to add the visible class to when there is an update */
+    var updateNode = null;
+    return {
+      /* The session ID */
+      id: null,
+      /* The (current) nickname */
+      nick: null,
+      /* Server version */
+      serverVersion: null,
+      /* Fine-grained server version */
+      serverRevision: null,
+      /* Initialize the update notification node */
+      init: function(node) {
+        updateNode = node;
+      },
+      /* Initialize the identity from the data part of a
+       * server-side message */
+      initFields: function(data) {
+        if ((Instant.identity.serverVersion != null &&
+             Instant.identity.serverVersion != data.version ||
+             Instant.identity.serverRevision != null &&
+             Instant.identity.serverRevision != data.revision) &&
+            updateNode)
+          updateNode.classList.add('visible');
+        Instant.identity.id = data.id;
+        Instant.identity.serverVersion = data.version;
+        Instant.identity.serverRevision = data.revision;
+      },
+      /* Broadcast or send the current nickname */
+      sendNick: function(to) {
+        if (! Instant.connection.isConnected() ||
+            Instant.identity.nick == null)
+          return;
+        Instant.connection.send(to, {type: 'nick',
+          nick: Instant.identity.nick});
+      }
+    };
+  }();
   /* Connection handling */
   Instant.connection = function() {
     /* The connection status widget */
@@ -200,9 +221,7 @@ window.Instant = function() {
             console.error('Error message:', msg);
             break;
           case 'identity': /* Own (and server's) identity */
-            Instant.identity.id = msg.data.id;
-            Instant.identity.serverVersion = msg.data.version;
-            Instant.identity.serverRevision = msg.data.revision;
+            Instant.identity.initFields(msg.data);
             /* Reset user list */
             Instant.userList.clear();
             Instant.connection.sendBroadcast({type: 'who'});
@@ -1979,6 +1998,7 @@ function init() {
       }
     });
     /* Initialize submodules */
+    Instant.identity.init($sel('.update-message', main));
     Instant.input.init($sel('.input-bar', main));
     Instant.userList.init($sel('.user-list', main));
     Instant.logs.pull.init($sel('.message-box', main));

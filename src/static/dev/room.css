@@ -297,6 +297,17 @@ body {
   color: black;
 }
 
+.update-message {
+  display: none;
+}
+.update-message.visible {
+  display: block;
+}
+.update-message a {
+  color: #004000;
+  font-weight: bold;
+}
+
 /* WARNING: Must have no horizontal margin or padding to avoid scrollbar
  *          insanities */
 .user-list-wrapper {
