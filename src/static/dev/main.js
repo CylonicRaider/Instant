@@ -1615,7 +1615,6 @@ window.Instant = function() {
         var fromidx = (from != null) ? Instant.logs.bisect(from) : null;
         var toidx = (to != null) ? Instant.logs.bisect(to) : null;
         if (toidx != null && keys[toidx] == to) toidx++;
-        console.log('[get]', from, to, fromidx, toidx);
         /* Patch missing indices */
         if (fromidx != null && toidx != null) {
           /* Exact range -- nothing to do */
@@ -1785,7 +1784,14 @@ window.Instant = function() {
                   var added = Instant.logs.merge(data.data, true);
                   var restore = Instant.input.saveScrollState(true);
                   added.forEach(function(key) {
-                    Instant.message.importMessage(messages[key], pane);
+                    /* Sanitize input */
+                    var msg = messages[key];
+                    if (typeof msg.nick != 'string')
+                      msg.nick = '';
+                    if (typeof msg.text != 'string')
+                      msg.text = JSON.stringify(msg.text);
+                    /* Import message */
+                    Instant.message.importMessage(msg, pane);
                   });
                   restore();
                 }
