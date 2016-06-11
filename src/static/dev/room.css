@@ -321,7 +321,10 @@ body {
   align-items: flex-end;
 }
 .user-list-wrapper > .user-list {
-  padding: 0 3px;
+  padding-left: 3px;
+}
+.user-list-wrapper.overflow > .user-list {
+  padding-right: 3px;
 }
 .user-list .nick {
   margin-bottom: 2px;

@@ -1472,8 +1472,11 @@ window.Instant = function() {
         par.style.minWidth = '';
         /* HACK to check for scrollbar :P */
         if (par.clientWidth != par.offsetWidth) {
+          par.classList.add('overflow');
           par.style.minWidth = par.offsetWidth + (par.offsetWidth -
             par.clientWidth) + 'px';
+        } else {
+          par.classList.remove('overflow');
         }
       }
     };
