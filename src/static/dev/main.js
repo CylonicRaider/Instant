@@ -1494,6 +1494,8 @@ window.Instant = function() {
     var messages = {};
     /* Earliest and newest log message, respectively */
     var oldestLog = null, newestLog = null;
+    /* Earliest live message */
+    var oldestLive = null;
     /* Our logs are up-to-date */
     var logsLive = true;
     return {
@@ -1543,6 +1545,8 @@ window.Instant = function() {
           keys.splice(pos, 0, message.id);
         }
         messages[message.id] = message;
+        if (logsLive && oldestLive == null)
+          oldestLive = message.id;
         if (logsLive && message.id > newestMessage)
           newestMessage = message.id;
       },
@@ -1558,6 +1562,7 @@ window.Instant = function() {
         messages = {};
         oldestLog = null;
         newestLog = null;
+        oldestLive = null;
         logsLive = false;
       },
       /* Add multiple log entries (preferably a large amount)
@@ -1668,12 +1673,16 @@ window.Instant = function() {
       getNewestLog: function() {
         return newestLog;
       },
+      /* Return the oldest "live" message ID */
+      getOldestLive: function() {
+        return oldestLive;
+      },
       /* Submodule */
       pull: function() {
         /* Interval to wait before choosing peer */
         var WAIT_TIME = 1000;
         /* When to poll whether to choose new peer */
-        var POLL_TIME = 250;
+        var POLL_TIME = 100;
         /* The pane to add parent-less messages to */
         var pane = null;
         /* Waiting for replies to arrive */
@@ -1780,6 +1789,7 @@ window.Instant = function() {
                                               data.length);
                 break;
               case 'log': /* Someone delivers logs to us */
+                var before = null, after = null;
                 if (data.data) {
                   var added = Instant.logs.merge(data.data, true);
                   var restore = Instant.input.saveScrollState(true);
@@ -1794,10 +1804,16 @@ window.Instant = function() {
                     Instant.message.importMessage(msg, pane);
                   });
                   restore();
+                  data.data.forEach(function(el) {
+                    if (! before || el.id < before) before = el.id;
+                    if (! after || el.id > after) after = el.id;
+                  });
                 }
                 var key = data.key;
-                var before = (key == 'initial' || key == 'before');
-                var after = (key == 'initial' || key == 'after');
+                before = (key == 'initial' || key == 'before') ?
+                  before || true : null;
+                after = (key == 'initial' || key == 'after') ?
+                  after || true : null;
                 Instant.logs.pull._done(before, after);
                 break;
               default:
@@ -1808,6 +1824,7 @@ window.Instant = function() {
           },
           /* Done with loading logs for whatever reasons */
           _done: function(before, after) {
+            /* Reset things */
             if (before) {
               pullType.before = false;
               Instant.animation.throbber.hide('logs-before');
@@ -1816,7 +1833,18 @@ window.Instant = function() {
               pullType.after = false;
               Instant.animation.throbber.hide('logs-after');
             }
+            /* Check for more logs above */
             Instant.animation._updateLogs();
+            /* Check for more logs below */
+            if (after) {
+              if (after === true || ! oldestLive ||
+                  oldestLive > after) {
+                pullType.after = true;
+                Instant.logs.pull._start();
+              } else {
+                logsLive = true;
+              }
+            }
           },
           /* Handler for disconnects */
           _disconnected: function() {
