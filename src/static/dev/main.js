@@ -1754,9 +1754,6 @@ window.Instant = function() {
             }
             /* Clear throbber */
             Instant.logs.pull._done(! sentBefore, ! sentAfter);
-            /* Reset peers */
-            oldestPeer = null;
-            newestPeer = null;
           },
           /* Handler for messages */
           _onmessage: function(msg) {
@@ -1772,10 +1769,10 @@ window.Instant = function() {
               case 'log-info': /* Someone informs us about their logs */
                 var from = data.from, to = data.to;
                 if (msg.from != Instant.identity.id) {
-                  if (from && (! oldestPeer || from < oldestPeer.msg))
-                    oldestPeer = {id: msg.from, msg: from};
-                  if (to && (! newestPeer || to > newestPeer.msg))
-                    newestPeer = {id: msg.from, msg: to};
+                  if (from && (! oldestPeer || from < oldestPeer.from))
+                    oldestPeer = {id: msg.from, from: from, to: to};
+                  if (to && (! newestPeer || to > newestPeer.to))
+                    newestPeer = {id: msg.from, from: from, to: to};
                   lastUpdate = Date.now();
                 }
                 break;
@@ -1837,14 +1834,17 @@ window.Instant = function() {
             Instant.animation._updateLogs();
             /* Check for more logs below */
             if (after) {
-              if (after === true || ! oldestLive ||
-                  oldestLive > after) {
+              if ((after === true || ! oldestLive ||
+                  oldestLive > after) && ! after == newestPeer.to) {
                 pullType.after = true;
                 Instant.logs.pull._start();
               } else {
                 logsLive = true;
               }
             }
+            /* Reset peers */
+            if (before) oldestPeer = null;
+            if (after) newestPeer = null;
           },
           /* Handler for disconnects */
           _disconnected: function() {
