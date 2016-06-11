@@ -137,6 +137,11 @@ window.Instant = function() {
     var ws = null;
     /* Whether the WebSocket is connected */
     var connected = false;
+    /* Send pings every thirty seconds */
+    setInterval(function() {
+      if (Instant && Instant.connection && Instant.connection.isConnected())
+        Instant.connection.sendSeq({type: 'ping'});
+    }, 30000);
     /* Debugging hook */
     if (window.logInstantMessages === undefined)
       window.logInstantMessages = false;
