@@ -203,17 +203,14 @@ body {
   flex-direction: column;
   align-items: flex-end;
   position: fixed;
-  top: 0;
-  right: 5px;
+  top: 3px;
+  right: 3px;
   margin-right: 15px; /* For scrollbar */
 }
 .sidebar > * {
   background: rgba(255, 255, 255, 0.5);
-  padding: 5px 0 5px 5px;
+  padding: 3px 0 3px 3px;
   line-height: normal;
-}
-.sidebar > :not(:first-child) {
-  padding-top: 0;
 }
 
 .sidebar-top {
@@ -311,7 +308,7 @@ body {
 /* WARNING: Must have no horizontal margin or padding to avoid scrollbar
  *          insanities */
 .user-list-wrapper {
-  padding: 5px 0;
+  padding-left: 0;
   max-height: 75vh;
   overflow: auto;
 }
@@ -324,7 +321,7 @@ body {
   align-items: flex-end;
 }
 .user-list-wrapper > .user-list {
-  padding: 0 5px;
+  padding: 0 3px;
 }
 .user-list .nick {
   margin-bottom: 2px;
