@@ -101,6 +101,8 @@ public class Main implements Runnable {
         getServer().addHook(new RoomWebSocketHook(distr));
         getServer().addHook(new RedirectHook("/room/(" + ROOM_RE + ")",
             "/room/\\1/"));
+        getServer().addHook(new RedirectHook("/(" + STAGING_RE + ")",
+            "/\\1/"));
         getServer().addHook(new RedirectHook("/(" + STAGING_RE + ")/room/(" +
             ROOM_RE + ")", "/\\1/room/\\2/"));
         StaticFileHook files = new StaticFileHook(new FileCache());
@@ -112,6 +114,7 @@ public class Main implements Runnable {
         files.alias("/favicon.ico", "/static/logo-static_128x128.ico");
         files.alias("/([^/]+\\.html)", "/pages/\\1", true);
         files.alias("/room/" + ROOM_RE + "/", "/static/room.html");
+        files.alias("/(" + STAGING_RE + ")/", "/static/\\1/main.html", true);
         files.alias("/(" + STAGING_RE + ")/room/" + ROOM_RE + "/",
                     "/static/\\1/room.html", true);
         files.matchContentType(".*\\.html", "text/html; charset=utf-8");

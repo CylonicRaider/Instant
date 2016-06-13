@@ -26,3 +26,10 @@ body {
   border: 2px solid black;
   padding: 2px;
 }
+.popup-footer {
+  text-align: right;
+  font-style: italic;
+}
+.small {
+  font-size: smaller;
+}
