@@ -1050,6 +1050,69 @@ window.Instant = function() {
           Instant.message.updateIndents(children[i], indent);
         }
       },
+      /* Traverse a message tree and return the nodes that match the given
+       * predicate.
+       * Processing of messages (and, subseqently, descendants) starts with
+       * the firstreply (if any); it can be skipped if a message is outside
+       * the "current interval"; processing happens in no particular order
+       * and the return value is not sorted.
+       * cb is called on the message node being processed and returns a
+       * bitmask of the following values:
+       *  1: Predicate matches; message in question be returned.
+       *  2: Children of the message should be scanned.
+       *  4: The direct precedessor of the message should be scanned.
+       *  8: The direct successor of the message should be scanned.
+       * 16: A faraway precedessor of the message should be scanned (for
+       *     bisection).
+       * 32: A faraway successor of the message should be scanned.
+       */
+      walk: function(node, cb) {
+        /* search entries: [node, replies, fromIdx, curIdx, toIdx] (where
+         * toIdx is inclusive). */
+        var ret = [], search = [[node]];
+        /* Repeat until explicit pseudo-recursion stack empty */
+        while (search.length) {
+          /* Extract top-of-stack; possibly amend missing values */
+          var top = search.pop();
+          if (top[1] == undefined) {
+            top[1] = Instant.message.getReplies(top[0]);
+            top[2] = 0;
+            top[3] = 0;
+            top[4] = top[1].length - 1;
+          }
+          /* Cancel if interval empty */
+          if (top[2] > top[3] || top[3] > top[4]) continue;
+          var before = top[3] - 1, after = top[3] + 1;
+          /* Process current node */
+          var n = top[1][top[3]];
+          var res = cb(n);
+          /* Return message */
+          if (res & 1) ret.push(n);
+          /* Scan children */
+          if (res & 2) search.push([n]);
+          /* Scan precedessor */
+          if (res & 4 && top[3] > top[2]) {
+            search.push([null, top[1], top[2], before, before]);
+            before--;
+          }
+          /* Scan successor */
+          if (res & 8 && top[3] < top[4]) {
+            search.push([null, top[1], after, after, top[4]]);
+            after++;
+          }
+          /* Scan far precedessor */
+          if (res & 16 && top[3] > top[2]) {
+            search.push([null, top[1], top[2], (top[2] + before) / 2 | 0,
+                        before]);
+          }
+          /* Scan far successor */
+          if (res & 32 && top[3] < top[4]) {
+            search.push([null, top[1], after, (after + top[4]) / 2 | 0,
+                        top[4]]);
+          }
+        }
+        return ret;
+      },
       /* Return the message identified by this is, or undefined if none */
       get: function(id) {
         return messages[id];
@@ -1333,6 +1396,33 @@ window.Instant = function() {
       /* Get the message-pane containing this DOM node */
       getPane: function(node) {
         return $parentWithClass(node, 'message-pane');
+      },
+      /* Get all the messages whose lines are visible with respect to their
+       * pane and that are within node */
+      getVisible: function(node) {
+        var pane = Instant.pane.getPane(node);
+        var prect = pane.getBoundingClientRect();
+        var ptop = prect.top, pbot = prect.bottom;
+        return Instant.message.walk(node, function(msg) {
+          /* Calculate rectangles */
+          var mrect = msg.getBoundingClientRect();
+          var lrect = $sel('.line', msg).getBoundingClientRect();
+          var mtop = mrect.top, mbot = mrect.bottom;
+          var ret = 0;
+          /* Determine whether line is visible */
+          if (lrect.top < pbot && lrect.bottom > ptop) ret |= 1;
+          /* Intersecting with viewport -- scan descendants */
+          if (mtop < pbot && mbot > ptop) ret |= 2;
+          /* Top within viewport -- scan up */
+          if (mtop > ptop && mtop <= pbot) ret |= 4;
+          /* Bottom within viewport -- scan down */
+          if (mbot >= ptop && mbot < pbot) ret |= 8;
+          /* Entirely below viewport -- bisect up */
+          if (mtop > pbot) ret |= 16;
+          /* Entirely above viewport -- bisect down */
+          if (mbot < ptop) ret |= 32;
+          return ret;
+        });
       },
       /* Save the current (vertical) scrolling position of the pane
        * containing the given node for later restoration
