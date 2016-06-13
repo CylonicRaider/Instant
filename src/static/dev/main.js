@@ -1183,6 +1183,7 @@ window.Instant = function() {
         });
         /* Update status when nick changes */
         inputNick.addEventListener('change', refreshNick);
+        inputNick.addEventListener('blur', refreshNick);
         /* Reinforce nick editing prompt */
         promptNick.addEventListener('click', function() {
           inputNick.focus();
