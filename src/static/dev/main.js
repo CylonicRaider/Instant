@@ -1637,8 +1637,6 @@ window.Instant = function() {
         messages[message.id] = message;
         if (logsLive && oldestLive == null)
           oldestLive = message.id;
-        if (logsLive && message.id > newestMessage)
-          newestMessage = message.id;
       },
       /* Remove the message with the given ID */
       remove: function(id) {
@@ -1924,8 +1922,8 @@ window.Instant = function() {
             Instant.animation._updateLogs();
             /* Check for more logs below */
             if (after) {
-              if ((after === true || ! oldestLive ||
-                  oldestLive > after) && ! after == newestPeer.to) {
+              if ((after === true || ! oldestLive || oldestLive > after) &&
+                  newestPeer && ! after == newestPeer.to) {
                 pullType.after = true;
                 Instant.logs.pull._start();
               } else {
