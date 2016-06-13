@@ -262,7 +262,7 @@ window.Instant = function() {
                 /* Prepare message object */
                 var ent = {id: msg.id, parent: data.parent || null,
                   timestamp: msg.timestamp, from: msg.from, nick: nick,
-                  text: text, isNew: true};
+                  text: text};
                 /* Add to logs */
                 Instant.logs.add(ent);
                 /* Only display message when initialized */
@@ -270,11 +270,19 @@ window.Instant = function() {
                 if (inp) {
                   /* Prepare for scrolling */
                   var restore = Instant.input.saveScrollState();
+                  /* Prepare data for display
+                   * Inlining the clone process appears to be the fastest
+                   * way to do it. :S */
+                  var ment = {id: ent.id, parent: ent.parent,
+                    timestamp: end.timestamp, from: ent.from, nick: ent.nick,
+                    text: ent.text, isNew: true};
                   /* Post message */
                   var box = Instant.pane.getBox(inp);
-                  Instant.message.importMessage(ent, box);
+                  var msg = Instant.message.importMessage(ment, box);
                   /* Restore scroll state */
                   restore();
+                  /* Check whether the message is offscreen */
+                  Instant.animation.checkOffscreen(msg);
                 }
                 break;
               case 'nick': /* Someone informs us about their nick */
@@ -1397,6 +1405,23 @@ window.Instant = function() {
       getPane: function(node) {
         return $parentWithClass(node, 'message-pane');
       },
+      /* Check if a message (or rather any part of its content) is visible
+       * with respect to its pane */
+      isVisible: function(msg) {
+        var line = $sel('.line', msg);
+        var pane = Instant.pane.getPane(msg);
+        var lrect = line.getBoundingClientRect();
+        var prect = pane.getBoundingClientRect();
+        return (lrect.top < prect.bottom && lrect.bottom > prect.top);
+      },
+      /* Check if a message's content is visible in its entirety. */
+      isFullyVisible: function(msg) {
+        var line = $sel('.line', msg);
+        var pane = Instant.pane.getPane(msg);
+        var lrect = line.getBoundingClientRect();
+        var prect = pane.getBoundingClientRect();
+        return (lrect.top >= prect.top && lrect.bottom <= prect.bottom);
+      },
       /* Get all the messages whose lines are visible with respect to their
        * pane and that are within node */
       getVisible: function(node) {
@@ -1876,8 +1901,11 @@ window.Instant = function() {
               case 'log': /* Someone delivers logs to us */
                 var before = null, after = null;
                 if (data.data) {
+                  /* Actually merge logs */
                   var added = Instant.logs.merge(data.data, true);
+                  /* Prepare for scrolling */
                   var restore = Instant.input.saveScrollState(true);
+                  /* Import messages */
                   added.forEach(function(key) {
                     /* Sanitize input */
                     var msg = messages[key];
@@ -1888,12 +1916,19 @@ window.Instant = function() {
                     /* Import message */
                     Instant.message.importMessage(msg, pane);
                   });
+                  /* Scroll back */
                   restore();
+                  /* Check for offscreen messages */
+                  Instant.animation.updateOffscreen(added.map(function(key) {
+                    return Instant.message.get(key);
+                  }));
+                  /* Detect earliest and latest message */
                   data.data.forEach(function(el) {
                     if (! before || el.id < before) before = el.id;
                     if (! after || el.id > after) after = el.id;
                   });
                 }
+                /* Call finishing handler */
                 var key = data.key;
                 before = (key == 'initial' || key == 'before') ?
                   before || true : null;
@@ -1956,7 +1991,28 @@ window.Instant = function() {
         /* Pull more logs when scrolled to top */
         pane.addEventListener('scroll', function(event) {
           if (pane.scrollTop == 0) Instant.logs.pull.more();
+          Instant.pane.getVisible(messageBox).forEach(function(msg) {
+            Instant.animation.clearOffscreen(msg);
+          });
         });
+      },
+      /* Mark multiple messages as offscreen (or not) */
+      updateOffscreen: function(msgs) {
+        msgs.forEach(function(m) {
+          Instant.animation.checkOffscreen(m);
+        });
+      },
+      /* Mark a message as offscreen (or not), depending on its visibility */
+      checkOffscreen: function(msg) {
+        if (Instant.pane.isVisible(msg)) {
+          msg.classList.remove('offscreen');
+        } else {
+          msg.classList.add('offscreen');
+        }
+      },
+      /* Mark a message as not offscreen anymore */
+      clearOffscreen: function(msg) {
+        msg.classList.remove('offscreen');
       },
       /* Check if more logs should be loaded */
       _updateLogs: function() {
