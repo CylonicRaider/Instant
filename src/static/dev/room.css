@@ -21,6 +21,7 @@ body {
   background: white;
   padding: 30px;
   margin: 30px auto;
+  -webkit-transition: opacity 1s, box-shadow 0.1s;
   transition: opacity 1s, box-shadow 0.1s;
   z-index: 100;
 }
@@ -192,6 +193,7 @@ body {
   height: 100%;
   opacity: 0;
   text-align: left;
+  -webkit-transition: opacity 1s;
   transition: opacity 1s;
 }
 
@@ -248,6 +250,7 @@ body {
 
 .online-status {
   background: #ffff00;
+  -webkit-transition: background 0.5s linear;
   transition: background 0.5s linear;
 }
 .online-status.connected {
@@ -396,6 +399,7 @@ body {
   vertical-align: bottom;
   color: transparent;
   background: #c0c0c0;
+  -webkit-transition: background 0.1s linear;
   transition: background 0.1s linear;
 }
 .input-bar .input-nick-cell .input-nick {
