@@ -6,7 +6,6 @@ body {
   width: 100%;
   height: 100%;
   text-align: center;
-  overflow: hidden;
   color: black;
   background: white;
 }
@@ -44,11 +43,10 @@ body {
 .note {
   display: table-row;
 }
-.note > span {
+.note > strong, .note > span {
   display: table-cell;
 }
-.note > :first-child {
-  font-weight: bold;
+.note > :not(:last-child) {
   padding-right: 1ch;
 }
 
