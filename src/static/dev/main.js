@@ -1061,7 +1061,7 @@ window.Instant = function() {
       /* Traverse a message tree and return the nodes that match the given
        * predicate.
        * Processing of messages (and, subseqently, descendants) starts with
-       * the firstreply (if any); it can be skipped if a message is outside
+       * the first reply (if any); it can be skipped if a message is outside
        * the "current interval"; processing happens in no particular order
        * and the return value is not sorted.
        * cb is called on the message node being processed and returns a
