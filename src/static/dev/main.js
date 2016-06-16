@@ -126,6 +126,7 @@ window.Instant = function() {
           return;
         Instant.connection.send(to, {type: 'nick',
           nick: Instant.identity.nick});
+        Instant.storage.set('nickname', Instant.identity.nick);
       }
     };
   }();
@@ -548,7 +549,6 @@ window.Instant = function() {
           /* Switch on match */
           if (m[1]) {
             /* Room link */
-            console.log('[room]', m[0], m[1], m[2]);
             var node = makeNode(m[0], 'room-link', null, 'a');
             node.href = ('../' + m[1] + '/' +
               ((m[2]) ? '#message-' + m[2] : ''));
@@ -1264,7 +1264,6 @@ window.Instant = function() {
         var inputMsg = $sel('.input-message', inputNode);
         /* Update nick background */
         inputNick.addEventListener('input', updateNick);
-        updateNick();
         /* End nick editing on Return */
         inputNick.addEventListener('keydown', function(event) {
           if (event.keyCode == 13) { // Return
@@ -1366,6 +1365,12 @@ window.Instant = function() {
         inputNode.addEventListener('focusin', updateFocus);
         inputNick.addEventListener('focus', updateFocus);
         inputMsg.addEventListener('focus', updateFocus);
+        /* Read nickname from storage */
+        var nick = Instant.storage.get('nickname');
+        if (typeof nick == 'string') {
+          inputNick.value = nick;
+          updateNick();
+        }
         /* Focus the nick input */
         inputNick.focus();
         inputNick.selectionStart = inputNick.value.length;
@@ -2463,6 +2468,77 @@ window.Instant = function() {
       }()
     };
   }();
+  /* Offline storage */
+  Instant.storage = function() {
+    /* Actual data */
+    var data = {};
+    return {
+      /* Initialize submodule */
+      init: function() {
+        Instant.storage.load();
+      },
+      /* Get the value associated with the given key, or undefined */
+      get: function(key) {
+        return data[key];
+      },
+      /* Assign the value to the key and save the results (asynchronously) */
+      set: function(key, value) {
+        data[key] = value;
+        Instant.storage.save();
+      },
+      /* Remove the given key and save the results (asynchronously) */
+      del: function(key) {
+        delete data[key];
+        Instant.storage.save();
+      },
+      /* Remove all keys and save the results (still asynchronously) */
+      clear: function() {
+        data = {};
+        Instant.storage.save();
+      },
+      /* Reset the internal storage *without* saving automatically */
+      _clear: function() {
+        data = {};
+      },
+      /* Read the underlying storage backends and merge the results into the
+       * data array. */
+      load: function() {
+        function thaw(str) {
+          if (! str) return;
+          var res = null;
+          try {
+            res = JSON.parse(str);
+            if (typeof res != 'object') throw 'Malformed data';
+          } catch (e) {
+            console.warning('Could not deserialize storage:', e);
+            return;
+          }
+          for (var key in res) {
+            if (! res.hasOwnProperty(key)) continue;
+            data[key] = res[key];
+          }
+        }
+        if (window.localStorage)
+          thaw(localStorage.getItem('instant-data'));
+        if (window.sessionStorage)
+          thaw(sessionStorage.getItem('instant-data'));
+      },
+      /* Serialize the current data to the backends */
+      save: function() {
+        var encoded = JSON.stringify(data);
+        if (window.sessionStorage)
+          sessionStorage.setItem('instant-data', encoded);
+        if (window.localStorage)
+          localStorage.setItem('instant-data', encoded);
+      },
+      /* Obtain a reference to the raw data storage object
+       * NOTE that the reference might silently become invalid, and remember
+       *      to save regularly. */
+      getData: function() {
+        return data;
+      },
+    };
+  }();
   /* Miscellaneous utilities */
   Instant.util = function() {
     return {
@@ -2533,6 +2609,7 @@ function init() {
       }
     });
     /* Initialize submodules */
+    Instant.storage.init();
     Instant.identity.init($sel('.update-message', main));
     Instant.input.init($sel('.input-bar', main));
     Instant.userList.init($sel('.user-list', main));
