@@ -1211,6 +1211,8 @@ window.Instant = function() {
   Instant.input = function () {
     /* The DOM node containing the input bar */
     var inputNode = null;
+    /* The sub-node currently focused */
+    var focusedNode = null;
     return {
       /* Initialize input bar control with the given node */
       init: function(node) {
@@ -1236,6 +1238,9 @@ window.Instant = function() {
           inputMsg.style.height = inputMsg.scrollHeight + 'px';
           promptNick.style.display = 'none';
           restore();
+        }
+        function updateFocus(event) {
+          focusedNode = event.target;
         }
         var fakeSeq = 0;
         /* Assign inputNode */
@@ -1344,6 +1349,11 @@ window.Instant = function() {
             }
           }
         });
+        /* Save the last focused node
+         * Have to work around Firefox bug of focusin missing. :( */
+        inputNode.addEventListener('focusin', updateFocus);
+        inputNick.addEventListener('focus', updateFocus);
+        inputMsg.addEventListener('focus', updateFocus);
         /* Focus the nick input */
         inputNick.focus();
         inputNick.selectionStart = inputNick.value.length;
@@ -1353,8 +1363,9 @@ window.Instant = function() {
       getNode: function() {
         return inputNode;
       },
+      /* Transfer focus to the input bar */
       focus: function() {
-        $sel('.input-message', inputNode).focus();
+        (focusedNode || $sel('.input-message', inputNode)).focus();
       },
       /* Get the message ID of the parent of the input bar */
       getParentID: function() {
