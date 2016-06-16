@@ -36,6 +36,10 @@ a.logo-small {
   color: white;
 }
 
+.throbber {
+  -webkit-filter: invert(1);
+  filter: invert(1);
+}
 .room-name, a.room-name {
   color: white;
 }
@@ -46,6 +50,9 @@ a.logo-small {
 .settings, .settings-content {
   color: white;
   background: black;
+}
+.update-message a {
+  color: #008000 !important;
 }
 
 .nick, .message.emote > .line .content {
