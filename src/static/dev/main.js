@@ -1273,6 +1273,7 @@ window.Instant = function() {
             }
           } else if (event.keyCode == 27) { // Escape
             if (Instant.input.navigate('root')) {
+              location.hash = '';
               Instant.pane.scrollIntoView(inputNode);
               event.preventDefault();
             }
@@ -2055,6 +2056,10 @@ window.Instant = function() {
         Instant.input.jumpTo(msg);
         Instant.input.focus();
         Instant.pane.scrollIntoView(msg);
+        /* Lame attempt to prevent focus scrolling */
+        setTimeout(function() {
+          Instant.pane.scrollIntoView(msg);
+        }, 0);
       },
       /* Mark multiple messages as offscreen (or not) */
       updateOffscreen: function(msgs) {
@@ -2191,54 +2196,70 @@ window.Instant = function() {
           }
         }
         /* Is the given message offscreen? */
-        function isOffscreen(msg) {
-          return msg.classList.contains('offscreen');
+        function isUnread(msg) {
+          return (msg.classList.contains('offscreen') &&
+                  msg.classList.contains('new'));
         }
         /* Is the given message offscreen and a mention of the current
          * user? */
-        function isOffscreenMention(msg) {
-          return (msg.classList.contains('offscreen') &&
-            msg.classList.contains('ping'));
+        function isUnreadMention(msg) {
+          return isUnread(msg) && msg.classList.contains('ping');
         }
         return {
           /* Attach to a given DOM node */
           init: function(container) {
+            /* Handler for events */
+            function handleEvent(event, node) {
+              var msg = Instant.message.forFragment(node.hash);
+              if (msg) {
+                Instant.animation.goToMessage(msg);
+                event.preventDefault();
+              }
+              /* Allow scanning unread messages quickly by keeping
+               * focus on the node. */
+              if (event.type == 'keydown') node.focus();
+            }
+            /* Extract the alerts themself */
             aboveNode = $sel('.alert-above', container);
             belowNode = $sel('.alert-below', container);
-            aboveNode.addEventListener('click', function(event) {
-              var msg = Instant.message.forFragment(aboveNode.hash);
-              if (msg) {
-                Instant.animation.goToMessage(msg);
-                event.preventDefault();
-              }
+            aboveNode.addEventListener('click', function(e) {
+              handleEvent(e, aboveNode);
             });
-            belowNode.addEventListener('click', function(event) {
-              var msg = Instant.message.forFragment(belowNode.hash);
-              if (msg) {
-                Instant.animation.goToMessage(msg);
-                event.preventDefault();
-              }
+            belowNode.addEventListener('click', function(e) {
+              handleEvent(e, belowNode);
+            });
+            aboveNode.addEventListener('keydown', function(e) {
+              if (e.keyCode != 13) return; // Yes, that's the Return key
+              handleEvent(e, aboveNode);
+            });
+            belowNode.addEventListener('keydown', function(e) {
+              if (e.keyCode != 13) return; // Return
+              handleEvent(e, belowNode);
             });
             Instant.animation.offscreen._update();
           },
           /* Mark the message as offscreen */
           set: function(msg) {
             msg.classList.add('offscreen');
-            var docCmp = Instant.message.documentCmp.bind(Instant.message);
-            var icmp = docCmp(msg, Instant.input.getNode());
-            if (icmp < 0 && (! unreadAbove || docCmp(unreadAbove, msg) > 0))
-              unreadAbove = msg;
-            if (icmp > 0 && (! unreadBelow || docCmp(msg, unreadBelow) > 0))
-              unreadBelow = msg;
-            if (msg.classList.contains('ping')) {
-              if (icmp < 0 && (! mentionAbove ||
-                  docCmp(mentionAbove, msg) > 0))
-                mentionAbove = msg;
-              if (icmp > 0 && (! mentionBelow ||
-                  docCmp(msg, mentionBelow) > 0))
-                mentionBelow = msg;
+            if (isUnread(msg)) {
+              var docCmp = Instant.message.documentCmp.bind(Instant.message);
+              var icmp = docCmp(msg, Instant.input.getNode());
+              if (icmp < 0 && (! unreadAbove ||
+                  docCmp(unreadAbove, msg) < 0))
+                unreadAbove = msg;
+              if (icmp > 0 && (! unreadBelow ||
+                  docCmp(msg, unreadBelow) < 0))
+                unreadBelow = msg;
+              if (msg.classList.contains('ping')) {
+                if (icmp < 0 && (! mentionAbove ||
+                    docCmp(mentionAbove, msg) < 0))
+                  mentionAbove = msg;
+                if (icmp > 0 && (! mentionBelow ||
+                    docCmp(msg, mentionBelow) < 0))
+                  mentionBelow = msg;
+              }
+              Instant.animation.offscreen._update();
             }
-            Instant.animation.offscreen._update();
           },
           /* Remove the offscreen mark */
           clear: function(msg) {
@@ -2249,13 +2270,13 @@ window.Instant = function() {
               var prec = im.getDocumentPrecedessor.bind(im);
               var succ = im.getDocumentSuccessor.bind(im);
               if (msg == unreadAbove)
-                unreadAbove = scanMessages(msg, isOffscreen, prec);
+                unreadAbove = scanMessages(msg, isUnread, prec);
               if (msg == unreadBelow)
-                unreadBelow = scanMessages(msg, isOffscreen, succ);
+                unreadBelow = scanMessages(msg, isUnread, succ);
               if (msg == mentionAbove)
-                mentionAbove = scanMessages(msg, isOffscreenMention, prec);
+                mentionAbove = scanMessages(msg, isUnreadMention, prec);
               if (msg == mentionBelow)
-                mentionBelow = scanMessages(msg, isOffscreenMention, succ);
+                mentionBelow = scanMessages(msg, isUnreadMention, succ);
               Instant.animation.offscreen._update();
             }
           },
@@ -2356,7 +2377,7 @@ function init() {
     main.style.opacity = '1';
     /* Focus input bar if Escape pressed and not focused */
     document.documentElement.addEventListener('keydown', function(event) {
-      if (event.keyCode == 27) {
+      if (event.keyCode == 27) { // Escape
         $sel('.input-message', main).focus();
         event.preventDefault();
       }
