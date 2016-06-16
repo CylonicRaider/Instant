@@ -447,30 +447,32 @@ window.Instant = function() {
     var fakeMessages = {};
     /* Interesting substring regex
      * Groupings:  1: Room name matched
-     *             2: Full URL matched (without surrounding marks)
-     *                 3: Scheme (with colon and double slash)
-     *                 4: Username with "@"
-     *                 5: Hostname
-     *                 6: Port
-     *                 7: Path
-     *             8: Nick-name @-mentioned (with the @ sign)
-     *             9: Smiley (space before must be ensured)
-     *            10: Text with emphasis marker(s) (check space before)
-     *                11: Markers before and after (not included themself)
-     *                12: Marker before (same)
-     *                13: Marker after (same as well)
-     *            14: Text with monospace marker(s) (check space before)
-     *                15: Markers before and after
-     *                16: Marker before
-     *                17: Marker after
-     *            18: Block-level monospace marker
-     *                19: Newline before
-     *                20: Newline after
+     *                2: Message ID inside that room
+     *             3: Full URL matched (without surrounding marks)
+     *                 4: Scheme (with colon and double slash)
+     *                 5: Username with "@"
+     *                 6: Hostname
+     *                 7: Port
+     *                 8: Path
+     *             9: Nick-name @-mentioned (with the @ sign)
+     *            10: Smiley (space before must be ensured)
+     *            11: Text with emphasis marker(s) (check space before)
+     *                12: Markers before and after (not included themself)
+     *                13: Marker before (same)
+     *                14: Marker after (same as well)
+     *            15: Text with monospace marker(s) (check space before)
+     *                16: Markers before and after
+     *                17: Marker before
+     *                18: Marker after
+     *            19: Block-level monospace marker
+     *                20: Newline before
+     *                21: Newline after
      */
     var mc = '[^.,:;!?()\\s]';
     var aa = '[^a-zA-Z0-9_]|$';
     var INTERESTING = (
-      '\\B&([a-zA-Z](?:[a-zA-Z0-9_-]*[a-zA-Z0-9])?)\\b|' +
+      '\\B&(?:([a-zA-Z](?:[a-zA-Z0-9_-]*[a-zA-Z0-9])?)' +
+        '(?:#([a-zA-Z0-9]+))?)\\b|' +
       '<(((?!javascript:)[a-zA-Z]+://)?([a-zA-Z0-9._~-]+@)?' +
         '([a-zA-Z0-9.-]+)(:[0-9]+)?(/[^>]*)?)>|' +
       '\\B(@%MC%+(?:\\(%MC%*\\)%MC%*)*)|' +
@@ -538,31 +540,33 @@ window.Instant = function() {
           /* Switch on match */
           if (m[1]) {
             /* Room link */
+            console.log('[room]', m[0], m[1], m[2]);
             var node = makeNode(m[0], 'room-link', null, 'a');
-            node.href = '/room/' + m[1] + '/';
+            node.href = ('/room/' + m[1] + '/' +
+              ((m[2]) ? '#message-' + m[2] : ''));
             node.target = '_blank';
             out.push(node);
-          } else if (m[2] && /[^\w_-]/.test(m[2])) {
+          } else if (m[3] && /[^\w_-]/.test(m[3])) {
             /* Hyperlink (must contain non-word character) */
             out.push(makeSigil('<', 'link-before'));
             /* Insert http:// if necessary */
-            var url = m[2];
-            if (! m[3]) url = 'http://' + url;
-            var node = makeNode(m[2], 'link', null, 'a');
+            var url = m[3];
+            if (! m[4]) url = 'http://' + url;
+            var node = makeNode(m[3], 'link', null, 'a');
             node.href = url;
             node.target = '_blank';
             out.push(node);
             out.push(makeSigil('>', 'link-after'));
-          } else if (m[8]) {
+          } else if (m[9]) {
             /* @-mention */
-            out.push(Instant.nick.makeMention(m[8]));
-          } else if (m[9] && ALLOW_BEFORE.test(before)) {
+            out.push(Instant.nick.makeMention(m[9]));
+          } else if (m[10] && ALLOW_BEFORE.test(before)) {
             /* Smiley (allowed characters after are already checked) */
-            out.push(makeNode(m[9], 'smiley', SMILEYS[m[9]]));
-          } else if (m[10] && ALLOW_BEFORE.test(before) && ! mono) {
+            out.push(makeNode(m[10], 'smiley', SMILEYS[m[10]]));
+          } else if (m[11] && ALLOW_BEFORE.test(before) && ! mono) {
             /* Emphasized text (again, only before has to be tested) */
-            var pref = $prefLength(m[10], '*');
-            var suff = $suffLength(m[10], '*');
+            var pref = $prefLength(m[11], '*');
+            var suff = $suffLength(m[11], '*');
             /* Sigils are in individual nodes so they can be selectively
              * disabled */
             for (var i = 0; i < pref; i++) {
@@ -571,34 +575,34 @@ window.Instant = function() {
               out.push({emphAdd: true, node: node});
             }
             /* Add actual text; which one does not matter */
-            out.push(m[11] || m[12] || m[13]);
+            out.push(m[12] || m[13] || m[14]);
             /* Same as above for trailing sigil */
             for (var i = 0; i < suff; i++) {
               var node = makeSigil('*', 'emph-after');
               out.push({emphRem: true, node: node});
               out.push(node);
             }
-          } else if (m[14] && ALLOW_BEFORE.test(before) && ! mono) {
+          } else if (m[15] && ALLOW_BEFORE.test(before) && ! mono) {
             /* Inline monospace */
             /* Leading sigil */
-            if (m[15] != null || m[16] != null) {
+            if (m[16] != null || m[17] != null) {
               var node = makeSigil('`', 'mono-before');
               out.push(node);
               out.push({monoAdd: true, node: node});
             }
             /* Embed actual text */
-            out.push(m[15] || m[16] || m[17]);
+            out.push(m[16] || m[17] || m[18]);
             /* Trailing sigil */
-            if (m[15] != null || m[17] != null) {
+            if (m[16] != null || m[18] != null) {
               var node = makeSigil('`', 'mono-after');
               out.push({monoRem: true, node: node});
               out.push(node);
             }
-          } else if (m[18]) {
+          } else if (m[19]) {
             /* Block-level monospace marker */
-            if (! mono && m[20] != null) {
+            if (! mono && m[21] != null) {
               /* Sigil introducing block */
-              var st = (m[19] || '') + '```';
+              var st = (m[20] || '') + '```';
               var node = makeSigil(st, 'mono-block-before');
               var nl = makeNode('\n', 'hidden');
               out.push(node);
@@ -606,9 +610,9 @@ window.Instant = function() {
               out.push({monoAdd: true, monoBlock: true, node: node,
                         node2: nl});
               mono = true;
-            } else if (mono && m[19] != null) {
+            } else if (mono && m[20] != null) {
               /* Sigil terminating block */
-              var st = '```' + (m[20] || '');
+              var st = '```' + (m[21] || '');
               var node = makeSigil(st, 'mono-block-after');
               var nl = makeNode('\n', 'hidden');
               out.push({monoRem: true, monoBlock: true, node: node,
@@ -617,7 +621,7 @@ window.Instant = function() {
               out.push(node);
               mono = false;
             } else {
-              out.push(m[18]);
+              out.push(m[19]);
             }
           } else if (m[0]) {
             out.push(m[0]);
