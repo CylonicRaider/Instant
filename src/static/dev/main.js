@@ -274,7 +274,7 @@ window.Instant = function() {
                    * Inlining the clone process appears to be the fastest
                    * way to do it. :S */
                   var ment = {id: ent.id, parent: ent.parent,
-                    timestamp: end.timestamp, from: ent.from, nick: ent.nick,
+                    timestamp: ent.timestamp, from: ent.from, nick: ent.nick,
                     text: ent.text, isNew: true};
                   /* Post message */
                   var box = Instant.pane.getBox(inp);
@@ -788,7 +788,7 @@ window.Instant = function() {
         /* Add event handler */
         $sel('.line', msgNode).addEventListener('click', function(event) {
           Instant.input.moveTo(msgNode);
-          $sel('.input-message', Instant.input.getNode()).focus();
+          Instant.input.focus();
           Instant.pane.scrollIntoView(msgNode);
           event.stopPropagation();
         });
@@ -837,19 +837,58 @@ window.Instant = function() {
         } while (cur);
         return root;
       },
-      /* Get the message immediately preceding the current one */
+      /* Return an array of all parent messages the given node has */
+      listParentMessages: function(message) {
+        var ret = [];
+        for (;;) {
+          message = Instant.message.getParentMessage(message);
+          if (! message) break;
+          ret.push(message);
+        }
+                return ret;
+      },
+      /* Get the message immediately preceding the given one */
       getPrecedessor: function(message) {
         var prev = message.previousElementSibling;
         if (! prev || ! Instant.message.isMessage(prev))
           return null;
         return prev;
       },
-      /* Get the message immediately following the current one */
+      /* Get the message immediately following the given one */
       getSuccessor: function(message) {
         var next = message.nextElementSibling;
         if (! next || ! Instant.message.isMessage(next))
           return null;
         return next;
+      },
+      /* Get the message preceding the given one in document order */
+      getDocumentPrecedessor: function(message) {
+        var prec = Instant.message.getPrecedessor(message);
+        if (prec) {
+          while (Instant.message.hasReplies(prec))
+            prec = Instant.message.getLastReply(prec);
+          return prec;
+        }
+        return Instant.message.getParentMessage(message);
+      },
+      /* Get the message following the given in document order */
+      getDocumentSuccessor: function(message) {
+        if (Instant.message.hasReplies(message))
+          return Instant.message.getReply(message);
+        for (;;) {
+          var succ = Instant.message.getSuccessor(message);
+          if (succ) return succ;
+          message = Instant.message.getParentMessage(message);
+          if (! message) return null;
+        }
+      },
+      /* Compare the messages (which incidentally can be arbitrary DOM nodes)
+       * by document order (assuming they are laid out vertically, as
+       * messages are) */
+      documentCmp: function(a, b) {
+        var at = a.getBoundingClientRect().top;
+        var bt = b.getBoundingClientRect().top;
+        return (at < bt) ? -1 : (at > bt) ? 1 : 0;
       },
       /* Get the node hosting the replies to the given message, or the message
        * itself if it's actually none at all */
@@ -1121,6 +1160,11 @@ window.Instant = function() {
         }
         return ret;
       },
+      /* Return the message identified by the given fragment identitier */
+      forFragment: function(url) {
+        if (! /^#message-[0-9a-zA-Z]+$/.test(url)) return null;
+        return Instant.message.get(url.substring(9));
+      },
       /* Return the message identified by this is, or undefined if none */
       get: function(id) {
         return messages[id];
@@ -1276,6 +1320,9 @@ window.Instant = function() {
       /* Return the input bar */
       getNode: function() {
         return inputNode;
+      },
+      focus: function() {
+        $sel('.input-message', inputNode).focus();
       },
       /* Get the message ID of the parent of the input bar */
       getParentID: function() {
@@ -1983,7 +2030,6 @@ window.Instant = function() {
   Instant.animation = function() {
     /* The main message box */
     var messageBox = null;
-    /* No variables for now */
     return {
       /* Initialize the submodule */
       init: function(node) {
@@ -1996,6 +2042,19 @@ window.Instant = function() {
             Instant.animation.clearOffscreen(msg);
           });
         });
+        window.onhashchange = function(event) {
+          var msg = Instant.message.forFragment(document.location.hash);
+          if (msg) {
+            Instant.animation.goToMessage(msg);
+            event.preventDefault();
+          }
+        };
+      },
+      /* Navigate the input to the given message */
+      goToMessage: function(msg) {
+        Instant.input.jumpTo(msg);
+        Instant.input.focus();
+        Instant.pane.scrollIntoView(msg);
       },
       /* Mark multiple messages as offscreen (or not) */
       updateOffscreen: function(msgs) {
@@ -2003,17 +2062,18 @@ window.Instant = function() {
           Instant.animation.checkOffscreen(m);
         });
       },
-      /* Mark a message as offscreen (or not), depending on its visibility */
+      /* Mark a message as offscreen (or not), depending on its visibility;
+       * possibly update offscreen message alerts */
       checkOffscreen: function(msg) {
         if (Instant.pane.isVisible(msg)) {
-          msg.classList.remove('offscreen');
+          Instant.animation.offscreen.clear(msg);
         } else {
-          msg.classList.add('offscreen');
+          Instant.animation.offscreen.set(msg);
         }
       },
       /* Mark a message as not offscreen anymore */
       clearOffscreen: function(msg) {
-        msg.classList.remove('offscreen');
+        Instant.animation.offscreen.clear(msg);
       },
       /* Check if more logs should be loaded */
       _updateLogs: function() {
@@ -2112,6 +2172,123 @@ window.Instant = function() {
             }
           }
         };
+      }(),
+      /* Offscreen message (alert) management */
+      offscreen: function() {
+        /* Unread messages above/below */
+        var unreadAbove = null, unreadBelow = null;
+        /* Unread messages with @-mentions of self */
+        var mentionAbove = null, mentionBelow = null;
+        /* The nodes containing the alerts */
+        var aboveNode = null, belowNode = null;
+        /* Scan the message tree in document order for a message for which
+         * filter returns a true value; falsy messages are returned
+         * unconditionally. */
+        function scanMessages(start, filter, step) {
+          for (;;) {
+            if (! start || filter(start)) return start;
+            start = step(start);
+          }
+        }
+        /* Is the given message offscreen? */
+        function isOffscreen(msg) {
+          return msg.classList.contains('offscreen');
+        }
+        /* Is the given message offscreen and a mention of the current
+         * user? */
+        function isOffscreenMention(msg) {
+          return (msg.classList.contains('offscreen') &&
+            msg.classList.contains('ping'));
+        }
+        return {
+          /* Attach to a given DOM node */
+          init: function(container) {
+            aboveNode = $sel('.alert-above', container);
+            belowNode = $sel('.alert-below', container);
+            aboveNode.addEventListener('click', function(event) {
+              var msg = Instant.message.forFragment(aboveNode.hash);
+              if (msg) {
+                Instant.animation.goToMessage(msg);
+                event.preventDefault();
+              }
+            });
+            belowNode.addEventListener('click', function(event) {
+              var msg = Instant.message.forFragment(belowNode.hash);
+              if (msg) {
+                Instant.animation.goToMessage(msg);
+                event.preventDefault();
+              }
+            });
+            Instant.animation.offscreen._update();
+          },
+          /* Mark the message as offscreen */
+          set: function(msg) {
+            msg.classList.add('offscreen');
+            var docCmp = Instant.message.documentCmp.bind(Instant.message);
+            var icmp = docCmp(msg, Instant.input.getNode());
+            if (icmp < 0 && (! unreadAbove || docCmp(unreadAbove, msg) > 0))
+              unreadAbove = msg;
+            if (icmp > 0 && (! unreadBelow || docCmp(msg, unreadBelow) > 0))
+              unreadBelow = msg;
+            if (msg.classList.contains('ping')) {
+              if (icmp < 0 && (! mentionAbove ||
+                  docCmp(mentionAbove, msg) > 0))
+                mentionAbove = msg;
+              if (icmp > 0 && (! mentionBelow ||
+                  docCmp(msg, mentionBelow) > 0))
+                mentionBelow = msg;
+            }
+            Instant.animation.offscreen._update();
+          },
+          /* Remove the offscreen mark */
+          clear: function(msg) {
+            msg.classList.remove('offscreen');
+            if (msg == unreadAbove || msg == unreadBelow ||
+                msg == mentionAbove || msg == mentionBelow) {
+              var im = Instant.message;
+              var prec = im.getDocumentPrecedessor.bind(im);
+              var succ = im.getDocumentSuccessor.bind(im);
+              if (msg == unreadAbove)
+                unreadAbove = scanMessages(msg, isOffscreen, prec);
+              if (msg == unreadBelow)
+                unreadBelow = scanMessages(msg, isOffscreen, succ);
+              if (msg == mentionAbove)
+                mentionAbove = scanMessages(msg, isOffscreenMention, prec);
+              if (msg == mentionBelow)
+                mentionBelow = scanMessages(msg, isOffscreenMention, succ);
+              Instant.animation.offscreen._update();
+            }
+          },
+          /* Update the attached nodes */
+          _update: function() {
+            if (aboveNode) {
+              if (mentionAbove) {
+                aboveNode.classList.add('ping');
+                aboveNode.classList.add('visible');
+              } else if (unreadAbove) {
+                aboveNode.classList.remove('ping');
+                aboveNode.classList.add('visible');
+              } else {
+                aboveNode.classList.remove('ping');
+                aboveNode.classList.remove('visible');
+              }
+              aboveNode.href = '#' + ((unreadAbove) ? unreadAbove.id : '');
+            }
+            if (belowNode) {
+              if (mentionBelow) {
+                belowNode.classList.add('ping');
+                belowNode.classList.add('visible');
+              } else if (unreadBelow) {
+                belowNode.classList.remove('ping');
+                belowNode.classList.add('visible');
+              } else {
+                belowNode.classList.remove('ping');
+                belowNode.classList.remove('visible');
+              }
+              belowNode.href = '#' + ((unreadBelow) ? unreadBelow.id : '');
+            }
+          }
+        };
       }()
     };
   }();
@@ -2192,6 +2369,7 @@ function init() {
     Instant.animation.init($sel('.message-box', main));
     Instant.animation.greeter.init(wrapper);
     Instant.animation.throbber.init($sel('.throbber', main));
+    Instant.animation.offscreen.init($sel('.alert-container', main));
     Instant.connection.init($sel('.online-status', main));
     Instant.util.adjustScrollbar($sel('.sidebar', main),
                                  $sel('.message-pane', main));
