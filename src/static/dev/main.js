@@ -542,7 +542,7 @@ window.Instant = function() {
             /* Room link */
             console.log('[room]', m[0], m[1], m[2]);
             var node = makeNode(m[0], 'room-link', null, 'a');
-            node.href = ('/room/' + m[1] + '/' +
+            node.href = ('../' + m[1] + '/' +
               ((m[2]) ? '#message-' + m[2] : ''));
             node.target = '_blank';
             out.push(node);
