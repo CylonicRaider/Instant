@@ -1369,9 +1369,9 @@ window.Instant = function() {
         var nick = Instant.storage.get('nickname');
         if (typeof nick == 'string') {
           inputNick.value = nick;
-          updateNick();
           refreshNick();
         }
+        updateNick();
         /* Focus the nick input */
         inputNick.focus();
         inputNick.selectionStart = inputNick.value.length;
