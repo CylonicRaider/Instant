@@ -704,6 +704,28 @@ window.Instant = function() {
         }
         return ret;
       },
+      /* Install event handlers into the given message node */
+      _installEventHandlers: function(msgNode) {
+        /* Clicking to a messages moves to it */
+        $sel('.line', msgNode).addEventListener('click', function(evt) {
+          Instant.input.moveTo(msgNode);
+          Instant.input.focus();
+          Instant.pane.scrollIntoView(msgNode);
+          evt.stopPropagation();
+        });
+        $sel('.permalink', msgNode).addEventListener('click', function(evt) {
+          var msgid = msgNode.getAttribute('data-id');
+          var fragment = '#message-' + msgid;
+          Instant.animation.goToMessage(msgNode);
+          /* Have to simulate history entry addition to avoid the browser
+           * happily finding the message and scrolling it to the very top
+           * of the viewport. */
+          if (document.location.hash != fragment)
+            history.pushState({}, '', fragment);
+          evt.preventDefault();
+          evt.stopPropagation();
+        });
+      },
       /* Generate a fake message node */
       makeFakeMessage: function(id) {
         /* Allocate result; populate attributes */
@@ -721,6 +743,8 @@ window.Instant = function() {
         /* Populate inner attributes */
         $sel('.line', msgNode).title = 'Message absent or not loaded (yet)';
         $sel('.permalink', msgNode).href = '#' + msgNode.id;
+        /* Add event handlers */
+        Instant.message._installEventHandlers(msgNode);
         /* Done */
         return msgNode;
       },
@@ -785,13 +809,8 @@ window.Instant = function() {
         }
         /* Insert text */
         $sel('.content', msgNode).appendChild(content);
-        /* Add event handler */
-        $sel('.line', msgNode).addEventListener('click', function(event) {
-          Instant.input.moveTo(msgNode);
-          Instant.input.focus();
-          Instant.pane.scrollIntoView(msgNode);
-          event.stopPropagation();
-        });
+        /* Add event handlers */
+        Instant.message._installEventHandlers(msgNode);
         /* Done */
         return msgNode;
       },
@@ -1160,9 +1179,21 @@ window.Instant = function() {
         }
         return ret;
       },
+      /* Check if the given fragment idenfitier is a valid message
+       * identifier */
+      checkFragment: function(url) {
+        return (/^#message-.+$/.test(url));
+      },
+      /* Extract a message out of a fragment identifier or return it
+       * unchanged */
+      parseFragment: function(url) {
+        if (Instant.message.checkFragment(url))
+          return url.substring(9);
+        return url;
+      },
       /* Return the message identified by the given fragment identitier */
       forFragment: function(url) {
-        if (! /^#message-[0-9a-zA-Z]+$/.test(url)) return null;
+        if (! Instant.message.checkFragment(url)) return null;
         return Instant.message.get(url.substring(9));
       },
       /* Return the message identified by this is, or undefined if none */
@@ -1855,6 +1886,8 @@ window.Instant = function() {
         var oldestPeer = null, newestPeer = null;
         /* Which logs exactly are pulled */
         var pullType = {before: null, after: null};
+        /* Message we want to fetch */
+        var goal = null;
         return {
           /* Initialize the pane node */
           init: function(paneNode) {
@@ -1882,6 +1915,22 @@ window.Instant = function() {
           more: function() {
             pullType.before = true;
             Instant.logs.pull._start();
+          },
+          /* Pull logs until the given message is fetched; then go to it
+           * This is asynchronous, and can potentially take *much* time.
+           */
+          upto: function(msgid) {
+            /* Check if goal already reached; otherwise set it */
+            if (keys.length && keys[0] < msgid) {
+              goal = null;
+              var msg = Instant.message.get(msgid);
+              if (msg) Instant.animation.goToMessage(msg);
+            } else {
+              goal = msgid;
+              /* Initiate new pull */
+              if (Instant.connection.isConnected())
+                Instant.logs.pull.more();
+            }
           },
           /* Collect log information */
           _check: function() {
@@ -2017,6 +2066,8 @@ window.Instant = function() {
             /* Reset peers */
             if (before) oldestPeer = null;
             if (after) newestPeer = null;
+            /* Restart pull if necessary */
+            if (goal) Instant.logs.pull.upto(goal);
           },
           /* Handler for disconnects */
           _disconnected: function() {
@@ -2034,6 +2085,10 @@ window.Instant = function() {
     return {
       /* Initialize the submodule */
       init: function(node) {
+        function updateHash(event) {
+          if (Instant.message.checkFragment(location.hash))
+            Instant.animation.navigateToMessage(location.hash);
+        }
         messageBox = node;
         var pane = Instant.pane.getPane(messageBox);
         /* Pull more logs when scrolled to top */
@@ -2043,23 +2098,29 @@ window.Instant = function() {
             Instant.animation.clearOffscreen(msg);
           });
         });
-        window.onhashchange = function(event) {
-          var msg = Instant.message.forFragment(document.location.hash);
-          if (msg) {
-            Instant.animation.goToMessage(msg);
-            event.preventDefault();
-          }
-        };
+        window.onhashchange = updateHash;
+        updateHash();
       },
       /* Navigate the input to the given message */
       goToMessage: function(msg) {
         Instant.input.jumpTo(msg);
         Instant.input.focus();
         Instant.pane.scrollIntoView(msg);
-        /* Lame attempt to prevent focus scrolling */
-        setTimeout(function() {
-          Instant.pane.scrollIntoView(msg);
-        }, 0);
+      },
+      /* Navigate to a message as identified by the given ID or fragment
+       * identifier
+       * If the message is not loaded (yet), will asynchronously pull
+       * logs until the message is loaded (or surely absent) and finish
+       * asynchronously. */
+      navigateToMessage: function(target) {
+        var msgid = Instant.message.parseFragment(target);
+        if (! msgid) return;
+        var msg = Instant.message.get(msgid);
+        if (msg) {
+          Instant.animation.goToMessage(msg);
+        } else {
+          Instant.logs.pull.upto(msgid);
+        }
       },
       /* Mark multiple messages as offscreen (or not) */
       updateOffscreen: function(msgs) {
