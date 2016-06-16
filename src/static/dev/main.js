@@ -282,7 +282,7 @@ window.Instant = function() {
                   /* Restore scroll state */
                   restore();
                   /* Check whether the message is offscreen */
-                  Instant.animation.checkOffscreen(msg);
+                  Instant.animation.offscreen.check(msg);
                 }
                 break;
               case 'nick': /* Someone informs us about their nick */
@@ -2032,9 +2032,11 @@ window.Instant = function() {
                   /* Scroll back */
                   restore();
                   /* Check for offscreen messages */
-                  Instant.animation.updateOffscreen(added.map(function(key) {
-                    return Instant.message.get(key);
-                  }));
+                  Instant.animation.offscreen.update(added.map(
+                    function(key) {
+                      return Instant.message.get(key);
+                    }
+                  ));
                   /* Detect earliest and latest message */
                   data.data.forEach(function(el) {
                     if (! before || el.id < before) before = el.id;
@@ -2110,7 +2112,7 @@ window.Instant = function() {
         pane.addEventListener('scroll', function(event) {
           if (pane.scrollTop == 0) Instant.logs.pull.more();
           Instant.pane.getVisible(messageBox).forEach(function(msg) {
-            Instant.animation.clearOffscreen(msg);
+            Instant.animation.offscreen.clear(msg);
           });
         });
         window.onhashchange = updateHash;
@@ -2136,25 +2138,6 @@ window.Instant = function() {
         } else {
           Instant.logs.pull.upto(msgid);
         }
-      },
-      /* Mark multiple messages as offscreen (or not) */
-      updateOffscreen: function(msgs) {
-        msgs.forEach(function(m) {
-          Instant.animation.checkOffscreen(m);
-        });
-      },
-      /* Mark a message as offscreen (or not), depending on its visibility;
-       * possibly update offscreen message alerts */
-      checkOffscreen: function(msg) {
-        if (Instant.pane.isVisible(msg)) {
-          Instant.animation.offscreen.clear(msg);
-        } else {
-          Instant.animation.offscreen.set(msg);
-        }
-      },
-      /* Mark a message as not offscreen anymore */
-      clearOffscreen: function(msg) {
-        Instant.animation.offscreen.clear(msg);
       },
       /* Check if more logs should be loaded */
       _updateLogs: function() {
@@ -2313,6 +2296,20 @@ window.Instant = function() {
               handleEvent(e, belowNode);
             });
             Instant.animation.offscreen._update();
+          },
+          /* Mark multiple messages as offscreen (or not) */
+          update: function(msgs) {
+            msgs.forEach(function(m) {
+              Instant.animation.offscreen.check(m);
+            });
+          },
+          /* Check if a message is offscreen or not */
+          check: function(msg) {
+            if (Instant.pane.isVisible(msg)) {
+              Instant.animation.offscreen.clear(msg);
+            } else {
+              Instant.animation.offscreen.set(msg);
+            }
           },
           /* Mark the message as offscreen */
           set: function(msg) {
