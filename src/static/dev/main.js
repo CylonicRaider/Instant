@@ -1370,6 +1370,7 @@ window.Instant = function() {
         if (typeof nick == 'string') {
           inputNick.value = nick;
           updateNick();
+          refreshNick();
         }
         /* Focus the nick input */
         inputNick.focus();
@@ -1381,8 +1382,10 @@ window.Instant = function() {
         return inputNode;
       },
       /* Transfer focus to the input bar */
-      focus: function() {
-        (focusedNode || $sel('.input-message', inputNode)).focus();
+      focus: function(forceInput) {
+        var node = focusedNode;
+        if (! node || forceInput) node = $sel('.input-message', inputNode);
+        node.focus();
       },
       /* Get the message ID of the parent of the input bar */
       getParentID: function() {
@@ -2468,6 +2471,78 @@ window.Instant = function() {
       }()
     };
   }();
+  /* Settings control */
+  Instant.settings = function() {
+    /* The outer node containing all the nice stuff */
+    var wrapperNode = null;
+    return {
+      /* Initialize submodule */
+      init: function(node) {
+        wrapperNode = node;
+        var btn = $sel('.settings', wrapperNode);
+        var cnt = $sel('.settings-content', wrapperNode);
+        /* Toggle settings */
+        btn.addEventListener('click', function(event) {
+          Instant.settings.toggle();
+        });
+        /* Install event listener */
+        var apply = Instant.settings.apply.bind(Instant.settings);
+        Array.prototype.forEach.call($selAll('input', cnt), function(el) {
+          el.addEventListener('change', apply);
+        });
+        /* NYI */
+        $sel('.settings-notifications', wrapperNode).style.display = 'none';
+        /* Restore settings from storage */
+        Instant.settings.restore();
+        Instant.settings.apply();
+      },
+      /* Actually apply the settings */
+      apply: function() {
+        var cnt = $sel('.settings-content', wrapperNode);
+        var theme = cnt.elements['theme'].value;
+        var mainPane = $id('main');
+        var darkLink = $id('dark-style');
+        if (theme == 'bright') {
+          mainPane.classList.remove('very-dark');
+          darkLink.rel = 'alternate stylesheet';
+          darkLink.title = 'Dark';
+        } else if (theme == 'dark') {
+          mainPane.classList.remove('very-dark');
+          darkLink.rel = 'stylesheet';
+          darkLink.title = '';
+        } else if (theme == 'verydark') {
+          mainPane.classList.add('very-dark');
+          darkLink.rel = 'stylesheet';
+          darkLink.title = '';
+        } else {
+          console.warning('Unknown theme:', theme);
+        }
+        Instant.storage.set('theme', theme);
+      },
+      /* Restore the settings from storage */
+      restore: function() {
+        var theme = Instant.storage.get('theme');
+        var cnt = $sel('.settings-content', wrapperNode);
+        cnt.elements['theme'].value = theme;
+      },
+      /* Show the settings popup */
+      show: function() {
+        wrapperNode.classList.add('visible');
+      },
+      /* Hide the settings popup */
+      hide: function() {
+        wrapperNode.classList.remove('visible');
+      },
+      /* Toggle the settings visibility */
+      toggle: function() {
+        wrapperNode.classList.toggle('visible');
+      },
+      /* Returns whether the settings area is currently visible */
+      isVisible: function() {
+        return wrapperNode.classList.contains('visible');
+      }
+    };
+  }();
   /* Offline storage */
   Instant.storage = function() {
     /* Actual data */
@@ -2597,14 +2672,14 @@ function init() {
       stagingNode.textContent = ' (' + Instant.stagingLocation + ')';
       nameNode.parentNode.insertBefore(stagingNode, nameNode.nextSibling);
     }
-    /* Currently NYI */
-    $sel('.settings').style.display = 'none';
     /* Show main element */
     main.style.opacity = '1';
     /* Focus input bar if Escape pressed and not focused */
     document.documentElement.addEventListener('keydown', function(event) {
       if (event.keyCode == 27) { // Escape
-        $sel('.input-message', main).focus();
+        if (Instant.settings.isVisible())
+          Instant.settings.hide();
+        Instant.input.focus();
         event.preventDefault();
       }
     });
@@ -2619,6 +2694,7 @@ function init() {
     Instant.animation.greeter.init(wrapper);
     Instant.animation.throbber.init($sel('.throbber', main));
     Instant.animation.offscreen.init($sel('.alert-container', main));
+    Instant.settings.init($sel('.settings-wrapper', main));
     Instant.connection.init($sel('.online-status', main));
     Instant.util.adjustScrollbar($sel('.sidebar', main),
                                  $sel('.message-pane', main));

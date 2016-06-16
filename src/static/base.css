@@ -36,10 +36,10 @@ a:visited {
   font-size: initial;
   opacity: 0.5;
 }
-.breadcrumbs.collapse:not(:hover):not(:active) :not(.collapse-show) {
+.breadcrumbs.collapse:not(:hover) :not(.collapse-show) {
   display: none;
 }
-.breadcrumbs.collapse:hover, .breadcrumbs.collapse:active {
+.breadcrumbs.collapse:hover {
   padding: 0 2px;
   opacity: 1;
   box-shadow: 0 0 2px #808080;

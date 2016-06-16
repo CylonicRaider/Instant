@@ -20,8 +20,10 @@ body {
   background: white;
   padding: 30px;
   margin: 30px auto;
-  -webkit-transition: opacity 1s, box-shadow 0.1s;
-  transition: opacity 1s, box-shadow 0.1s;
+  -webkit-transition: background 0.5s, color 0.5s,
+                      opacity 1s, box-shadow 0.1s;
+  transition: background 0.5s, color 0.5s,
+              opacity 1s, box-shadow 0.1s;
   z-index: 100;
 }
 
@@ -191,8 +193,6 @@ body {
   height: 100%;
   opacity: 0;
   text-align: left;
-  -webkit-transition: opacity 1s;
-  transition: opacity 1s;
 }
 
 .sidebar {
@@ -264,6 +264,7 @@ body {
   z-index: 10;
 }
 .settings {
+  position: relative;
   font-size: 100%;
   line-height: 0;
   background: white;
@@ -293,6 +294,19 @@ body {
   white-space: nowrap;
   background: white;
   color: black;
+}
+.settings-content label {
+  display: block;
+}
+
+.settings-wrapper.visible .settings {
+  border-radius: 0;
+  border-bottom-width: 0;
+  padding-bottom: 1px;
+  box-shadow: none;
+}
+.settings-wrapper.visible .settings-content {
+  display: block;
 }
 
 .update-message {
@@ -551,3 +565,10 @@ body {
 }
 @-webkit-keyframes clrfade { to { color: #808080; } }
 @keyframes clrfade { to { color: #808080; } }
+
+body, #main * {
+  -webkit-transition: background 0.5s, color 0.5s, border-color 0.5s,
+                      opacity 1s;
+  transition: background 0.5s, color 0.5s, border-color 0.5s,
+              opacity 1s;
+}

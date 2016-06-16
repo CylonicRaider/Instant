@@ -10,7 +10,7 @@
     <link rel="stylesheet" type="text/css"
       href="/static/dev/room.css"></style>
     <link rel="alternate stylesheet" type="text/css"
-      href="/static/room-dark.css" title="Dark" id="dark-style"></style>
+      href="/static/dev/room-dark.css" title="Dark" id="dark-style"></style>
     <link rel="shortcut icon" id="favicon" type="image/png"
       href="/static/logo-static_128x128.png"/>
   </head>
@@ -53,35 +53,28 @@
           <a href="" class="room-name">...</a>
           <span class="online-status" title="..."></span>
           <div class="settings-wrapper"><button class="settings"><img
-            src="/static/gear.svg"/></button><div class="settings-content">
-              <div>
+            src="/static/gear.svg"/></button><form class="settings-content">
+              <div class="settings-theme">
                 <p><em>Theme:</em></p>
-                <label class="indent"><input type="radio" name="theme"
-                  id="theme-bright" onClick="toggleTheme();"
+                <label><input type="radio" name="theme" value="bright"
                   checked="checked"/> Bright</label>
-                <label class="indent"><input type="radio" name="theme"
-                  id="theme-dark" onClick="toggleTheme();"
-                  /> Dark</label>
-                <label class="indent"><input type="radio" name="theme"
-                  id="theme-verydark" onClick="toggleTheme();"
-                  /> Very dark</label>
+                <label><input type="radio" name="theme" value="dark"/>
+                  Dark</label>
+                <label><input type="radio" name="theme" value="verydark"/>
+                  Very dark</label>
               </div>
-              <div>
+              <div class="settings-notifications">
                 <p><em>Notifications:</em></p>
-                <label class="indent"><input type="radio" name="notifies"
-                  id="notifies-none" onClick="updateNotifications();"
+                <label><input type="radio" name="notifies" value="none"
                   checked="checked"/> None</label>
-                <label class="indent"><input type="radio" name="notifies"
-                  id="notifies-ping" onClick="updateNotifications();"
-                  /> When pinged</label>
-                <label class="indent"><input type="radio" name="notifies"
-                  id="notifies-reply" onClick="updateNotifications();"
-                  /> When replied</label>
-                <label class="indent"><input type="radio" name="notifies"
-                  id="notifies-any" onClick="updateNotifications();"
-                  /> On activity</label>
+                <label><input type="radio" name="notifies" value="ping"/>
+                  When pinged</label>
+                <label><input type="radio" name="notifies" value="reply"/>
+                  When replied</label>
+                <label><input type="radio" name="notifies" value="any"/>
+                  On activity</label>
               </div>
-            </div></div>
+            </form></div>
         </div>
         <div class="update-message"><a onClick="location.reload(true)"
           href="">Update available; click to reload</a></div>
