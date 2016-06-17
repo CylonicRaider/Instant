@@ -2630,6 +2630,23 @@ window.Instant = function() {
       }
     };
   }();
+  /* Global initialization function */
+  Instant.init = function(main, loadWrapper) {
+    Instant.storage.init();
+    Instant.identity.init($sel('.update-message', main));
+    Instant.input.init($sel('.input-bar', main));
+    Instant.userList.init($sel('.user-list', main));
+    Instant.title.init();
+    Instant.logs.pull.init($sel('.message-box', main));
+    Instant.animation.init($sel('.message-box', main));
+    Instant.animation.greeter.init(loadWrapper);
+    Instant.animation.throbber.init($sel('.throbber', main));
+    Instant.animation.offscreen.init($sel('.alert-container', main));
+    Instant.settings.init($sel('.settings-wrapper', main));
+    Instant.connection.init($sel('.online-status', main));
+    Instant.util.adjustScrollbar($sel('.sidebar', main),
+                                 $sel('.message-pane', main));
+  };
   /* To be assigned in window */
   return Instant;
 }();
@@ -2683,20 +2700,7 @@ function init() {
         event.preventDefault();
       }
     });
-    /* Initialize submodules */
-    Instant.storage.init();
-    Instant.identity.init($sel('.update-message', main));
-    Instant.input.init($sel('.input-bar', main));
-    Instant.userList.init($sel('.user-list', main));
-    Instant.title.init();
-    Instant.logs.pull.init($sel('.message-box', main));
-    Instant.animation.init($sel('.message-box', main));
-    Instant.animation.greeter.init(wrapper);
-    Instant.animation.throbber.init($sel('.throbber', main));
-    Instant.animation.offscreen.init($sel('.alert-container', main));
-    Instant.settings.init($sel('.settings-wrapper', main));
-    Instant.connection.init($sel('.online-status', main));
-    Instant.util.adjustScrollbar($sel('.sidebar', main),
-                                 $sel('.message-pane', main));
+    /* Fire up Instant! */
+    Instant.init(main, wrapper);
   }
 }
