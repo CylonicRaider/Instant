@@ -406,6 +406,10 @@ window.Instant = function() {
     /* Nick -> Hue hash */
     var cache = {};
     return {
+      /* Partially normalize a name for advanced fuzzy matching */
+      seminormalize: function(name) {
+        return name.replace(/\s+/g, '');
+      },
       /* Normalize nick-name for fuzzy matching and @-mentions */
       normalize: function(name) {
         return name.replace(/\s+/g, '').toLowerCase();
@@ -480,6 +484,7 @@ window.Instant = function() {
      *            19: Block-level monospace marker
      *                20: Newline before
      *                21: Newline after
+     * Keep in sync with mention matching in Instant.input.
      */
     var mc = '[^.,:;!?()\\s]';
     var aa = '[^a-zA-Z0-9_]|$';
@@ -1232,6 +1237,11 @@ window.Instant = function() {
   }();
   /* Input bar management */
   Instant.input = function () {
+    /* Match @-mentions with arbitrary text before
+     * Keep in sync with mention matching in Instant.message. */
+    var MENTION_BEFORE = new RegExp(
+        ('(?:[^a-zA-Z0-9_]|^)\\B@(%MC%*(?:\\(%MC%*\\)%MC%*)*' +
+         '(?:\\(%MC%*)?)$').replace(/%MC%/g, '[^.,:;!?()\\s]'));
     /* The DOM node containing the input bar */
     var inputNode = null;
     /* The sub-node currently focused */
@@ -1336,6 +1346,30 @@ window.Instant = function() {
               event.preventDefault();
             }
             inputMsg.focus();
+          } else if (event.keyCode == 9 && ! event.shiftKey) { // Tab
+            /* Extract text with selection removed and obtain the cursor
+             * position */
+            var text = inputMsg.value;
+            if (inputMsg.selectionStart != inputMsg.selectionEnd) {
+              text = (text.substr(0, inputMsg.selectionStart) +
+                      text.substr(inputMsg.selectionEnd));
+            }
+            var pos = inputMsg.selectionStart;
+            /* Determine if we should complete at all */
+            var m = MENTION_BEFORE.exec(text.substring(0, pos));
+            if (! m) return;
+            /* No tabbing beyound this point */
+            event.preventDefault();
+            /* Perform actual completion */
+            var res = Instant.userList.complete(m[1]);
+            /* No completion -- no action */
+            if (res == null) return;
+            /* Insert completed text */
+            text = text.substring(0, pos) + res + text.substring(pos);
+            var newpos = pos + res.length;
+            /* Insert new text into entry */
+            inputMsg.value = text;
+            inputMsg.setSelectionRange(newpos, newpos);
           }
           if (text.indexOf('\n') == -1) {
             if (event.keyCode == 38) { // Up
@@ -1726,6 +1760,51 @@ window.Instant = function() {
         } else {
           par.classList.remove('overflow');
         }
+      },
+      /* List unique seminormalized nicks which match the semi-normalization
+       * of the given prefix */
+      listMatchingNicks: function(prefix) {
+        prefix = Instant.nick.seminormalize(prefix);
+        var nicks = Array.prototype.map.call(node.children, function(n) {
+          return Instant.nick.seminormalize(n.getAttribute('data-nick'));
+        });
+        var last = null;
+        return nicks.filter(function(n) {
+          if (last == null || n != last) {
+            last = n;
+          } else {
+            return false;
+          }
+          return (n.substring(0, prefix.length) == prefix);
+        });
+      },
+      /* Return a completion for the given nickname prefix, or null
+       * if there is no nick matching the given prefix.
+       * NOTE that the prefix must not contain whitespace since that
+       *      would make the results ambiguous (and the implementation
+       *      more convoluted than it already is). */
+      complete: function(prefix) {
+        /* List possible nicks */
+        var nicks = Instant.userList.listMatchingNicks(prefix);
+        /* Special cases */
+        if (! nicks.length) {
+          return null;
+        } else if (nicks.length == 1) {
+          return nicks[0].substring(prefix.length);
+        }
+        /* Strip prefix */
+        for (var i = 0; i < nicks.length; i++)
+          nicks[i] = nicks[i].substring(prefix.length);
+        /* Determine common prefix of remaining nicks */
+        var pref = nicks[0];
+        for (var i = 1; i < nicks.length; i++) {
+          var n = nicks[i];
+          /* Truncate to common length */
+          while (n.substring(0, pref.length) != pref)
+            pref = pref.substring(0, pref.length - 1);
+        }
+        /* Return it */
+        return pref;
       }
     };
   }();
