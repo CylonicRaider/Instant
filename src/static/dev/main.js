@@ -737,10 +737,24 @@ window.Instant = function() {
       },
       /* Install event handlers into the given message node */
       _installEventHandlers: function(msgNode) {
+        /* HACK to improve mobile UX: On a mobile device, focusing the input
+         *      bar would likely trigger a noisy on-screen keyboard, hence,
+         *      it will be blurred instead on tapping a message to free more
+         *      space for navigation. Blame me. */
+        var clickWasTouch = false;
+        /* Touching a message sets the aforementioned flag */
+        $sel('.line', msgNode).addEventListener('touchstart', function(evt) {
+          clickWasTouch = true;
+        });
         /* Clicking to a messages moves to it */
         $sel('.line', msgNode).addEventListener('click', function(evt) {
           Instant.input.moveTo(msgNode);
-          Instant.input.focus();
+          if (clickWasTouch) {
+            clickWasTouch = false;
+            document.activeElement.blur();
+          } else {
+            Instant.input.focus();
+          }
           Instant.pane.scrollIntoView(msgNode);
           evt.stopPropagation();
         });
