@@ -289,6 +289,10 @@ window.Instant = function() {
                   /* Update window title */
                   Instant.title.addUnread(1,
                     (msg.classList.contains('ping')) ? 1 : 0);
+                  /* Possibly show a notification */
+                  if (Instant.notifications.check(msg) &&
+                      Instant.title.isBlurred())
+                    Instant.notifications.show(msg);
                 } else {
                   /* Should not happen */
                   console.warning('Swallowing message:', ent);
@@ -912,6 +916,13 @@ window.Instant = function() {
           message = Instant.message.getParentMessage(message);
           if (! message) return null;
         }
+      },
+      /* Get the message this is a comment to, i.e. the precedessor, or the
+       * parent if none, or null if none at all */
+      getCommentParent: function(message) {
+        var prec = Instant.message.getPrecedessor(message);
+        if (prec) return prec;
+        return Instant.message.getParent(message);
       },
       /* Compare the messages (which incidentally can be arbitrary DOM nodes)
        * by document order (assuming they are laid out vertically, as
@@ -2490,8 +2501,6 @@ window.Instant = function() {
         Array.prototype.forEach.call($selAll('input', cnt), function(el) {
           el.addEventListener('change', apply);
         });
-        /* NYI */
-        $sel('.settings-notifications', wrapperNode).style.display = 'none';
         /* Restore settings from storage */
         Instant.settings.restore();
         Instant.settings.apply();
@@ -2517,13 +2526,19 @@ window.Instant = function() {
         } else {
           console.warning('Unknown theme:', theme);
         }
+        var level = cnt.elements['notifies'].value;
+        Instant.notifications.level = level;
+        if (level != 'none') Instant.notifications.request();
         Instant.storage.set('theme', theme);
+        Instant.storage.set('notification-level', level);
       },
       /* Restore the settings from storage */
       restore: function() {
-        var theme = Instant.storage.get('theme');
         var cnt = $sel('.settings-content', wrapperNode);
+        var theme = Instant.storage.get('theme');
         cnt.elements['theme'].value = theme;
+        var level = Instant.storage.get('notification-level');
+        cnt.elements['notifies'].value = level;
       },
       /* Show the settings popup */
       show: function() {
@@ -2540,6 +2555,98 @@ window.Instant = function() {
       /* Returns whether the settings area is currently visible */
       isVisible: function() {
         return wrapperNode.classList.contains('visible');
+      }
+    };
+  }();
+  /* Desktop notifications */
+  Instant.notifications = function() {
+    /* Notification levels (from most to least severe) */
+    var LEVELS = {none: 0, ping: 1, reply: 2, any: 3};
+    /* The default icon to display */
+    var ICON = '/static/logo-static_128x128.png';
+    /* The currently pending notification */
+    var current = null;
+    return {
+      /* Export levels to outside */
+      LEVELS: LEVELS,
+      /* The current notification level (symbolic name) */
+      level: null,
+      /* Get the notification level of the given message */
+      getLevel: function(msg) {
+        var mlvl = 'any';
+        if (msg.classList.contains('ping')) {
+          mlvl = 'ping';
+        } else {
+          var par = Instant.message.getCommentParent(msg);
+          if (par && par.classList.contains('mine'))
+            mlvl = 'reply';
+        }
+        return mlvl;
+      },
+      /* Return whether the message should trigger a notify
+       * with respect to the current notification level */
+      check: function(msg) {
+        return (LEVELS[Instant.notifications.getLevel(msg)] <=
+                LEVELS[Instant.notifications.level]);
+      },
+      /* Display a desktop notification for msg (unconditionally)
+       * check() should have been called first to determine
+       * whether a notification should be displayed at all. */
+      show: function(msg) {
+        /* Do not show two notifications at once */
+        if (current) return;
+        var body = ('[' + $sel('.nick', msg).textContent + '] ' +
+          $sel('.content', msg).textContent);
+        Instant.notifications._show('Instant', body, {
+          oncreate: function(notify) {
+            /* Set current notification */
+            current = notify;
+            /* Since the close event is ambiguous and not supported
+             * anymore, we just let the notification stay for ten
+             * seconds, and forget about it thereafter. */
+            setTimeout(function() {
+              notify.close();
+              current = null;
+            }, 10000);
+          },
+          onclick: function(notify) {
+            /* Go to the specified message */
+            Instant.input.jumpTo(msg);
+            current = null;
+          }
+        });
+      },
+      /* Request permission to display notifications */
+      request: function(callback) {
+        var res = Notification.requestPermission(callback);
+        if (res && res.then) res.then(callback);
+      },
+      /* Display an arbitrary notification */
+      _show: function(title, body, options) {
+        function run() {
+          /* Parse options */
+          var icon = options.icon || ICON;
+          var oncreate = options.oncreate || null;
+          var onclick = options.onclick || null;
+          /* HACK: Firefox wrecks silently when an icon is
+           *       specified. :S */
+          if (/Firefox/.test(navigator.userAgent)) icon = null;
+          /* Actually create notification */
+          var ret = new Notification(title, {body: body,
+            icon: icon});
+          /* Install event handler */
+          ret.onclick = onclick;
+          /* Allow user to modify notification after creation */
+          if (oncreate) {
+            oncreate(ret);
+          }
+        }
+        /* Request permissions first */
+        if (Notification.permission == 'granted') {
+          run();
+        } else if (Notification.permission == 'default') {
+          Instant.notifications.request(run);
+        }
       }
     };
   }();
