@@ -1435,6 +1435,10 @@ window.Instant = function() {
         inputNode.addEventListener('focusin', updateFocus);
         inputNick.addEventListener('focus', updateFocus);
         inputMsg.addEventListener('focus', updateFocus);
+        /* Scroll input into view when resized */
+        window.addEventListener('resize', function(event) {
+          Instant.pane.scrollIntoView(inputNode);
+        });
         /* Read nickname from storage */
         var nick = Instant.storage.get('nickname');
         if (typeof nick == 'string') {
