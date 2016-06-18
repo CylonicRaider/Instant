@@ -3,6 +3,7 @@ package net.instant.util;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.security.MessageDigest;
@@ -139,6 +140,11 @@ public class FileCache {
                 throw new RuntimeException(e);
             } finally {
                 completed(this, ret);
+                try {
+                    input.close();
+                } catch (IOException exc) {
+                    exc.printStackTrace();
+                }
             }
         }
 
@@ -242,7 +248,14 @@ public class FileCache {
     public synchronized CacheCell get(String name, InputStream input,
                                       Callback callback) {
         CacheCell cell = get(name);
-        if (isValid(cell)) return cell;
+        if (isValid(cell)) {
+            try {
+                input.close();
+            } catch (IOException exc) {
+                exc.printStackTrace();
+            }
+            return cell;
+        }
         addCallback(name, callback);
         put(name, null, input);
         return null;
