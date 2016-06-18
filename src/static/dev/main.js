@@ -2261,19 +2261,21 @@ window.Instant = function() {
             }
             /* Check for more logs above */
             Instant.animation._updateLogs();
+            /* Reset peers
+             * A copy of newestPeer is kept for the next step. */
+            var nPeer = newestPeer;
+            if (before) oldestPeer = null;
+            if (after) newestPeer = null;
             /* Check for more logs below */
             if (after) {
               if ((after === true || ! oldestLive || oldestLive > after) &&
-                  newestPeer && ! after == newestPeer.to) {
+                  nPeer && ! after == nPeer.to) {
                 pullType.after = true;
                 Instant.logs.pull._start();
               } else {
                 logsLive = true;
               }
             }
-            /* Reset peers */
-            if (before) oldestPeer = null;
-            if (after) newestPeer = null;
             /* Restart pull if necessary */
             if (goal) Instant.logs.pull.upto(goal);
           },
