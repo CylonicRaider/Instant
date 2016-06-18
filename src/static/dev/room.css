@@ -433,6 +433,7 @@ body {
   top: 0;
   left: 0;
   border: 1px solid #808080;
+  background: white;
   padding-right: 0.25em;
   height: 1.2em;
   white-space: nowrap;
