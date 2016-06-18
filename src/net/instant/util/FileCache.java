@@ -78,6 +78,11 @@ public class FileCache {
             return (content != null) ? content.limit() : -1;
         }
 
+        public boolean isValid() {
+            if (getPath() == null) return true;
+            return (getPath().lastModified() < getLastPoll());
+        }
+
         public FileCache getParent() {
             return FileCache.this;
         }
@@ -247,9 +252,7 @@ public class FileCache {
     }
 
     protected boolean isValid(CacheCell cell) {
-        if (cell == null) return false;
-        if (cell.getPath() == null) return true;
-        return (cell.getPath().lastModified() < cell.getLastPoll());
+        return (cell == null) ? false : cell.isValid();
     }
 
     public void put(String name, File path) {
