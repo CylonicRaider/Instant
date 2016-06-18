@@ -1527,14 +1527,20 @@ window.Instant = function() {
       getPane: function(node) {
         return $parentWithClass(node, 'message-pane');
       },
-      /* Check if a message (or rather any part of its content) is visible
-       * with respect to its pane */
+      /* Check if a message (or any part of its content if it's too large) is
+       * visible with respect to its pane */
       isVisible: function(msg) {
         var line = $sel('.line', msg);
         var pane = Instant.pane.getPane(msg);
         var lrect = line.getBoundingClientRect();
         var prect = pane.getBoundingClientRect();
-        return (lrect.top < prect.bottom && lrect.bottom > prect.top);
+        if (lrect.height > prect.height / 2) {
+          /* Be less restrictive if message is too large to fit entirely */
+          return (lrect.top < prect.bottom && lrect.bottom > prect.top);
+        } else {
+          /* Otherwise, message must fit entirely */
+          return (lrect.top >= prect.top && lrect.bottom <= prect.bottom);
+        }
       },
       /* Check if a message's content is visible in its entirety. */
       isFullyVisible: function(msg) {
