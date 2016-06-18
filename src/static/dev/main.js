@@ -710,14 +710,23 @@ window.Instant = function() {
         /* Done! */
         return stack[0];
       },
-      /* Scan for @-mentions of a given nickname in a message */
-      scanMentions: function(content, nick) {
+      /* Scan for @-mentions of a given nickname in a message
+       * If strict is true, only literal matches of the own nick are
+       * accepted, otherwise, the normalizations of the own nick and the
+       * candidate are compared. */
+      scanMentions: function(content, nick, strict) {
         var ret = 0, children = content.children;
+        var nnick = Instant.nick.normalize(nick);
         for (var i = 0; i < children.length; i++) {
           if (children[i].classList.contains('mention')) {
+            var candidate = children[i].getAttribute('data-nick');
             /* If nick is correct, one instance found */
-            if (children[i].getAttribute('data-nick') == nick)
+            if (candidate == nick) {
               ret++;
+            } else if (! strict && Instant.nick.normalize(candidate) ==
+                nnick) {
+              ret++;
+            }
           } else {
             /* Scan recursively */
             ret += Instant.message.scanMentions(children[i], nick);
@@ -791,7 +800,8 @@ window.Instant = function() {
           msgNode.className += ' emote';
         if (params.from && params.from == Instant.identity.id)
           msgNode.className += ' mine';
-        if (Instant.message.scanMentions(content, Instant.identity.nick))
+        if (Instant.identity.nick != null &&
+            Instant.message.scanMentions(content, Instant.identity.nick))
           msgNode.className += ' ping';
         if (params.isNew)
           msgNode.className += ' new';
