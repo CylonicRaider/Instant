@@ -74,7 +74,8 @@ a.logo-small {
   background: rgba(0, 0, 0, 0.5);
 }
 
-.input-bar, .input-bar .input-message-cell .input-message {
+.input-bar, .input-bar .input-message-cell .input-message,
+.input-bar .input-message-cell .input-nick-prompt {
   color: white;
   background: black;
 }
