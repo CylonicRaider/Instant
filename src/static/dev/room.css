@@ -298,6 +298,10 @@ body {
 .settings-content label {
   display: block;
 }
+.settings-content hr {
+  border: none;
+  height: 5px;
+}
 
 .settings-wrapper.visible .settings {
   border-radius: 0;
