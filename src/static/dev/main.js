@@ -2323,9 +2323,12 @@ window.Instant = function() {
         /* Pull more logs when scrolled to top */
         pane.addEventListener('scroll', function(event) {
           if (pane.scrollTop == 0) Instant.logs.pull.more();
-          Instant.pane.getVisible(messageBox).forEach(function(msg) {
-            Instant.animation.offscreen.clear(msg);
-          });
+          if (Instant.animation.offscreen.getUnreadAbove() ||
+              Instant.animation.offscreen.getUnreadBelow()) {
+            Instant.pane.getVisible(messageBox).forEach(function(msg) {
+              Instant.animation.offscreen.clear(msg);
+            });
+          }
         });
         window.addEventListener('hashchange', updateHash);
         updateHash();
@@ -2593,6 +2596,22 @@ window.Instant = function() {
               }
               belowNode.href = '#' + ((unreadBelow) ? unreadBelow.id : '');
             }
+          },
+          /* Get the bottommost unread message above the screen, if any */
+          getUnreadAbove: function() {
+            return unreadAbove;
+          },
+          /* Get the topmost unread message below the screen, if any */
+          getUnreadBelow: function() {
+            return unreadBelow;
+          },
+          /* Get the bottommost @-mention of the current user above */
+          getMentionAbove: function() {
+            return mentionAbove;
+          },
+          /* Get the topmost @-mention of the current user below */
+          getMentionBelow: function() {
+            return mentionBelow;
           }
         };
       }()
