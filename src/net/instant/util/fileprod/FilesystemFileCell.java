@@ -20,7 +20,7 @@ public class FilesystemFileCell extends FileCell {
     }
 
     public boolean isValid() {
-        return (getPath().lastModified() < getCreated());
+        return (getPath().lastModified() <= getCreated());
     }
 
 }

@@ -1,8 +1,6 @@
 package net.instant.hooks;
 
-import java.io.File;
-import java.io.InputStream;
-import java.net.URL;
+import java.io.FileNotFoundException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -12,8 +10,9 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import net.instant.InformationCollector;
 import net.instant.InstantWebSocketServer;
-import net.instant.util.FileCache;
-import net.instant.util.Util;
+import net.instant.util.fileprod.FileCell;
+import net.instant.util.fileprod.FileProducer;
+import net.instant.util.fileprod.ProducerJob;
 import net.instant.ws.Draft_Raw;
 import org.java_websocket.WebSocket;
 import org.java_websocket.handshake.ClientHandshake;
@@ -22,7 +21,7 @@ import org.java_websocket.handshake.ServerHandshakeBuilder;
 
 public class StaticFileHook extends HookAdapter {
 
-    private static class Callback implements FileCache.Callback {
+    private static class Callback implements ProducerJob.Callback {
 
         private final InformationCollector.Datum datum;
         private final WebSocket conn;
@@ -32,8 +31,7 @@ public class StaticFileHook extends HookAdapter {
             this.conn = conn;
         }
 
-        public void operationCompleted(String name,
-                                       FileCache.CacheCell cell) {
+        public void fileProduced(String name, FileCell cell) {
             write(datum, conn, cell);
         }
 
@@ -84,17 +82,13 @@ public class StaticFileHook extends HookAdapter {
 
     }
 
-    private final List<Pattern> resourceWhitelist;
-    private final List<Pattern> cwdWhitelist;
     private final List<ContentTypeMatcher> matchers;
     private final List<AliasMatcher> aliases;
     private final Map<InformationCollector.Datum, String> running;
-    private FileCache cache;
+    private FileProducer producer;
 
-    public StaticFileHook(FileCache c) {
-        cache = c;
-        resourceWhitelist = new ArrayList<Pattern>();
-        cwdWhitelist = new ArrayList<Pattern>();
+    public StaticFileHook(FileProducer p) {
+        producer = p;
         matchers = new ArrayList<ContentTypeMatcher>();
         aliases = new ArrayList<AliasMatcher>();
         running = new HashMap<InformationCollector.Datum, String>();
@@ -103,24 +97,11 @@ public class StaticFileHook extends HookAdapter {
         this(null);
     }
 
-    public FileCache getCache() {
-        return cache;
+    public FileProducer getProducer() {
+        return producer;
     }
-    public void setCache(FileCache c) {
-        cache = c;
-    }
-
-    public void whitelistResources(Pattern p) {
-        resourceWhitelist.add(p);
-    }
-    public void whitelistResources(String p) {
-        whitelistResources(Pattern.compile(p));
-    }
-    public void whitelistCWD(Pattern p) {
-        cwdWhitelist.add(p);
-    }
-    public void whitelistCWD(String p) {
-        whitelistCWD(Pattern.compile(p));
+    public void setProducer(FileProducer p) {
+        producer = p;
     }
 
     public void addContentTypeMatcher(ContentTypeMatcher m) {
@@ -158,7 +139,7 @@ public class StaticFileHook extends HookAdapter {
                                    ClientHandshake request,
                                    ServerHandshakeBuilder response,
                                    Handshakedata eff_resp) {
-        if (getCache() == null) return;
+        if (getProducer() == null) return;
         if (! (parent.getEffectiveDraft(info) instanceof Draft_Raw)) return;
         if (! "GET".equals(info.getMethod())) return;
         processAs(parent, info, request, response,
@@ -184,48 +165,13 @@ public class StaticFileHook extends HookAdapter {
                                InformationCollector.Datum info,
                                ClientHandshake request,
                                ServerHandshakeBuilder response,
-                               String urls) {
-        if (Util.matchWhitelist(urls, cwdWhitelist)) {
-            File path = new File(urls.replaceFirst("^[/\\\\]+", ""));
-            if (accept(parent, info, request, response, urls, path, null))
-                return true;
-        }
-        if (Util.matchWhitelist(urls, resourceWhitelist)) {
-            URL res = getClass().getResource(urls);
-            if (res == null) {
-                return false;
-            } else if ("file".equals(res.getProtocol())) {
-                File path = new File(res.getPath());
-                if (accept(parent, info, request, response, urls,
-                           path, null))
-                    return true;
-            } else {
-                if (accept(parent, info, request, response, urls, null,
-                           getClass().getResourceAsStream(urls)))
-                    return true;
-            }
-        }
-        return false;
-    }
-
-    protected boolean accept(InstantWebSocketServer parent,
-                             InformationCollector.Datum info,
-                             ClientHandshake request,
-                             ServerHandshakeBuilder response,
-                             String url, File path, InputStream is) {
+                               String url) {
+        FileCell cell;
         long size = -1;
-        FileCache.CacheCell cell;
-        if (is != null) {
-            cell = getCache().get(url, is);
-        } else if (path != null) {
-            if (! path.isFile()) return false;
-            cell = getCache().get(url, path);
-            if (cell == null || cell.getContent() == null) {
-                size = path.length();
-            } else {
-                size = cell.getSize();
-            }
-        } else {
+        try {
+            cell = getProducer().get(url);
+            if (cell != null) size = cell.getSize();
+        } catch (FileNotFoundException exc) {
             return false;
         }
         for (ContentTypeMatcher m : matchers) {
@@ -260,16 +206,20 @@ public class StaticFileHook extends HookAdapter {
                        WebSocket conn, ClientHandshake handshake) {
         String url = running.remove(info);
         if (url == null) url = info.getURL();
-        FileCache.CacheCell cell = getCache().get(url,
-                                                  new Callback(info, conn));
+        FileCell cell;
+        try {
+            cell = getProducer().get(url, new Callback(info, conn));
+        } catch (FileNotFoundException exc) {
+            cell = null;
+        }
         if (cell != null) write(info, conn, cell);
     }
 
     private static void write(InformationCollector.Datum info,
-                              WebSocket conn, FileCache.CacheCell cell) {
-        ByteBuffer cnt = cell.getContent();
-        if (cnt != null && info.getCode() != 304) {
-            conn.send(cnt);
+                              WebSocket conn, FileCell cell) {
+        ByteBuffer data = (cell == null) ? null : cell.getData();
+        if (data != null && info.getCode() != 304) {
+            conn.send(data);
         }
         conn.close();
     }

@@ -14,21 +14,36 @@ public abstract class ProducerJob implements Runnable {
 
     private final String name;
     private final List<Callback> callbacks;
+    private boolean done;
+    private FileCell result;
 
     public ProducerJob(String name) {
         this.name = name;
         this.callbacks = new LinkedList<Callback>();
+        this.done = false;
+        this.result = null;
     }
 
     public String getName() {
         return name;
     }
+    public boolean isDone() {
+        return done;
+    }
+    public FileCell getResult() {
+        return result;
+    }
 
-    public synchronized void addCallback(Callback cb) {
-        callbacks.add(cb);
+    public synchronized void callback(Callback cb) {
+        if (done) {
+            cb.fileProduced(name, result);
+        } else {
+            callbacks.add(cb);
+        }
     }
 
     protected synchronized void runCallbacks(FileCell f) {
+        done = true;
         for (Callback cb : callbacks) {
             cb.fileProduced(name, f);
         }

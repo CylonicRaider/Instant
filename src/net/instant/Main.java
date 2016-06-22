@@ -10,8 +10,10 @@ import net.instant.hooks.RoomWebSocketHook;
 import net.instant.hooks.RedirectHook;
 import net.instant.hooks.StaticFileHook;
 import net.instant.proto.MessageDistributor;
-import net.instant.util.FileCache;
 import net.instant.util.Util;
+import net.instant.util.fileprod.FileProducer;
+import net.instant.util.fileprod.FilesystemProducer;
+import net.instant.util.fileprod.ResourceProducer;
 import org.java_websocket.server.WebSocketServer;
 
 public class Main implements Runnable {
@@ -105,11 +107,12 @@ public class Main implements Runnable {
             "/\\1/"));
         getServer().addHook(new RedirectHook("/(" + STAGING_RE + ")/room/(" +
             ROOM_RE + ")", "/\\1/room/\\2/"));
-        StaticFileHook files = new StaticFileHook(new FileCache());
-        files.whitelistCWD("/static/.*");
-        files.whitelistCWD("/pages/.*");
-        files.whitelistResources("/static/.*");
-        files.whitelistResources("/pages/.*");
+        FileProducer prod = new FileProducer();
+        prod.addProducer(new FilesystemProducer(".", ""));
+        prod.addProducer(new ResourceProducer());
+        prod.whitelist("/static/.*");
+        prod.whitelist("/pages/.*");
+        StaticFileHook files = new StaticFileHook(prod);
         files.alias("/", "/pages/main.html");
         files.alias("/favicon.ico", "/static/logo-static_128x128.ico");
         files.alias("/([^/]+\\.html)", "/pages/\\1", true);

@@ -52,7 +52,7 @@ public class FileCell {
                 d.update((byte) 0);
             } else {
                 d.update((byte) 1);
-                d.update(getRawData());
+                d.update(getData());
             }
             etag = Util.toHex(d.digest());
         }
