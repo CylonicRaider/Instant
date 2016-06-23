@@ -14,6 +14,7 @@ import net.instant.util.Util;
 import net.instant.util.fileprod.FileProducer;
 import net.instant.util.fileprod.FilesystemProducer;
 import net.instant.util.fileprod.ResourceProducer;
+import net.instant.util.fileprod.StringProducer;
 import org.java_websocket.server.WebSocketServer;
 
 public class Main implements Runnable {
@@ -23,6 +24,8 @@ public class Main implements Runnable {
         "[a-zA-Z](?:[a-zA-Z0-9_-]*[a-zA-Z0-9])?";
     public static final String STAGING_RE = "[a-zA-Z0-9-]+";
     public static final String FINE_VERSION;
+
+    private static final String VERSION_FILE;
 
     static {
         System.setProperty("java.util.logging.SimpleFormatter.format",
@@ -43,6 +46,9 @@ public class Main implements Runnable {
             } catch (IOException exc) {}
         }
         FINE_VERSION = v;
+        VERSION_FILE = String.format("_instantVersion_ = " +
+            "{version: \"%s\", revision: \"%s\"};\n",
+            Util.escapeJSString(VERSION), Util.escapeJSString(FINE_VERSION));
     }
 
     private final String[] args;
@@ -109,6 +115,9 @@ public class Main implements Runnable {
             ROOM_RE + ")", "/\\1/room/\\2/"));
         FileProducer prod = new FileProducer();
         prod.addProducer(new FilesystemProducer(".", ""));
+        StringProducer s = new StringProducer();
+        s.addFile("/static/version.js", VERSION_FILE);
+        prod.addProducer(s);
         prod.addProducer(new ResourceProducer());
         prod.whitelist("/static/.*");
         prod.whitelist("/pages/.*");

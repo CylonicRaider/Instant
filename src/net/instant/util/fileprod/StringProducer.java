@@ -5,7 +5,7 @@ import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.Map;
 
-public class StringProducer {
+public class StringProducer implements Producer {
 
     private final Map<String, ByteBuffer> files;
 

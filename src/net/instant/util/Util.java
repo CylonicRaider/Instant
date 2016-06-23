@@ -5,6 +5,7 @@ import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.security.SecureRandom;
 import java.util.List;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import javax.xml.bind.DatatypeConverter;
 import org.json.JSONObject;
@@ -13,6 +14,7 @@ public final class Util {
 
     public static final int BUFFER_SIZE = 16384;
 
+    private static final Pattern escape = Pattern.compile("[^ !#-\\[\\]-~]");
     private static final SecureRandom rng = new SecureRandom();
 
     private Util() {}
@@ -39,6 +41,20 @@ public final class Util {
 
     public static String toBase64(byte[] buf) {
         return DatatypeConverter.printBase64Binary(buf);
+    }
+
+    public static String escapeJSString(String s) {
+        Matcher m = escape.matcher(s);
+        // How old is *that* method to require a specific class?
+        StringBuffer sb = new StringBuffer();
+        while (m.find()) {
+            int ch = m.group().charAt(0);
+            String repl = String.format((ch < 256) ? "\\u%02x" : "\\u%04x",
+                                        ch);
+            m.appendReplacement(sb, repl);
+        }
+        m.appendTail(sb);
+        return sb.toString();
     }
 
     public static boolean matchWhitelist(String probe, List<Pattern> list) {
