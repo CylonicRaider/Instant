@@ -20,7 +20,9 @@ public class FilesystemFileCell extends FileCell {
     }
 
     public boolean isValid() {
-        return (getPath().lastModified() <= getCreated());
+        /* BUG: Assumes that no file was last modified at the Epoch */
+        long modified = getPath().lastModified();
+        return (modified != 0 && modified <= getCreated());
     }
 
 }
