@@ -93,6 +93,8 @@ window.Instant = function() {
   Instant.identity = function() {
     /* Node to add the visible class to when there is an update */
     var updateNode = null;
+    /* Node to show similarly to updateNode when the client is outdated */
+    var refreshNode = null;
     return {
       /* The session ID */
       id: null,
@@ -102,9 +104,10 @@ window.Instant = function() {
       serverVersion: null,
       /* Fine-grained server version */
       serverRevision: null,
-      /* Initialize the update notification node */
-      init: function(node) {
-        updateNode = node;
+      /* Initialize the update notification and refresh request node */
+      init: function(unode, rnode) {
+        updateNode = unode;
+        refreshNode = rnode;
       },
       /* Initialize the identity from the data part of a
        * server-side message */
@@ -113,8 +116,13 @@ window.Instant = function() {
              Instant.identity.serverVersion != data.version ||
              Instant.identity.serverRevision != null &&
              Instant.identity.serverRevision != data.revision) &&
-            updateNode)
+            updateNode) {
           updateNode.classList.add('visible');
+        } else if (window._instantVersion_ &&
+            (_instantVersion_.version != data.version ||
+             _instantVersion_.revision != data.revision)) {
+          refreshNode.classList.add('visible');
+        }
         Instant.identity.id = data.id;
         Instant.identity.serverVersion = data.version;
         Instant.identity.serverRevision = data.revision;
@@ -2875,7 +2883,8 @@ window.Instant = function() {
   /* Global initialization function */
   Instant.init = function(main, loadWrapper) {
     Instant.storage.init();
-    Instant.identity.init($sel('.update-message', main));
+    Instant.identity.init($sel('.update-message', main),
+                          $sel('.refresh-message', main));
     Instant.input.init($sel('.input-bar', main));
     Instant.userList.init($sel('.user-list', main));
     Instant.title.init();

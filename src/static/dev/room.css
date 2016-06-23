@@ -313,14 +313,22 @@ body {
   display: block;
 }
 
-.update-message {
+.ui-message {
   display: none;
 }
-.update-message.visible {
+.ui-message.visible {
   display: block;
 }
+.sidebar .ui-message {
+  text-align: right;
+}
+
 .update-message a {
   color: #004000;
+  font-weight: bold;
+}
+.refresh-message {
+  color: #808000;
   font-weight: bold;
 }
 
