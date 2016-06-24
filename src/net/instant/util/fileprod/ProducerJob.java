@@ -34,17 +34,31 @@ public abstract class ProducerJob implements Runnable {
         return result;
     }
 
-    public synchronized void callback(Callback cb) {
-        if (done) {
-            cb.fileProduced(name, result);
-        } else {
-            callbacks.add(cb);
+    public void callback(Callback cb) {
+        boolean run = false;
+        synchronized (this) {
+            if (done) {
+                run = true;
+            } else {
+                callbacks.add(cb);
+            }
         }
+        if (run) cb.fileProduced(name, result);
+    }
+    protected synchronized Callback[] popCallbacks() {
+        Callback[] ret = callbacks.toArray(new Callback[callbacks.size()]);
+        callbacks.clear();
+        return ret;
     }
 
-    protected synchronized void runCallbacks(FileCell f) {
-        done = true;
-        for (Callback cb : callbacks) {
+    protected void runCallbacks(FileCell f) {
+        Callback[] torun;
+        synchronized (this) {
+            done = true;
+            result = f;
+            torun = popCallbacks();
+        }
+        for (Callback cb : torun) {
             cb.fileProduced(name, f);
         }
     }

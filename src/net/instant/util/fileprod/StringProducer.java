@@ -42,7 +42,7 @@ public class StringProducer implements Producer {
         final ByteBuffer content = files.get(name);
         if (content == null) return null;
         return new ProducerJob(name) {
-            public FileCell produce() {
+            protected FileCell produce() {
                 return new FileCell(getName(), content, pollTime);
             }
         };
