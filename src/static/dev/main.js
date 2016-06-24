@@ -170,6 +170,10 @@ window.Instant = function() {
       },
       /* Actually connect */
       connect: function() {
+        if (! Instant.connectionURL) {
+          ws = null;
+          return null;
+        }
         /* Create WebSocket */
         ws = new WebSocket(Instant.connectionURL);
         /* Reset sequence ID */
@@ -337,7 +341,7 @@ window.Instant = function() {
         /* Update flag */
         connected = false;
         /* Update status widget */
-        if (connStatus) {
+        if (connStatus && ws != null) {
           /* Update status widget */
           connStatus.classList.remove('connected');
           connStatus.classList.add('broken');
@@ -2377,20 +2381,24 @@ window.Instant = function() {
         var node = null;
         /* Whether the node is visible */
         var visible = true;
+        /* Whether a particular state should be applied to the node */
+        var pending = true;
         /* The timeout to hide it entirely */
         var hideTimeout = null;
         return {
           /* Initialize submodule */
           init: function(greeterNode) {
             node = greeterNode;
-            if (visible) {
+            if (pending) {
               Instant.animation.greeter.show();
             } else {
               Instant.animation.greeter.hide();
             }
+            pending = null;
           },
           /* Show greeter */
           show: function() {
+            pending = true;
             if (! node || visible) return;
             if (hideTimeout != null) clearTimeout(hideTimeout);
             node.style.display = 'inline-block';
@@ -2399,6 +2407,7 @@ window.Instant = function() {
           },
           /* Hide greeter */
           hide: function() {
+            pending = false;
             if (! node || ! visible) return;
             if (hideTimeout != null) clearTimeout(hideTimeout);
             node.style.opacity = '0';
@@ -2933,6 +2942,8 @@ function init() {
       nameNode.innerHTML = '<i>local</i>';
       $sel('.online-status').style.background = '#c0c0c0';
       $sel('.online-status').title = 'Local';
+      /* Nothing is going to hide it, so we have to. */
+      Instant.animation.greeter.hide();
     }
     if (Instant.stagingLocation) {
       var stagingNode = document.createElement('span');
