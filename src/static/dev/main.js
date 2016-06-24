@@ -485,14 +485,14 @@ window.Instant = function() {
      *                 8: Path
      *             9: Nick-name @-mentioned (with the @ sign)
      *            10: Smiley (space before must be ensured)
-     *            11: Text with emphasis marker(s) (check space before)
-     *                12: Markers before and after (not included themself)
-     *                13: Marker before (same)
-     *                14: Marker after (same as well)
-     *            15: Text with monospace marker(s) (check space before)
-     *                16: Markers before and after
-     *                17: Marker before
-     *                18: Marker after
+     *            11: Text with monospace marker(s) (check space before)
+     *                12: Markers before and after
+     *                13: Marker before
+     *                14: Marker after
+     *            15: Text with emphasis marker(s) (check space before)
+     *                16: Markers before and after (not included themself)
+     *                17: Marker before (same)
+     *                18: Marker after (same as well)
      *            19: Block-level monospace marker
      *                20: Newline before
      *                21: Newline after
@@ -500,6 +500,7 @@ window.Instant = function() {
      */
     var mc = '[^.,:;!?()\\s]';
     var aa = '[^a-zA-Z0-9_]|$';
+    var am = '[^a-zA-Z0-9_`]|$';
     var INTERESTING = (
       '\\B&(?:([a-zA-Z](?:[a-zA-Z0-9_-]*[a-zA-Z0-9])?)' +
         '(?:#([a-zA-Z0-9]+))?)\\b|' +
@@ -508,12 +509,13 @@ window.Instant = function() {
       '\\B(@%MC%+(?:\\(%MC%*\\)%MC%*)*)|' +
       '((?:[+-]1|:[D)|/(CSP\\\\oO]|[SD)/|(C\\\\oO]:|\\^\\^|;\\)|' +
         '\\\\o/)(?=%AA%))|' +
+      '((?:`([^`\\s]+)`|`([^`\\s]+)|([^`\\s]+)`)(?=%AM%))|' +
       '((?:\\*+([^*\\s]+)\\*+|\\*+([^*\\s]+)|([^*\\s]+)\\*+)(?=%AA%))|' +
-      '((?:`([^`\\s]+)`|`([^`\\s]+)|([^`\\s]+)`)(?=%AA%))|' +
       '((\\n)?```(\\n)?)'
-      ).replace(/%MC%/g, mc).replace(/%AA%/g, aa);
-    var ALLOW_BEFORE = /[^a-zA-Z0-9_]|^$/;
-    /* Smiley table
+      ).replace(/%MC%/g, mc).replace(/%AA%/g, aa).replace(/%AM%/g, am);
+      var ALLOW_BEFORE = /[^a-zA-Z0-9_]|^$/;
+      var ALLOW_BEFORE_MONO = /[^a-zA-Z0-9_`]|^$/;
+      /* Smiley table
      * Keep in sync with the regex above */
     var SMILEYS = {'+1': '#008000', '-1': '#c00000',
       ':D': '#c0c000', ':)': '#c0c000', ':|': '#c0c000', ':/': '#c0c000',
@@ -568,6 +570,7 @@ window.Instant = function() {
           var before = (start == 0) ? '' : text.substr(start - 1, 1);
           /* Update last character */
           l = end;
+          console.log(m);
           /* Switch on match */
           if (m[1]) {
             /* Room link */
@@ -593,10 +596,26 @@ window.Instant = function() {
           } else if (m[10] && ALLOW_BEFORE.test(before)) {
             /* Smiley (allowed characters after are already checked) */
             out.push(makeNode(m[10], 'smiley', SMILEYS[m[10]]));
-          } else if (m[11] && ALLOW_BEFORE.test(before) && ! mono) {
+          } else if (m[11] && ALLOW_BEFORE_MONO.test(before) && ! mono) {
+            /* Inline monospace */
+            /* Leading sigil */
+            if (m[12] != null || m[13] != null) {
+              var node = makeSigil('`', 'mono-before');
+              out.push(node);
+              out.push({monoAdd: true, node: node});
+            }
+            /* Embed actual text */
+            out.push(m[12] || m[13] || m[14]);
+            /* Trailing sigil */
+            if (m[12] != null || m[14] != null) {
+              var node = makeSigil('`', 'mono-after');
+              out.push({monoRem: true, node: node});
+              out.push(node);
+            }
+          } else if (m[15] && ALLOW_BEFORE.test(before) && ! mono) {
             /* Emphasized text (again, only before has to be tested) */
-            var pref = $prefLength(m[11], '*');
-            var suff = $suffLength(m[11], '*');
+            var pref = $prefLength(m[15], '*');
+            var suff = $suffLength(m[15], '*');
             /* Sigils are in individual nodes so they can be selectively
              * disabled */
             for (var i = 0; i < pref; i++) {
@@ -605,27 +624,11 @@ window.Instant = function() {
               out.push({emphAdd: true, node: node});
             }
             /* Add actual text; which one does not matter */
-            out.push(m[12] || m[13] || m[14]);
+            out.push(m[16] || m[17] || m[18]);
             /* Same as above for trailing sigil */
             for (var i = 0; i < suff; i++) {
               var node = makeSigil('*', 'emph-after');
               out.push({emphRem: true, node: node});
-              out.push(node);
-            }
-          } else if (m[15] && ALLOW_BEFORE.test(before) && ! mono) {
-            /* Inline monospace */
-            /* Leading sigil */
-            if (m[16] != null || m[17] != null) {
-              var node = makeSigil('`', 'mono-before');
-              out.push(node);
-              out.push({monoAdd: true, node: node});
-            }
-            /* Embed actual text */
-            out.push(m[16] || m[17] || m[18]);
-            /* Trailing sigil */
-            if (m[16] != null || m[18] != null) {
-              var node = makeSigil('`', 'mono-after');
-              out.push({monoRem: true, node: node});
               out.push(node);
             }
           } else if (m[19]) {
