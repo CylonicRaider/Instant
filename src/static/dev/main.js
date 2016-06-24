@@ -2940,6 +2940,7 @@ function init() {
       nameNode.textContent = '&' + Instant.roomName;
     } else {
       nameNode.innerHTML = '<i>local</i>';
+      nameNode.title = 'No message you post here will leave your machine.';
       $sel('.online-status').style.background = '#c0c0c0';
       $sel('.online-status').title = 'Local';
       /* Nothing is going to hide it, so we have to. */
