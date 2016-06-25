@@ -224,7 +224,7 @@ this.Instant = function() {
       _message: function(event) {
         /* Implement debugging hook */
         if (window.logInstantMessages)
-          console.log('Received:', event, event.data);
+          console.debug('Received:', event, event.data);
         /* Raw message handler */
         if (Instant.connection.onRawMessage) {
           Instant.connection.onRawMessage(event);
