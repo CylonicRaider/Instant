@@ -46,7 +46,7 @@ public class Main implements Runnable {
             } catch (IOException exc) {}
         }
         FINE_VERSION = v;
-        VERSION_FILE = String.format("_instantVersion_ = " +
+        VERSION_FILE = String.format("this._instantVersion_ = " +
             "{version: \"%s\", revision: \"%s\"};\n",
             Util.escapeJSString(VERSION), Util.escapeJSString(FINE_VERSION));
     }

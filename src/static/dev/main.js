@@ -1,4 +1,7 @@
 
+/* Strict mode FTW! */
+'use strict';
+
 /* Utilities */
 function $id(id, elem) {
   return (elem || document).getElementById(id);
@@ -36,7 +39,7 @@ function $suffLength(text, char) {
 }
 
 /* Early preparation; define most of the functionality */
-window.Instant = function() {
+this.Instant = function() {
   /* Locale-agnostic abbreviated month name table */
   var MONTH_NAMES = { 1: 'Jan',  2: 'Feb',  3: 'Mar',  4: 'Apr',
                       5: 'May',  6: 'Jun',  7: 'Jul',  8: 'Aug',
@@ -570,7 +573,6 @@ window.Instant = function() {
           var before = (start == 0) ? '' : text.substr(start - 1, 1);
           /* Update last character */
           l = end;
-          console.log(m);
           /* Switch on match */
           if (m[1]) {
             /* Room link */
