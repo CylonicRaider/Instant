@@ -1854,75 +1854,6 @@ this.Instant = function() {
       }
     };
   }();
-  /* Window title and notification manipulation */
-  Instant.title = function() {
-    /* Unread messages and @-mentions (amongst the formers) of the current
-     * user */
-    var unreadMessages = 0, unreadMentions = 0;
-    /* Whether the window is currently blurred */
-    var blurred = false;
-    return {
-      /* Initialize the submodule */
-      init: function() {
-        window.addEventListener('blur', function() {
-          blurred = true;
-        });
-        window.addEventListener('focus', function() {
-          blurred = false;
-          Instant.title.clearUnread();
-        });
-        Instant.title._update();
-      },
-      /* Read the current window title */
-      _get: function() {
-        return document.title;
-      },
-      /* Set the window title to str */
-      _set: function(str) {
-        document.title = str;
-      },
-      /* Update the window title to accord to the internal counters */
-      _update: function() {
-        var ext = Instant.titleExtension;
-        if (unreadMessages) {
-          if (unreadMentions) {
-            ext = ' (' + unreadMessages + '!!)';
-          } else {
-            ext = ' (' + unreadMessages + ')';
-          }
-        }
-        Instant.title._set(Instant.baseTitle + ext);
-      },
-      /* Add the given amounts of messages and @-mentions of the current user
-       * (which should also be counted as messages) to the internal counters
-       * and update the window title to reflect that */
-      addUnread: function(messages, mentions) {
-        if (! blurred) return;
-        unreadMessages += messages;
-        unreadMentions += mentions;
-        Instant.title._update();
-      },
-      /* Clear the internal counters and update the window title to suit */
-      clearUnread: function() {
-        unreadMessages = 0;
-        unreadMentions = 0;
-        Instant.title._update();
-      },
-      /* Return the amount of unread messages */
-      getUnreadMessages: function() {
-        return unreadMessages;
-      },
-      /* Return the amount of unread @-mentions (as included in the unread
-       * message count) */
-      getUnreadMentions: function() {
-        return unreadMentions;
-      },
-      /* Return whether the window is blurred */
-      isBlurred: function() {
-        return blurred;
-      }
-    };
-  }();
   /* Logs! */
   Instant.logs = function() {
     /* Sorted key list */
@@ -2322,6 +2253,75 @@ this.Instant = function() {
           }
         };
       }()
+    };
+  }();
+  /* Window title and notification manipulation */
+  Instant.title = function() {
+    /* Unread messages and @-mentions (amongst the formers) of the current
+     * user */
+    var unreadMessages = 0, unreadMentions = 0;
+    /* Whether the window is currently blurred */
+    var blurred = false;
+    return {
+      /* Initialize the submodule */
+      init: function() {
+        window.addEventListener('blur', function() {
+          blurred = true;
+        });
+        window.addEventListener('focus', function() {
+          blurred = false;
+          Instant.title.clearUnread();
+        });
+        Instant.title._update();
+      },
+      /* Read the current window title */
+      _get: function() {
+        return document.title;
+      },
+      /* Set the window title to str */
+      _set: function(str) {
+        document.title = str;
+      },
+      /* Update the window title to accord to the internal counters */
+      _update: function() {
+        var ext = Instant.titleExtension;
+        if (unreadMessages) {
+          if (unreadMentions) {
+            ext = ' (' + unreadMessages + '!!)';
+          } else {
+            ext = ' (' + unreadMessages + ')';
+          }
+        }
+        Instant.title._set(Instant.baseTitle + ext);
+      },
+      /* Add the given amounts of messages and @-mentions of the current user
+       * (which should also be counted as messages) to the internal counters
+       * and update the window title to reflect that */
+      addUnread: function(messages, mentions) {
+        if (! blurred) return;
+        unreadMessages += messages;
+        unreadMentions += mentions;
+        Instant.title._update();
+      },
+      /* Clear the internal counters and update the window title to suit */
+      clearUnread: function() {
+        unreadMessages = 0;
+        unreadMentions = 0;
+        Instant.title._update();
+      },
+      /* Return the amount of unread messages */
+      getUnreadMessages: function() {
+        return unreadMessages;
+      },
+      /* Return the amount of unread @-mentions (as included in the unread
+       * message count) */
+      getUnreadMentions: function() {
+        return unreadMentions;
+      },
+      /* Return whether the window is blurred */
+      isBlurred: function() {
+        return blurred;
+      }
     };
   }();
   /* Special effects */
