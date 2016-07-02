@@ -6,6 +6,10 @@ body {
   background: black;
 }
 
+:focus {
+  outline-color: white;
+}
+
 a {
   color: #0080ff;
 }
@@ -13,12 +17,8 @@ a:visited {
   color: #c000c0;
 }
 
-.breadcrumbs.standalone {
+#load-wrapper, .breadcrumbs.standalone {
   color: white;
-  background: black;
-}
-
-#load-wrapper {
   background: black;
 }
 
@@ -36,6 +36,10 @@ a.logo-small {
   color: white;
 }
 
+.throbber {
+  -webkit-filter: invert(1);
+  filter: invert(1);
+}
 .room-name, a.room-name {
   color: white;
 }
@@ -47,39 +51,41 @@ a.logo-small {
   color: white;
   background: black;
 }
+.update-message a {
+  color: #008000 !important;
+}
 
 .nick, .message.emote > .line .content {
+  /* NOTE: Transitioning back bugs out for this rule in Firefox, but the
+   *       browser corrects itself after the transition. */
   color: black;
 }
 .message.ping > .line {
   color: black;
 }
-.message.ping > .line .time-wrapper time {
+.message.ping > .line time a {
   color: white;
+}
+.message > .line .monospace {
+  background: #404040;
 }
 
 .sidebar > * {
   background: rgba(0, 0, 0, 0.5);
 }
 
-.user-list .nick-wrapper:not(.active) .nick {
-  color: #808080;
-}
-
-.input-bar, .input-bar .input-message-cell .input-message {
+.input-bar, .input-bar .input-message-cell .input-message,
+.input-bar .input-message-cell .input-nick-prompt {
   color: white;
   background: black;
 }
 
-.input-bar .input-info-cell .wrapper,
+.input-bar .input-info-cell .alert-container,
 .input-bar .input-message-cell .input-nick-prompt img {
   filter: invert(1);
   -webkit-filter: invert(1);
 }
 
-#main > * {
-  transition: color 0.5s, background 0.5s, opacity 0.5s;
-}
 #main.very-dark > * {
   opacity: 0.5;
 }

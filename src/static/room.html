@@ -4,10 +4,13 @@
     <meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1"/>
     <title>Instant</title>
+    <script type="application/javascript" src="/static/version.js"
+      async="async"></script>
     <script type="application/javascript" src="/static/main.js"
       async="async"></script>
     <link rel="stylesheet" type="text/css" href="/static/base.css"></style>
-    <link rel="stylesheet" type="text/css" href="/static/room.css"></style>
+    <link rel="stylesheet" type="text/css"
+      href="/static/room.css"></style>
     <link rel="alternate stylesheet" type="text/css"
       href="/static/room-dark.css" title="Dark" id="dark-style"></style>
     <link rel="shortcut icon" id="favicon" type="image/png"
@@ -15,13 +18,17 @@
   </head>
   <body onLoad="init()">
     <div id="main" class="main-pane">
-      <div class="message-pane-wrapper">
-        <div class="message-pane message-box">
+      <div class="message-pane">
+        <div class="message-box">
           <div class="input-bar">
             <span class="input-info-cell">
-              <span class="wrapper">
-                <img class="above-alert" src="/static/arrow-up.svg"/><img
-                  class="turn below-alert" src="/static/arrow-up.svg"/>
+              <span class="alert-container">
+                <a href="#" class="offscreen-alert alert-above">
+                  <img src="/static/arrow-up.svg"/>
+                </a>
+                <a href="#" class="offscreen-alert alert-below">
+                  <img class="turn" src="/static/arrow-up.svg"/>
+                </a>
               </span>
             </span>
             <span class="input-nick-cell">
@@ -39,6 +46,7 @@
       </div>
       <div class="sidebar">
         <div class="sidebar-top">
+          <img class="throbber" src="/static/throbber.svg"/>
           <div class="breadcrumbs collapse"><a href="/" target="_blank"
             class="collapse-show logo-small"><img class="collapse-show"
             src="/static/logo-static.svg"/><strong>Instant</strong></a
@@ -47,41 +55,36 @@
           <a href="" class="room-name">...</a>
           <span class="online-status" title="..."></span>
           <div class="settings-wrapper"><button class="settings"><img
-            src="/static/gear.svg"/></button><div class="settings-content">
-              <div>
+            src="/static/gear.svg"/></button><form class="settings-content">
+              <div class="settings-theme">
                 <p><em>Theme:</em></p>
-                <label class="indent"><input type="radio" name="theme"
-                  id="theme-bright" onClick="toggleTheme();"
+                <label><input type="radio" name="theme" value="bright"
                   checked="checked"/> Bright</label>
-                <label class="indent"><input type="radio" name="theme"
-                  id="theme-dark" onClick="toggleTheme();"
-                  /> Dark</label>
-                <label class="indent"><input type="radio" name="theme"
-                  id="theme-verydark" onClick="toggleTheme();"
-                  /> Very dark</label>
+                <label><input type="radio" name="theme" value="dark"/>
+                  Dark</label>
+                <label><input type="radio" name="theme" value="verydark"/>
+                  Very dark</label>
               </div>
-              <div>
+              <hr/>
+              <div class="settings-notifications">
                 <p><em>Notifications:</em></p>
-                <label class="indent"><input type="radio" name="notifies"
-                  id="notifies-none" onClick="updateNotifications();"
+                <label><input type="radio" name="notifies" value="none"
                   checked="checked"/> None</label>
-                <label class="indent"><input type="radio" name="notifies"
-                  id="notifies-ping" onClick="updateNotifications();"
-                  /> When pinged</label>
-                <label class="indent"><input type="radio" name="notifies"
-                  id="notifies-reply" onClick="updateNotifications();"
-                  /> When replied</label>
-                <label class="indent"><input type="radio" name="notifies"
-                  id="notifies-any" onClick="updateNotifications();"
-                  /> On activity</label>
+                <label><input type="radio" name="notifies" value="ping"/>
+                  When pinged</label>
+                <label><input type="radio" name="notifies" value="reply"/>
+                  When replied</label>
+                <label><input type="radio" name="notifies" value="any"/>
+                  On activity</label>
               </div>
-            </div></div>
+            </form></div>
         </div>
-        <div class="user-list-wrapper">
-          <div class="user-list-inner-wrapper">
-            <div class="user-list"></div>
-          </div>
-        </div>
+        <div class="ui-message update-message"><a href=""
+          onClick="location.reload(true)">Update available; click to
+          reload</a></div>
+        <div class="ui-message refresh-message">Your page is outdated;<br/>
+          please refresh it manually</div>
+        <div class="user-list-wrapper"><div class="user-list"></div></div>
       </div>
     </div>
     <div id="load-wrapper">
@@ -100,7 +103,7 @@
           <![endif]-->
         </div>
         <noscript>
-          <div class="note"><span>NOTE:</span>
+          <div class="note"><strong>NOTE:</strong>
             <span>You've got JS disabled, right?</span>
           </div>
         </noscript>
