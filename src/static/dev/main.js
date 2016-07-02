@@ -302,7 +302,9 @@ this.Instant = function() {
                   /* Check whether the message is offscreen */
                   Instant.animation.offscreen.check(msg);
                   /* Update window title */
+                  var par = Instant.message.getCommentParent(msg);
                   Instant.title.addUnread(1,
+                    (par && par.classList.contains('mine')) ? 1 : 0,
                     (msg.classList.contains('ping')) ? 1 : 0);
                   /* Possibly show a notification */
                   if (Instant.notifications.check(msg) &&
@@ -2257,9 +2259,9 @@ this.Instant = function() {
   }();
   /* Window title and notification manipulation */
   Instant.title = function() {
-    /* Unread messages and @-mentions (amongst the formers) of the current
-     * user */
-    var unreadMessages = 0, unreadMentions = 0;
+    /* Unread messages, replies (amongst the formers) to the current user,
+     * @-mentions (amongst the formers) of the current user */
+    var unreadMessages = 0, unreadReplies = 0, unreadMentions = 0;
     /* Whether the window is currently blurred */
     var blurred = false;
     return {
@@ -2294,12 +2296,12 @@ this.Instant = function() {
         }
         Instant.title._set(Instant.baseTitle + ext);
       },
-      /* Add the given amounts of messages and @-mentions of the current user
-       * (which should also be counted as messages) to the internal counters
-       * and update the window title to reflect that */
-      addUnread: function(messages, mentions) {
+      /* Add the given amounts of messages, replies, and pings to the
+       * internal counters and update the window title */
+      addUnread: function(messages, replies, mentions) {
         if (! blurred) return;
         unreadMessages += messages;
+        unreadReplies += replies;
         unreadMentions += mentions;
         Instant.title._update();
         Instant.title.favicon._update();
@@ -2307,6 +2309,7 @@ this.Instant = function() {
       /* Clear the internal counters and update the window title to suit */
       clearUnread: function() {
         unreadMessages = 0;
+        unreadReplies = 0;
         unreadMentions = 0;
         Instant.title._update();
         Instant.title.favicon._update();
@@ -2314,6 +2317,11 @@ this.Instant = function() {
       /* Return the amount of unread messages */
       getUnreadMessages: function() {
         return unreadMessages;
+      },
+      /* Return the amount of unread replies (as included in the unread
+       * message count) */
+      getUnreadReplies: function() {
+        return unreadReplies;
       },
       /* Return the amount of unread @-mentions (as included in the unread
        * message count) */
@@ -2372,10 +2380,14 @@ this.Instant = function() {
             }
             /* Value to set favicon to */
             var url;
-            /* @-mentions get a yellow dot */
             if (unreadMentions) {
+              /* @-mentions get a yellow dot */
               url = makeDot('#c0c000');
+            } else if (unreadReplies) {
+              /* Replies get a blue dot */
+              url = makeDot('#0040ff');
             } else if (unreadMessages) {
+              /* Messages get a green dot */
               url = makeDot('#008000');
             } else {
               url = baseImg.src;
