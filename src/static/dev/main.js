@@ -2302,12 +2302,14 @@ this.Instant = function() {
         unreadMessages += messages;
         unreadMentions += mentions;
         Instant.title._update();
+        Instant.title.favicon._update();
       },
       /* Clear the internal counters and update the window title to suit */
       clearUnread: function() {
         unreadMessages = 0;
         unreadMentions = 0;
         Instant.title._update();
+        Instant.title.favicon._update();
       },
       /* Return the amount of unread messages */
       getUnreadMessages: function() {
@@ -2321,7 +2323,79 @@ this.Instant = function() {
       /* Return whether the window is blurred */
       isBlurred: function() {
         return blurred;
-      }
+      },
+      /* Favicon management */
+      favicon: function() {
+        /* The base image */
+        var baseImg = null;
+        /* The canvas for painting on */
+        var canvas = null;
+        return {
+          /* Initialize submodule */
+          init: function() {
+            /* Try to fetch from <link>, use fallback otherwise */
+            var link = $sel('link[rel~=icon]');
+            var iconURL = (link && link.href) || '/favicon.ico';
+            baseImg = new Image();
+            baseImg.src = iconURL;
+            /* Update when loaded, and also right now (if it loads
+             * instantly) */
+            baseImg.addEventListener('load', function() {
+              Instant.title.favicon._update();
+            });
+            Instant.title.favicon._update();
+          },
+          /* Update the favicon to match the current unread message
+           * status */
+          _update: function() {
+            function makeDot(color) {
+              var stroke = canvas.width / 32;
+              var radius = canvas.width / 4;
+              var ctx = canvas.getContext('2d');
+              ctx.drawImage(baseImg, 0, 0);
+              ctx.beginPath();
+              ctx.arc(canvas.width - radius, radius, radius - stroke / 2,
+                      0, 2 * Math.PI, true);
+              ctx.fillStyle = color;
+              ctx.fill();
+              ctx.lineWidth = stroke;
+              ctx.stroke();
+              return canvas.toDataURL('image/png');
+            }
+            /* Skip if base image not loaded */
+            if (! baseImg || ! baseImg.complete) return;
+            /* Initialize canvas */
+            if (! canvas) {
+              canvas = document.createElement('canvas');
+              canvas.width = baseImg.naturalWidth;
+              canvas.height = baseImg.naturalHeight;
+            }
+            /* Value to set favicon to */
+            var url;
+            /* @-mentions get a yellow dot */
+            if (unreadMentions) {
+              url = makeDot('#c0c000');
+            } else if (unreadMessages) {
+              url = makeDot('#008000');
+            } else {
+              url = baseImg.src;
+            }
+            /* Push it out */
+            Instant.title.favicon._set(url);
+          },
+          /* Set the favicon to whatever the given URL (which may be
+           * a data URI) points at */
+          _set: function(url) {
+            var link = $sel('link[rel~=icon]');
+            if (! link) {
+              link = document.createElement('link');
+              link.rel = 'icon';
+              document.head.appendChild(link);
+            }
+            link.href = url;
+          }
+        };
+      }()
     };
   }();
   /* Special effects */
@@ -2902,6 +2976,7 @@ this.Instant = function() {
     Instant.input.init($sel('.input-bar', main));
     Instant.userList.init($sel('.user-list', main));
     Instant.title.init();
+    Instant.title.favicon.init();
     Instant.logs.pull.init($sel('.message-box', main));
     Instant.animation.init($sel('.message-box', main));
     Instant.animation.greeter.init(loadWrapper);
