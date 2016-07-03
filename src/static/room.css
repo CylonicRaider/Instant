@@ -150,6 +150,10 @@ body {
 .message > .replies:empty {
   display: none;
 }
+.message.input-host > .replies {
+  /* Override inline style set by JS */
+  border-left-color: #808080 !important;
+}
 
 .message + .message {
   margin-top: 2px;

@@ -1500,9 +1500,15 @@ this.Instant = function() {
       },
       /* Move the input bar into the given message/container */
       jumpTo: function(parent) {
+        /* Remove marker class from old parent */
+        var oldParent = Instant.message.getParentMessage(inputNode);
+        if (oldParent) oldParent.classList.remove('input-host');
         /* Handle message parents */
-        if (Instant.message.isMessage(parent))
+        if (Instant.message.isMessage(parent)) {
+          /* Add marker class to current parent */
+          parent.classList.add('input-host');
           parent = Instant.message.makeReplies(parent);
+        }
         /* Actually relocate the input */
         parent.appendChild(inputNode);
       },
