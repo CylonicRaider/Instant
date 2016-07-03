@@ -14,6 +14,14 @@ make something like that himself.
 If you just want to chat, there is an instance — *the* instance — running at
 [instant.leet.nu](https://instant.leet.nu).
 
+To post a message, type it and `Return`; multi-line messages can be assembled
+using `Shift-Return`. You can navigate amongst other messages by using the
+arrow keys, or click messages to reply to them (more) quickly. Clicking the
+gear icon on the top-right reveals a few settings.
+
+On mobile, if a UI item is too small to reach, you can freely zoom in to do
+so.
+
 ### Running an own clone
 
 Refer to [`README.running.md`](README.running.md) for an extensive guide on
