@@ -2294,6 +2294,8 @@ this.Instant = function() {
         if (unreadMessages) {
           if (unreadMentions) {
             ext = ' (' + unreadMessages + '!!)';
+          } else if (updateAvailable) {
+            ext = ' (' + unreadMessages + ' !)';
           } else {
             ext = ' (' + unreadMessages + ')';
           }
