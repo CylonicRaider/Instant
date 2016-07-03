@@ -364,6 +364,16 @@ body {
   display: none;
 }
 
+#notifies-ping {
+  color: #808000;
+}
+#notifies-reply {
+  color: #0060c0;
+}
+#notifies-any {
+  color: #008000;
+}
+
 .input-bar {
   display: -webkit-flex;
   display: flex;
