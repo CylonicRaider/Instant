@@ -2418,8 +2418,11 @@ this.Instant = function() {
       /* Initialize the submodule */
       init: function(node) {
         function updateHash(event) {
-          if (Instant.message.checkFragment(location.hash))
+          if (/^#?$/.test(location.hash)) {
+            Instant.input.navigate('root');
+          } else if (Instant.message.checkFragment(location.hash)) {
             Instant.animation.navigateToMessage(location.hash);
+          }
         }
         messageBox = node;
         var pane = Instant.pane.getPane(messageBox);
