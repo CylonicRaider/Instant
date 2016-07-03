@@ -251,6 +251,8 @@ this.Instant = function() {
             break;
           case 'identity': /* Own (and server's) identity */
             Instant.identity.initFields(msg.data);
+            /* Say hello */
+            Instant.identity.sendNick();
             /* Reset user list */
             Instant.userList.clear();
             Instant.connection.sendBroadcast({type: 'who'});
@@ -1325,8 +1327,9 @@ this.Instant = function() {
             sizerNick.style.minWidth = '1em';
           }
         }
-        function refreshNick() {
-          if (Instant.identity.nick == inputNick.value) return;
+        function refreshNick(force) {
+          if (Instant.identity.nick == inputNick.value && ! force)
+            return;
           Instant.identity.nick = inputNick.value;
           Instant.identity.sendNick();
         }
@@ -1493,7 +1496,7 @@ this.Instant = function() {
         var nick = Instant.storage.get('nickname');
         if (typeof nick == 'string') {
           inputNick.value = nick;
-          refreshNick();
+          refreshNick(true);
         }
         updateNick();
         /* Focus the nick input */
