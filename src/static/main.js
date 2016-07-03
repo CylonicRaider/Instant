@@ -3,6 +3,10 @@
 'use strict';
 
 /* Utilities */
+function $hypot(dx, dy) {
+  return Math.sqrt(dx * dx + dy * dy);
+}
+
 function $id(id, elem) {
   return (elem || document).getElementById(id);
 }
@@ -533,6 +537,8 @@ this.Instant = function() {
       ';)': '#c0c000', '^^': '#c0c000',
       ':\\': '#c0c000', '\\:': '#c0c000', '\\o/': '#c0c000'
     };
+    /* Pixel distance that differentiates a click from a drag */
+    var DRAG_THRESHOLD = 4;
     return {
       /* Detect links, emphasis, and smileys out of a flat string and render
        * those into a DOM node */
@@ -763,12 +769,25 @@ this.Instant = function() {
          *      it will be blurred instead on tapping a message to free more
          *      space for navigation. Blame me. */
         var clickWasTouch = false;
+        /* For checking whether it was a click or a drag */
+        var clickPos = null;
         /* Touching a message sets the aforementioned flag */
         $sel('.line', msgNode).addEventListener('touchstart', function(evt) {
           clickWasTouch = true;
         });
+        /* Pressing a mouse button activates clicking mode */
+        $sel('.line', msgNode).addEventListener('mousedown', function(evt) {
+          if (evt.button != 0) return;
+          clickPos = [evt.clientX, evt.clientY];
+        });
         /* Clicking to a messages moves to it */
         $sel('.line', msgNode).addEventListener('click', function(evt) {
+          /* Filter out mouse drags */
+          if (clickPos && $hypot(evt.clientX - clickPos[0],
+                                 evt.clientY - clickPos[1]) >= DRAG_THRESHOLD)
+            return;
+          clickPos = null;
+          /* Navigate to message */
           Instant.input.moveTo(msgNode);
           if (clickWasTouch) {
             clickWasTouch = false;
@@ -2670,7 +2689,7 @@ this.Instant = function() {
           /* Check if a message is offscreen or not */
           check: function(msg) {
             if (Instant.title.isBlurred() ||
-                ! Instant.message.isVisible(msg)) {
+                ! Instant.pane.isVisible(msg)) {
               Instant.animation.offscreen.set(msg);
             } else {
               Instant.animation.offscreen.clear(msg);
