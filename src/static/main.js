@@ -2411,8 +2411,8 @@ this.Instant = function() {
             if (updateAvailable) {
               /* Updates are considered more grave than messages; the user
                * would typically have a look at the page after it anyway.
-               * They are hence prioritized and get a red dot. */
-              url = makeDot('#c00000');
+               * They are hence prioritized and get a green dot. */
+              url = makeDot('#008000');
             } else if (unreadMentions) {
               /* @-mentions get a yellow dot */
               url = makeDot('#c0c000');
@@ -2420,8 +2420,9 @@ this.Instant = function() {
               /* Replies get a blue dot */
               url = makeDot('#0040ff');
             } else if (unreadMessages) {
-              /* Messages get a green dot */
-              url = makeDot('#008000');
+              /* Messages get a gray dot (to be consistent with the
+               * new message highlights) */
+              url = makeDot('#c0c0c0');
             } else {
               url = baseImg.src;
             }
