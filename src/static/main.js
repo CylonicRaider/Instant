@@ -2293,6 +2293,7 @@ this.Instant = function() {
         window.addEventListener('focus', function() {
           blurred = false;
           Instant.title.clearUnread();
+          Instant.animation.offscreen.checkAll();
         });
         Instant.title._update();
       },
@@ -2471,12 +2472,7 @@ this.Instant = function() {
         /* Pull more logs when scrolled to top */
         pane.addEventListener('scroll', function(event) {
           if (pane.scrollTop == 0) Instant.logs.pull.more();
-          if (Instant.animation.offscreen.getUnreadAbove() ||
-              Instant.animation.offscreen.getUnreadBelow()) {
-            Instant.pane.getVisible(messageBox).forEach(function(msg) {
-              Instant.animation.offscreen.clear(msg);
-            });
-          }
+          Instant.animation.offscreen.checkAll();
         });
         window.addEventListener('hashchange', updateHash);
         updateHash();
@@ -2673,11 +2669,21 @@ this.Instant = function() {
           },
           /* Check if a message is offscreen or not */
           check: function(msg) {
-            if (Instant.pane.isVisible(msg)) {
-              Instant.animation.offscreen.clear(msg);
-            } else {
+            if (Instant.title.isBlurred() ||
+                ! Instant.message.isVisible(msg)) {
               Instant.animation.offscreen.set(msg);
+            } else {
+              Instant.animation.offscreen.clear(msg);
             }
+          },
+          /* Clear the offscreen status for all visible messages */
+          checkAll: function(msg) {
+            if (Instant.title.isBlurred()) return;
+            if (! Instant.animation.offscreen.getUnreadAbove() &&
+                ! Instant.animation.offscreen.getUnreadBelow()) return;
+            Instant.pane.getVisible(messageBox).forEach(function(msg) {
+              Instant.animation.offscreen.clear(msg);
+            })
           },
           /* Mark the message as offscreen */
           set: function(msg) {
