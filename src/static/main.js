@@ -1312,10 +1312,19 @@ this.Instant = function() {
           Instant.identity.sendNick();
         }
         function updateMessage() {
-          var restore = Instant.input.saveScrollState();
-          inputMsg.style.height = '0';
-          inputMsg.style.height = inputMsg.scrollHeight + 'px';
+          sizerMsg.value = inputMsg.value;
           promptNick.style.display = 'none';
+          /* Using a separate node for measurement drastically reduces
+           * reflow load by having a single out-of-document-flow reflow
+           * only in the best case.
+           * The old approach of setting the height to 0 (to prevent
+           * it from keeping the input box "inflated") and then to
+           * the scrollHeight caused two whole-page reflows, which
+           * affected performance rather badly. */
+          if (sizerMsg.scrollHeight + 'px' == inputMsg.style.height)
+            return;
+          var restore = Instant.input.saveScrollState();
+          inputMsg.style.height = sizerMsg.scrollHeight + 'px';
           restore();
         }
         function updateFocus(event) {
@@ -1328,6 +1337,7 @@ this.Instant = function() {
         var inputNick = $sel('.input-nick', inputNode);
         var sizerNick = $sel('.input-nick-sizer', inputNode);
         var promptNick = $sel('.input-nick-prompt', inputNode);
+        var sizerMsg = $sel('.input-message-sizer', inputNode);
         var inputMsg = $sel('.input-message', inputNode);
         /* Update nick background */
         inputNick.addEventListener('input', updateNick);

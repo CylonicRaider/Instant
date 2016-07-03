@@ -419,7 +419,7 @@ body {
   height: 100%;
 }
 .input-bar .input-nick-sizer, .input-bar .input-nick,
-.input-bar .input-message {
+.input-bar .input-message, .input-bar .input-message-sizer {
   display: block;
   margin: 0;
   border: 0;
@@ -462,13 +462,18 @@ body {
   height: 100%;
   vertical-align: bottom;
 }
-.input-bar .input-message-cell .input-message {
+.input-bar .input-message-cell .input-message,
+.input-bar .input-message-cell .input-message-sizer {
   width: 100%;
-  height: 1.2em;
   color: black;
   background: transparent;
   overflow: hidden;
   resize: none;
+}
+.input-bar .input-message-cell .input-message-sizer {
+  position: absolute;
+  top: 1px;
+  visibility: hidden;
 }
 
 .input-bar input, .input-bar textarea {
