@@ -2420,6 +2420,8 @@ this.Instant = function() {
         function updateHash(event) {
           if (/^#?$/.test(location.hash)) {
             Instant.input.navigate('root');
+            Instant.input.focus();
+            Instant.pane.scrollIntoView(Instant.input.getNode());
           } else if (Instant.message.checkFragment(location.hash)) {
             Instant.animation.navigateToMessage(location.hash);
           }
