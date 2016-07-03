@@ -9,6 +9,7 @@ import net.instant.Main;
 import net.instant.proto.Message;
 import net.instant.proto.MessageDistributor;
 import net.instant.proto.ProtocolError;
+import net.instant.util.Util;
 import org.java_websocket.WebSocket;
 import org.java_websocket.framing.CloseFrame;
 import org.java_websocket.handshake.ClientHandshake;
@@ -90,7 +91,9 @@ public class RoomWebSocketHook extends WebSocketHook {
                 target = null;
             }
             if (target == null) {
-                sendError(conn, ProtocolError.NO_SUCH_PARTICIPANT);
+                sendMessage(conn,
+                    initError(ProtocolError.NO_SUCH_PARTICIPANT,
+                              Util.createJSONObject("id", to)).seq(seq));
                 return;
             }
             Message msg = prepare("unicast");
@@ -117,16 +120,35 @@ public class RoomWebSocketHook extends WebSocketHook {
         room.broadcast(prepare("left").makeData("id", id));
     }
 
-    public void sendError(WebSocket conn, ProtocolError err) {
-        sendError(conn, err.getCode(), err.getMessage());
-    }
-    public void sendError(WebSocket conn, int code, String message) {
-        conn.send(new Message("error").makeData("code", code,
-            "message", message).makeString());
-    }
-
     public Message prepare(String type) {
         return new Message(type).id(distr.makeID());
+    }
+
+    public static void sendError(WebSocket conn, ProtocolError err) {
+        sendMessage(conn, initError(err));
+    }
+    public static void sendError(WebSocket conn, int code, String message) {
+        sendMessage(conn, initError(code, message));
+    }
+
+    public static Message initError(int code, String message,
+                                    Object detail) {
+        return new Message("error").makeData("code", code,
+            "message", message, "detail", detail);
+    }
+    public static Message initError(int code, String message) {
+        return new Message("error").makeData("code", code,
+            "message", message);
+    }
+    public static Message initError(ProtocolError err, Object detail) {
+        return initError(err.getCode(), err.getMessage(), detail);
+    }
+    public static Message initError(ProtocolError err) {
+        return initError(err.getCode(), err.getMessage());
+    }
+
+    public static void sendMessage(WebSocket conn, Message msg) {
+        conn.send(msg.makeString());
     }
 
 }
