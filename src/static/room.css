@@ -342,6 +342,7 @@ body {
   padding-left: 0;
   max-height: 75vh;
   overflow: auto;
+  background: none;
 }
 .user-list {
   display: -webkit-flex;
@@ -360,6 +361,7 @@ body {
 .user-list .nick {
   margin-bottom: 2px;
   color: black;
+  box-shadow: 0 0 5px #ffffff;
 }
 .user-list .nick:last-child {
   margin-bottom: 0;
