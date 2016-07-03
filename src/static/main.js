@@ -121,10 +121,12 @@ this.Instant = function() {
              Instant.identity.serverRevision != data.revision) &&
             updateNode) {
           updateNode.classList.add('visible');
+          Instant.title.setUpdateAvailable(true);
         } else if (window._instantVersion_ &&
             (_instantVersion_.version != data.version ||
              _instantVersion_.revision != data.revision)) {
           refreshNode.classList.add('visible');
+          Instant.title.setUpdateAvailable(true);
         }
         Instant.identity.id = data.id;
         Instant.identity.serverVersion = data.version;
@@ -2262,6 +2264,8 @@ this.Instant = function() {
     /* Unread messages, replies (amongst the formers) to the current user,
      * @-mentions (amongst the formers) of the current user */
     var unreadMessages = 0, unreadReplies = 0, unreadMentions = 0;
+    /* Whether an update is available */
+    var updateAvailable = false;
     /* Whether the window is currently blurred */
     var blurred = false;
     return {
@@ -2293,6 +2297,8 @@ this.Instant = function() {
           } else {
             ext = ' (' + unreadMessages + ')';
           }
+        } else if (updateAvailable) {
+          ext = ' (!)';
         }
         Instant.title._set(Instant.baseTitle + ext);
       },
@@ -2314,6 +2320,12 @@ this.Instant = function() {
         Instant.title._update();
         Instant.title.favicon._update();
       },
+      /* Set the update available status */
+      setUpdateAvailable: function(available) {
+        updateAvailable = available;
+        Instant.title._update();
+        Instant.title.favicon._update();
+      },
       /* Return the amount of unread messages */
       getUnreadMessages: function() {
         return unreadMessages;
@@ -2327,6 +2339,10 @@ this.Instant = function() {
        * message count) */
       getUnreadMentions: function() {
         return unreadMentions;
+      },
+      /* Return the value of the "update available" flag */
+      getUpdateAvailable: function() {
+        return updateAvailable;
       },
       /* Return whether the window is blurred */
       isBlurred: function() {
@@ -2380,7 +2396,12 @@ this.Instant = function() {
             }
             /* Value to set favicon to */
             var url;
-            if (unreadMentions) {
+            if (updateAvailable) {
+              /* Updates are considered more grave than messages; the user
+               * would typically have a look at the page after it anyway.
+               * They are hence prioritized and get a red dot. */
+              url = makeDot('#c00000');
+            } else if (unreadMentions) {
               /* @-mentions get a yellow dot */
               url = makeDot('#c0c000');
             } else if (unreadReplies) {
