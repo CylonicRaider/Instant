@@ -1797,6 +1797,7 @@ this.Instant = function() {
           newNode = document.createElement('span');
           newNode.className = 'nick';
           newNode.setAttribute('data-id', id);
+          newNode.id = 'user-' + id;
         }
         /* Apply new parameters to node */
         var hue = Instant.nick.hueHash(name);
