@@ -86,6 +86,30 @@ tree to avoid polluting it.
 **TL;DR**: See above for running a stock backend if this is too messy for
 you.
 
+### Automated build environments
+
+To configure the automated build system _du jour_, consider the following
+points:
+
+- Source files are provided in the `src/net/instant/` subdirectory, with the
+  exception of `src/Main.java` (the latter can be safely skipped if you write
+  an own launcher, though).
+
+- Pre-compiled libraries (with custom modifications **(!)**) are stored in
+  the `src/org/` subdirectory.
+
+- Static files are located in the `src/pages/` and `src/static/`
+  subdirectories; the code expects them to be available as resources in the
+  `/pages` and `/static` packages.
+
+- The (default) main class is `Main` in the default package; it is a thin
+  wrapper around `net.instant.Main`.
+
+- The code expects (but does not depend on) the manifest variable
+  `X-Git-Commit` to store the Git commit of the current build, or some
+  alternative fine-grained version indicator. Additional semantics may be
+  defined in the future.
+
 ### HTTPS
 
 The backend supports plain HTTP exclusively; to provide HTTPS, you have to
@@ -103,7 +127,8 @@ a WebSocket client library (i.e.,
 requied.
 
 Scribe supports the following features, each controlled by a command-line
-option:
+option. Most of them require a single additional argument; refer to the
+`--help` message for (minimal) details.
 
 - `--maxlen` — *Maximum log chunk length*: As default (and as the
   browser-based client does), Scribe delivers the entirety of its log
