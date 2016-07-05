@@ -28,4 +28,6 @@ clean:
 	rm -f .build.jar Instant.jar Instant-run.jar
 
 run: Instant-run.jar
-	cd src && java -jar ../Instant-run.jar 8080
+	cd src && INSTANT_COOKIES_INSECURE=yes \
+	INSTANT_COOKIES_KEYFILE=../cookie-key.bin \
+	java -jar ../Instant-run.jar 8080

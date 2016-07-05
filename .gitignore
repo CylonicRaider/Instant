@@ -8,6 +8,7 @@
 # Intermediate build/run files
 /.build.jar
 /Instant-run.jar
+/cookie-key.bin
 
 # Other packages contain class files only
 /src/*.class

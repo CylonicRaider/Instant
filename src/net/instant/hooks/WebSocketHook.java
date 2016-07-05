@@ -46,7 +46,14 @@ public class WebSocketHook extends HookAdapter {
         info.setResponseInfo(response, (short) 101, "Switching Protocols",
                              -1);
         response.put("Content-Type", "application/x-websocket");
+        postProcessRequestInner(parent, info, request, response, eff_resp);
         parent.assign(info, this);
     }
+
+    protected void postProcessRequestInner(InstantWebSocketServer parent,
+                                           InformationCollector.Datum info,
+                                           ClientHandshake request,
+                                           ServerHandshakeBuilder response,
+                                           Handshakedata eff_resp) {}
 
 }

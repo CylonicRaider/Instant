@@ -1,15 +1,18 @@
 package net.instant;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
 import java.util.jar.Manifest;
 import net.instant.InstantWebSocketServer;
+import net.instant.hooks.CookieHandler;
 import net.instant.hooks.Error404Hook;
 import net.instant.hooks.RoomWebSocketHook;
 import net.instant.hooks.RedirectHook;
 import net.instant.hooks.StaticFileHook;
 import net.instant.proto.MessageDistributor;
+import net.instant.util.StringSigner;
 import net.instant.util.Util;
 import net.instant.util.fileprod.FileProducer;
 import net.instant.util.fileprod.FilesystemProducer;
@@ -19,7 +22,7 @@ import org.java_websocket.server.WebSocketServer;
 
 public class Main implements Runnable {
 
-    public static final String VERSION = "1.3.1";
+    public static final String VERSION = "1.3.2";
     public static final String ROOM_RE =
         "[a-zA-Z](?:[a-zA-Z0-9_-]*[a-zA-Z0-9])?";
     public static final String STAGING_RE = "[a-zA-Z0-9-]+";
@@ -106,7 +109,17 @@ public class Main implements Runnable {
     public void run() {
         parseArguments();
         distr = new MessageDistributor();
-        getServer().addHook(new RoomWebSocketHook(distr));
+        RoomWebSocketHook rws = new RoomWebSocketHook();
+        rws.setDistributor(distr);
+        String signaturePath = Util.getConfiguration(
+            "instant.cookies.keyfile");
+        StringSigner signer = null;
+        if (signaturePath != null)
+            signer = StringSigner.getInstance(new File(signaturePath));
+        if (signer == null)
+            signer = StringSigner.getInstance(Util.getRandomness(64));
+        rws.setCookieHandler(new CookieHandler(signer));
+        getServer().addHook(rws);
         getServer().addHook(new RedirectHook("/room/(" + ROOM_RE + ")",
             "/room/\\1/"));
         getServer().addHook(new RedirectHook("/(" + STAGING_RE + ")",

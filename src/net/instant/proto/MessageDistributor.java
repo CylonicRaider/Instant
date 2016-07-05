@@ -7,6 +7,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import net.instant.util.UniqueCounter;
 import org.java_websocket.WebSocket;
 
@@ -134,6 +135,9 @@ public class MessageDistributor {
 
     public String makeID() {
         return counter.getString();
+    }
+    public UUID makeUUID() {
+        return counter.getUUID();
     }
 
 }

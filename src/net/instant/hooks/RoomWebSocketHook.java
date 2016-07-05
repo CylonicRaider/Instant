@@ -1,7 +1,9 @@
 package net.instant.hooks;
 
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.List;
+import java.util.UUID;
 import java.util.regex.Pattern;
 import net.instant.InformationCollector;
 import net.instant.InstantWebSocketServer;
@@ -9,28 +11,33 @@ import net.instant.Main;
 import net.instant.proto.Message;
 import net.instant.proto.MessageDistributor;
 import net.instant.proto.ProtocolError;
+import net.instant.util.UniqueCounter;
 import net.instant.util.Util;
 import org.java_websocket.WebSocket;
 import org.java_websocket.framing.CloseFrame;
 import org.java_websocket.handshake.ClientHandshake;
 import org.java_websocket.handshake.Handshakedata;
 import org.java_websocket.handshake.ServerHandshakeBuilder;
-import org.json.JSONObject;
 import org.json.JSONException;
+import org.json.JSONObject;
 
 public class RoomWebSocketHook extends WebSocketHook {
 
     public static final String ROOM_PREF = "/room/";
     public static final String ROOM_POSTF = "/ws";
+    public static final String COOKIE_NAME = "uid";
+    public static final boolean INSECURE_COOKIES;
+
+    static {
+        INSECURE_COOKIES = (
+            Util.getConfiguration("instant.cookies.insecure") != null);
+    }
 
     private MessageDistributor distr;
+    private CookieHandler handler;
 
-    public RoomWebSocketHook(MessageDistributor d) {
-        distr = d;
-        whitelist(ROOM_PREF + Main.ROOM_RE + ROOM_POSTF);
-    }
     public RoomWebSocketHook() {
-        this(null);
+        whitelist(ROOM_PREF + Main.ROOM_RE + ROOM_POSTF);
     }
 
     public MessageDistributor getDistributor() {
@@ -38,6 +45,52 @@ public class RoomWebSocketHook extends WebSocketHook {
     }
     public void setDistributor(MessageDistributor md) {
         distr = md;
+    }
+
+    public CookieHandler getCookieHandler() {
+        return handler;
+    }
+    public void setCookieHandler(CookieHandler h) {
+        handler = h;
+    }
+
+    protected void postProcessRequestInner(InstantWebSocketServer parent,
+                                           InformationCollector.Datum info,
+                                           ClientHandshake request,
+                                           ServerHandshakeBuilder response,
+                                           Handshakedata eff_resp) {
+        if (handler == null) return;
+        List<CookieHandler.Cookie> l = handler.get(request);
+        CookieHandler.Cookie cookie = null;
+        for (CookieHandler.Cookie c : l) {
+            if (c.getName().equals(COOKIE_NAME)) {
+                cookie = c;
+                break;
+            }
+        }
+        JSONObject data;
+        if (cookie == null || cookie.getData() == null) {
+            cookie = handler.make(COOKIE_NAME, "");
+            data = new JSONObject();
+        } else {
+            data = cookie.getData();
+        }
+        UUID uuid;
+        try {
+            uuid = UUID.fromString(data.getString("uuid"));
+        } catch (Exception exc) {
+            uuid = distr.makeUUID();
+        }
+        info.getExtra().put("uuid", uuid);
+        data.put("uuid", uuid.toString());
+        cookie.setData(data);
+        cookie.put("Path", "/");
+        cookie.put("HttpOnly", null);
+        Calendar expiry = Calendar.getInstance();
+        expiry.add(Calendar.YEAR, 2);
+        cookie.put("Expires", Util.formatHttpTime(expiry));
+        if (! INSECURE_COOKIES) cookie.put("Secure", null);
+        handler.set(response, cookie);
     }
 
     public void onOpen(InformationCollector.Datum info,
@@ -50,12 +103,14 @@ public class RoomWebSocketHook extends WebSocketHook {
             return;
         String name = url.substring(ROOM_PREF.length(), cutoff);
         String id = distr.makeID();
+        UUID uuid = (UUID) info.getExtra().get("uuid");
         info.getExtra().put("id", id);
-        conn.send(new Message("identity").makeData("id", id,
+        conn.send(new Message("identity").makeData("id", id, "uuid", uuid,
             "version", Main.VERSION,
             "revision", Main.FINE_VERSION).makeString());
         distr.add(name, conn, id);
-        distr.get(conn).broadcast(prepare("joined").makeData("id", id));
+        distr.get(conn).broadcast(prepare("joined").makeData("id", id,
+            "uuid", uuid));
     }
 
     public void onMessage(WebSocket conn, String message) {
