@@ -105,6 +105,8 @@ this.Instant = function() {
     return {
       /* The session ID */
       id: null,
+      /* The user ID */
+      uuid: null,
       /* The (current) nickname */
       nick: null,
       /* Server version */
@@ -133,6 +135,7 @@ this.Instant = function() {
           Instant.title.setUpdateAvailable(true);
         }
         Instant.identity.id = data.id;
+        Instant.identity.uuid = data.uuid;
         Instant.identity.serverVersion = data.version;
         Instant.identity.serverRevision = data.revision;
       },
@@ -142,7 +145,7 @@ this.Instant = function() {
             Instant.identity.nick == null)
           return;
         Instant.connection.send(to, {type: 'nick',
-          nick: Instant.identity.nick});
+          nick: Instant.identity.nick, uuid: Instant.identity.uuid});
         Instant.storage.set('nickname', Instant.identity.nick);
       }
     };
@@ -264,7 +267,7 @@ this.Instant = function() {
             /* Nothing to do */
             break;
           case 'joined':
-            /* New user joined (might be ourself) -- Nothing to do */
+            /* New user joined (might be ourself) */
             Instant.userList.add(msg.data.id, "", msg.data.uuid);
             break;
           case 'left':
@@ -325,7 +328,7 @@ this.Instant = function() {
                 }
                 break;
               case 'nick': /* Someone informs us about their nick */
-                Instant.userList.add(msg.from, data.nick);
+                Instant.userList.add(msg.from, data.nick, data.uuid);
                 break;
               case 'who': /* Someone asks about others' nicks */
                 Instant.identity.sendNick(msg.from);
