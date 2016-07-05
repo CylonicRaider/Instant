@@ -265,6 +265,7 @@ this.Instant = function() {
             break;
           case 'joined':
             /* New user joined (might be ourself) -- Nothing to do */
+            Instant.userList.add(msg.data.id, "", msg.data.uuid);
             break;
           case 'left':
             /* User left */
@@ -1787,7 +1788,7 @@ this.Instant = function() {
         return nicks[id] || null;
       },
       /* Add or update the entry for id */
-      add: function(id, name) {
+      add: function(id, name, uuid) {
         /* Create a new node if necessary */
         var newNode = nicks[id];
         if (newNode) {
@@ -1801,6 +1802,7 @@ this.Instant = function() {
         }
         /* Apply new parameters to node */
         var hue = Instant.nick.hueHash(name);
+        if (uuid) newNode.setAttribute('data-uuid', uuid);
         newNode.setAttribute('data-last-active', Date.now());
         newNode.setAttribute('data-nick', name);
         newNode.textContent = name;
