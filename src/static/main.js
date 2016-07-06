@@ -2917,8 +2917,14 @@ this.Instant = function() {
       show: function(msg) {
         /* Do not show two notifications at once */
         if (current) return;
-        var body = ('[' + $sel('.nick', msg).textContent + '] ' +
-          $sel('.content', msg).textContent);
+        var body;
+        if (msg.classList.contains('emote')) {
+          body = ('[' + $sel('.nick', msg).textContent + '] ' +
+            $sel('.content', msg).textContent);
+        } else {
+          body = ('* ' + $sel('.nick', msg).textContent + ' ' +
+            $sel('.content', msg).textContent);
+        }
         Instant.notifications._show('Instant', body, {
           oncreate: function(notify) {
             /* Set current notification */
