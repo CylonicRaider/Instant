@@ -16,7 +16,7 @@ except ImportError:
     from Queue import Queue, Empty as QueueEmpty
 
 NICKNAME = 'Scribe'
-VERSION = 'v1.3.1'
+VERSION = 'v1.3.2'
 MAXLEN = None
 DONTSTAY = False
 DONTPULL = False
@@ -75,6 +75,17 @@ class LogDB:
         return bool(self.extend((entry,)))
     def extend(self, entries):
         raise NotImplementedError
+    def append_uuid(self, uid, uuid):
+        raise NotImplementedError
+    def extend_uuid(self, mapping):
+        ret = []
+        for k, v in mapping.items():
+            if self.append_uuid(k, v): ret.append(k)
+        return ret
+    def get_uuid(self, uid):
+        raise NotImplementedError
+    def query_uuid(self, ids=None):
+        raise NotImplementedError
     def close(self):
         pass
 
@@ -95,6 +106,8 @@ class LogDBList(LogDB):
     def __init__(self):
         LogDB.__init__(self)
         self.data = []
+        self.uuids = {}
+        self._uuid_list = []
     def bounds(self):
         if not self.data:
             return (None, None, None)
@@ -131,6 +144,27 @@ class LogDBList(LogDB):
         return ret
     def extend(self, entries):
         return self.merge_logs(self.data, entries, self.maxlen)
+    def append_uuid(self, uid, uuid):
+        ret = (uid not in self.uuids)
+        self.uuids[uid] = uuid
+        self._uuid_list.append(uid)
+        if self.maxlen is not None and len(self._uuid_list) > self.maxlen:
+            c = len(self._uuid_list) - self.maxlen
+            for u in self._uuid_list[:c]:
+                del self.uuids[u]
+            self._uuid_list = self._uuid_list[c:]
+        return ret
+    def get_uuid(self, uid):
+        return self.uuids[uid]
+    def query_uuid(self, ids=None):
+        if not ids: return self.uuids
+        ret = {}
+        for u in ids:
+            try:
+                ret[u] = self.uuids[u]
+            except KeyError:
+                pass
+        return ret
 
 class LogDBSQLite(LogDB):
     @staticmethod
@@ -149,12 +183,18 @@ class LogDBSQLite(LogDB):
         self.cursor = self.conn.cursor()
         self.init()
     def init(self):
+        # The REFERENCES is not enforced to allow "stray" messages to
+        # be preserved.
         self.cursor.execute('CREATE TABLE IF NOT EXISTS logs ('
                                 'msgid INTEGER PRIMARY KEY,'
                                 'parent INTEGER,' # REFERENCES msgid
                                 'sender INTEGER,'
                                 'nick TEXT,'
                                 'text TEXT'
+                            ')')
+        self.cursor.execute('CREATE TABLE IF NOT EXISTS uuid ('
+                                'user INTEGER PRIMARY KEY,'
+                                'uuid TEXT'
                             ')')
         self.conn.commit()
     def capacity(self):
@@ -264,6 +304,36 @@ class LogDBSQLite(LogDB):
             rows)
         self.conn.commit()
         return added
+    def append_uuid(self, uid, uuid):
+        key = self.make_strkey(uid)
+        try:
+            self.cursor.execute('INSERT INTO uuid (user, uuid) '
+                'VALUES (?, ?)', (key, uuid))
+            self.conn.commit()
+            return True
+        except sqlite3.IntegrityError:
+            self.cursor.execute('UPDATE uuid SET uuid = ? WHERE user = ?',
+                                (uuid, key))
+            self.conn.commit()
+            return False
+    def extend_uuid(self, mapping):
+        ret = []
+        for k in mapping.keys():
+            self.cursor.execute('SELECT 1 FROM uuid WHERE user = ?',
+                                (self.make_strkey(k),))
+            if not self.cursor.fetchone(): ret.append(k)
+        self.cursor.executemany('INSERT OR UPDATE INTO uuid (user, uuid) '
+            'VALUES (?, ?)',
+            ((self.make_strkey(k), v) for k, v in mapping.items()))
+        self.conn.commit()
+        return ret
+    def get_uuid(self, uid):
+        self.cursor.execute('SELECT uuid FROM uuid WHERE user = ?',
+                            self.make_strkey(uid))
+        res = self.cursor.fetchone()
+        return (None if res is None else res[0])
+    def close(self):
+        pass
     def close(self):
         self.conn.close()
 
@@ -499,7 +569,8 @@ def on_open(ws):
     log('OPENED')
     EVENTS.add(1, send_greetings)
 def on_message(ws, msg, _context={'oid': None, 'id': None, 'src': None,
-                                  'from': None, 'to': None, 'done': False}):
+                                  'from': None, 'to': None, 'done': False,
+                                  'uuid': None}):
     def send_request(ws, rid):
         if rid is Ellipsis:
             if _context['id'] is None:
@@ -509,24 +580,39 @@ def on_message(ws, msg, _context={'oid': None, 'id': None, 'src': None,
             return
         send_unicast(ws, _context['src'], {'type': 'log-request',
                                            'to': _context['to']})
+    def add_uuid(uid, uuid):
+        if uid and uuid and LOGS.append_uuid(uid, uuid):
+            log('UUID id=%r uuid=%r' % (uid, uuid))
     log('MESSAGE content=%r' % msg)
     # Try to extract message parameters
     try:
         data = json.loads(msg)
         if data.get('type') == 'identity':
             _context['oid'] = data.get('data', {}).get('id')
+            _context['uuid'] = data.get('data', {}).get('uuid')
+            add_uuid(_context['oid'], _context['uuid'])
             return
         elif data.get('type') not in ('unicast', 'broadcast'):
             return
         msgd = data.get('data', {})
         msgt = msgd.get('type')
         # Protocollary replies / other handling
-        if msgt == 'who':
+        if msgt == 'joined':
+            add_uuid(data.get('from'), msgd.get('uuid'))
+        elif msgt == 'who':
             # Own nick
-            send_unicast(ws, data.get('from'), {'type': 'nick',
-                                                'nick': NICKNAME})
+            reply = {'type': 'nick', 'nick': NICKNAME}
+            if _context['uuid']: reply['uuid'] = _context['uuid']
+            send_unicast(ws, data.get('from'), reply)
         elif msgt == 'nick':
-            log('NICK id=%r nick=%r' % (data.get('from'), msgd.get('nick')))
+            uuid = msgd.get('uuid')
+            if uuid:
+                log('NICK id=%r uuid=%r nick=%r' % (data.get('from'),
+                    uuid, msgd.get('nick')))
+                add_uuid(data.get('from'), uuid)
+            else:
+                log('NICK id=%r nick=%r' % (data.get('from'),
+                                            msgd.get('nick')))
         elif msgt == 'post':
             # A single mesage
             post = LogEntry(id=data.get('id'), parent=msgd.get('parent'),
