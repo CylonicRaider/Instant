@@ -2255,6 +2255,10 @@ this.Instant = function() {
                 if (data.key != null) reply.key = data.key;
                 reply.data = Instant.logs.get(data.from, data.to,
                                               data.length);
+                reply.uuids = Instant.logs.queryUUID(
+                  reply.data.map(function(e) {
+                    return e.from;
+                  }));
                 break;
               case 'log': /* Someone delivers logs to us */
                 var before = null, after = null;

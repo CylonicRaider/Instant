@@ -322,16 +322,33 @@ class LogDBSQLite(LogDB):
             self.cursor.execute('SELECT 1 FROM uuid WHERE user = ?',
                                 (self.make_strkey(k),))
             if not self.cursor.fetchone(): ret.append(k)
-        self.cursor.executemany('INSERT OR UPDATE INTO uuid (user, uuid) '
+        self.cursor.executemany('INSERT OR REPLACE INTO uuid (user, uuid) '
             'VALUES (?, ?)',
             ((self.make_strkey(k), v) for k, v in mapping.items()))
         self.conn.commit()
         return ret
     def get_uuid(self, uid):
         self.cursor.execute('SELECT uuid FROM uuid WHERE user = ?',
-                            self.make_strkey(uid))
+                            (self.make_strkey(uid),))
         res = self.cursor.fetchone()
         return (None if res is None else res[0])
+    def query_uuid(self, ids=None):
+        ret = {}
+        if not ids:
+            if self.maxlen is None:
+                self.cursor.execute('SELECT user, uuid FROM uuid '
+                                    'ORDER BY user DESC')
+            else:
+                self.cursor.execute('SELECT user, uuid FROM uuid '
+                                    'ORDER BY user DESC '
+                                    'LIMIT ?', (str(self.maxlen),))
+            for k, v in self.cursor:
+                ret[k] = v
+            return ret
+        for u in ids:
+            uuid = self.get_uuid(u)
+            if uuid is not None: ret[u] = uuid
+        return ret
     def close(self):
         pass
     def close(self):
@@ -544,7 +561,8 @@ def send_broadcast(ws, msg, verbose=True):
 
 def send_logs(ws, peer, lfrom=None, lto=None, amount=None, key=None):
     ret = LOGS.query(lfrom, lto, amount)
-    reply = {'type': 'log', 'data': ret}
+    reply = {'type': 'log', 'data': ret,
+             'uuids': LOGS.query_uuid(ent['from'] for ent in ret)}
     if lfrom is not None: reply['from'] = lfrom
     if lto is not None: reply['to'] = lto
     if amount is not None: reply['amount'] = amount
@@ -590,7 +608,7 @@ def on_message(ws, msg, _context={'oid': None, 'id': None, 'src': None,
         msgd = data.get('data', {})
         if data.get('type') == 'identity':
             _context['oid'] = msgd.get('id')
-            _context['uuid'] = msgt.get('uuid')
+            _context['uuid'] = msgd.get('uuid')
             add_uuid(_context['oid'], _context['uuid'])
             return
         elif data.get('type') not in ('unicast', 'broadcast'):
@@ -660,12 +678,17 @@ def on_message(ws, msg, _context={'oid': None, 'id': None, 'src': None,
                     nick=e.get('nick'), timestamp=e.get('timestamp'),
                     text=e.get('text'), **{'from': e.get('from')}))
             logs.sort()
-            added = LOGS.extend(logs)
+            added = set(LOGS.extend(logs))
             for e in logs:
                 eid = e['id']
                 if eid not in added: continue
                 log('LOGPOST id=%r parent=%r from=%r nick=%r text=%r' %
                     (eid, e['parent'], e['from'], e['nick'], e['text']))
+            uuids = msgd.get('uuids', {})
+            uuid_added = LOGS.extend_uuid(uuids)
+            uuid_added.sort()
+            for k in uuid_added:
+                log('LOGUUID id=%r uuid=%r' % (k, uuids[k]))
             # Request more if applicable
             oldest = LOGS.bounds()[0]
             oldestRemote = msgd.get('from')
