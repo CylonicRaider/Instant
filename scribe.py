@@ -587,14 +587,14 @@ def on_message(ws, msg, _context={'oid': None, 'id': None, 'src': None,
     # Try to extract message parameters
     try:
         data = json.loads(msg)
+        msgd = data.get('data', {})
         if data.get('type') == 'identity':
-            _context['oid'] = data.get('data', {}).get('id')
-            _context['uuid'] = data.get('data', {}).get('uuid')
+            _context['oid'] = msgd.get('id')
+            _context['uuid'] = msgt.get('uuid')
             add_uuid(_context['oid'], _context['uuid'])
             return
         elif data.get('type') not in ('unicast', 'broadcast'):
             return
-        msgd = data.get('data', {})
         msgt = msgd.get('type')
         # Protocollary replies / other handling
         if msgt == 'joined':
@@ -636,7 +636,7 @@ def on_message(ws, msg, _context={'oid': None, 'id': None, 'src': None,
                 EVENTS.add(1, lambda: send_request(ws, Ellipsis))
             elif DONTPULL:
                 return
-            oldest = data.get('data', {}).get('from')
+            oldest = msgd.get('from')
             if oldest is None:
                 pass
             elif _context['from'] is None or oldest < _context['from']:
@@ -653,7 +653,7 @@ def on_message(ws, msg, _context={'oid': None, 'id': None, 'src': None,
         elif msgt == 'log':
             # Someone delivering chat logs
             if DONTPULL: return
-            raw, logs = data.get('data', {}).get('data', []), []
+            raw, logs = msgd.get('data', []), []
             for e in raw:
                 if not isinstance(e, dict): continue
                 logs.append(LogEntry(id=e.get('id'), parent=e.get('parent'),
@@ -668,7 +668,7 @@ def on_message(ws, msg, _context={'oid': None, 'id': None, 'src': None,
                     (eid, e['parent'], e['from'], e['nick'], e['text']))
             # Request more if applicable
             oldest = LOGS.bounds()[0]
-            oldestRemote = data.get('data', {}).get('from')
+            oldestRemote = msgd.get('from')
             if oldestRemote is None: oldestRemote = _context['from']
             if (oldestRemote is not None and (oldest is None or
                                               oldestRemote < oldest)):
