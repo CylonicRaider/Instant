@@ -24,10 +24,13 @@ Instant-run.jar: Instant.jar
 	jar ufm Instant-run.jar .git-commit
 	rm .git-commit
 
+cookie-key.bin:
+	head -c64 /dev/random > cookie-key.bin
+
 clean:
 	rm -f .build.jar Instant.jar Instant-run.jar
 
-run: Instant-run.jar
+run: Instant-run.jar cookie-key.bin
 	cd src && INSTANT_COOKIES_INSECURE=yes \
 	INSTANT_COOKIES_KEYFILE=../cookie-key.bin \
 	java -jar ../Instant-run.jar 8080
