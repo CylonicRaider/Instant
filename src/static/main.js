@@ -96,6 +96,11 @@ this.Instant = function() {
       zpad(date.getMinutes(), 2) + ':' +
       zpad(date.getSeconds(), 2));
   }
+  /* Run a function immediately, and then after a fixed interval */
+  function repeat(callback, time) {
+    callback();
+    setInterval(callback, time);
+  }
   /* Own identity */
   Instant.identity = function() {
     /* Node to add the visible class to when there is an update */
@@ -3099,6 +3104,8 @@ this.Instant = function() {
       leftpad: leftpad,
       /* Format a date-time nicely */
       formatDate: formatDate,
+      /* Run a function immediately, and then after a fixed interval */
+      repeat: repeat,
       /* Adjust the right margin of an element to account for scrollbars */
       adjustScrollbar: function(target, measure) {
         var ch = measure.firstElementChild;
@@ -3124,8 +3131,10 @@ this.Instant = function() {
     Instant.animation.offscreen.init($sel('.alert-container', main));
     Instant.settings.init($sel('.settings-wrapper', main));
     Instant.connection.init($sel('.online-status', main));
-    Instant.util.adjustScrollbar($sel('.sidebar', main),
-                                 $sel('.message-pane', main));
+    repeat(function() {
+      Instant.util.adjustScrollbar($sel('.sidebar', main),
+                                   $sel('.message-pane', main));
+    }, 1000);
   };
   /* To be assigned in window */
   return Instant;
