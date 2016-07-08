@@ -259,6 +259,8 @@ this.Instant = function() {
             /* Reset user list */
             Instant.userList.clear();
             Instant.connection.sendBroadcast({type: 'who'});
+            /* Update UUID cache */
+            Instant.logs.addUUID(Instant.identity.id, Instant.identity.uuid);
             /* Initiate log pull */
             Instant.logs.pull.start();
             break;
@@ -269,6 +271,7 @@ this.Instant = function() {
           case 'joined':
             /* New user joined (might be ourself) */
             Instant.userList.add(msg.data.id, "", msg.data.uuid);
+            Instant.logs.addUUID(msg.data.id, msg.data.uuid);
             break;
           case 'left':
             /* User left */
@@ -329,6 +332,7 @@ this.Instant = function() {
                 break;
               case 'nick': /* Someone informs us about their nick */
                 Instant.userList.add(msg.from, data.nick, data.uuid);
+                if (data.uuid) Instant.logs.addUUID(msg.from, data.uuid);
                 break;
               case 'who': /* Someone asks about others' nicks */
                 Instant.identity.sendNick(msg.from);
@@ -1906,8 +1910,8 @@ this.Instant = function() {
   Instant.logs = function() {
     /* Sorted key list */
     var keys = [];
-    /* ID -> object */
-    var messages = {};
+    /* ID -> object; Session ID -> User ID (UUID) */
+    var messages = {}, uuids = {};
     /* Earliest and newest log message, respectively */
     var oldestLog = null, newestLog = null;
     /* Earliest live message */
@@ -2071,6 +2075,37 @@ this.Instant = function() {
           return messages[k];
         });
       },
+      /* Add the given UID-UUID pair to the registry */
+      addUUID: function(uid, uuid) {
+        uuids[uid] = uuid;
+      },
+      /* Add the given pairs to the UUID cache */
+      mergeUUID: function(mapping) {
+        for (k in mapping) {
+          if (! mapping.hasOwnProperty(k)) continue;
+          uuids[k] = mapping[k];
+        }
+      },
+      /* Return the UUID corresponding to the given UID, or nothing */
+      getUUID: function(uid) {
+        return uuids[uid];
+      },
+      /* Return either the whole UUID mapping, or the subset of it having
+       * the items of keys as keys */
+      queryUUID: function(keys) {
+        var ret = {};
+        if (keys) {
+          keys.forEach(function(k) {
+            if (uuids[k]) ret[k] = uuids[k];
+          });
+        } else {
+          for (var k in uuids) {
+            if (! uuids.hasOwnProperty(k)) continue;
+            ret[k] = uuids[k];
+          }
+        }
+        return ret;
+      },
       /* Obtain the current key array. Do not modify. */
       getKeys: function() {
         return keys;
@@ -2078,6 +2113,10 @@ this.Instant = function() {
       /* Obtain the current message mapping. Do not modify. */
       getMessages: function() {
         return messages;
+      },
+      /* Obtain the current user ID to UUID mapping. Do not modify. */
+      getUUIDs: function() {
+        return uuids;
       },
       /* Return the oldest "log" message ID */
       getOldestLog: function() {
