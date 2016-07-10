@@ -1107,10 +1107,10 @@ this.Instant = function() {
         if (t < f) return last;
         /* Main loop */
         for (;;) {
-          /* |0 to cast to integer
+          /* >>1 to cast to integer
            * When we get into ranges where f + t would overflow, we
            * have problems more grave than that. */
-          var c = (f + t) / 2 | 0;
+          var c = (f + t) >> 1;
           /* Element ID-s should sort identially to message ID-s */
           if (id < array[c].id) {
             if (f == t) {
@@ -1276,12 +1276,12 @@ this.Instant = function() {
           }
           /* Scan far precedessor */
           if (res & 16 && top[3] > top[2]) {
-            search.push([null, top[1], top[2], (top[2] + before) / 2 | 0,
+            search.push([null, top[1], top[2], (top[2] + before) >> 1,
                         before]);
           }
           /* Scan far successor */
           if (res & 32 && top[3] < top[4]) {
-            search.push([null, top[1], after, (after + top[4]) / 2 | 0,
+            search.push([null, top[1], after, (after + top[4]) >> 1,
                         top[4]]);
           }
         }
@@ -1776,7 +1776,7 @@ this.Instant = function() {
           if (b == e)
             return children[b] || null;
           // Middle index and text.
-          var m = (b + e) / 2 | 0;
+          var m = (b + e) >> 1;
           var t = children[m].textContent;
           var i = children[m].getAttribute('data-id');
           // Test which half to engage.
@@ -1953,7 +1953,7 @@ this.Instant = function() {
             return f;
           }
           /* Shift bounds */
-          var c = (f + t) / 2 | 0;
+          var c = (f + t) >> 1;
           if (key < keys[c]) {
             t = c - 1;
           } else if (key > keys[c]) {
