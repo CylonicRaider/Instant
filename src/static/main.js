@@ -2449,6 +2449,8 @@ this.Instant = function() {
         var baseImg = null;
         /* The canvas for painting on */
         var canvas = null;
+        /* The color currently being displayed */
+        var curColor = null;
         return {
           /* Initialize submodule */
           init: function() {
@@ -2489,26 +2491,29 @@ this.Instant = function() {
               canvas.width = baseImg.naturalWidth;
               canvas.height = baseImg.naturalHeight;
             }
-            /* Value to set favicon to */
-            var url;
+            /* Favicon highlight color */
+            var color;
             if (updateAvailable) {
               /* Updates are considered more grave than messages; the user
                * would typically have a look at the page after it anyway.
                * They are hence prioritized and get a green dot. */
-              url = makeDot('#008000');
+              color = '#008000';
             } else if (unreadMentions) {
               /* @-mentions get a yellow dot */
-              url = makeDot('#c0c000');
+              color = '#c0c000';
             } else if (unreadReplies) {
               /* Replies get a blue dot */
-              url = makeDot('#0040ff');
+              color = '#0040ff';
             } else if (unreadMessages) {
               /* Messages get a gray dot (to be consistent with the
                * new message highlights) */
-              url = makeDot('#c0c0c0');
+              color = '#c0c0c0';
             } else {
-              url = baseImg.src;
+              color = null;
             }
+            /* Only update favicon when necessary */
+            if (color == curColor) return;
+            var url = (color == null) ? baseImg.src : makeDot(color);
             /* Push it out */
             Instant.title.favicon._set(url);
           },
