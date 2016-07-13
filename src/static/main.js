@@ -2513,6 +2513,7 @@ this.Instant = function() {
             }
             /* Only update favicon when necessary */
             if (color == curColor) return;
+            curColor = color;
             var url = (color == null) ? baseImg.src : makeDot(color);
             /* Push it out */
             Instant.title.favicon._set(url);
