@@ -142,8 +142,9 @@ public class StaticFileHook extends HookAdapter {
         if (getProducer() == null) return;
         if (! (parent.getEffectiveDraft(info) instanceof Draft_Raw)) return;
         if (! "GET".equals(info.getMethod())) return;
-        processAs(parent, info, request, response,
-                  request.getResourceDescriptor());
+        String path = request.getResourceDescriptor().replaceFirst("\\?.*$",
+                                                                   "");
+        processAs(parent, info, request, response, path);
     }
 
     public boolean processAs(InstantWebSocketServer parent,
