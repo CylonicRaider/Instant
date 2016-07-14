@@ -2243,7 +2243,7 @@ this.Instant = function() {
             var sentBefore = false, sentAfter = false;
             if (! keys.length) {
               /* Prevent pulling the same logs twice upon initial request */
-              var peer = newestPeer || oldestPeer;
+              var peer = oldestPeer || newestPeer;
               if (peer) {
                 Instant.connection.sendUnicast(peer.id,
                   {type: 'log-request', key: 'initial'});
