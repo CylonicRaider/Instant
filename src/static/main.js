@@ -3116,8 +3116,9 @@ this.Instant = function() {
       adjustScrollbar: function(target, measure) {
         var ch = measure.firstElementChild;
         if (! ch) return;
-        target.style.marginRight = (measure.offsetWidth -
-          ch.offsetWidth) + 'px';
+        var margin = (measure.offsetWidth - ch.offsetWidth) + 'px';
+        if (target.style.marginRight != margin)
+          target.style.marginRight = margin;
       }
     };
   }();
