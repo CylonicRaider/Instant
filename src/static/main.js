@@ -146,7 +146,9 @@ this.Instant = function() {
       /* Initialize the identity from the data part of a
        * server-side message */
       initFields: function(data) {
-        if ((Instant.identity.serverVersion != null &&
+        if (Instant.connection.isURLOverridden()) {
+          /* NOP */
+        } else if ((Instant.identity.serverVersion != null &&
              Instant.identity.serverVersion != data.version ||
              Instant.identity.serverRevision != null &&
              Instant.identity.serverRevision != data.revision) &&
@@ -185,6 +187,8 @@ this.Instant = function() {
     var ws = null;
     /* Whether the WebSocket is connected */
     var connected = false;
+    /* Whether the default URL was overridden */
+    var overridden = false;
     /* Send pings every thirty seconds */
     setInterval(function() {
       if (Instant && Instant.connection && Instant.connection.isConnected())
@@ -198,6 +202,12 @@ this.Instant = function() {
        * widget */
       init: function(statusNode) {
         connStatus = statusNode;
+        /* Apply URL override */
+        var override = Instant.query.get("connect");
+        if (override) {
+          Instant.connectionURL = override;
+          overridden = true;
+        }
         /* Connect */
         Instant.connection.reconnect();
         /* Force update of widget */
@@ -449,6 +459,10 @@ this.Instant = function() {
       /* Check whether the client is currently connected */
       isConnected: function() {
         return connected;
+      },
+      /* Check whether the default connection URL was overridden */
+      isURLOverridden: function() {
+        return overridden;
       },
       /* Event handler for WebSocket messages */
       onRawMessage: null
@@ -3219,7 +3233,6 @@ function init() {
       nameNode.textContent = '&' + Instant.roomName;
     } else {
       nameNode.innerHTML = '<i>local</i>';
-      nameNode.title = 'No message you post here will leave your machine.';
       $sel('.online-status').style.background = '#c0c0c0';
       $sel('.online-status').title = 'Local';
       /* Nothing is going to hide it, so we have to. */
