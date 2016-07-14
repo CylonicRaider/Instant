@@ -42,6 +42,26 @@ function $suffLength(text, char) {
   return ret;
 }
 
+function $query(str, ret) {
+  if (! ret) ret = {};
+  var regex = /[#?&]?([^&=]+)=([^&]*)(?=&|$)|($)/g;
+  for (;;) {
+    var m = regex.exec(str);
+    if (! m) return null;
+    if (m[3] != null) break;
+    var n = decodeURIComponent(m[1]);
+    var v = decodeURIComponent(m[2]);
+    if (ret[n] == null) {
+      ret[n] = v;
+    } else if (typeof ret[n] == 'string') {
+      ret[n] = [ret[n], v];
+    } else {
+      ret[n].push(v);
+    }
+  }
+  return ret;
+}
+
 /* Early preparation; define most of the functionality */
 this.Instant = function() {
   /* Locale-agnostic abbreviated month name table */
@@ -3032,6 +3052,28 @@ this.Instant = function() {
       }
     };
   }();
+  /* Query string parameters
+   * The backend does not parse them (as of now), and even if it did not,
+   * some of those are only relevant to the frontend. */
+  Instant.query = function() {
+    /* The actual data */
+    var data = null;
+    return {
+      /* Initialize submodule */
+      init: function() {
+        data = $query(location.search);
+      },
+      /* Get a parameter, or undefined if none */
+      get: function(name) {
+        if (! data.hasOwnProperty(name)) return undefined;
+        return data[name];
+      },
+      /* Return the internal storage object */
+      getData: function() {
+        return data;
+      }
+    };
+  }();
   /* Offline storage */
   Instant.storage = function() {
     /* Actual data */
@@ -3124,6 +3166,7 @@ this.Instant = function() {
   }();
   /* Global initialization function */
   Instant.init = function(main, loadWrapper) {
+    Instant.query.init();
     Instant.storage.init();
     Instant.identity.init($sel('.update-message', main),
                           $sel('.refresh-message', main));
