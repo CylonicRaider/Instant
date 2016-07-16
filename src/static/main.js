@@ -836,6 +836,8 @@ this.Instant = function() {
                                  evt.clientY - clickPos[1]) >= DRAG_THRESHOLD)
             return;
           clickPos = null;
+          /* Filter out clicks on links */
+          if (evt.target.nodeName == 'A') return;
           /* Navigate to message */
           Instant.input.moveTo(msgNode);
           if (clickWasTouch) {
