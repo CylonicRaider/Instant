@@ -214,7 +214,6 @@ body {
 .sidebar > * {
   background: rgba(255, 255, 255, 0.5);
   padding: 3px 0 3px 3px;
-  line-height: normal;
 }
 
 .sidebar-top {
@@ -374,9 +373,14 @@ body {
   display: none;
 }
 
+.user-list-counter {
+  line-height: 1.2;
+}
 .user-list-counter img {
   display: inline-block;
-  height: 1.2em;
+  width: 1em;
+  height: 1em;
+  margin-top: 0.1em;
   vertical-align: top;
   opacity: 0.75;
 }

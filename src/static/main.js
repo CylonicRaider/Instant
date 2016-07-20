@@ -1814,6 +1814,7 @@ this.Instant = function() {
         collapser.addEventListener('click', function() {
           Instant.userList.collapse(! Instant.userList.isCollapsed());
           Instant.input.focus();
+          event.preventDefault();
         });
         /* Collapse user list on small windows */
         var lastState = false;
