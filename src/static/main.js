@@ -1811,7 +1811,7 @@ this.Instant = function() {
         node = listNode;
         collapser = collapseNode;
         /* Collapse user list on click */
-        collapser.addEventListener('click', function() {
+        collapser.addEventListener('click', function(event) {
           Instant.userList.collapse(! Instant.userList.isCollapsed());
           Instant.input.focus();
           event.preventDefault();
@@ -1875,6 +1875,9 @@ this.Instant = function() {
         newNode.setAttribute('data-nick', name);
         newNode.textContent = name;
         newNode.style.background = 'hsl(' + hue + ', 75%, 80%)';
+        /* Update animation */
+        newNode.style.webkitAnimationDelay = '';
+        newNode.style.animationDelay = '';
         /* Update data */
         nicks[id] = newNode;
         /* Abort if no node */
@@ -1939,6 +1942,14 @@ this.Instant = function() {
           node.classList.remove('collapsed');
           collapser.classList.remove('collapsed');
           if (parent) parent.classList.remove('collapsed');
+          /* Update animations */
+          var now = Date.now();
+          Array.prototype.forEach.call(node.children, function(el) {
+            var time = el.getAttribute('data-last-active') - now;
+            if (time < -300000) time = -300000;
+            el.style.webkitAnimationDelay = time + 'ms';
+            el.style.animationDelay = time + 'ms';
+          });
         }
       },
       /* Return whether the user list is currently collapsed */
