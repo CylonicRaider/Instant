@@ -3086,6 +3086,7 @@ this.Instant = function() {
           onclick: function(notify) {
             /* Go to the specified message */
             Instant.input.jumpTo(msg);
+            Instant.input.focus();
             current = null;
           }
         });
