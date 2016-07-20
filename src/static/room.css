@@ -183,7 +183,7 @@ body {
     margin: 0;
   }
 
-  .nick {
+  .message .nick {
     padding: 0 1px;
   }
 
@@ -358,6 +358,10 @@ body {
 .user-list-wrapper.overflow > .user-list {
   padding-right: 3px;
 }
+.user-list.collapsed, .user-list-wrapper.collapsed {
+  display: none;
+}
+
 .user-list .nick {
   margin-bottom: 2px;
   color: black;
@@ -368,6 +372,25 @@ body {
 }
 .user-list .nick:empty {
   display: none;
+}
+
+.user-list-counter img {
+  display: inline-block;
+  height: 1.2em;
+  vertical-align: top;
+  opacity: 0.75;
+}
+.user-list-counter.collapsed img {
+  -webkit-transform: rotate(180deg);
+  transform: rotate(180deg);
+}
+.user-list-counter a {
+  font-style: italic;
+  text-decoration: none;
+  color: #404040;
+}
+.user-list-counter a:hover span, .user-list-counter a:focus span {
+  text-decoration: underline;
 }
 
 #notifies-ping {
@@ -545,13 +568,20 @@ body {
   margin-bottom: 2px;
 }
 
-.turn {
+img.turn-right {
+  -webkit-transform: rotate(90deg);
+  transform: rotate(90deg);
+}
+img.turn {
   -webkit-transform: rotate(180deg);
   transform: rotate(180deg);
 }
-.turn-left {
+img.turn-left {
   -webkit-transform: rotate(270deg);
   transform: rotate(270deg);
+}
+img.inline {
+  display: inline-block;
 }
 
 .message.new:not(.mine):not(.ping) > .line {

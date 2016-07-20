@@ -1796,10 +1796,29 @@ this.Instant = function() {
     var nicks = {};
     /* The actual user list. Wrapper is retrieved automatically. */
     var node = null;
+    /* The counter and collapser */
+    var collapser = null;
     return {
       /* Initialize state with the given node */
-      init: function(listNode) {
+      init: function(listNode, collapseNode) {
+        /* Helper */
+        function updateCollapse() {
+          var newState = (document.documentElement.offsetWidth <= 400);
+          if (newState == lastState) return;
+          lastState = newState;
+          Instant.userList.collapse(newState);
+        }
         node = listNode;
+        collapser = collapseNode;
+        /* Collapse user list on click */
+        collapser.addEventListener('click', function() {
+          Instant.userList.collapse(! Instant.userList.isCollapsed());
+          Instant.input.focus();
+        });
+        /* Collapse user list on small windows */
+        var lastState = false;
+        window.addEventListener('resize', updateCollapse);
+        updateCollapse();
       },
       /* Scan the list for a place where to insert */
       bisect: function(id, name) {
@@ -1864,7 +1883,7 @@ this.Instant = function() {
         /* Insert node into list */
         node.insertBefore(newNode, insBefore);
         /* Maintain consistency */
-        Instant.userList.updateWidth();
+        Instant.userList.update();
         /* Return something sensible */
         return newNode;
       },
@@ -1875,16 +1894,22 @@ this.Instant = function() {
           node.removeChild(nicks[id]);
         } catch (e) {}
         delete nicks[id];
-        Instant.userList.updateWidth();
+        Instant.userList.update();
       },
       /* Remove everything from list */
       clear: function() {
         nicks = {};
         if (node) while (node.firstChild) node.removeChild(node.firstChild);
-        Instant.userList.updateWidth();
+        Instant.userList.update();
       },
-      /* Update the width of the user list */
-      updateWidth: function() {
+      /* Update some CSS properties */
+      update: function() {
+        /* Update counter */
+        if (node && collapser) {
+          var c = $sel('span', collapser);
+          var n = node.children.length;
+          c.textContent = n + ' user' + ((n == 1) ? '' : 's');
+        }
         /* Determine if the list is wrapped; cannot do anything if not */
         var par = node.parentNode;
         if (! par || ! par.classList.contains('user-list-wrapper'))
@@ -1899,6 +1924,25 @@ this.Instant = function() {
         } else {
           par.classList.remove('overflow');
         }
+      },
+      /* Collapse or uncollapse the user list */
+      collapse: function(invisible) {
+        var parent = node.parentNode;
+        if (! parent || ! parent.classList.contains('user-list-wrapper'))
+          parent = null;
+        if (invisible) {
+          node.classList.add('collapsed');
+          collapser.classList.add('collapsed');
+          if (parent) parent.classList.add('collapsed');
+        } else {
+          node.classList.remove('collapsed');
+          collapser.classList.remove('collapsed');
+          if (parent) parent.classList.remove('collapsed');
+        }
+      },
+      /* Return whether the user list is currently collapsed */
+      isCollapsed: function() {
+        return (node.classList.contains('collapsed'));
       },
       /* List unique seminormalized nicks which match the semi-normalization
        * of the given prefix */
@@ -3187,7 +3231,8 @@ this.Instant = function() {
     Instant.identity.init($sel('.update-message', main),
                           $sel('.refresh-message', main));
     Instant.input.init($sel('.input-bar', main));
-    Instant.userList.init($sel('.user-list', main));
+    Instant.userList.init($sel('.user-list', main),
+                          $sel('.user-list-counter', main));
     Instant.title.init();
     Instant.title.favicon.init();
     Instant.logs.pull.init($sel('.message-box', main));
