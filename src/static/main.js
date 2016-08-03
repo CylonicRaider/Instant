@@ -362,7 +362,7 @@ this.Instant = function() {
                     Instant.notifications.show(msg);
                 } else {
                   /* Should not happen */
-                  console.warning('Swallowing message:', ent);
+                  console.warn('Swallowing message:', ent);
                 }
                 break;
               case 'nick': /* Someone informs us about their nick */
@@ -2992,7 +2992,7 @@ this.Instant = function() {
           darkLink.rel = 'stylesheet';
           darkLink.title = '';
         } else {
-          console.warning('Unknown theme:', theme);
+          console.warn('Unknown theme:', theme);
         }
         var level = cnt.elements['notifies'].value;
         Instant.notifications.level = level;
@@ -3189,7 +3189,7 @@ this.Instant = function() {
             res = JSON.parse(str);
             if (typeof res != 'object') throw 'Malformed data';
           } catch (e) {
-            console.warning('Could not deserialize storage:', e);
+            console.warn('Could not deserialize storage:', e);
             return;
           }
           for (var key in res) {
