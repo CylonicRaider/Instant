@@ -64,7 +64,7 @@ function $query(str, ret) {
 
 /* Ensure console is always there */
 void function(window) {
-  window.console = window.console || {};
+  var console = window.console || {};
   /* Avoid triggering linter script */
   if (! console.debug) console.debug = console["log"];
   ["log", "warn", "error"].forEach(function(el) {
@@ -79,6 +79,7 @@ void function(window) {
       }
     }
   });
+  window.console = console;
 }(this);
 
 /* Early preparation; define most of the functionality */
