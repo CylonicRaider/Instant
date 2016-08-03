@@ -62,6 +62,25 @@ function $query(str, ret) {
   return ret;
 }
 
+/* Ensure console is always there */
+void function(window) {
+  window.console = window.console || {};
+  /* Avoid triggering linter script */
+  if (! console.debug) console.debug = console["log"];
+  ["log", "warn", "error"].forEach(function(el) {
+    if (! console[el]) {
+      if (el == "log") {
+        console[el] = function() {};
+      } else {
+        console[el] = function() {
+          alert(el.toUpperCase() + ": " +
+            Array.prototype.join.call(arguments, " "));
+        };
+      }
+    }
+  });
+}(this);
+
 /* Early preparation; define most of the functionality */
 this.Instant = function() {
   /* Locale-agnostic abbreviated month name table */
