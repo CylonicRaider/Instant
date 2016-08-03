@@ -1384,7 +1384,9 @@ this.Instant = function() {
         }
         function updateMessage() {
           sizerMsg.value = inputMsg.value;
-          promptNick.style.display = 'none';
+          /* Avoid devtools noise */
+          if (promptNick.style.display != 'none')
+            promptNick.style.display = 'none';
           /* Using a separate node for measurement drastically reduces
            * reflow load by having a single out-of-document-flow reflow
            * only in the best case.
