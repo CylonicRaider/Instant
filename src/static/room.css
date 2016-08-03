@@ -8,6 +8,8 @@ body {
   text-align: center;
   color: black;
   background: white;
+  /* Prevent Chrome pull-to-refresh */
+  overflow: hidden;
 }
 
 :focus {
