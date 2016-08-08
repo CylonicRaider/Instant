@@ -54,6 +54,13 @@ a.logo-small {
 .update-message a {
   color: #008000 !important;
 }
+.user-list-counter a {
+  color: #c0c0c0;
+}
+.user-list-counter img {
+  -webkit-filter: invert(1);
+  filter: invert(1);
+}
 
 .nick, .message.emote > .line .content {
   /* NOTE: Transitioning back bugs out for this rule in Firefox, but the
