@@ -1,98 +1,96 @@
 
 /* Dark theme. */
 
-body {
+.dark {
   color: white;
   background: black;
 }
 
-:focus {
+.dark :focus {
   outline-color: white;
 }
 
-a {
+.dark a {
   color: #0080ff;
 }
-a:visited {
+.dark a:visited {
   color: #c000c0;
 }
 
-#load-wrapper, .breadcrumbs.standalone {
+.dark #load-wrapper, .dark .breadcrumbs.standalone {
   color: white;
   background: black;
 }
 
-.logo img {
+.dark .logo img {
   box-shadow: 0 0 30px white;
 }
 
-a.logo-small {
+.dark a.logo-small {
   color: white;
 }
-.logo-small img {
+.dark .logo-small img {
   box-shadow: 0 0 2px white;
 }
-.logo-small strong {
+.dark .logo-small strong {
   color: white;
 }
 
-.throbber {
+.dark .throbber {
   -webkit-filter: invert(1);
   filter: invert(1);
 }
-.room-name, a.room-name {
+.dark .room-name, .dark a.room-name {
   color: white;
 }
-.online-status, .settings, .settings-content {
+.dark .online-status, .dark .settings, .dark .settings-content {
   border-color: white;
   box-shadow: 0 0 5px white;
 }
-.settings, .settings-content {
+.dark .settings, .dark .settings-content {
   color: white;
   background: black;
 }
-.update-message a {
+.dark .update-message a {
   color: #008000 !important;
 }
-.user-list-counter a {
+.dark .user-list-counter a {
   color: #c0c0c0;
 }
-.user-list-counter img {
+.dark .user-list-counter img {
   -webkit-filter: invert(1);
   filter: invert(1);
 }
 
-.nick, .message.emote > .line .content {
-  /* NOTE: Transitioning back bugs out for this rule in Firefox, but the
-   *       browser corrects itself after the transition. */
+.dark .nick, .dark .message.emote > .line .content {
   color: black;
 }
-.message.ping > .line {
+.dark .message.ping > .line {
   color: black;
 }
-.message.ping > .line time a {
+.dark .message.ping > .line time a {
   color: white;
 }
-.message > .line .monospace {
+.dark .message > .line .monospace {
   background: #404040;
 }
 
-.sidebar > * {
+.dark .sidebar > * {
   background: rgba(0, 0, 0, 0.5);
 }
 
-.input-bar, .input-bar .input-message-cell .input-message,
-.input-bar .input-message-cell .input-nick-prompt {
+.dark .input-bar, .dark .input-bar .input-message-cell .input-message,
+.dark .input-bar .input-message-cell .input-nick-prompt {
   color: white;
   background: black;
 }
 
-.input-bar .input-info-cell .alert-container,
-.input-bar .input-message-cell .input-nick-prompt img {
+.dark .input-bar .input-info-cell .alert-container,
+.dark .input-bar .input-message-cell .input-nick-prompt img {
   filter: invert(1);
   -webkit-filter: invert(1);
 }
 
-#main.very-dark > * {
+.very-dark > * {
   opacity: 0.5;
 }

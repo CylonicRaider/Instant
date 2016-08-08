@@ -2999,20 +2999,15 @@ this.Instant = function() {
       apply: function() {
         var cnt = $sel('.settings-content', wrapperNode);
         var theme = cnt.elements['theme'].value;
-        var mainPane = $id('main');
-        var darkLink = $id('dark-style');
         if (theme == 'bright') {
-          mainPane.classList.remove('very-dark');
-          darkLink.rel = 'alternate stylesheet';
-          darkLink.title = 'Dark';
+          document.body.classList.remove('dark');
+          document.body.classList.remove('very-dark');
         } else if (theme == 'dark') {
-          mainPane.classList.remove('very-dark');
-          darkLink.rel = 'stylesheet';
-          darkLink.title = '';
+          document.body.classList.add('dark');
+          document.body.classList.remove('very-dark');
         } else if (theme == 'verydark') {
-          mainPane.classList.add('very-dark');
-          darkLink.rel = 'stylesheet';
-          darkLink.title = '';
+          document.body.classList.add('dark');
+          document.body.classList.add('very-dark');
         } else {
           console.warn('Unknown theme:', theme);
         }
