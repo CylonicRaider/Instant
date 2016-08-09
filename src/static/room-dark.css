@@ -87,10 +87,10 @@
 
 .dark .input-bar .input-info-cell .alert-container,
 .dark .input-bar .input-message-cell .input-nick-prompt img {
-  filter: invert(1);
   -webkit-filter: invert(1);
+  filter: invert(1);
 }
 
-.very-dark > * {
-  opacity: 0.5;
+.very-dark #main {
+  opacity: 0.5 !important;
 }
