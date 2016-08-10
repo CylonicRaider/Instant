@@ -14,7 +14,7 @@ Instant.jar: .build.jar $(LIBRARIES) $(ASSETS)
 .INTERMEDIATE: .build.jar
 .SECONDARY: .build.jar
 .build.jar: $(SOURCES)
-	cd src && javac $(_JAVA_SOURCES)
+	cd src && javac -Xlint:unchecked -Werror $(_JAVA_SOURCES)
 	cd src && jar cfe ../.build.jar Main $(_JAVA_SOURCES) \
 	$(patsubst %.java,%.class,$(_JAVA_SOURCES))
 
@@ -33,4 +33,4 @@ clean:
 run: Instant-run.jar cookie-key.bin
 	cd src && INSTANT_COOKIES_INSECURE=yes \
 	INSTANT_COOKIES_KEYFILE=../cookie-key.bin \
-	java -jar ../Instant-run.jar 8080
+	java -jar ../Instant-run.jar
