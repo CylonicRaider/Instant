@@ -3,6 +3,7 @@ package net.instant;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.InetSocketAddress;
 import java.net.URL;
 import java.util.jar.Manifest;
 import net.instant.InstantWebSocketServer;
@@ -18,6 +19,7 @@ import net.instant.util.argparse.ArgParser;
 import net.instant.util.argparse.IntegerOption;
 import net.instant.util.argparse.ParseException;
 import net.instant.util.argparse.ParseResult;
+import net.instant.util.argparse.StringOption;
 import net.instant.util.fileprod.FileProducer;
 import net.instant.util.fileprod.FilesystemProducer;
 import net.instant.util.fileprod.ResourceProducer;
@@ -93,8 +95,10 @@ public class Main implements Runnable {
     protected void parseArguments() {
         ArgParser p = new ArgParser("Instant");
         p.addHelp();
+        StringOption host = p.add(new StringOption("host", false, ""),
+                                  "Host to bind to (defaults to all)");
         IntegerOption port = p.add(new IntegerOption("port", true, 8080),
-                                   "Port number to use");
+                                   "Port number to use (default 8080)");
         ParseResult r;
         try {
             r = p.parse(args);
@@ -103,7 +107,8 @@ public class Main implements Runnable {
             System.exit(1);
             return;
         }
-        srv = new InstantWebSocketServer(port.get(r));
+        srv = new InstantWebSocketServer(new InetSocketAddress(host.get(r),
+                                                               port.get(r)));
     }
 
     public void run() {
