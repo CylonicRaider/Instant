@@ -56,8 +56,9 @@ public class Main implements Runnable {
         }
         FINE_VERSION = v;
         VERSION_FILE = String.format("this._instantVersion_ = " +
-            "{version: \"%s\", revision: \"%s\"};\n",
-            Util.escapeJSString(VERSION), Util.escapeJSString(FINE_VERSION));
+            "{version: %s, revision: %s};\n",
+            Util.escapeJSString(VERSION, true),
+            Util.escapeJSString(FINE_VERSION, true));
     }
 
     private final String[] args;

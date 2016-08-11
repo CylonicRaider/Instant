@@ -74,10 +74,12 @@ public final class Util {
         return DatatypeConverter.parseBase64Binary(data);
     }
 
-    public static String escapeJSString(String s) {
+    public static String escapeJSString(String s, boolean full) {
+        if (full && s == null) return "null";
         Matcher m = ESCAPE.matcher(s);
         // How old is *that* method to require a specific class?
         StringBuffer sb = new StringBuffer();
+        if (full) sb.append('"');
         while (m.find()) {
             int ch = m.group().charAt(0);
             String repl = String.format((ch < 256) ? "\\x%02x" : "\\u%04x",
@@ -85,7 +87,11 @@ public final class Util {
             m.appendReplacement(sb, repl);
         }
         m.appendTail(sb);
+        if (full) sb.append('"');
         return sb.toString();
+    }
+    public static String escapeJSString(String s) {
+        return escapeJSString(s, false);
     }
     public static String escapeHttpString(String s) {
         Matcher m = HTTP_SPEC.matcher(s);
