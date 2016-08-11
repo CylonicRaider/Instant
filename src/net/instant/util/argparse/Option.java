@@ -101,6 +101,10 @@ public abstract class Option<T> {
             col = "";
         }
         if (help == null) help = "???";
+        if (getDefault() != null) {
+            String def = String.valueOf(getDefault());
+            if (! def.isEmpty()) help += " (default " + def + ")";
+        }
         return new String[] { name, col, args, help };
     }
 

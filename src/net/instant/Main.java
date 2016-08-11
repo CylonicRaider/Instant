@@ -95,10 +95,10 @@ public class Main implements Runnable {
     protected void parseArguments() {
         ArgParser p = new ArgParser("Instant");
         p.addHelp();
-        StringOption host = p.add(new StringOption("host", false, ""),
-                                  "Host to bind to (defaults to all)");
+        StringOption host = p.add(new StringOption("host", false, "*"),
+                                  "Host to bind to");
         IntegerOption port = p.add(new IntegerOption("port", true, 8080),
-                                   "Port number to use (default 8080)");
+                                   "Port number to use");
         ParseResult r;
         try {
             r = p.parse(args);
@@ -107,8 +107,10 @@ public class Main implements Runnable {
             System.exit(1);
             return;
         }
-        srv = new InstantWebSocketServer(new InetSocketAddress(host.get(r),
-                                                               port.get(r)));
+        String hostName = host.get(r);
+        if (hostName.equals("*")) hostName = "";
+        srv = new InstantWebSocketServer(
+            new InetSocketAddress(hostName, port.get(r)));
     }
 
     public void run() {
