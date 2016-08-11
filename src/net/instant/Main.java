@@ -91,8 +91,10 @@ public class Main implements Runnable {
     }
 
     protected void parseArguments() {
-        ArgParser p = new ArgParser();
-        IntegerOption port = p.add(new IntegerOption("port", true, 8080));
+        ArgParser p = new ArgParser("Instant");
+        p.addHelp();
+        IntegerOption port = p.add(new IntegerOption("port", true, 8080),
+                                   "Port number to use");
         ParseResult r;
         try {
             r = p.parse(args);

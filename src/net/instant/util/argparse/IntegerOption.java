@@ -10,6 +10,9 @@ public class IntegerOption extends Option<Integer> {
         super(name, 1, positional, true, null);
     }
 
+    public String getPlaceholder(int index) {
+        return "int";
+    }
     public OptionValue<Integer> parse(OptionValue<Integer> old,
                                       String[] args) throws ParseException {
         try {

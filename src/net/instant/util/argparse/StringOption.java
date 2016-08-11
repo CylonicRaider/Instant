@@ -10,6 +10,9 @@ public class StringOption extends Option<String> {
         super(name, 1, positional, true, null);
     }
 
+    public String getPlaceholder(int index) {
+        return "str";
+    }
     public OptionValue<String> parse(OptionValue<String> old, String[] args) {
         return wrap(args[0]);
     }
