@@ -6,6 +6,7 @@ import java.nio.ByteBuffer;
 import java.security.SecureRandom;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -138,6 +139,20 @@ public final class Util {
             ret.put((String) params[i], params[i + 1]);
         }
         return ret;
+    }
+    public static void mergeJSONObjects(JSONObject base, JSONObject add) {
+        // Whoever made that API was a jerk.
+        Iterator<String> keys = add.keys();
+        while (keys.hasNext()) {
+            String k = keys.next();
+            if (base.has(k) && base.get(k) instanceof JSONObject &&
+                    add.get(k) instanceof JSONObject) {
+                mergeJSONObjects((JSONObject) base.get(k),
+                                 (JSONObject) add.get(k));
+            } else {
+                base.put(k, add.get(k));
+            }
+        }
     }
 
     public static ByteBuffer readInputStream(InputStream input)

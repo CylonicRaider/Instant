@@ -95,5 +95,14 @@ public class Message {
     public Message makeData(Object... data) {
         return data(Util.createJSONObject(data));
     }
+    public Message mergeData(Object... data) {
+        JSONObject add = Util.createJSONObject(data);
+        if (this.data instanceof JSONObject) {
+            Util.mergeJSONObjects((JSONObject) this.data, add);
+        } else {
+            this.data = add;
+        }
+        return this;
+    }
 
 }
