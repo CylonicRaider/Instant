@@ -13,7 +13,7 @@ import org.java_websocket.handshake.ServerHandshakeBuilder;
 public class RedirectHook extends HookAdapter {
 
     public static final Pattern GROUPING_RE =
-        Pattern.compile("\\\\([0-9]+|[^0-9])");
+        Pattern.compile("\\\\([0-9]+|\\{[0-9]+\\}|[^0-9{])");
 
     private final Pattern pattern;
     private final String replacement;
@@ -60,6 +60,9 @@ public class RedirectHook extends HookAdapter {
                 sb.append("\\");
             } else if (g.matches("[0-9]+")) {
                 rm.appendReplacement(sb, m.group(Integer.parseInt(g)));
+            } else if (g.matches("\\{[0-9]+\\}")) {
+                rm.appendReplacement(sb, m.group(Integer.parseInt(
+                    g.substring(1, g.length() - 1))));
             } else {
                 throw new RuntimeException("Invalid replacement!");
             }
