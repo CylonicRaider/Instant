@@ -253,8 +253,6 @@ body {
 
 .online-status {
   background: #ffff00;
-  -webkit-transition: background 0.5s linear;
-  transition: background 0.5s linear;
 }
 .online-status.connected {
   background: #00c000;
@@ -463,6 +461,9 @@ body {
   vertical-align: bottom;
   color: transparent;
   background: #c0c0c0;
+}
+/* Need to be more specific than catch-all below */
+.input-bar .input-nick-sizer, #main .input-bar .input-nick-sizer {
   -webkit-transition: background 0.1s linear;
   transition: background 0.1s linear;
 }
@@ -643,7 +644,7 @@ img.inline {
 @-webkit-keyframes clrfade { to { color: rgba(0, 0, 0, 0.5); } }
 @keyframes clrfade { to { color: rgba(0, 0, 0, 0.5); } }
 
-body, #main * {
+body, #main, #main * {
   -webkit-transition: background 0.5s, color 0.5s, opacity 1s;
   transition: background 0.5s, color 0.5s, opacity 1s;
 }
