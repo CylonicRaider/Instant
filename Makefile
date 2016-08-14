@@ -35,3 +35,13 @@ run: Instant-run.jar cookie-key.bin
 	cd src && INSTANT_COOKIES_INSECURE=yes \
 	INSTANT_COOKIES_KEYFILE=../cookie-key.bin \
 	java -jar ../Instant-run.jar
+
+src/static/logo-static.svg: src/static/logo.svg
+	[ -f $@ ] && (touch $@; echo "Please update logo-static.svg") || \
+	    cp $< $@
+src/static/logo-static_32x32.png: src/static/logo-static.svg
+	convert $< -size 32x32 $@
+src/static/logo-static_128x128.png: src/static/logo-static.svg
+	convert $< -size 128x128 $@
+src/static/logo-static_128x128.ico: src/static/logo-static.svg
+	convert $< -size 128x128 $@
