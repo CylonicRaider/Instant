@@ -40,8 +40,9 @@ src/static/logo-static.svg: src/static/logo.svg
 	[ -f $@ ] && (touch $@; echo "Please update logo-static.svg") || \
 	    cp $< $@
 src/static/logo-static_32x32.png: src/static/logo-static.svg
-	convert $< -size 32x32 $@
+	convert -background none $< $@
 src/static/logo-static_128x128.png: src/static/logo-static.svg
-	convert $< -size 128x128 $@
+	# HACK: Apparently only way to make ImageMagick scale the SVG up.
+	convert -background none -density 288 $< $@
 src/static/logo-static_128x128.ico: src/static/logo-static.svg
-	convert $< -size 128x128 $@
+	convert -background none -density 288 $< $@

@@ -30,6 +30,10 @@ that, and spawns an instance on port 8080. Embedding the commit number is
 not necessary but for debugging code that depends on it or for proper support
 of client updates.
 
+**Note** that `make` also semi-automatically generates bitmap icons from the
+SVG's provided in `src/static/`; it assumes that *ImageMagick* is available
+for that.
+
 **TL;DR**: Install GNU Make and run `make run` to (re-)compile and run a
 properly configured backend on port 8080.
 
