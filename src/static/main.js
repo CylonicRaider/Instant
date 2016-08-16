@@ -2572,13 +2572,10 @@ this.Instant = function() {
             var link = $sel('link[rel~=icon]');
             var iconURL = (link && link.href) || '/favicon.ico';
             baseImg = new Image();
-            baseImg.src = iconURL;
-            /* Update when loaded, and also right now (if it loads
-             * instantly) */
             baseImg.addEventListener('load', function() {
               Instant.title.favicon._update();
             });
-            Instant.title.favicon._update();
+            baseImg.src = iconURL;
           },
           /* Update the favicon to match the current unread message
            * status */
@@ -3048,7 +3045,8 @@ this.Instant = function() {
     /* Notification levels (from most to least severe) */
     var LEVELS = {none: 0, ping: 1, reply: 2, any: 3};
     /* The default icon to display */
-    var ICON = '/static/logo-static_128x128.png';
+    var ICON_PATH = '/static/logo-static_128x128.png';
+    var ICON = ICON_PATH;
     /* The currently pending notification */
     var current = null;
     return {
@@ -3056,6 +3054,21 @@ this.Instant = function() {
       LEVELS: LEVELS,
       /* The current notification level (symbolic name) */
       level: null,
+      /* Initialize submodule */
+      init: function() {
+        /* Load icon */
+        var iconImg = new Image();
+        iconImg.addEventListener('load', function() {
+          /* Render to canvas */
+          var canvas = document.createElement('canvas');
+          canvas.width = iconImg.naturalWidth;
+          canvas.height = iconImg.naturalHeight;
+          var ctx = canvas.getContext('2d');
+          ctx.drawImage(iconImg, 0, 0);
+          ICON = canvas.toDataURL('image/png');
+        });
+        iconImg.src = ICON_PATH;
+      },
       /* Get the notification level of the given message */
       getLevel: function(msg) {
         var mlvl = 'any';
@@ -3120,9 +3133,12 @@ this.Instant = function() {
           var icon = options.icon || ICON;
           var oncreate = options.oncreate || null;
           var onclick = options.onclick || null;
-          /* HACK: Firefox wrecks silently when an icon is
-           *       specified. :S */
-          if (/Firefox/.test(navigator.userAgent)) icon = null;
+          /* HACK: Firefox < 48 wrecked silently when an icon was
+           *       specified; 48 does still wreck except for data:
+           *       URI-s. */
+          var m = navigator.userAgent.match(/Firefox\/(\d+)/i);
+          if (m && (parseInt(m[1]) < 48 || ! /^data:/.test(icon)))
+            icon = null;
           /* Actually create notification */
           var ret = new Notification(title, {body: body,
             icon: icon});
@@ -3265,6 +3281,7 @@ this.Instant = function() {
                           $sel('.user-list-counter', main));
     Instant.title.init();
     Instant.title.favicon.init();
+    Instant.notifications.init();
     Instant.logs.pull.init($sel('.message-box', main));
     Instant.animation.init($sel('.message-box', main));
     Instant.animation.greeter.init(loadWrapper);
