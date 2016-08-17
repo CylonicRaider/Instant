@@ -55,14 +55,12 @@ public class MessageDistributor {
     private final Map<WebSocket, RoomDistributor> sockets;
     private final Map<WebSocket, String> connids;
     private final Map<String, WebSocket> revconnids;
-    private final UniqueCounter counter;
 
     public MessageDistributor() {
         rooms = new HashMap<String, RoomDistributor>();
         sockets = new HashMap<WebSocket, RoomDistributor>();
         connids = new HashMap<WebSocket, String>();
         revconnids = new HashMap<String, WebSocket>();
-        counter = new UniqueCounter();
     }
 
     public synchronized RoomDistributor get(String name) {
@@ -133,11 +131,11 @@ public class MessageDistributor {
         return revconnids.get(id);
     }
 
-    public String makeID() {
-        return counter.getString();
+    public static String makeID() {
+        return UniqueCounter.INSTANCE.getString();
     }
-    public UUID makeUUID() {
-        return counter.getUUID();
+    public static UUID makeUUID() {
+        return UniqueCounter.INSTANCE.getUUID();
     }
 
 }

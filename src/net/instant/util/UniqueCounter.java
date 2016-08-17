@@ -7,6 +7,8 @@ public class UniqueCounter {
     /* The UNIX epoch as a UUID timestamp */
     private static final long EPOCH_UUID = 122192928000000000L;
 
+    public static final UniqueCounter INSTANCE = new UniqueCounter();
+
     private long lastTime;
     private int sequence;
     private final long nodeID;
