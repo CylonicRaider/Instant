@@ -38,7 +38,7 @@ run: Instant-run.jar cookie-key.bin
 
 src/static/logo-static.svg: src/static/logo.svg
 	[ -f $@ ] && (touch $@; echo "Please update logo-static.svg") || \
-	    cp $< $@
+	cp $< $@
 src/static/logo-static_32x32.png: src/static/logo-static.svg
 	convert -background none $< $@
 src/static/logo-static_128x128.png: src/static/logo-static.svg
