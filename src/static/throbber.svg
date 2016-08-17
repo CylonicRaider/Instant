@@ -1,22 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
 <svg version="1.1" xmlns="http://www.w3.org/2000/svg" viewBox="0,0 16,16">
-    <g transform="translate(8,8)">
-        <g fill="none" stroke="black">
-            <circle r="6.5" stroke-width="1"/>
-            <path d="M 0,-6.5 A 6.5,6.5 0 0,1 0,6.5 A 6.5,6.5 0 0,1 0,-6.5 Z"
-                  stroke-dasharray="40.840704496667314 40.840704496667314"
-                  stroke-dashoffset="40.840704496667314" stroke-width="3">
-                <animate attributeName="stroke-dashoffset"
-                         attributeType="XML"
-                         dur="2s" repeatCount="indefinite"
-                         values="40.840704496667314; -40.840704496667314"
-                         calcMode="spline" keyTimes="0; 1"
-                         keySplines="0.5,0 0.5,1"/>
-                <animateTransform attributeName="transform"
-                                  attributeType="XML"
-                                  type="rotate" from="0" to="-360"
-                                  dur="15s" repeatCount="indefinite"/>
-            </path>
-        </g>
+    <g transform="translate(8,8)" fill="none" stroke="black">
+        <circle r="6.5" stroke-width="1"/>
+        <path d="M 0,-6.5 A 6.5,6.5 0 0,1 0,6.5 A 6.5,6.5 0 0,1 0,-6.5 Z"
+              stroke-dasharray="40.840704496667314 40.840704496667314"
+              stroke-dashoffset="40.840704496667314" stroke-width="3">
+            <animate attributeName="stroke-dashoffset"
+                     dur="2s" repeatCount="indefinite"
+                     values="40.840704496667314; -40.840704496667314"
+                     calcMode="spline" keyTimes="0; 1"
+                     keySplines="0.5,0 0.5,1"/>
+            <animateTransform attributeName="transform"
+                              type="rotate" from="0" to="-360"
+                              dur="15s" repeatCount="indefinite"/>
+        </path>
     </g>
 </svg>
