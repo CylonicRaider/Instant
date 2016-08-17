@@ -3312,44 +3312,44 @@ function init() {
   var isIE = /*@cc_on!@*/0;
   if (isIE) Instant.message.addReply({id: 'loading-1-ie', nick: 'Doom',
     text: '/me awaits IE users...'}, m);
-  /* Display "no connection" messages */
-  if (! Instant.connectionURL && false) {
-    var c = Instant.message.addReply({id: 'loading-2-conn',
+  /* "No connection" messages retained for historical significance */
+  /*var c = Instant.message.addReply({id: 'loading-2-conn',
       nick: 'Connection', text: '/me is missing.'}, m);
     Instant.message.addReply({id: 'loading-3-comment', nick: 'Loading',
       text: 'Prepare for a long wait...', parent: 'loading-2-conn'});
     Instant.message.addReply({id: 'loading-4-comment', nick: 'Loading',
       text: 'Or, try solving the issue somehow.', parent: 'loading-2-conn'});
+  */
+  /* Show room name, or none in local mode */
+  var nameNode = $sel('.room-name');
+  if (Instant.roomName) {
+    nameNode.textContent = '&' + Instant.roomName;
   } else {
-    /* Show room name, or none in local mode */
-    var nameNode = $sel('.room-name');
-    if (Instant.roomName) {
-      nameNode.textContent = '&' + Instant.roomName;
-    } else {
-      nameNode.innerHTML = '<i>local</i>';
-      $sel('.online-status').style.background = '#c0c0c0';
-      $sel('.online-status').title = 'Local';
-      /* Nothing is going to hide it, so we have to. */
-      Instant.animation.greeter.hide();
-    }
-    if (Instant.stagingLocation) {
-      var stagingNode = document.createElement('span');
-      stagingNode.className = 'staging';
-      stagingNode.textContent = ' (' + Instant.stagingLocation + ')';
-      nameNode.parentNode.insertBefore(stagingNode, nameNode.nextSibling);
-    }
-    /* Show main element */
-    main.style.opacity = '1';
-    /* Focus input bar if Escape pressed and not focused */
-    document.documentElement.addEventListener('keydown', function(event) {
-      if (event.keyCode == 27) { // Escape
-        if (Instant.settings.isVisible())
-          Instant.settings.hide();
-        Instant.input.focus();
-        event.preventDefault();
-      }
-    });
-    /* Fire up Instant! */
-    Instant.init(main, wrapper);
+    nameNode.innerHTML = '<i>local</i>';
+    $sel('.online-status').style.background = '#c0c0c0';
+    $sel('.online-status').title = 'Local';
+    $sel('.user-list').style.display = 'none';
+    $sel('.user-list-counter').style.display = 'none';
+    /* Nothing is going to hide it, so we have to. */
+    Instant.animation.greeter.hide();
   }
+  if (Instant.stagingLocation) {
+    var stagingNode = document.createElement('span');
+    stagingNode.className = 'staging';
+    stagingNode.textContent = ' (' + Instant.stagingLocation + ')';
+    nameNode.parentNode.insertBefore(stagingNode, nameNode.nextSibling);
+  }
+  /* Show main element */
+  main.style.opacity = '1';
+  /* Focus input bar if Escape pressed and not focused */
+  document.documentElement.addEventListener('keydown', function(event) {
+    if (event.keyCode == 27) { // Escape
+      if (Instant.settings.isVisible())
+        Instant.settings.hide();
+      Instant.input.focus();
+      event.preventDefault();
+    }
+  });
+  /* Fire up Instant! */
+  Instant.init(main, wrapper);
 }
