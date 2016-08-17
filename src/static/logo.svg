@@ -1,7 +1,5 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes"?>
-<svg version="1.1" baseProfile="full" xmlns="http://www.w3.org/2000/svg"
-     xmlns:xlink="http://www.w3.org/1999/xlink"
-     viewBox="0,0 32,32">
+<svg version="1.1" xmlns="http://www.w3.org/2000/svg" viewBox="0,0 32,32">
   <title>Instant</title>
   <defs>
     <clipPath id="inner-clip">
@@ -12,41 +10,33 @@
     <circle r="15" fill="white"/>
     <g clip-path="url(#inner-clip)">
       <rect x="-12" y="-12" width="4" height="4" fill="#ff0000">
-        <animate attributeName="opacity" attributeType="XML"
-                 dur="2s" repeatCount="indefinite"
+        <animate attributeName="opacity" dur="2s" repeatCount="indefinite"
                  values="1; 0; 0" keyTimes="0; 0.1875; 1"/>
       </rect>
       <rect x="-7" y="-10" width="4" height="4" fill="#e0e000">
-        <animate attributeName="opacity" attributeType="XML"
-                 dur="2s" repeatCount="indefinite"
+        <animate attributeName="opacity" dur="2s" repeatCount="indefinite"
                  values="0; 1; 0; 0" keyTimes="0; 0.1875; 0.375; 1"/>
       </rect>
       <rect x="-2" y="-6" width="4" height="4" fill="#00e000">
-        <animate attributeName="opacity" attributeType="XML"
-                 dur="2s" repeatCount="indefinite"
+        <animate attributeName="opacity" dur="2s" repeatCount="indefinite"
                  values="0; 0; 1; 0; 0"
                  keyTimes="0; 0.1875; 0.375; 0.5625; 1"/>
       </rect>
       <rect x="3" y="0" width="4" height="4" fill="#00e0e0">
-        <animate attributeName="opacity" attributeType="XML"
-                 dur="2s" repeatCount="indefinite"
+        <animate attributeName="opacity" dur="2s" repeatCount="indefinite"
                  values="0; 0; 1; 0; 0"
                  keyTimes="0; 0.375; 0.5625; 0.75; 1"/>
       </rect>
       <rect x="8" y="8" width="4" height="4" fill="#0000ff">
-        <animate attributeName="opacity" attributeType="XML"
-                 dur="2s" repeatCount="indefinite"
-                 values="0; 0; 1; 1"
-                 keyTimes="0; 0.5625; 0.75; 1"/>
-        <animate attributeName="fill" attributeType="XML"
-                 dur="2s" repeatCount="indefinite"
+        <animate attributeName="opacity" dur="2s" repeatCount="indefinite"
+                 values="0; 0; 1; 1" keyTimes="0; 0.5625; 0.75; 1"/>
+        <animate attributeName="fill" dur="2s" repeatCount="indefinite"
                  values="#0000ff; #0000ff; #ff0000; #ff0000"
                  keyTimes="0; 0.8125; 0.9375; 1"/>
       </rect>
-      <animateTransform attributeName="transform" attributeType="XML"
-                        type="rotate" dur="2s" repeatCount="indefinite"
-                        values="0; 0; 180" calcMode="spline"
-                        keyTimes="0; 0.75; 1"
+      <animateTransform attributeName="transform" type="rotate" dur="2s"
+                        repeatCount="indefinite" values="0; 0; 180"
+                        calcMode="spline" keyTimes="0; 0.75; 1"
                         keySplines="0,0 1,1; 0.5,0 0.5,1"/>
     </g>
     <circle r="15" stroke="black" stroke-width="2"/>

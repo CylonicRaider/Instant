@@ -42,8 +42,8 @@ src/static/logo-static.svg: src/static/logo.svg
 	cp $< $@
 src/static/logo-static_32x32.png: src/static/logo-static.svg
 	convert -background none $< $@
+# HACK: Apparently only way to make ImageMagick scale the SVG up.
 src/static/logo-static_128x128.png: src/static/logo-static.svg
-	# HACK: Apparently only way to make ImageMagick scale the SVG up.
 	convert -background none -density 288 $< $@
 src/static/logo-static_128x128.ico: src/static/logo-static.svg
 	convert -background none -density 288 $< $@
