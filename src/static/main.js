@@ -1252,6 +1252,7 @@ this.Instant = function() {
           $moveCh(Instant.message._getReplyNode(prev),
                   Instant.message.makeReplies(message));
           prev.parentNode.removeChild(prev);
+          Instant.input.update();
         }
         if (fake) delete fakeMessages[msgid];
         if (old) delete messages[msgid];
@@ -1619,6 +1620,12 @@ this.Instant = function() {
           }
         }
         Instant.input.jumpTo(message);
+      },
+      /* Ensure the input is still valid after a re-parenting */
+      update: function() {
+        var parent = Instant.message.getParentMessage(inputNode);
+        if (Instant.message.isMessage(parent))
+          parent.classList.add('input-host');
       },
       /* Move the input bar relative to its current position */
       navigate: function(direction) {
