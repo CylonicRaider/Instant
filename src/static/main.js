@@ -2826,7 +2826,7 @@ this.Instant = function() {
         /* Is the given message offscreen and a mention of the current
          * user? */
         function isUnreadMention(msg) {
-          return isUnread(msg) && msg.classList.contains('ping');
+          return (isUnread(msg) && msg.classList.contains('ping'));
         }
         return {
           /* Attach to a given DOM node */
@@ -2879,8 +2879,7 @@ this.Instant = function() {
           /* Clear the offscreen status for all visible messages */
           checkAll: function(msg) {
             if (Instant.title.isBlurred()) return;
-            if (! Instant.animation.offscreen.getUnreadAbove() &&
-                ! Instant.animation.offscreen.getUnreadBelow()) return;
+            if (! unreadAbove && ! unreadBelow) return;
             Instant.pane.getVisible(messageBox).forEach(function(msg) {
               Instant.animation.offscreen.clear(msg);
             });
@@ -2892,14 +2891,14 @@ this.Instant = function() {
               var docCmp = Instant.message.documentCmp.bind(Instant.message);
               var icmp = docCmp(msg, Instant.input.getNode());
               if (icmp < 0 && (! unreadAbove ||
-                  docCmp(unreadAbove, msg) < 0))
+                  docCmp(msg, unreadAbove) > 0))
                 unreadAbove = msg;
               if (icmp > 0 && (! unreadBelow ||
                   docCmp(msg, unreadBelow) < 0))
                 unreadBelow = msg;
               if (msg.classList.contains('ping')) {
                 if (icmp < 0 && (! mentionAbove ||
-                    docCmp(mentionAbove, msg) < 0))
+                    docCmp(msg, mentionAbove) > 0))
                   mentionAbove = msg;
                 if (icmp > 0 && (! mentionBelow ||
                     docCmp(msg, mentionBelow) < 0))
