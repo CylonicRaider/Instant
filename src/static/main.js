@@ -2883,7 +2883,7 @@ this.Instant = function() {
                 ! Instant.animation.offscreen.getUnreadBelow()) return;
             Instant.pane.getVisible(messageBox).forEach(function(msg) {
               Instant.animation.offscreen.clear(msg);
-            })
+            });
           },
           /* Mark the message as offscreen */
           set: function(msg) {
