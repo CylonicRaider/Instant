@@ -1,5 +1,6 @@
 package net.instant.api;
 
+import java.util.List;
 import org.java_websocket.WebSocket;
 
 /**
@@ -33,6 +34,12 @@ public interface RequestResponseData extends RequestData {
      * To check for a header's presence, null-check the return value.
      */
     String getResponseHeader(String name);
+
+    /**
+     * A list of cookies sumbitted to the client.
+     * Includes those of all plugins and the core.
+     */
+    List<Cookie> getResponseCookies();
 
     /**
      * The data channel to the client.

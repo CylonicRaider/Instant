@@ -1,6 +1,7 @@
 package net.instant.api;
 
 import java.net.InetSocketAddress;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -64,6 +65,13 @@ public interface RequestData {
      * To check for a header's presence, null-check the return value.
      */
     String getHeader(String name);
+
+    /**
+     * Return a list of all cookies submitted with the request.
+     * Since the Cookie HTTP header does only transmit key-value pairs,
+     * metadata may have to be amended when sending the cookie back.
+     */
+    List<Cookie> getCookies();
 
     /**
      * Additional meta-data about the request.

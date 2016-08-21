@@ -20,6 +20,18 @@ public interface Room {
     Set<RequestResponseData> getClients();
 
     /**
+     * Send a message to a single client.
+     * Returns the ID of the message as filled in by the core.
+     */
+    String sendUnicast(RequestResponseData client, MessageContents msg);
+
+    /**
+     * Send a message to all room members.
+     * Returns the ID of the message as filled in by the core.
+     */
+    String sendBroadcast(MessageContents msg);
+
+    /**
      * The (global) group the room belongs to.
      */
     RoomGroup getGroup();
