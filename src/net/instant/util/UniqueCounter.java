@@ -34,7 +34,12 @@ public class UniqueCounter {
      */
     public synchronized long get() {
         long curTime = System.currentTimeMillis();
-        sequence = (curTime != lastTime) ? 0 : (sequence + 1) & 0x3FF;
+        if (curTime != lastTime) {
+            sequence = (sequence > 0x400) ? sequence - 0x400 : 0;
+        } else {
+            /* Intentionally overflowing */
+            sequence++;
+        }
         lastTime = curTime;
         return curTime << 10 | sequence;
     }

@@ -59,4 +59,11 @@ public interface API1 {
      */
     void addSiteCode(String code);
 
+    /**
+     * Obtain a unique ID generator.
+     * ID-s are time-based and guaranteed to be unique for the lifetime of
+     * a backend.
+     */
+    Counter getCounter();
+
 }
