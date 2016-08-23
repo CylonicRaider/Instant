@@ -14,7 +14,8 @@ import org.json.JSONObject;
 
 public class CookieHandler {
 
-    public class Cookie extends LinkedHashMap<String, String> {
+    public class Cookie extends LinkedHashMap<String, String>
+            implements net.instant.api.Cookie {
 
         private final String name;
         private String value;
@@ -30,6 +31,10 @@ public class CookieHandler {
         public Cookie(Cookie other) {
             this(other.getName(), other.getValue());
             putAll(other);
+        }
+
+        public Cookie copy() {
+            return new Cookie(this);
         }
 
         public String getName() {

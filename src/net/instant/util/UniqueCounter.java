@@ -1,8 +1,9 @@
 package net.instant.util;
 
 import java.util.UUID;
+import net.instant.api.Counter;
 
-public class UniqueCounter {
+public class UniqueCounter implements Counter {
 
     /* The UNIX epoch as a UUID timestamp */
     private static final long EPOCH_UUID = 122192928000000000L;
