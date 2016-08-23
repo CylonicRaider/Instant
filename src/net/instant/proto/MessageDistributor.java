@@ -8,6 +8,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import net.instant.api.Room;
+import net.instant.api.RoomGroup;
 import net.instant.util.UniqueCounter;
 import org.java_websocket.WebSocket;
 

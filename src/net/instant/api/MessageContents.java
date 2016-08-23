@@ -64,7 +64,7 @@ public interface MessageContents {
      * Message UNIX timestamp.
      * Filled in by the core; should normally not be changed.
      */
-    Long getTimestamp();
-    void setTimestamp(Long ts);
+    long getTimestamp();
+    void setTimestamp(long ts);
 
 }

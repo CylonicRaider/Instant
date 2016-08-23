@@ -1,9 +1,10 @@
 package net.instant.proto;
 
+import net.instant.api.MessageContents;
 import net.instant.util.Util;
 import org.json.JSONObject;
 
-public class Message {
+public class Message implements MessageContents {
 
     private String id;
     private long timestamp;
@@ -43,6 +44,12 @@ public class Message {
         this.id = id;
         return this;
     }
+    public String getID() {
+        return id;
+    }
+    public void setID(String id) {
+        this.id = id;
+    }
 
     public long timestamp() {
         return timestamp;
@@ -50,6 +57,12 @@ public class Message {
     public Message timestamp(long timestamp) {
         this.timestamp = timestamp;
         return this;
+    }
+    public long getTimestamp() {
+        return timestamp;
+    }
+    public void setTimestamp(long timestamp) {
+        this.timestamp = timestamp;
     }
 
     public String type() {
@@ -59,6 +72,12 @@ public class Message {
         this.type = type;
         return this;
     }
+    public String getType() {
+        return type;
+    }
+    public void setType(String type) {
+        this.type = type;
+    }
 
     public String from() {
         return from;
@@ -66,6 +85,12 @@ public class Message {
     public Message from(String from) {
         this.from = from;
         return this;
+    }
+    public String getFrom() {
+        return from;
+    }
+    public void setFrom(String from) {
+        this.from = from;
     }
 
     public String to() {
@@ -75,6 +100,12 @@ public class Message {
         this.to = to;
         return this;
     }
+    public String getTo() {
+        return to;
+    }
+    public void setTo(String to) {
+        this.to = to;
+    }
 
     public Object seq() {
         return seq;
@@ -83,6 +114,12 @@ public class Message {
         this.seq = seq;
         return this;
     }
+    public Object getSequence() {
+        return seq;
+    }
+    public void setSequence(Object seq) {
+        this.seq = seq;
+    }
 
     public Object data() {
         return data;
@@ -90,6 +127,12 @@ public class Message {
     public Message data(Object data) {
         this.data = data;
         return this;
+    }
+    public Object getData() {
+        return data;
+    }
+    public void setData(Object data) {
+        this.data = data;
     }
 
     public Message makeData(Object... data) {
