@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import net.instant.api.MessageContents;
 import net.instant.api.Room;
 import net.instant.api.RoomGroup;
 import net.instant.util.UniqueCounter;
@@ -47,8 +48,8 @@ public class MessageDistributor {
                 c.send(message);
             }
         }
-        public void broadcast(Message message) {
-            broadcast(message.makeString());
+        public void broadcast(MessageContents message) {
+            broadcast(message.toString());
         }
 
     }

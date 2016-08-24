@@ -22,6 +22,10 @@ public class Message implements MessageContents {
         this(null);
     }
 
+    public String toString() {
+        return makeString();
+    }
+
     public JSONObject makeObject() {
         JSONObject ret = new JSONObject();
         if (id   != null) ret.put("id",   id  );

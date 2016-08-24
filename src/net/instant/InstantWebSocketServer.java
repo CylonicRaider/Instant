@@ -10,8 +10,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Logger;
-import net.instant.InformationCollector;
 import net.instant.Main;
+import net.instant.info.Datum;
+import net.instant.info.InformationCollector;
 import net.instant.util.Util;
 import net.instant.ws.Draft_Raw;
 import net.instant.ws.DraftWrapper;
@@ -71,12 +72,12 @@ public class InstantWebSocketServer extends WebSocketServer
                                 boolean guess);
 
         void postProcessRequest(InstantWebSocketServer parent,
-                                InformationCollector.Datum info,
+                                Datum info,
                                 ClientHandshake request,
                                 ServerHandshakeBuilder response,
                                 Handshakedata eff_resp);
 
-        void onOpen(InformationCollector.Datum info,
+        void onOpen(Datum info,
                     WebSocket conn, ClientHandshake handshake);
         void onClose(WebSocket conn, int code, String reason,
                      boolean remote);
@@ -87,7 +88,7 @@ public class InstantWebSocketServer extends WebSocketServer
     }
 
     private final List<Hook> hooks;
-    private final Map<InformationCollector.Datum, Hook> queuedAssignments;
+    private final Map<Datum, Hook> queuedAssignments;
     private final Map<WebSocket, Hook> assignments;
     private InformationCollector collector;
 
@@ -95,7 +96,7 @@ public class InstantWebSocketServer extends WebSocketServer
         super(addr, wrapDrafts(DEFAULT_DRAFTS));
         hooks = Collections.synchronizedList(new ArrayList<Hook>());
         queuedAssignments = Collections.synchronizedMap(
-            new HashMap<InformationCollector.Datum, Hook>());
+            new HashMap<Datum, Hook>());
         assignments = Collections.synchronizedMap(
             new HashMap<WebSocket, Hook>());
         collector = new InformationCollector(this);
@@ -141,7 +142,7 @@ public class InstantWebSocketServer extends WebSocketServer
     }
 
     public void onOpen(WebSocket conn, ClientHandshake handshake) {
-        InformationCollector.Datum info = collector.pop(handshake);
+        Datum info = collector.pop(handshake);
         Hook h = clearAssignment(info);
         if (h != null) {
             assign(conn, h);
@@ -216,7 +217,7 @@ public class InstantWebSocketServer extends WebSocketServer
     public void postProcessRequest(ClientHandshake request,
                                    ServerHandshakeBuilder response,
                                    Handshakedata eff_resp) {
-        InformationCollector.Datum info = collector.get(request);
+        Datum info = collector.get(request);
         response.put("Server", "Instant/" + Main.VERSION);
         byte[] rand = Util.getRandomness(16);
         response.put("X-Magic-Cookie", '"' + Util.toBase64(rand) + '"');
@@ -249,26 +250,26 @@ public class InstantWebSocketServer extends WebSocketServer
         return ret;
     }
 
-    public void assign(InformationCollector.Datum info, Hook hook) {
+    public void assign(Datum info, Hook hook) {
         queuedAssignments.put(info, hook);
     }
     protected void assign(WebSocket conn, Hook hook) {
         assignments.put(conn, hook);
     }
-    public Hook getAssignment(InformationCollector.Datum info) {
+    public Hook getAssignment(Datum info) {
         return queuedAssignments.get(info);
     }
     public Hook getAssignment(WebSocket conn) {
         return assignments.get(conn);
     }
-    public Hook clearAssignment(InformationCollector.Datum info) {
+    public Hook clearAssignment(Datum info) {
         return queuedAssignments.remove(info);
     }
     public Hook clearAssignment(WebSocket conn) {
         return assignments.remove(conn);
     }
 
-    public static Draft getEffectiveDraft(InformationCollector.Datum i) {
+    public static Draft getEffectiveDraft(Datum i) {
         Draft d = i.getDraft();
         while (d instanceof DraftWrapper) {
             d = ((DraftWrapper) d).getWrapped();

@@ -1,7 +1,8 @@
 package net.instant.hooks;
 
-import net.instant.InformationCollector;
 import net.instant.InstantWebSocketServer;
+import net.instant.info.Datum;
+import net.instant.info.InformationCollector;
 import net.instant.ws.Draft_Raw;
 import org.java_websocket.WebSocket;
 import org.java_websocket.handshake.ClientHandshake;
@@ -17,7 +18,7 @@ public class Error404Hook extends HookAdapter {
     }
 
     public void postProcessRequest(InstantWebSocketServer parent,
-                                   InformationCollector.Datum info,
+                                   Datum info,
                                    ClientHandshake request,
                                    ServerHandshakeBuilder response,
                                    Handshakedata eff_resp) {
@@ -28,8 +29,8 @@ public class Error404Hook extends HookAdapter {
         parent.assign(info, this);
     }
 
-    public void onOpen(InformationCollector.Datum info,
-                       WebSocket conn, ClientHandshake handshake) {
+    public void onOpen(Datum info, WebSocket conn,
+                       ClientHandshake handshake) {
         conn.send(RESPONSE);
         conn.close();
     }

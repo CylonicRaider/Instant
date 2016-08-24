@@ -121,8 +121,8 @@ public class CookieHandler {
     public Cookie make(String name, String value) {
         return new Cookie(name, value);
     }
-    public Cookie make(Cookie base) {
-        return new Cookie(base);
+    public Cookie make(String name, JSONObject data) {
+        return new Cookie(name, encodeCookieContent(data));
     }
 
     public JSONObject parseCookieContent(String value) {

@@ -5,9 +5,10 @@ import java.util.Calendar;
 import java.util.List;
 import java.util.UUID;
 import java.util.regex.Pattern;
-import net.instant.InformationCollector;
 import net.instant.InstantWebSocketServer;
 import net.instant.Main;
+import net.instant.info.Datum;
+import net.instant.info.InformationCollector;
 import net.instant.proto.Message;
 import net.instant.proto.MessageDistributor;
 import net.instant.proto.ProtocolError;
@@ -55,7 +56,7 @@ public class RoomWebSocketHook extends WebSocketHook {
     }
 
     protected void postProcessRequestInner(InstantWebSocketServer parent,
-                                           InformationCollector.Datum info,
+                                           Datum info,
                                            ClientHandshake request,
                                            ServerHandshakeBuilder response,
                                            Handshakedata eff_resp) {
@@ -93,8 +94,8 @@ public class RoomWebSocketHook extends WebSocketHook {
         handler.set(response, cookie);
     }
 
-    public void onOpen(InformationCollector.Datum info,
-                       WebSocket conn, ClientHandshake handshake) {
+    public void onOpen(Datum info, WebSocket conn,
+                       ClientHandshake handshake) {
         String url = handshake.getResourceDescriptor();
         if (! url.substring(0, ROOM_PREF.length()).equals(ROOM_PREF))
             return;

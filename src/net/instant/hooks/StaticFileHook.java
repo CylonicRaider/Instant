@@ -8,8 +8,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import net.instant.InformationCollector;
 import net.instant.InstantWebSocketServer;
+import net.instant.info.Datum;
+import net.instant.info.InformationCollector;
 import net.instant.util.fileprod.FileCell;
 import net.instant.util.fileprod.FileProducer;
 import net.instant.util.fileprod.ProducerJob;
@@ -23,10 +24,10 @@ public class StaticFileHook extends HookAdapter {
 
     private static class Callback implements ProducerJob.Callback {
 
-        private final InformationCollector.Datum datum;
+        private final Datum datum;
         private final WebSocket conn;
 
-        public Callback(InformationCollector.Datum datum, WebSocket conn) {
+        public Callback(Datum datum, WebSocket conn) {
             this.datum = datum;
             this.conn = conn;
         }
@@ -84,14 +85,14 @@ public class StaticFileHook extends HookAdapter {
 
     private final List<ContentTypeMatcher> matchers;
     private final List<AliasMatcher> aliases;
-    private final Map<InformationCollector.Datum, String> running;
+    private final Map<Datum, String> running;
     private FileProducer producer;
 
     public StaticFileHook(FileProducer p) {
         producer = p;
         matchers = new ArrayList<ContentTypeMatcher>();
         aliases = new ArrayList<AliasMatcher>();
-        running = new HashMap<InformationCollector.Datum, String>();
+        running = new HashMap<Datum, String>();
     }
     public StaticFileHook() {
         this(null);
@@ -135,7 +136,7 @@ public class StaticFileHook extends HookAdapter {
     }
 
     public void postProcessRequest(InstantWebSocketServer parent,
-                                   InformationCollector.Datum info,
+                                   Datum info,
                                    ClientHandshake request,
                                    ServerHandshakeBuilder response,
                                    Handshakedata eff_resp) {
@@ -148,7 +149,7 @@ public class StaticFileHook extends HookAdapter {
     }
 
     public boolean processAs(InstantWebSocketServer parent,
-                             InformationCollector.Datum info,
+                             Datum info,
                              ClientHandshake request,
                              ServerHandshakeBuilder response,
                              String urls) {
@@ -163,7 +164,7 @@ public class StaticFileHook extends HookAdapter {
     }
 
     public boolean processAsEx(InstantWebSocketServer parent,
-                               InformationCollector.Datum info,
+                               Datum info,
                                ClientHandshake request,
                                ServerHandshakeBuilder response,
                                String url) {
@@ -203,7 +204,7 @@ public class StaticFileHook extends HookAdapter {
         return true;
     }
 
-    public void onOpen(InformationCollector.Datum info,
+    public void onOpen(Datum info,
                        WebSocket conn, ClientHandshake handshake) {
         String url = running.remove(info);
         if (url == null) url = info.getURL();
@@ -216,7 +217,7 @@ public class StaticFileHook extends HookAdapter {
         if (cell != null) write(info, conn, cell);
     }
 
-    private static void write(InformationCollector.Datum info,
+    private static void write(Datum info,
                               WebSocket conn, FileCell cell) {
         ByteBuffer data = (cell == null) ? null : cell.getData();
         if (data != null && info.getCode() != 304) {

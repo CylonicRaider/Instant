@@ -3,8 +3,9 @@ package net.instant.hooks;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Pattern;
-import net.instant.InformationCollector;
 import net.instant.InstantWebSocketServer;
+import net.instant.info.Datum;
+import net.instant.info.InformationCollector;
 import net.instant.util.Util;
 import net.instant.ws.Draft_Raw;
 import org.java_websocket.WebSocket;
@@ -38,7 +39,7 @@ public class WebSocketHook extends HookAdapter {
     }
 
     public void postProcessRequest(InstantWebSocketServer parent,
-                                   InformationCollector.Datum info,
+                                   Datum info,
                                    ClientHandshake request,
                                    ServerHandshakeBuilder response,
                                    Handshakedata eff_resp) {
@@ -51,7 +52,7 @@ public class WebSocketHook extends HookAdapter {
     }
 
     protected void postProcessRequestInner(InstantWebSocketServer parent,
-                                           InformationCollector.Datum info,
+                                           Datum info,
                                            ClientHandshake request,
                                            ServerHandshakeBuilder response,
                                            Handshakedata eff_resp) {}
