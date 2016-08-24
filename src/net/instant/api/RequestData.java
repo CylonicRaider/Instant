@@ -55,16 +55,10 @@ public interface RequestData {
     String getUserAgent();
 
     /**
-     * An array of HTTP request header names.
+     * A read-only mapping of HTTP request headers.
      * Repeated headers are not supported.
      */
-    String[] listHeaders();
-
-    /**
-     * The value of the header with the given name, or null if none.
-     * To check for a header's presence, null-check the return value.
-     */
-    String getHeader(String name);
+    Map<String, String> getHeaders();
 
     /**
      * Return a list of all cookies submitted with the request.

@@ -1,6 +1,7 @@
 package net.instant.api;
 
 import java.util.List;
+import java.util.Map;
 import org.java_websocket.WebSocket;
 
 /**
@@ -24,16 +25,10 @@ public interface RequestResponseData extends RequestData {
     long getResponseLength();
 
     /**
-     * An array of response header names.
-     * Multiple headers are not supported.
+     * A read-only mapping of response headers.
+     * Multiple values per name are not supported.
      */
-    String[] listResponseHeaders();
-
-    /**
-     * The value of the response header with the given name, or null if none.
-     * To check for a header's presence, null-check the return value.
-     */
-    String getResponseHeader(String name);
+    Map<String, String> getResponseHeaders();
 
     /**
      * A list of cookies sumbitted to the client.
