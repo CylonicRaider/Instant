@@ -6,6 +6,7 @@ import java.util.regex.Pattern;
 import net.instant.InstantWebSocketServer;
 import net.instant.info.Datum;
 import net.instant.info.InformationCollector;
+import net.instant.info.RequestInfo;
 import net.instant.util.Util;
 import net.instant.ws.Draft_Raw;
 import org.java_websocket.WebSocket;
@@ -39,22 +40,17 @@ public class WebSocketHook extends HookAdapter {
     }
 
     public void postProcessRequest(InstantWebSocketServer parent,
-                                   Datum info,
-                                   ClientHandshake request,
-                                   ServerHandshakeBuilder response,
+                                   RequestInfo info,
                                    Handshakedata eff_resp) {
         if (parent.getEffectiveDraft(info) instanceof Draft_Raw) return;
-        info.setResponseInfo(response, (short) 101, "Switching Protocols",
-                             -1);
-        response.put("Content-Type", "application/x-websocket");
-        postProcessRequestInner(parent, info, request, response, eff_resp);
+        info.respond(101, "Switching Protocols", -1);
+        info.putHeader("Content-Type", "application/x-websocket");
+        postProcessRequestInner(parent, info, eff_resp);
         parent.assign(info, this);
     }
 
     protected void postProcessRequestInner(InstantWebSocketServer parent,
-                                           Datum info,
-                                           ClientHandshake request,
-                                           ServerHandshakeBuilder response,
+                                           RequestInfo info,
                                            Handshakedata eff_resp) {}
 
 }

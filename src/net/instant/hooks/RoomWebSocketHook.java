@@ -7,8 +7,11 @@ import java.util.UUID;
 import java.util.regex.Pattern;
 import net.instant.InstantWebSocketServer;
 import net.instant.Main;
+import net.instant.api.RequestResponseData;
+import net.instant.api.Room;
 import net.instant.info.Datum;
 import net.instant.info.InformationCollector;
+import net.instant.info.RequestInfo;
 import net.instant.proto.Message;
 import net.instant.proto.MessageDistributor;
 import net.instant.proto.ProtocolError;
@@ -27,15 +30,8 @@ public class RoomWebSocketHook extends WebSocketHook {
     public static final String ROOM_PREF = "/room/";
     public static final String ROOM_POSTF = "/ws";
     public static final String COOKIE_NAME = "uid";
-    public static final boolean INSECURE_COOKIES;
-
-    static {
-        INSECURE_COOKIES = (
-            Util.getConfiguration("instant.cookies.insecure") != null);
-    }
 
     private MessageDistributor distr;
-    private CookieHandler handler;
 
     public RoomWebSocketHook() {
         whitelist(ROOM_PREF + Main.ROOM_RE + ROOM_POSTF);
@@ -48,18 +44,12 @@ public class RoomWebSocketHook extends WebSocketHook {
         distr = md;
     }
 
-    public CookieHandler getCookieHandler() {
-        return handler;
-    }
-    public void setCookieHandler(CookieHandler h) {
-        handler = h;
-    }
-
     protected void postProcessRequestInner(InstantWebSocketServer parent,
                                            Datum info,
                                            ClientHandshake request,
                                            ServerHandshakeBuilder response,
                                            Handshakedata eff_resp) {
+        CookieHandler handler = parent.getCookieHandler();
         if (handler == null) return;
         List<CookieHandler.Cookie> l = handler.get(request);
         CookieHandler.Cookie cookie = null;
@@ -90,12 +80,13 @@ public class RoomWebSocketHook extends WebSocketHook {
         Calendar expiry = Calendar.getInstance();
         expiry.add(Calendar.YEAR, 2);
         cookie.put("Expires", Util.formatHttpTime(expiry));
-        if (! INSECURE_COOKIES) cookie.put("Secure", null);
+        if (! InstantWebSocketServer.INSECURE_COOKIES)
+            cookie.put("Secure", null);
         handler.set(response, cookie);
     }
 
-    public void onOpen(Datum info, WebSocket conn,
-                       ClientHandshake handshake) {
+    public void onOpen(RequestInfo info, ClientHandshake handshake) {
+        WebSocket conn = info.getConnection();
         String url = handshake.getResourceDescriptor();
         if (! url.substring(0, ROOM_PREF.length()).equals(ROOM_PREF))
             return;
@@ -104,17 +95,18 @@ public class RoomWebSocketHook extends WebSocketHook {
             return;
         String name = url.substring(ROOM_PREF.length(), cutoff);
         String id = distr.makeID();
-        UUID uuid = (UUID) info.getExtra().get("uuid");
-        info.getExtra().put("id", id);
+        UUID uuid = (UUID) info.getExtraData().get("uuid");
+        info.getExtraData().put("id", id);
         conn.send(new Message("identity").makeData("id", id, "uuid", uuid,
             "version", Main.VERSION,
             "revision", Main.FINE_VERSION).makeString());
-        distr.add(name, conn, id);
-        distr.get(conn).broadcast(prepare("joined").makeData("id", id,
+        distr.add(name, info, id);
+        distr.get(info).broadcast(prepare("joined").makeData("id", id,
             "uuid", uuid));
     }
 
-    public void onMessage(WebSocket conn, String message) {
+    public void onMessage(RequestInfo info, String message) {
+        WebSocket conn = info.getConnection();
         JSONObject data;
         try {
             data = new JSONObject(message);
@@ -131,7 +123,7 @@ public class RoomWebSocketHook extends WebSocketHook {
         }
         Object seq = data.opt("seq");
         Object d = data.opt("data");
-        String from = distr.connectionID(conn);
+        String from = distr.connectionID(info);
         if ("ping".equals(type)) {
             conn.send(new Message("pong").seq(seq).data(d).makeString());
         } else if ("unicast".equals(type)) {
@@ -139,7 +131,7 @@ public class RoomWebSocketHook extends WebSocketHook {
              * uninitialized, but if statements are exempt from
              * it... :( */
             String to = null;
-            WebSocket target;
+            RequestResponseData target;
             try {
                 to = data.getString("to");
                 target = distr.connection(to);
@@ -156,24 +148,24 @@ public class RoomWebSocketHook extends WebSocketHook {
             msg.from(from).to(to).data(d);
             conn.send(new Message("reply").seq(seq).makeData("id",
                 msg.id(), "type", "unicast").makeString());
-            target.send(msg.makeString());
+            target.getConnection().send(msg.makeString());
         } else if ("broadcast".equals(type)) {
             Message msg = prepare("broadcast");
             msg.from(from).data(d);
             conn.send(new Message("reply").seq(seq).makeData("id",
                 msg.id(), "type", "broadcast").makeString());
-            distr.get(conn).broadcast(msg);
+            distr.get(info).broadcast(msg);
         } else {
             sendError(conn, ProtocolError.INVALID_TYPE);
         }
     }
 
-    public void onClose(WebSocket conn, int code, String reason,
+    public void onClose(RequestInfo info, int code, String reason,
                         boolean remote) {
-        MessageDistributor.RoomDistributor room = distr.get(conn);
-        String id = distr.connectionID(conn);
-        distr.remove(conn);
-        room.broadcast(prepare("left").makeData("id", id));
+        Room room = distr.getRoom(info);
+        String id = distr.connectionID(info);
+        distr.remove(info);
+        room.sendBroadcast(prepare("left").makeData("id", id));
     }
 
     public Message prepare(String type) {

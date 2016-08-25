@@ -40,6 +40,12 @@ public class RequestInfo implements RequestResponseData, ResponseBuilder {
     public Datum getBase() {
         return base;
     }
+    public ClientHandshake getClientData() {
+        return client;
+    }
+    public ServerHandshakeBuilder getServerData() {
+        return server;
+    }
 
     public InetSocketAddress getAddress() {
         return base.getSourceAddress();
@@ -124,7 +130,7 @@ public class RequestInfo implements RequestResponseData, ResponseBuilder {
     }
 
     public void respond(int code, String message, long length) {
-        base.setResponseInfo((short) code, message, length);
+        base.setResponseInfo(server, (short) code, message, length);
     }
 
     public void putHeader(String name, String content) {

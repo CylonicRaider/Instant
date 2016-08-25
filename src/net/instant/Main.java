@@ -126,7 +126,7 @@ public class Main implements Runnable {
             signer = StringSigner.getInstance(new File(signaturePath));
         if (signer == null)
             signer = StringSigner.getInstance(Util.getRandomness(64));
-        rws.setCookieHandler(new CookieHandler(signer));
+        getServer().setCookieHandler(new CookieHandler(signer));
         getServer().addHook(rws);
         getServer().addHook(new RedirectHook("/room/(" + ROOM_RE + ")",
             "/room/\\1/"));

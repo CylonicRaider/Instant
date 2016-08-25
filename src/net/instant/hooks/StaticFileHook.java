@@ -11,6 +11,7 @@ import java.util.regex.Pattern;
 import net.instant.InstantWebSocketServer;
 import net.instant.info.Datum;
 import net.instant.info.InformationCollector;
+import net.instant.info.RequestInfo;
 import net.instant.util.fileprod.FileCell;
 import net.instant.util.fileprod.FileProducer;
 import net.instant.util.fileprod.ProducerJob;
@@ -24,16 +25,14 @@ public class StaticFileHook extends HookAdapter {
 
     private static class Callback implements ProducerJob.Callback {
 
-        private final Datum datum;
-        private final WebSocket conn;
+        private final RequestInfo info;
 
-        public Callback(Datum datum, WebSocket conn) {
-            this.datum = datum;
-            this.conn = conn;
+        public Callback(RequestInfo info) {
+            this.info = info;
         }
 
         public void fileProduced(String name, FileCell cell) {
-            write(datum, conn, cell);
+            write(info, cell);
         }
 
     }
@@ -85,14 +84,14 @@ public class StaticFileHook extends HookAdapter {
 
     private final List<ContentTypeMatcher> matchers;
     private final List<AliasMatcher> aliases;
-    private final Map<Datum, String> running;
+    private final Map<RequestInfo, String> running;
     private FileProducer producer;
 
     public StaticFileHook(FileProducer p) {
         producer = p;
         matchers = new ArrayList<ContentTypeMatcher>();
         aliases = new ArrayList<AliasMatcher>();
-        running = new HashMap<Datum, String>();
+        running = new HashMap<RequestInfo, String>();
     }
     public StaticFileHook() {
         this(null);
@@ -136,22 +135,17 @@ public class StaticFileHook extends HookAdapter {
     }
 
     public void postProcessRequest(InstantWebSocketServer parent,
-                                   Datum info,
-                                   ClientHandshake request,
-                                   ServerHandshakeBuilder response,
+                                   RequestInfo info,
                                    Handshakedata eff_resp) {
         if (getProducer() == null) return;
         if (! (parent.getEffectiveDraft(info) instanceof Draft_Raw)) return;
-        if (! "GET".equals(info.getMethod())) return;
-        String path = request.getResourceDescriptor().replaceFirst("\\?.*$",
-                                                                   "");
-        processAs(parent, info, request, response, path);
+        if (! "GET".equals(info.getBase().getMethod())) return;
+        String path = info.getBase().getURL().replaceFirst("\\?.*$", "");
+        processAs(parent, info, path);
     }
 
     public boolean processAs(InstantWebSocketServer parent,
-                             Datum info,
-                             ClientHandshake request,
-                             ServerHandshakeBuilder response,
+                             RequestInfo info,
                              String urls) {
         for (AliasMatcher m : aliases) {
             String r = m.match(urls);
@@ -160,14 +154,11 @@ public class StaticFileHook extends HookAdapter {
                 break;
             }
         }
-        return processAsEx(parent, info, request, response, urls);
+        return processAsEx(parent, info, urls);
     }
 
     public boolean processAsEx(InstantWebSocketServer parent,
-                               Datum info,
-                               ClientHandshake request,
-                               ServerHandshakeBuilder response,
-                               String url) {
+                               RequestInfo info, String url) {
         FileCell cell;
         long size = -1;
         try {
@@ -179,7 +170,7 @@ public class StaticFileHook extends HookAdapter {
         for (ContentTypeMatcher m : matchers) {
             String tp = m.match(url);
             if (tp != null) {
-                response.put("Content-Type", tp);
+                info.putHeader("Content-Type", tp);
                 break;
             }
         }
@@ -188,42 +179,41 @@ public class StaticFileHook extends HookAdapter {
             String etag = cell.getETag();
             if (etag != null) {
                 String fullETag = "w/\"" + etag + '"';
-                response.put("Cache-Control", "public, max-age=600");
-                response.put("ETag", fullETag);
-                String ifNoneMatch = request.getFieldValue("If-None-Match");
+                info.putHeader("Cache-Control", "public, max-age=600");
+                info.putHeader("ETag", fullETag);
+                String ifNoneMatch =
+                    info.getClientData().getFieldValue("If-None-Match");
                 if (ifNoneMatch.equals(fullETag)) cached = true;
             }
         }
         if (cached) {
-            info.setResponseInfo(response, (short) 304, "Not Modified", -1);
+            info.respond(304, "Not Modified", -1);
         } else {
-            info.setResponseInfo(response, (short) 200, "OK", size);
+            info.respond(200, "OK", size);
         }
         running.put(info, url);
         parent.assign(info, this);
         return true;
     }
 
-    public void onOpen(Datum info,
-                       WebSocket conn, ClientHandshake handshake) {
+    public void onOpen(RequestInfo info, ClientHandshake handshake) {
         String url = running.remove(info);
-        if (url == null) url = info.getURL();
+        if (url == null) url = info.getBase().getURL();
         FileCell cell;
         try {
-            cell = getProducer().get(url, new Callback(info, conn));
+            cell = getProducer().get(url, new Callback(info));
         } catch (FileNotFoundException exc) {
             cell = null;
         }
-        if (cell != null) write(info, conn, cell);
+        if (cell != null) write(info, cell);
     }
 
-    private static void write(Datum info,
-                              WebSocket conn, FileCell cell) {
+    private static void write(RequestInfo info, FileCell cell) {
         ByteBuffer data = (cell == null) ? null : cell.getData();
-        if (data != null && info.getCode() != 304) {
-            conn.send(data);
+        if (data != null && info.getBase().getCode() != 304) {
+            info.getConnection().send(data);
         }
-        conn.close();
+        info.getConnection().close();
     }
 
 }

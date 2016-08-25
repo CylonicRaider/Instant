@@ -11,8 +11,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.logging.Logger;
 import net.instant.Main;
+import net.instant.hooks.CookieHandler;
 import net.instant.info.Datum;
 import net.instant.info.InformationCollector;
+import net.instant.info.RequestInfo;
 import net.instant.util.Util;
 import net.instant.ws.Draft_Raw;
 import net.instant.ws.DraftWrapper;
@@ -57,6 +59,7 @@ public class InstantWebSocketServer extends WebSocketServer
     }
 
     public static final List<Draft> DEFAULT_DRAFTS;
+
     static {
         List<Draft> l =  new ArrayList<Draft>();
         l.add(new Draft_Raw());
@@ -72,33 +75,38 @@ public class InstantWebSocketServer extends WebSocketServer
                                 boolean guess);
 
         void postProcessRequest(InstantWebSocketServer parent,
-                                Datum info,
-                                ClientHandshake request,
-                                ServerHandshakeBuilder response,
+                                RequestInfo info,
                                 Handshakedata eff_resp);
 
-        void onOpen(Datum info,
-                    WebSocket conn, ClientHandshake handshake);
-        void onClose(WebSocket conn, int code, String reason,
+        void onOpen(RequestInfo info, ClientHandshake handshake);
+        void onClose(RequestInfo info, int code, String reason,
                      boolean remote);
-        void onMessage(WebSocket conn, String message);
-        void onMessage(WebSocket conn, ByteBuffer message);
-        void onError(WebSocket conn, Exception ex);
+        void onMessage(RequestInfo info, String message);
+        void onMessage(RequestInfo info, ByteBuffer message);
+        void onError(RequestInfo info, Exception ex);
 
     }
 
+    public static final boolean INSECURE_COOKIES;
+
+    static {
+        String cfg = Util.getConfiguration("instant.cookies.insecure");
+        INSECURE_COOKIES = (cfg != null);
+    }
+
     private final List<Hook> hooks;
-    private final Map<Datum, Hook> queuedAssignments;
-    private final Map<WebSocket, Hook> assignments;
+    private final Map<Datum, RequestInfo> infos;
+    private final Map<RequestInfo, Hook> assignments;
     private InformationCollector collector;
+    private CookieHandler cookies;
 
     public InstantWebSocketServer(InetSocketAddress addr) {
         super(addr, wrapDrafts(DEFAULT_DRAFTS));
         hooks = Collections.synchronizedList(new ArrayList<Hook>());
-        queuedAssignments = Collections.synchronizedMap(
-            new HashMap<Datum, Hook>());
+        infos = Collections.synchronizedMap(
+            new HashMap<Datum, RequestInfo>());
         assignments = Collections.synchronizedMap(
-            new HashMap<WebSocket, Hook>());
+            new HashMap<RequestInfo, Hook>());
         collector = new InformationCollector(this);
         for (Draft d : getDraft()) {
             if (d instanceof DraftWrapper) {
@@ -130,6 +138,13 @@ public class InstantWebSocketServer extends WebSocketServer
         }
     }
 
+    public CookieHandler getCookieHandler() {
+        return cookies;
+    }
+    public void setCookieHandler(CookieHandler h) {
+        cookies = h;
+    }
+
     /* Who on the world would give methods such long names? */
     @Override
     public ServerHandshakeBuilder onWebsocketHandshakeReceivedAsServer(
@@ -142,74 +157,78 @@ public class InstantWebSocketServer extends WebSocketServer
     }
 
     public void onOpen(WebSocket conn, ClientHandshake handshake) {
-        Datum info = collector.pop(handshake);
-        Hook h = clearAssignment(info);
+        RequestInfo info = getInfo(collector.move(handshake, conn));
+        Hook h = getAssignment(info);
         if (h != null) {
-            assign(conn, h);
-            h.onOpen(info, conn, handshake);
+            assign(info, h);
+            h.onOpen(info, handshake);
         } else {
             synchronized (hooks) {
                 for (Hook hook : hooks) {
                     if (! hook.allowUnassigned()) break;
-                    hook.onOpen(info, conn, handshake);
+                    hook.onOpen(info, handshake);
                 }
             }
         }
-        System.err.println(info.formatLogEntry());
+        System.err.println(info.getBase().formatLogEntry());
     }
 
     public void onClose(WebSocket conn, int code,
                         String reason, boolean remote) {
-        Hook h = getAssignment(conn);
+        RequestInfo info = popInfo(conn);
+        Hook h = clearAssignment(info);
         if (h != null) {
-            h.onClose(conn, code, reason, remote);
+            h.onClose(info, code, reason, remote);
             return;
         }
         synchronized (hooks) {
             for (Hook hook : hooks) {
                 if (! hook.allowUnassigned()) break;
-                hook.onClose(conn, code, reason, remote);
+                hook.onClose(info, code, reason, remote);
             }
         }
     }
 
     public void onMessage(WebSocket conn, String message) {
-        Hook h = getAssignment(conn);
+        RequestInfo info = getInfo(conn);
+        Hook h = getAssignment(info);
         if (h != null) {
-            h.onMessage(conn, message);
+            h.onMessage(info, message);
             return;
         }
         synchronized (hooks) {
             for (Hook hook : hooks) {
                 if (! hook.allowUnassigned()) break;
-                hook.onMessage(conn, message);
+                hook.onMessage(info, message);
             }
         }
     }
     public void onMessage(WebSocket conn, ByteBuffer message) {
-        Hook h = getAssignment(conn);
+        RequestInfo info = getInfo(conn);
+        Hook h = getAssignment(info);
         if (h != null) {
-            h.onMessage(conn, message);
+            h.onMessage(info, message);
             return;
         }
         synchronized (hooks) {
             for (Hook hook : hooks) {
                 if (! hook.allowUnassigned()) break;
-                hook.onMessage(conn, message);
+                hook.onMessage(info, message);
             }
         }
     }
 
     public void onError(WebSocket conn, Exception ex) {
-        Hook h = getAssignment(conn);
+        RequestInfo info = getInfo(conn);
+        Hook h = getAssignment(info);
         if (h != null) {
-            h.onError(conn, ex);
+            h.onError(info, ex);
             return;
         }
         synchronized (hooks) {
             for (Hook hook : hooks) {
                 if (! hook.allowUnassigned()) break;
-                hook.onError(conn, ex);
+                hook.onError(info, ex);
             }
         }
     }
@@ -217,7 +236,9 @@ public class InstantWebSocketServer extends WebSocketServer
     public void postProcessRequest(ClientHandshake request,
                                    ServerHandshakeBuilder response,
                                    Handshakedata eff_resp) {
-        Datum info = collector.get(request);
+        assert eff_resp == response;
+        RequestInfo info = makeInfo(collector.get(request), request,
+                                    response);
         response.put("Server", "Instant/" + Main.VERSION);
         byte[] rand = Util.getRandomness(16);
         response.put("X-Magic-Cookie", '"' + Util.toBase64(rand) + '"');
@@ -227,8 +248,7 @@ public class InstantWebSocketServer extends WebSocketServer
             response.put("X-Instant-Revision", Main.FINE_VERSION);
         synchronized (hooks) {
             for (Hook hook : hooks) {
-                hook.postProcessRequest(this, info, request,
-                                        response, eff_resp);
+                hook.postProcessRequest(this, info, eff_resp);
                 if (getAssignment(info) != null) break;
             }
         }
@@ -250,31 +270,44 @@ public class InstantWebSocketServer extends WebSocketServer
         return ret;
     }
 
-    public void assign(Datum info, Hook hook) {
-        queuedAssignments.put(info, hook);
-    }
-    protected void assign(WebSocket conn, Hook hook) {
+    public void assign(RequestInfo conn, Hook hook) {
         assignments.put(conn, hook);
     }
-    public Hook getAssignment(Datum info) {
-        return queuedAssignments.get(info);
-    }
-    public Hook getAssignment(WebSocket conn) {
+    public Hook getAssignment(RequestInfo conn) {
         return assignments.get(conn);
     }
-    public Hook clearAssignment(Datum info) {
-        return queuedAssignments.remove(info);
-    }
-    public Hook clearAssignment(WebSocket conn) {
+    public Hook clearAssignment(RequestInfo conn) {
         return assignments.remove(conn);
     }
 
-    public static Draft getEffectiveDraft(Datum i) {
-        Draft d = i.getDraft();
+    protected RequestInfo makeInfo(Datum datum, ClientHandshake client,
+                                   ServerHandshakeBuilder server) {
+        RequestInfo ret = new RequestInfo(datum, client, server,
+                                          cookies);
+        infos.put(datum, ret);
+        return ret;
+    }
+    protected RequestInfo getInfo(Datum datum) {
+        return infos.get(datum);
+    }
+    protected RequestInfo popInfo(Datum datum) {
+        return infos.remove(datum);
+    }
+    protected RequestInfo getInfo(WebSocket conn) {
+        return getInfo(collector.get(conn));
+    }
+    protected RequestInfo popInfo(WebSocket conn) {
+        return getInfo(collector.get(conn));
+    }
+
+    public static Draft getEffectiveDraft(Draft d) {
         while (d instanceof DraftWrapper) {
             d = ((DraftWrapper) d).getWrapped();
         }
         return d;
+    }
+    public static Draft getEffectiveDraft(RequestInfo info) {
+        return getEffectiveDraft(info.getBase().getDraft());
     }
 
     protected static List<Draft> wrapDrafts(List<Draft> in) {

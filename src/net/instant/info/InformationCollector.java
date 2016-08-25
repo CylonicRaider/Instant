@@ -18,12 +18,14 @@ public class InformationCollector {
 
     }
 
-    private Map<Handshakedata, Datum> mapping =
-        new IdentityHashMap<Handshakedata, Datum>();
+    private final Map<Handshakedata, Datum> earlyMapping;
+    private final Map<WebSocket, Datum> mapping;
     private Hook hook;
 
     public InformationCollector(Hook hook) {
         super();
+        this.earlyMapping = new IdentityHashMap<Handshakedata, Datum>();
+        this.mapping = new IdentityHashMap<WebSocket, Datum>();
         this.hook = hook;
     }
     public InformationCollector() {
@@ -31,15 +33,34 @@ public class InformationCollector {
     }
 
     public Datum get(Handshakedata data) {
-        Datum entry = mapping.get(data);
+        Datum entry = earlyMapping.get(data);
         if (entry == null) {
             entry = new Datum();
-            mapping.put(data, entry);
+            earlyMapping.put(data, entry);
         }
         return entry;
     }
     public Datum pop(Handshakedata data) {
-        return mapping.remove(data);
+        return earlyMapping.remove(data);
+    }
+
+    public Datum get(WebSocket conn) {
+        Datum entry = mapping.get(conn);
+        if (entry == null) {
+            entry = new Datum();
+            mapping.put(conn, entry);
+        }
+        return entry;
+    }
+    public Datum pop(WebSocket conn) {
+        return mapping.remove(conn);
+    }
+
+    public Datum move(Handshakedata data, WebSocket conn) {
+        Datum entry = pop(data);
+        if (entry == null) entry = new Datum();
+        mapping.put(conn, entry);
+        return entry;
     }
 
     public Hook getHook() {
@@ -72,7 +93,7 @@ public class InformationCollector {
     }
 
     public void reset() {
-        mapping.clear();
+        earlyMapping.clear();
     }
 
     private String getValue(ClientHandshake request, String k) {

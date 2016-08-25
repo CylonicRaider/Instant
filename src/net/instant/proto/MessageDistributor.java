@@ -2,6 +2,7 @@ package net.instant.proto;
 
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -9,61 +10,91 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import net.instant.api.MessageContents;
+import net.instant.api.RequestResponseData;
 import net.instant.api.Room;
 import net.instant.api.RoomGroup;
 import net.instant.util.UniqueCounter;
 import org.java_websocket.WebSocket;
 
-public class MessageDistributor {
+public class MessageDistributor implements RoomGroup {
 
-    public class RoomDistributor {
+    public class RoomDistributor implements Room {
 
         private final String name;
-        private final Set<WebSocket> conns;
+        private final Set<RequestResponseData> conns;
 
         public RoomDistributor(String name) {
             this.name = name;
-            conns = new HashSet<WebSocket>();
+            conns = Collections.synchronizedSet(
+                new HashSet<RequestResponseData>());
         }
 
         public String getName() {
             return name;
         }
 
-        public synchronized void add(WebSocket conn) {
+        public void add(RequestResponseData conn) {
             conns.add(conn);
         }
 
-        public synchronized void remove(WebSocket conn) {
+        public void remove(RequestResponseData conn) {
             conns.remove(conn);
         }
 
-        public synchronized void broadcast(ByteBuffer message) {
-            for (WebSocket c : conns) {
-                c.send(message);
+        public void broadcast(ByteBuffer message) {
+            synchronized (conns) {
+                for (RequestResponseData c : conns) {
+                    c.getConnection().send(message);
+                }
             }
         }
-        public synchronized void broadcast(String message) {
-            for (WebSocket c : conns) {
-                c.send(message);
+        public void broadcast(String message) {
+            synchronized (conns) {
+                for (RequestResponseData c : conns) {
+                    c.getConnection().send(message);
+                }
             }
         }
         public void broadcast(MessageContents message) {
             broadcast(message.toString());
         }
 
+        public Set<RequestResponseData> getClients() {
+            synchronized (conns) {
+                return new HashSet<RequestResponseData>(conns);
+            }
+        }
+
+        public String sendUnicast(RequestResponseData conn,
+                                  MessageContents message) {
+            String id = makeID();
+            message.setID(id);
+            conn.getConnection().send(message.toString());
+            return id;
+        }
+        public String sendBroadcast(MessageContents message) {
+            String id = makeID();
+            message.setID(id);
+            broadcast(message);
+            return id;
+        }
+
+        public MessageDistributor getGroup() {
+            return MessageDistributor.this;
+        }
+
     }
 
     private final Map<String, RoomDistributor> rooms;
-    private final Map<WebSocket, RoomDistributor> sockets;
-    private final Map<WebSocket, String> connids;
-    private final Map<String, WebSocket> revconnids;
+    private final Map<RequestResponseData, RoomDistributor> connections;
+    private final Map<RequestResponseData, String> connids;
+    private final Map<String, RequestResponseData> revconnids;
 
     public MessageDistributor() {
         rooms = new HashMap<String, RoomDistributor>();
-        sockets = new HashMap<WebSocket, RoomDistributor>();
-        connids = new HashMap<WebSocket, String>();
-        revconnids = new HashMap<String, WebSocket>();
+        connections = new HashMap<RequestResponseData, RoomDistributor>();
+        connids = new HashMap<RequestResponseData, String>();
+        revconnids = new HashMap<String, RequestResponseData>();
     }
 
     public synchronized RoomDistributor get(String name) {
@@ -74,25 +105,39 @@ public class MessageDistributor {
         }
         return rd;
     }
-    public synchronized RoomDistributor get(WebSocket sock) {
-        return sockets.get(sock);
+    public synchronized RoomDistributor get(RequestResponseData conn) {
+        return connections.get(conn);
     }
 
-    public synchronized String add(String name, WebSocket sock, String id) {
+    public RoomDistributor getRoom(String name) {
+        return get(name);
+    }
+    public RoomDistributor getRoom(RequestResponseData conn) {
+        return get(conn);
+    }
+
+    public Set<Room> getActiveRooms() {
+        synchronized (this) {
+            return new HashSet<Room>(rooms.values());
+        }
+    }
+
+    public synchronized String add(String name, RequestResponseData conn,
+                                   String id) {
         RoomDistributor d = get(name);
-        d.add(sock);
-        sockets.put(sock, d);
-        connids.put(sock, id);
-        revconnids.put(id, sock);
+        d.add(conn);
+        connections.put(conn, d);
+        connids.put(conn, id);
+        revconnids.put(id, conn);
         return id;
     }
-    public synchronized String add(String name, WebSocket sock) {
-        return add(name, sock, makeID());
+    public synchronized String add(String name, RequestResponseData conn) {
+        return add(name, conn, makeID());
     }
-    public synchronized void remove(WebSocket sock) {
-        RoomDistributor rd = sockets.remove(sock);
-        if (rd != null) rd.remove(sock);
-        String id = connids.remove(sock);
+    public synchronized void remove(RequestResponseData conn) {
+        RoomDistributor rd = connections.remove(conn);
+        if (rd != null) rd.remove(conn);
+        String id = connids.remove(conn);
         if (id != null) revconnids.remove(id);
     }
 
@@ -127,10 +172,10 @@ public class MessageDistributor {
         broadcast(room, message.makeString());
     }
 
-    public synchronized String connectionID(WebSocket sock) {
-        return connids.get(sock);
+    public synchronized String connectionID(RequestResponseData conn) {
+        return connids.get(conn);
     }
-    public synchronized WebSocket connection(String id) {
+    public synchronized RequestResponseData connection(String id) {
         return revconnids.get(id);
     }
 

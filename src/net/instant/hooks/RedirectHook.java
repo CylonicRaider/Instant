@@ -5,6 +5,7 @@ import java.util.regex.Pattern;
 import net.instant.InstantWebSocketServer;
 import net.instant.info.Datum;
 import net.instant.info.InformationCollector;
+import net.instant.info.RequestInfo;
 import net.instant.ws.Draft_Raw;
 import org.java_websocket.WebSocket;
 import org.java_websocket.handshake.ClientHandshake;
@@ -32,24 +33,20 @@ public class RedirectHook extends HookAdapter {
     }
 
     public void postProcessRequest(InstantWebSocketServer parent,
-                                   Datum info,
-                                   ClientHandshake request,
-                                   ServerHandshakeBuilder response,
+                                   RequestInfo info,
                                    Handshakedata eff_resp) {
         if (! (parent.getEffectiveDraft(info) instanceof Draft_Raw)) return;
-        if (! "GET".equals(info.getMethod())) return;
-        Matcher m = pattern.matcher(request.getResourceDescriptor());
+        if (! "GET".equals(info.getBase().getMethod())) return;
+        Matcher m = pattern.matcher(info.getBase().getURL());
         if (m.matches()) {
-            info.setResponseInfo(response, (short) 301,
-                                 "Moved Permanently", -1);
-            response.put("Location", expand(m, replacement));
+            info.respond(301, "Moved Permanently", -1);
+            info.putHeader("Location", expand(m, replacement));
             parent.assign(info, this);
         }
     }
 
-    public void onOpen(Datum info, WebSocket conn,
-                       ClientHandshake handshake) {
-        conn.close();
+    public void onOpen(RequestInfo info, ClientHandshake handshake) {
+        info.getConnection().close();
     }
 
     public static String expand(Matcher m, String repl) {

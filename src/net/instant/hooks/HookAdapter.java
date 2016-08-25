@@ -2,8 +2,7 @@ package net.instant.hooks;
 
 import java.nio.ByteBuffer;
 import net.instant.InstantWebSocketServer;
-import net.instant.info.Datum;
-import net.instant.info.InformationCollector;
+import net.instant.info.RequestInfo;
 import org.java_websocket.WebSocket;
 import org.java_websocket.handshake.ClientHandshake;
 import org.java_websocket.handshake.Handshakedata;
@@ -17,18 +16,15 @@ public abstract class HookAdapter implements InstantWebSocketServer.Hook {
                                    boolean guess) { return null; }
 
     public void postProcessRequest(InstantWebSocketServer parent,
-                                   Datum info,
-                                   ClientHandshake request,
-                                   ServerHandshakeBuilder response,
+                                   RequestInfo info,
                                    Handshakedata eff_resp) {}
 
-    public void onOpen(Datum info, WebSocket conn,
-                       ClientHandshake handshake) {}
-    public void onClose(WebSocket conn, int code, String reason,
+    public void onOpen(RequestInfo info, ClientHandshake handshake) {}
+    public void onClose(RequestInfo info, int code, String reason,
                         boolean remote) {}
-    public void onMessage(WebSocket conn, String message) {}
-    public void onMessage(WebSocket conn, ByteBuffer message) {}
-    public void onError(WebSocket conn, Exception ex) {}
+    public void onMessage(RequestInfo info, String message) {}
+    public void onMessage(RequestInfo info, ByteBuffer message) {}
+    public void onError(RequestInfo info, Exception ex) {}
 
 
 }
