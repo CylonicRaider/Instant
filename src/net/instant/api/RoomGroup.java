@@ -17,4 +17,10 @@ public interface RoomGroup {
      */
     Room getRoom(String name);
 
+    /**
+     * Get the room the client is connected to, if any.
+     * Returns null if the client is not in any room.
+     */
+    Room getRoom(RequestResponseData client);
+
 }
