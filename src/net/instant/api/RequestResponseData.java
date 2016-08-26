@@ -31,6 +31,11 @@ public interface RequestResponseData extends RequestData {
     Map<String, String> getResponseHeaders();
 
     /**
+     * Convenience function to obtain a single HTTP response header.
+     */
+    String getResponseHeader(String name);
+
+    /**
      * A list of cookies sumbitted to the client.
      * Includes those of all plugins and the core.
      */

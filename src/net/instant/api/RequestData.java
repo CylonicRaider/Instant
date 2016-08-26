@@ -61,6 +61,11 @@ public interface RequestData {
     Map<String, String> getHeaders();
 
     /**
+     * Convenience function to obtain a single HTTP header.
+     */
+    String getHeader(String name);
+
+    /**
      * Return a list of all cookies submitted with the request.
      * Since the Cookie HTTP header does only transmit key-value pairs,
      * metadata may have to be amended when sending the cookie back.

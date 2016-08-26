@@ -79,6 +79,10 @@ public class RequestInfo implements RequestResponseData, ResponseBuilder {
         return Collections.unmodifiableMap(headerMap(client));
     }
 
+    public String getHeader(String name) {
+        return client.getFieldValue(name);
+    }
+
     public List<Cookie> getCookies() {
         return Collections.unmodifiableList(requestCookies);
     }
@@ -103,22 +107,16 @@ public class RequestInfo implements RequestResponseData, ResponseBuilder {
         return Collections.unmodifiableMap(headerMap(server));
     }
 
+    public String getResponseHeader(String name) {
+        return server.getFieldValue(name);
+    }
+
     public List<Cookie> getResponseCookies() {
         return Collections.unmodifiableList(responseCookies);
     }
 
     public WebSocket getConnection() {
         return base.getWebSocket();
-    }
-
-    public static Map<String, String> headerMap(Handshakedata d) {
-        Map<String, String> ret = new LinkedHashMap<String, String>();
-        Iterator<String> names = d.iterateHttpFields();
-        while (names.hasNext()) {
-            String name = names.next();
-            ret.put(name, d.getFieldValue(name));
-        }
-        return ret;
     }
 
     public void setRFC1413Identity(String identity) {
@@ -147,6 +145,16 @@ public class RequestInfo implements RequestResponseData, ResponseBuilder {
 
     public void putCookie(Cookie cookie) {
         responseCookies.add(cookie);
+    }
+
+    public static Map<String, String> headerMap(Handshakedata d) {
+        Map<String, String> ret = new LinkedHashMap<String, String>();
+        Iterator<String> names = d.iterateHttpFields();
+        while (names.hasNext()) {
+            String name = names.next();
+            ret.put(name, d.getFieldValue(name));
+        }
+        return ret;
     }
 
 }
