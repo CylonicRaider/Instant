@@ -13,6 +13,7 @@ import net.instant.info.InformationCollector;
 import net.instant.info.RequestInfo;
 import net.instant.proto.Message;
 import net.instant.proto.MessageDistributor;
+import net.instant.proto.MessageInfo;
 import net.instant.proto.ProtocolError;
 import net.instant.util.UniqueCounter;
 import net.instant.util.Util;
@@ -27,11 +28,18 @@ import org.json.JSONObject;
 
 public class RoomWebSocketHook extends WebSocketHook {
 
+    public interface Hook {
+
+        boolean processMessage(MessageInfo msg);
+
+    }
+
     public static final String ROOM_PREF = "/room/";
     public static final String ROOM_POSTF = "/ws";
     public static final String COOKIE_NAME = "uid";
 
     private MessageDistributor distr;
+    private Hook hook;
 
     public RoomWebSocketHook() {
         whitelist(ROOM_PREF + Main.ROOM_RE + ROOM_POSTF);
@@ -42,6 +50,13 @@ public class RoomWebSocketHook extends WebSocketHook {
     }
     public void setDistributor(MessageDistributor md) {
         distr = md;
+    }
+
+    public Hook getHook() {
+        return hook;
+    }
+    public void setHook(Hook h) {
+        hook = h;
     }
 
     protected void postProcessRequestInner(InstantWebSocketServer parent,
@@ -107,17 +122,17 @@ public class RoomWebSocketHook extends WebSocketHook {
 
     public void onMessage(RequestInfo info, String message) {
         WebSocket conn = info.getConnection();
-        JSONObject data;
+        MessageInfo msgInfo;
         try {
-            data = new JSONObject(message);
+            msgInfo = new MessageInfo(message, info, distr.get(info));
         } catch (JSONException e) {
             sendError(conn, ProtocolError.INVALID_JSON);
             return;
         }
-        String type;
-        try {
-            type = data.getString("type");
-        } catch (JSONException e) {
+        if (hook != null && hook.processMessage(msgInfo)) return;
+        JSONObject data = msgInfo.getParsedData();
+        String type = msgInfo.getData().getType();
+        if (type == null || type.isEmpty()) {
             sendError(conn, ProtocolError.INVALID_TYPE);
             return;
         }
