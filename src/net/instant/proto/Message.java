@@ -14,12 +14,22 @@ public class Message implements MessageContents {
     private Object seq;
     private Object data;
 
+    public Message(JSONObject data) {
+        this.id = data.optString("id");
+        this.timestamp = data.optLong("timestamp",
+                                      System.currentTimeMillis());
+        this.type = data.optString("type");
+        this.from = data.optString("from");
+        this.to = data.optString("to");
+        this.seq = data.opt("seq");
+        this.data = data.opt("data");
+    }
     public Message(String type) {
         this.type = type;
         this.timestamp = System.currentTimeMillis();
     }
     public Message() {
-        this(null);
+        this((String) null);
     }
 
     public String toString() {

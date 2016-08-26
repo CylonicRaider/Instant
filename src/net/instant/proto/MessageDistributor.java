@@ -9,81 +9,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-import net.instant.api.MessageContents;
 import net.instant.api.RequestResponseData;
 import net.instant.api.Room;
 import net.instant.api.RoomGroup;
 import net.instant.util.UniqueCounter;
-import org.java_websocket.WebSocket;
 
 public class MessageDistributor implements RoomGroup {
-
-    public class RoomDistributor implements Room {
-
-        private final String name;
-        private final Set<RequestResponseData> conns;
-
-        public RoomDistributor(String name) {
-            this.name = name;
-            conns = Collections.synchronizedSet(
-                new HashSet<RequestResponseData>());
-        }
-
-        public String getName() {
-            return name;
-        }
-
-        public void add(RequestResponseData conn) {
-            conns.add(conn);
-        }
-
-        public void remove(RequestResponseData conn) {
-            conns.remove(conn);
-        }
-
-        public void broadcast(ByteBuffer message) {
-            synchronized (conns) {
-                for (RequestResponseData c : conns) {
-                    c.getConnection().send(message);
-                }
-            }
-        }
-        public void broadcast(String message) {
-            synchronized (conns) {
-                for (RequestResponseData c : conns) {
-                    c.getConnection().send(message);
-                }
-            }
-        }
-        public void broadcast(MessageContents message) {
-            broadcast(message.toString());
-        }
-
-        public Set<RequestResponseData> getClients() {
-            synchronized (conns) {
-                return new HashSet<RequestResponseData>(conns);
-            }
-        }
-
-        public String sendUnicast(RequestResponseData conn,
-                                  MessageContents message) {
-            String id = makeID();
-            message.setID(id);
-            conn.getConnection().send(message.toString());
-            return id;
-        }
-        public String sendBroadcast(MessageContents message) {
-            String id = makeID();
-            message.setID(id);
-            broadcast(message);
-            return id;
-        }
-
-        public MessageDistributor getGroup() {
-            return MessageDistributor.this;
-        }
-
-    }
 
     private final Map<String, RoomDistributor> rooms;
     private final Map<RequestResponseData, RoomDistributor> connections;
@@ -100,7 +31,7 @@ public class MessageDistributor implements RoomGroup {
     public synchronized RoomDistributor get(String name) {
         RoomDistributor rd = rooms.get(name);
         if (rd == null) {
-            rd = new RoomDistributor(name);
+            rd = new RoomDistributor(this, name);
             rooms.put(name, rd);
         }
         return rd;
