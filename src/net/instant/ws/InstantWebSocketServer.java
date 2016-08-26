@@ -1,4 +1,4 @@
-package net.instant;
+package net.instant.ws;
 
 import java.net.InetSocketAddress;
 import java.net.Socket;

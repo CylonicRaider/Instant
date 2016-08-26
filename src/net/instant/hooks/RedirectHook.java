@@ -2,11 +2,11 @@ package net.instant.hooks;
 
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import net.instant.InstantWebSocketServer;
 import net.instant.info.Datum;
 import net.instant.info.InformationCollector;
 import net.instant.info.RequestInfo;
 import net.instant.ws.Draft_Raw;
+import net.instant.ws.InstantWebSocketServer;
 import org.java_websocket.WebSocket;
 import org.java_websocket.handshake.ClientHandshake;
 import org.java_websocket.handshake.Handshakedata;
