@@ -155,6 +155,7 @@ public class Main implements Runnable {
         files.matchContentType(".*\\.js", "application/javascript; " +
                                "charset=utf-8");
         files.matchContentType(".*\\.svg", "image/svg+xml; charset=utf-8");
+        files.matchContentType(".*\\.png", "image/png");
         files.matchContentType(".*\\.ico", "image/vnd.microsoft.icon");
         getServer().addHook(files);
         getServer().addHook(new Error404Hook());
