@@ -1,17 +1,29 @@
 package net.instant.api;
 
+import java.io.IOException;
+
 /**
  * A hook for fetching static files.
  */
 public interface FileGenerator {
 
     /**
-     * Produce a static file or bail out.
+     * Test for the presence of a static file.
      * Called with the file's path (without a query string, which static
      * files should be independent of).
-     * Should return either a FileInfo instance or null if no such file
-     * was found.
+     * Should return whether this generator can produce the given file or
+     * not, without blocking.
+     * Exceptions thrown imply the absence of the file.
      */
-    FileInfo generateFile(String path);
+    boolean hasFile(String path) throws IOException;
+
+    /**
+     * Produce a static file.
+     * Assuming that hasFile() has confirmed the existence of the given
+     * path, actually fetch the given file, possibly blocking.
+     * The method is run asynchronously.
+     * An exception thrown will force the core to "bail out" irregularly.
+     */
+    FileInfo generateFile(String path) throws IOException;
 
 }
