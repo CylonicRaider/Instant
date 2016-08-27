@@ -2,6 +2,7 @@ package net.instant.util;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
 import java.security.SecureRandom;
 import java.text.SimpleDateFormat;
@@ -50,6 +51,16 @@ public final class Util {
         ret.putLong(l);
         ret.flip();
         return ret;
+    }
+    public static ByteBuffer toBytes(String s) {
+        byte[] ret;
+        try {
+            ret = s.getBytes("utf-8");
+        } catch (UnsupportedEncodingException exc) {
+            // Why must *this* be a checked one?
+            throw new RuntimeException(exc);
+        }
+        return ByteBuffer.wrap(ret);
     }
 
     public static byte[] getRandomness(int len) {

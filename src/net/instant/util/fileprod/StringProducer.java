@@ -1,9 +1,9 @@
 package net.instant.util.fileprod;
 
-import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.Map;
+import net.instant.util.Util;
 
 public class StringProducer implements Producer {
 
@@ -16,15 +16,20 @@ public class StringProducer implements Producer {
     public synchronized void addFile(String name, ByteBuffer content) {
         files.put(name, content.asReadOnlyBuffer());
     }
-    public synchronized void addFile(String name, String content) {
-        byte[] data;
-        try {
-            data = content.getBytes("utf-8");
-        } catch (UnsupportedEncodingException exc) {
-            // Why must *this* be a checked one?
-            throw new RuntimeException(exc);
-        }
-        addFile(name, ByteBuffer.wrap(data));
+    public void addFile(String name, String content) {
+        addFile(name, Util.toBytes(content));
+    }
+    public synchronized void appendFile(String name, ByteBuffer content) {
+        ByteBuffer oldContent = getFile(name);
+        ByteBuffer newContent = ByteBuffer.allocate(oldContent.limit() +
+            content.limit());
+        newContent.put(oldContent);
+        newContent.put(content);
+        newContent.flip();
+        addFile(name, newContent);
+    }
+    public void appendFile(String name, String content) {
+        appendFile(name, Util.toBytes(content));
     }
     public synchronized void removeFile(String name) {
         files.remove(name);
