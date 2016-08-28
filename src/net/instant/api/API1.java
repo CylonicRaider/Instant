@@ -66,4 +66,10 @@ public interface API1 {
      */
     Counter getCounter();
 
+    /**
+     * Obtain a new ServerEvent instance.
+     * The parameter array is passed to the event's update() method.
+     */
+    ServerEvent makeEvent(String... params);
+
 }

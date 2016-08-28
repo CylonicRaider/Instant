@@ -10,8 +10,13 @@ import java.util.Map;
 import net.instant.api.Cookie;
 import net.instant.api.ResponseBuilder;
 import net.instant.api.RequestResponseData;
+import net.instant.api.RequestType;
 import net.instant.hooks.CookieHandler;
+import net.instant.ws.Draft_Raw;
+import net.instant.ws.Draft_SSE;
+import net.instant.ws.InstantWebSocketServer;
 import org.java_websocket.WebSocket;
+import org.java_websocket.drafts.Draft;
 import org.java_websocket.handshake.ClientHandshake;
 import org.java_websocket.handshake.Handshakedata;
 import org.java_websocket.handshake.ServerHandshakeBuilder;
@@ -25,6 +30,7 @@ public class RequestInfo implements RequestResponseData, ResponseBuilder {
     private final CookieHandler cookies;
     private final List<Cookie> requestCookies;
     private final List<Cookie> responseCookies;
+    private RequestType reqType;
 
     public RequestInfo(Datum base, ClientHandshake client,
                        ServerHandshakeBuilder server,
@@ -35,6 +41,7 @@ public class RequestInfo implements RequestResponseData, ResponseBuilder {
         this.cookies = cookies;
         this.requestCookies = new ArrayList<Cookie>(cookies.get(client));
         this.responseCookies = new ArrayList<Cookie>();
+        this.reqType = null;
     }
 
     public Datum getBase() {
@@ -73,6 +80,21 @@ public class RequestInfo implements RequestResponseData, ResponseBuilder {
 
     public String getUserAgent() {
         return base.getUserAgent();
+    }
+
+    public synchronized RequestType getRequestType() {
+        if (reqType != null) return reqType;
+        Draft d = InstantWebSocketServer.getEffectiveDraft(this);
+        if (d == null)
+            throw new IllegalStateException("Request type not decided");
+        if (d instanceof Draft_SSE) {
+            reqType = RequestType.SSE;
+        } else if (d instanceof Draft_Raw) {
+            reqType = RequestType.HTTP;
+        } else {
+            reqType = RequestType.WS;
+        }
+        return reqType;
     }
 
     public Map<String, String> getHeaders() {

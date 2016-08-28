@@ -55,6 +55,13 @@ public interface RequestData {
     String getUserAgent();
 
     /**
+     * The type of the request.
+     * Plugins should check what kind of resource the client requests, and
+     * reject the connection appropriately.
+     */
+    RequestType getRequestType();
+
+    /**
      * A read-only mapping of HTTP request headers.
      * Repeated headers are not supported.
      */

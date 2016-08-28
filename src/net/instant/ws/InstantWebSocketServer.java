@@ -17,6 +17,7 @@ import net.instant.info.InformationCollector;
 import net.instant.info.RequestInfo;
 import net.instant.util.Util;
 import net.instant.ws.Draft_Raw;
+import net.instant.ws.Draft_SSE;
 import net.instant.ws.DraftWrapper;
 import org.java_websocket.WebSocket;
 import org.java_websocket.WebSocketAdapter;
@@ -62,6 +63,7 @@ public class InstantWebSocketServer extends WebSocketServer
 
     static {
         List<Draft> l =  new ArrayList<Draft>();
+        l.add(new Draft_SSE());
         l.add(new Draft_Raw());
         l.addAll(WebSocketImpl.defaultdraftlist);
         DEFAULT_DRAFTS = Collections.unmodifiableList(l);

@@ -6,7 +6,9 @@ import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
 import java.security.SecureRandom;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -20,6 +22,35 @@ import org.json.JSONObject;
 
 public final class Util {
 
+    public static class HeaderEntry extends LinkedHashMap<String, String> {
+
+        private String value;
+
+        public HeaderEntry(String value, Map<String, String> attrs) {
+            super(attrs);
+            this.value = value;
+        }
+
+        public String getValue() {
+            return this.value;
+        }
+        public void setValue(String value) {
+            this.value = value;
+        }
+
+        public static HeaderEntry fromParts(String name, String value) {
+            Map<String, String> attrs;
+            if (value == null) {
+                attrs = Collections.emptyMap();
+            } else {
+                attrs = parseTokenMap(value);
+                if (attrs == null) return null;
+            }
+            return new HeaderEntry(name, attrs);
+        }
+
+    }
+
     public static final int BUFFER_SIZE = 16384;
 
     public static final Pattern ESCAPE = Pattern.compile("[^ !#-\\[\\]-~]");
@@ -31,8 +62,11 @@ public final class Util {
     public static final Pattern HTTP_QSTRING = Pattern.compile(
         "\"((?:[^\"]|\\\\.)*)\"");
     public static final Pattern HTTP_PARAM = Pattern.compile(String.format(
-        "\\s*(%s)\\s*=\\s*(%<s|%s)\\s*(;|$)", HTTP_TOKEN.pattern(),
-        HTTP_QSTRING.pattern()));
+        "\\s*(?<pname>%s)\\s*=\\s*(?<pvalue>%<s|%s)\\s*(?<pend>;|$)",
+        HTTP_TOKEN.pattern(), HTTP_QSTRING.pattern()));
+    public static final Pattern HTTP_HEADERVALUE = Pattern.compile(
+        String.format("\\s*(?<hvalue>[^;,]+)\\s*(;(?<hattrs>(%s)+))?\\s*" +
+        "(?<hend>,|$)", HTTP_PARAM.pattern().replace(";|$", ";|,|$")));
 
     private static final SimpleDateFormat HTTP_FORMAT;
 
@@ -122,13 +156,30 @@ public final class Util {
         return false;
     }
 
+    public static List<HeaderEntry> parseHTTPHeader(String value) {
+        if (value == null) return null;
+        List<HeaderEntry> ret = new ArrayList<HeaderEntry>();
+        Matcher m = HTTP_HEADERVALUE.matcher(value);
+        int lastIdx = 0;
+        for (;;) {
+            if (! m.find() || m.start() != lastIdx) return null;
+            String val = m.group("hvalue"), attrs = m.group("hattrs");
+            String end = m.group("hend");
+            ret.add(HeaderEntry.fromParts(val, attrs));
+            lastIdx = m.end();
+            if (end.isEmpty()) break;
+        }
+        return ret;
+    }
     public static Map<String, String> parseTokenMap(String list) {
+        if (list == null) return null;
         Map<String, String> ret = new LinkedHashMap<String, String>();
         Matcher m = HTTP_PARAM.matcher(list);
         int lastIdx = 0;
         for (;;) {
             if (! m.find() || m.start() != lastIdx) return null;
-            String name = m.group(1), value = m.group(2), end = m.group(4);
+            String name = m.group("pname"), value = m.group("pvalue");
+            String end = m.group("pend");
             if (value.startsWith("\""))
                 value = m.group(3).replaceAll("\\\\(.)", "$1");
             ret.put(name, value);

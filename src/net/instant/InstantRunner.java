@@ -12,6 +12,7 @@ import net.instant.api.FileGenerator;
 import net.instant.api.FileInfo;
 import net.instant.api.MessageHook;
 import net.instant.api.RequestHook;
+import net.instant.api.ServerEvent;
 import net.instant.hooks.StaticFileHook;
 import net.instant.hooks.RoomWebSocketHook;
 import net.instant.info.RequestInfo;
@@ -22,11 +23,12 @@ import net.instant.util.fileprod.Producer;
 import net.instant.util.fileprod.ProducerJob;
 import net.instant.util.fileprod.StringProducer;
 import net.instant.ws.InstantWebSocketServer;
+import net.instant.ws.ServerEventImpl;
 import org.java_websocket.framing.CloseFrame;
 import org.java_websocket.handshake.ClientHandshake;
 import org.java_websocket.handshake.Handshakedata;
 
-public class InstantRunner implements API1, Runnable {
+public class InstantRunner implements API1 {
 
     public static class APIRequestHook
             implements InstantWebSocketServer.Hook {
@@ -306,11 +308,15 @@ public class InstantRunner implements API1, Runnable {
         }
     }
 
-    public void run() {
+    public ServerEvent makeEvent(String... params) {
+        return new ServerEventImpl().update(params);
+    }
+
+    public InstantWebSocketServer make() {
         makeStringProducer();
         makeFileHook();
         makeRoomHook();
-        makeServer().run();
+        return makeServer();
     }
 
 }
