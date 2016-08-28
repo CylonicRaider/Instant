@@ -219,11 +219,16 @@ public class InstantWebSocketServer extends WebSocketServer
     }
 
     public void onError(WebSocket conn, Exception ex) {
-        RequestInfo info = getInfo(conn);
-        Hook h = getAssignment(info);
-        if (h != null) {
-            h.onError(info, ex);
-            return;
+        RequestInfo info;
+        if (conn == null) {
+            info = null;
+        } else {
+            info = getInfo(conn);
+            Hook h = getAssignment(info);
+            if (h != null) {
+                h.onError(info, ex);
+                return;
+            }
         }
         synchronized (hooks) {
             for (Hook hook : hooks) {

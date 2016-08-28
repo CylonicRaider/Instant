@@ -22,6 +22,7 @@ import net.instant.util.fileprod.Producer;
 import net.instant.util.fileprod.ProducerJob;
 import net.instant.util.fileprod.StringProducer;
 import net.instant.ws.InstantWebSocketServer;
+import org.java_websocket.framing.CloseFrame;
 import org.java_websocket.handshake.ClientHandshake;
 import org.java_websocket.handshake.Handshakedata;
 
@@ -67,11 +68,12 @@ public class InstantRunner implements API1, Runnable {
 
         public void onClose(RequestInfo info, int code, String reason,
                             boolean remote) {
-            wrapped.onClose(info);
+            wrapped.onClose(info, (code == CloseFrame.NORMAL ||
+                                   code == CloseFrame.GOING_AWAY));
         }
 
         public void onError(RequestInfo info, Exception exc) {
-            /* NOP */
+            wrapped.onError(info, exc);
         }
 
     }

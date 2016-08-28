@@ -208,6 +208,10 @@ public class StaticFileHook extends HookAdapter {
         if (cell != null) write(info, cell);
     }
 
+    public void onError(RequestInfo info, Exception exc) {
+        running.remove(info);
+    }
+
     private static void write(RequestInfo info, FileCell cell) {
         ByteBuffer data = (cell == null) ? null : cell.getData();
         if (data != null && info.getBase().getCode() != 304) {

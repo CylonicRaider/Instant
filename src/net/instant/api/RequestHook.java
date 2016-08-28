@@ -51,7 +51,22 @@ public interface RequestHook {
     /**
      * Handle a closed connection.
      * Per-request resources should be cleaned up here.
+     * normal indicates whether the close is orderly or abnormal.
      */
-    void onClose(RequestResponseData req);
+    void onClose(RequestResponseData req, boolean normal);
+
+    /**
+     * Handle an error condition.
+     * req may be null, indicating a (fatal) error in the server itself.
+     * The exception object passed contains details.
+     * The method is called in two cases, once when an error happens during
+     * connection (so that onOpen() or onClose() are never called), or when
+     * a connection is already estabilished. In the latter case, an onClose()
+     * call may follow shortly if the error was fatal to the connection, or
+     * not if it was not (most likely an application error).
+     * To clarify, after an onOpen(), an onClose() will always be called, or
+     * the whole core will go down.
+     */
+    void onError(RequestResponseData req, Exception exc);
 
 }
