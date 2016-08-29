@@ -14,7 +14,9 @@ import net.instant.info.RequestInfo;
 import net.instant.proto.Message;
 import net.instant.proto.MessageDistributor;
 import net.instant.proto.MessageInfo;
+import net.instant.proto.PresenceChangeInfo;
 import net.instant.proto.ProtocolError;
+import net.instant.proto.RoomDistributor;
 import net.instant.util.UniqueCounter;
 import net.instant.util.Util;
 import net.instant.ws.InstantWebSocketServer;
@@ -30,7 +32,11 @@ public class RoomWebSocketHook extends WebSocketHook {
 
     public interface Hook {
 
+        void processJoin(PresenceChangeInfo info, Message msg);
+
         boolean processMessage(MessageInfo msg);
+
+        void processLeave(PresenceChangeInfo info);
 
     }
 
@@ -112,12 +118,16 @@ public class RoomWebSocketHook extends WebSocketHook {
         String id = distr.makeID();
         UUID uuid = (UUID) info.getExtraData().get("uuid");
         info.getExtraData().put("id", id);
-        conn.send(new Message("identity").makeData("id", id, "uuid", uuid,
-            "version", Main.VERSION,
-            "revision", Main.FINE_VERSION).makeString());
+        Message identity = new Message("identity").makeData("id", id,
+            "uuid", uuid, "version", Main.VERSION,
+            "revision", Main.FINE_VERSION);
+        Message joined = prepare("joined").makeData("id", id, "uuid", uuid);
+        if (hook != null)
+            hook.processJoin(new PresenceChangeInfo(true, info,
+                distr.get(name), joined), identity);
+        conn.send(identity.makeString());
         distr.add(name, info, id);
-        distr.get(info).broadcast(prepare("joined").makeData("id", id,
-            "uuid", uuid));
+        distr.get(info).broadcast(joined);
     }
 
     public void onMessage(RequestInfo info, String message) {
@@ -179,8 +189,13 @@ public class RoomWebSocketHook extends WebSocketHook {
                         boolean remote) {
         Room room = distr.getRoom(info);
         String id = distr.connectionID(info);
+        Message left = prepare("left").makeData("id", id);
+        RoomDistributor rd = distr.get(info);
         distr.remove(info);
-        room.sendBroadcast(prepare("left").makeData("id", id));
+        if (hook != null)
+            hook.processLeave(new PresenceChangeInfo(false, info,
+                                                     rd, left));
+        room.sendBroadcast(left);
     }
 
     public Message prepare(String type) {

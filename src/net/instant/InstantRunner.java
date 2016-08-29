@@ -16,7 +16,9 @@ import net.instant.api.ServerEvent;
 import net.instant.hooks.StaticFileHook;
 import net.instant.hooks.RoomWebSocketHook;
 import net.instant.info.RequestInfo;
+import net.instant.proto.Message;
 import net.instant.proto.MessageInfo;
+import net.instant.proto.PresenceChangeInfo;
 import net.instant.util.fileprod.FileCell;
 import net.instant.util.fileprod.FileProducer;
 import net.instant.util.fileprod.Producer;
@@ -128,11 +130,23 @@ public class InstantRunner implements API1 {
             hooks = l;
         }
 
+        public void processJoin(PresenceChangeInfo info, Message msg) {
+            for (MessageHook h : hooks) {
+                h.onJoin(info, msg);
+            }
+        }
+
         public boolean processMessage(MessageInfo msg) {
             for (MessageHook h : hooks) {
                 if (h.onMessage(msg)) return true;
             }
             return false;
+        }
+
+        public void processLeave(PresenceChangeInfo info) {
+            for (MessageHook h : hooks) {
+                h.onLeave(info);
+            }
         }
 
     }
