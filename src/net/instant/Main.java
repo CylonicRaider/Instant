@@ -6,6 +6,7 @@ import java.io.InputStream;
 import java.net.InetSocketAddress;
 import java.net.URL;
 import java.util.jar.Manifest;
+import java.util.regex.Pattern;
 import net.instant.hooks.CookieHandler;
 import net.instant.hooks.Error404Hook;
 import net.instant.hooks.RoomWebSocketHook;
@@ -62,11 +63,11 @@ public class Main implements Runnable {
     }
 
     private final String[] args;
-    private InstantWebSocketServer srv;
-    private MessageDistributor distr;
+    private InstantRunner runner;
 
     public Main(String[] args) {
         this.args = args;
+        this.runner = new InstantRunner();
     }
 
     public int getArguments() {
@@ -79,18 +80,11 @@ public class Main implements Runnable {
         return args[i];
     }
 
-    public InstantWebSocketServer getServer() {
-        return srv;
+    public InstantRunner getRunner() {
+        return runner;
     }
-    public MessageDistributor getDistributor() {
-        return distr;
-    }
-
-    protected void setServer(InstantWebSocketServer s) {
-        srv = s;
-    }
-    protected void setDistributor(MessageDistributor d) {
-        distr = d;
+    public void setRunner(InstantRunner r) {
+        runner = r;
     }
 
     protected void parseArguments() {
@@ -110,15 +104,12 @@ public class Main implements Runnable {
         }
         String hostName = host.get(r);
         if (hostName.equals("*")) hostName = "";
-        srv = new InstantWebSocketServer(
-            new InetSocketAddress(hostName, port.get(r)));
+        runner.setHost(hostName);
+        runner.setPort(port.get(r));
     }
 
     public void run() {
         parseArguments();
-        distr = new MessageDistributor();
-        RoomWebSocketHook rws = new RoomWebSocketHook();
-        rws.setDistributor(distr);
         String signaturePath = Util.getConfiguration(
             "instant.cookies.keyfile");
         StringSigner signer = null;
@@ -126,30 +117,26 @@ public class Main implements Runnable {
             signer = StringSigner.getInstance(new File(signaturePath));
         if (signer == null)
             signer = StringSigner.getInstance(Util.getRandomness(64));
-        getServer().setCookieHandler(new CookieHandler(signer));
-        getServer().addHook(rws);
-        getServer().addHook(new RedirectHook("/room/(" + ROOM_RE + ")",
+        runner.addFileAlias("/", "/pages/main.html");
+        runner.addFileAlias("/favicon.ico",
+                            "/static/logo-static_128x128.ico");
+        runner.addFileAlias(Pattern.compile("/([^/]+\\.html)"),
+                            "/pages/\\1");
+        runner.addFileAlias(Pattern.compile("/room/" + ROOM_RE + "/"),
+                        "/static/room.html");
+        runner.addFileAlias(Pattern.compile("/(" + STAGING_RE + ")/"),
+                        "/static/\\1/main.html");
+        runner.addFileAlias(Pattern.compile("/(" + STAGING_RE + ")/room/" +
+                        ROOM_RE + "/"), "/static/\\1/room.html");
+        InstantWebSocketServer srv = runner.make();
+        srv.setCookieHandler(new CookieHandler(signer));
+        srv.addHook(new RedirectHook("/room/(" + ROOM_RE + ")",
             "/room/\\1/"));
-        getServer().addHook(new RedirectHook("/(" + STAGING_RE + ")",
+        srv.addHook(new RedirectHook("/(" + STAGING_RE + ")",
             "/\\1/"));
-        getServer().addHook(new RedirectHook("/(" + STAGING_RE + ")/room/(" +
+        srv.addHook(new RedirectHook("/(" + STAGING_RE + ")/room/(" +
             ROOM_RE + ")", "/\\1/room/\\2/"));
-        FileProducer prod = new FileProducer();
-        prod.addProducer(new FilesystemProducer(".", ""));
-        StringProducer s = new StringProducer();
-        s.addFile("/static/version.js", VERSION_FILE);
-        prod.addProducer(s);
-        prod.addProducer(new ResourceProducer());
-        prod.whitelist("/static/.*");
-        prod.whitelist("/pages/.*");
-        StaticFileHook files = new StaticFileHook(prod);
-        files.alias("/", "/pages/main.html");
-        files.alias("/favicon.ico", "/static/logo-static_128x128.ico");
-        files.alias("/([^/]+\\.html)", "/pages/\\1", true);
-        files.alias("/room/" + ROOM_RE + "/", "/static/room.html");
-        files.alias("/(" + STAGING_RE + ")/", "/static/\\1/main.html", true);
-        files.alias("/(" + STAGING_RE + ")/room/" + ROOM_RE + "/",
-                    "/static/\\1/room.html", true);
+        StaticFileHook files = runner.getFileHook();
         files.matchContentType(".*\\.html", "text/html; charset=utf-8");
         files.matchContentType(".*\\.css", "text/css; charset=utf-8");
         files.matchContentType(".*\\.js", "application/javascript; " +
@@ -157,9 +144,15 @@ public class Main implements Runnable {
         files.matchContentType(".*\\.svg", "image/svg+xml; charset=utf-8");
         files.matchContentType(".*\\.png", "image/png");
         files.matchContentType(".*\\.ico", "image/vnd.microsoft.icon");
-        getServer().addHook(files);
-        getServer().addHook(new Error404Hook());
-        getServer().run();
+        FileProducer prod = files.getProducer();
+        prod.addProducer(new FilesystemProducer(".", ""));
+        prod.addProducer(new ResourceProducer());
+        prod.whitelist("/static/.*");
+        prod.whitelist("/pages/.*");
+        runner.getStringProducer().addFile("/static/version.js",
+                                           VERSION_FILE);
+        runner.addRequestHook(new Error404Hook());
+        srv.run();
     }
 
 }

@@ -47,8 +47,12 @@ public class RoomWebSocketHook extends WebSocketHook {
     private MessageDistributor distr;
     private Hook hook;
 
-    public RoomWebSocketHook() {
+    public RoomWebSocketHook(MessageDistributor distr) {
+        this.distr = distr;
         whitelist(ROOM_PREF + Main.ROOM_RE + ROOM_POSTF);
+    }
+    public RoomWebSocketHook() {
+        this(null);
     }
 
     public MessageDistributor getDistributor() {

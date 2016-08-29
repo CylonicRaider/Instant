@@ -17,6 +17,7 @@ import net.instant.hooks.StaticFileHook;
 import net.instant.hooks.RoomWebSocketHook;
 import net.instant.info.RequestInfo;
 import net.instant.proto.Message;
+import net.instant.proto.MessageDistributor;
 import net.instant.proto.MessageInfo;
 import net.instant.proto.PresenceChangeInfo;
 import net.instant.util.fileprod.FileCell;
@@ -240,13 +241,17 @@ public class InstantRunner implements API1 {
     }
     public RoomWebSocketHook makeRoomHook() {
         if (roomHook == null) {
-            roomHook = new RoomWebSocketHook();
+            roomHook = new RoomWebSocketHook(new MessageDistributor());
             roomHook.setHook(new APIMessageHook(messageHooks));
         }
         return roomHook;
     }
     public void addMessageHook(MessageHook h) {
         messageHooks.add(h);
+    }
+
+    public MessageDistributor getDistributor() {
+        return (roomHook == null) ? null : roomHook.getDistributor();
     }
 
     public StaticFileHook getFileHook() {
