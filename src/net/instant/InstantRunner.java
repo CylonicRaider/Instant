@@ -20,6 +20,8 @@ import net.instant.proto.Message;
 import net.instant.proto.MessageDistributor;
 import net.instant.proto.MessageInfo;
 import net.instant.proto.PresenceChangeInfo;
+import net.instant.util.DefaultStringMatcher;
+import net.instant.util.StringMatcher;
 import net.instant.util.fileprod.FileCell;
 import net.instant.util.fileprod.FileProducer;
 import net.instant.util.fileprod.Producer;
@@ -156,7 +158,7 @@ public class InstantRunner implements API1 {
 
     private final List<InstantWebSocketServer.Hook> pendingRequestHooks;
     private final List<Producer> pendingProducers;
-    private final List<StaticFileHook.AliasMatcher> pendingAliases;
+    private final List<StringMatcher> pendingAliases;
     private final List<MessageHook> messageHooks;
     private final List<String> pendingSiteCode;
     private String host;
@@ -170,7 +172,7 @@ public class InstantRunner implements API1 {
     public InstantRunner() {
         pendingRequestHooks = new ArrayList<InstantWebSocketServer.Hook>();
         pendingProducers = new ArrayList<Producer>();
-        pendingAliases = new ArrayList<StaticFileHook.AliasMatcher>();
+        pendingAliases = new ArrayList<StringMatcher>();
         messageHooks = new ArrayList<MessageHook>();
         pendingSiteCode = new ArrayList<String>();
         host = "";
@@ -268,8 +270,8 @@ public class InstantRunner implements API1 {
                 prod.addProducer(p);
             }
             pendingProducers.clear();
-            for (StaticFileHook.AliasMatcher a : pendingAliases) {
-                fileHook.addAlias(a);
+            for (StringMatcher a : pendingAliases) {
+                fileHook.alias(a);
             }
             pendingAliases.clear();
             if (stringProducer != null) prod.addProducer(stringProducer);
@@ -287,18 +289,18 @@ public class InstantRunner implements API1 {
         addFileGenerator(new APIFileProducer(f));
     }
 
-    public void addFileAlias(StaticFileHook.AliasMatcher a) {
+    public void addFileAlias(StringMatcher a) {
         if (fileHook == null) {
             pendingAliases.add(a);
         } else {
-            fileHook.addAlias(a);
+            fileHook.alias(a);
         }
     }
     public void addFileAlias(String from, String to) {
-        addFileAlias(new StaticFileHook.DefaultMatcher(from, to, false));
+        addFileAlias(new DefaultStringMatcher(from, to));
     }
     public void addFileAlias(Pattern from, String to) {
-        addFileAlias(new StaticFileHook.DefaultMatcher(from, to, true));
+        addFileAlias(new DefaultStringMatcher(from, to));
     }
 
     public StringProducer getStringProducer() {

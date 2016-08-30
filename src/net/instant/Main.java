@@ -130,12 +130,13 @@ public class Main implements Runnable {
                         ROOM_RE + "/"), "/static/\\1/room.html");
         InstantWebSocketServer srv = runner.make();
         srv.setCookieHandler(new CookieHandler(signer));
-        srv.addHook(new RedirectHook("/room/(" + ROOM_RE + ")",
-            "/room/\\1/"));
-        srv.addHook(new RedirectHook("/(" + STAGING_RE + ")",
-            "/\\1/"));
-        srv.addHook(new RedirectHook("/(" + STAGING_RE + ")/room/(" +
-            ROOM_RE + ")", "/\\1/room/\\2/"));
+        RedirectHook red = new RedirectHook();
+        red.redirect(Pattern.compile("/room/(" + ROOM_RE + ")"),
+                     "/room/\\1/", 301);
+        red.redirect(Pattern.compile("/(" + STAGING_RE + ")"), "/\\1/", 301);
+        red.redirect(Pattern.compile("/(" + STAGING_RE + ")/room/(" +
+            ROOM_RE + ")"), "/\\1/room/\\2/", 301);
+        runner.addRequestHook(red);
         StaticFileHook files = runner.getFileHook();
         files.matchContentType(".*\\.html", "text/html; charset=utf-8");
         files.matchContentType(".*\\.css", "text/css; charset=utf-8");
