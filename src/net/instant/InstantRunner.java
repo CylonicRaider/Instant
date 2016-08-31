@@ -292,6 +292,13 @@ public class InstantRunner implements API1 {
         addFileAlias(new DefaultStringMatcher(from, to));
     }
 
+    public void addContentType(StringMatcher m) {
+        makeFileHook().matchContentType(m);
+    }
+    public void addContentType(String pattern, String type) {
+        makeFileHook().matchContentType(pattern, type);
+    }
+
     public StringProducer getStringProducer() {
         return stringProducer;
     }

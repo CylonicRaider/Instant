@@ -128,6 +128,13 @@ public class Main implements Runnable {
                             "/static/\\1/main.html");
         runner.addFileAlias(Pattern.compile("/(" + STAGING_RE + ")/room/" +
                             ROOM_RE + "/"), "/static/\\1/room.html");
+        runner.addContentType(".*\\.html", "text/html; charset=utf-8");
+        runner.addContentType(".*\\.css", "text/css; charset=utf-8");
+        runner.addContentType(".*\\.js", "application/javascript; " +
+                               "charset=utf-8");
+        runner.addContentType(".*\\.svg", "image/svg+xml; charset=utf-8");
+        runner.addContentType(".*\\.png", "image/png");
+        runner.addContentType(".*\\.ico", "image/vnd.microsoft.icon");
         runner.addRedirect(Pattern.compile("/room/(" + ROOM_RE + ")"),
                            "/room/\\1/", 301);
         runner.addRedirect(Pattern.compile("/(" + STAGING_RE + ")"), "/\\1/",
@@ -136,15 +143,7 @@ public class Main implements Runnable {
                            ROOM_RE + ")"), "/\\1/room/\\2/", 301);
         InstantWebSocketServer srv = runner.make();
         srv.setCookieHandler(new CookieHandler(signer));
-        StaticFileHook files = runner.getFileHook();
-        files.matchContentType(".*\\.html", "text/html; charset=utf-8");
-        files.matchContentType(".*\\.css", "text/css; charset=utf-8");
-        files.matchContentType(".*\\.js", "application/javascript; " +
-                               "charset=utf-8");
-        files.matchContentType(".*\\.svg", "image/svg+xml; charset=utf-8");
-        files.matchContentType(".*\\.png", "image/png");
-        files.matchContentType(".*\\.ico", "image/vnd.microsoft.icon");
-        FileProducer prod = files.getProducer();
+        FileProducer prod = runner.getFileHook().getProducer();
         prod.addProducer(new FilesystemProducer(".", ""));
         prod.addProducer(new ResourceProducer());
         prod.whitelist("/static/.*");

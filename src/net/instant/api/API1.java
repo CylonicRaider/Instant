@@ -45,6 +45,18 @@ public interface API1 {
     void addFileAlias(Pattern from, String to);
 
     /**
+     * Register a content-type to be sent by static files.
+     * The type is determined using the file path; the given pattern is
+     * tested to match it, if it matches, the given content type is used.
+     * Since the patterns are tested against the entire path, most patterns
+     * will be like ".*\\.txt".
+     * NOTE that differently to file aliases and redirects, pattern is always
+     *      a regular expression pattern, since assigning a content type to
+     *      a single path is deemed too rare to be useful.
+     */
+    void addContentType(String pattern, String type);
+
+    /**
      * Redirect clients from a path to another.
      * Differently from file aliases, whose results are served as the path
      * the client requested, redirects actually change the URL the client
