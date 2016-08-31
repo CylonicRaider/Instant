@@ -1,6 +1,8 @@
 package net.instant.api;
 
+import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * A server-sent event.
@@ -17,22 +19,71 @@ import java.util.Map;
  * - retry: The new reconnection timeout setting. After the specified
  *   (integral) amount of milliseconds, the client will try to reconnect.
  */
-public interface ServerEvent {
+public class ServerEvent {
+
+    /**
+     * A string usable as a keep-alive message that does not issue an event,
+     * properly serialized.
+     */
+    public static final String KEEPALIVE = ":\n\n";
+
+    private final Map<String, String> fields;
+
+    /**
+     * Construct a ServerEvent wrapping the given map.
+     */
+    public ServerEvent(Map<String, String> fields) {
+        this.fields = fields;
+    }
+    /**
+     * Construct a ServerEvent backed by a new map.
+     * The underlying map is guaranteed to retain insertion order.
+     */
+    public ServerEvent() {
+        this(new LinkedHashMap<String, String>());
+    }
+
+    /**
+     * Return the serialization of this event as it would be sent.
+     */
+    public String toString() {
+        StringBuilder sb = new StringBuilder();
+        for (Map.Entry<String, String> ent : fields.entrySet()) {
+            String key = ent.getKey();
+            checkKey(key);
+            for (String ln : ent.getValue().split("\n", -1)) {
+                sb.append(key);
+                sb.append(": ");
+                sb.append(ln);
+                sb.append('\n');
+            }
+        }
+        sb.append('\n');
+        return sb.toString();
+    }
 
     /**
      * A (new) array of the keys currently held by the instance.
      */
-    String[] keys();
+    public String[] keys() {
+        Set<String> ks = fields.keySet();
+        return ks.toArray(new String[ks.size()]);
+    }
 
     /**
      * The value associated with the given key, or null.
      */
-    String get(String key);
+    public String get(String key) {
+        return fields.get(key);
+    }
 
     /**
      * Associate the given value with the given key.
      */
-    void put(String key, String value);
+    public void put(String key, String value) {
+        checkKey(key);
+        fields.put(key, value);
+    }
 
     /**
      * Convenience wrapper for multiple put() calls.
@@ -40,22 +91,44 @@ public interface ServerEvent {
      * which forms a key-value pair to be inserted.
      * Returns the instance being operated on to facilitate method chaining.
      */
-    ServerEvent update(String... pairs);
+    public ServerEvent update(String... params) {
+        int len = params.length;
+        if (len % 2 != 0)
+            throw new IllegalArgumentException("Bad argument count");
+        for (int i = 0; i < len; i += 2)
+            put(params[i], params[i + 1]);
+        return this;
+    }
 
     /**
      * Remove the given key.
      */
-    String remove(String key);
+    public String remove(String key) {
+        return fields.remove(key);
+    }
 
     /**
      * The underlying collection.
      */
-    Map<String, String> collection();
+    public Map<String, String> collection() {
+        return fields;
+    }
 
     /**
-     * A string usable as a keep-alive message that does not issue an event,
-     * properly serialized.
+     * Check whether the given key is valid.
+     * Raises an IllegalArgumentException is not.
      */
-    String keepalive();
+    protected static void checkKey(String k) {
+        if (k == null || k.matches("(?s).*(\\s|:)"))
+            throw new IllegalArgumentException("Bad SSE key");
+    }
+
+    /**
+     * A convenience wrapper for constructing a new event, updating it
+     * with the given parameters, and returning its string serialization.
+     */
+    public static String makeString(String... params) {
+        return new ServerEvent().update(params).toString();
+    }
 
 }

@@ -29,7 +29,6 @@ import net.instant.util.fileprod.Producer;
 import net.instant.util.fileprod.ProducerJob;
 import net.instant.util.fileprod.StringProducer;
 import net.instant.ws.InstantWebSocketServer;
-import net.instant.ws.ServerEventImpl;
 import org.java_websocket.framing.CloseFrame;
 import org.java_websocket.handshake.ClientHandshake;
 import org.java_websocket.handshake.Handshakedata;
@@ -308,10 +307,6 @@ public class InstantRunner implements API1 {
     }
     public void addSiteCode(String c) {
         makeStringProducer().appendFile(SITE_FILE, c);
-    }
-
-    public ServerEvent makeEvent(String... params) {
-        return new ServerEventImpl().update(params);
     }
 
     public InstantWebSocketServer make() {
