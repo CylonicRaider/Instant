@@ -14,6 +14,7 @@ import net.instant.api.MessageHook;
 import net.instant.api.RequestHook;
 import net.instant.api.ServerEvent;
 import net.instant.hooks.StaticFileHook;
+import net.instant.hooks.RedirectHook;
 import net.instant.hooks.RoomWebSocketHook;
 import net.instant.info.RequestInfo;
 import net.instant.proto.Message;
@@ -156,30 +157,24 @@ public class InstantRunner implements API1 {
 
     public static final String SITE_FILE = "/static/site.js";
 
-    private final List<InstantWebSocketServer.Hook> pendingRequestHooks;
-    private final List<Producer> pendingProducers;
-    private final List<StringMatcher> pendingAliases;
     private final List<MessageHook> messageHooks;
-    private final List<String> pendingSiteCode;
     private String host;
     private int port;
     private Counter counter;
     private InstantWebSocketServer server;
     private RoomWebSocketHook roomHook;
+    private RedirectHook redirectHook;
     private StaticFileHook fileHook;
     private StringProducer stringProducer;
 
     public InstantRunner() {
-        pendingRequestHooks = new ArrayList<InstantWebSocketServer.Hook>();
-        pendingProducers = new ArrayList<Producer>();
-        pendingAliases = new ArrayList<StringMatcher>();
         messageHooks = new ArrayList<MessageHook>();
-        pendingSiteCode = new ArrayList<String>();
         host = "";
         port = 8080;
         counter = null;
         server = null;
         roomHook = null;
+        redirectHook = null;
         fileHook = null;
         stringProducer = null;
     }
@@ -215,21 +210,14 @@ public class InstantRunner implements API1 {
         if (server == null) {
             server = new InstantWebSocketServer(
                 new InetSocketAddress(host, port));
-            for (InstantWebSocketServer.Hook h : pendingRequestHooks) {
-                server.addHook(h);
-            }
-            pendingRequestHooks.clear();
-            if (roomHook != null) server.addHook(roomHook);
-            if (fileHook != null) server.addHook(fileHook);
+            server.addInternalHook(makeRedirectHook());
+            server.addInternalHook(makeFileHook());
+            server.addInternalHook(makeRoomHook());
         }
         return server;
     }
     public void addRequestHook(InstantWebSocketServer.Hook h) {
-        if (server == null) {
-            pendingRequestHooks.add(h);
-        } else {
-            server.addHook(h);
-        }
+        makeServer().addHook(h);
     }
     public void addRequestHook(RequestHook h) {
         addRequestHook(new APIRequestHook(h));
@@ -256,6 +244,24 @@ public class InstantRunner implements API1 {
         return (roomHook == null) ? null : roomHook.getDistributor();
     }
 
+    public RedirectHook getRedirectHook() {
+        return redirectHook;
+    }
+    public void setRedirectHook(RedirectHook r) {
+        redirectHook = r;
+    }
+    public RedirectHook makeRedirectHook() {
+        if (redirectHook == null)
+            redirectHook = new RedirectHook();
+        return redirectHook;
+    }
+    public void addRedirect(String from, String to, int code) {
+        makeRedirectHook().redirect(from, to, code);
+    }
+    public void addRedirect(Pattern from, String to, int code) {
+        makeRedirectHook().redirect(from, to, code);
+    }
+
     public StaticFileHook getFileHook() {
         return fileHook;
     }
@@ -266,35 +272,19 @@ public class InstantRunner implements API1 {
         if (fileHook == null) {
             FileProducer prod = new FileProducer();
             fileHook = new StaticFileHook(prod);
-            for (Producer p : pendingProducers) {
-                prod.addProducer(p);
-            }
-            pendingProducers.clear();
-            for (StringMatcher a : pendingAliases) {
-                fileHook.alias(a);
-            }
-            pendingAliases.clear();
-            if (stringProducer != null) prod.addProducer(stringProducer);
+            prod.addProducer(makeStringProducer());
         }
         return fileHook;
     }
     public void addFileGenerator(Producer p) {
-        if (fileHook == null) {
-            pendingProducers.add(p);
-        } else {
-            fileHook.getProducer().addProducer(p);
-        }
+        makeFileHook().getProducer().addProducer(p);
     }
     public void addFileGenerator(FileGenerator f) {
         addFileGenerator(new APIFileProducer(f));
     }
 
     public void addFileAlias(StringMatcher a) {
-        if (fileHook == null) {
-            pendingAliases.add(a);
-        } else {
-            fileHook.alias(a);
-        }
+        makeFileHook().alias(a);
     }
     public void addFileAlias(String from, String to) {
         addFileAlias(new DefaultStringMatcher(from, to));
@@ -312,21 +302,12 @@ public class InstantRunner implements API1 {
     public StringProducer makeStringProducer() {
         if (stringProducer == null) {
             stringProducer = new StringProducer();
-            StringBuilder siteCode = new StringBuilder();
-            for (String s : pendingSiteCode) {
-                siteCode.append(s);
-            }
-            pendingSiteCode.clear();
-            stringProducer.addFile(SITE_FILE, siteCode.toString());
+            stringProducer.addFile(SITE_FILE, "");
         }
         return stringProducer;
     }
     public void addSiteCode(String c) {
-        if (stringProducer == null) {
-            pendingSiteCode.add(c);
-        } else {
-            stringProducer.appendFile(SITE_FILE, c);
-        }
+        makeStringProducer().appendFile(SITE_FILE, c);
     }
 
     public ServerEvent makeEvent(String... params) {
@@ -334,9 +315,6 @@ public class InstantRunner implements API1 {
     }
 
     public InstantWebSocketServer make() {
-        makeStringProducer();
-        makeFileHook();
-        makeRoomHook();
         return makeServer();
     }
 

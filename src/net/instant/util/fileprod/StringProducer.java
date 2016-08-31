@@ -21,6 +21,10 @@ public class StringProducer implements Producer {
     }
     public synchronized void appendFile(String name, ByteBuffer content) {
         ByteBuffer oldContent = getFile(name);
+        if (oldContent == null) {
+            addFile(name, content);
+            return;
+        }
         ByteBuffer newContent = ByteBuffer.allocate(oldContent.limit() +
             content.limit());
         newContent.put(oldContent);

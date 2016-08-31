@@ -123,20 +123,19 @@ public class Main implements Runnable {
         runner.addFileAlias(Pattern.compile("/([^/]+\\.html)"),
                             "/pages/\\1");
         runner.addFileAlias(Pattern.compile("/room/" + ROOM_RE + "/"),
-                        "/static/room.html");
+                            "/static/room.html");
         runner.addFileAlias(Pattern.compile("/(" + STAGING_RE + ")/"),
-                        "/static/\\1/main.html");
+                            "/static/\\1/main.html");
         runner.addFileAlias(Pattern.compile("/(" + STAGING_RE + ")/room/" +
-                        ROOM_RE + "/"), "/static/\\1/room.html");
+                            ROOM_RE + "/"), "/static/\\1/room.html");
+        runner.addRedirect(Pattern.compile("/room/(" + ROOM_RE + ")"),
+                           "/room/\\1/", 301);
+        runner.addRedirect(Pattern.compile("/(" + STAGING_RE + ")"), "/\\1/",
+                           301);
+        runner.addRedirect(Pattern.compile("/(" + STAGING_RE + ")/room/(" +
+                           ROOM_RE + ")"), "/\\1/room/\\2/", 301);
         InstantWebSocketServer srv = runner.make();
         srv.setCookieHandler(new CookieHandler(signer));
-        RedirectHook red = new RedirectHook();
-        red.redirect(Pattern.compile("/room/(" + ROOM_RE + ")"),
-                     "/room/\\1/", 301);
-        red.redirect(Pattern.compile("/(" + STAGING_RE + ")"), "/\\1/", 301);
-        red.redirect(Pattern.compile("/(" + STAGING_RE + ")/room/(" +
-            ROOM_RE + ")"), "/\\1/room/\\2/", 301);
-        runner.addRequestHook(red);
         StaticFileHook files = runner.getFileHook();
         files.matchContentType(".*\\.html", "text/html; charset=utf-8");
         files.matchContentType(".*\\.css", "text/css; charset=utf-8");
@@ -152,7 +151,7 @@ public class Main implements Runnable {
         prod.whitelist("/pages/.*");
         runner.getStringProducer().addFile("/static/version.js",
                                            VERSION_FILE);
-        runner.addRequestHook(new Error404Hook());
+        srv.addInternalHook(new Error404Hook());
         srv.run();
     }
 

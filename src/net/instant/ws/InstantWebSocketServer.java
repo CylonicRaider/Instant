@@ -7,6 +7,7 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Logger;
@@ -97,6 +98,7 @@ public class InstantWebSocketServer extends WebSocketServer
     }
 
     private final List<Hook> hooks;
+    private final List<Hook> internalHooks;
     private final Map<Datum, RequestInfo> infos;
     private final Map<RequestInfo, Hook> assignments;
     private InformationCollector collector;
@@ -104,11 +106,10 @@ public class InstantWebSocketServer extends WebSocketServer
 
     public InstantWebSocketServer(InetSocketAddress addr) {
         super(addr, wrapDrafts(DEFAULT_DRAFTS));
-        hooks = Collections.synchronizedList(new ArrayList<Hook>());
-        infos = Collections.synchronizedMap(
-            new HashMap<Datum, RequestInfo>());
-        assignments = Collections.synchronizedMap(
-            new HashMap<RequestInfo, Hook>());
+        hooks = new ArrayList<Hook>();
+        internalHooks = new ArrayList<Hook>();
+        infos = new HashMap<Datum, RequestInfo>();
+        assignments = new HashMap<RequestInfo, Hook>();
         collector = new InformationCollector(this);
         for (Draft d : getDraft()) {
             if (d instanceof DraftWrapper) {
@@ -126,18 +127,52 @@ public class InstantWebSocketServer extends WebSocketServer
     }
 
     public void addHook(Hook h) {
-        synchronized (hooks) {
-            if (! hooks.contains(h))
-                hooks.add(h);
-        }
+        hooks.add(h);
     }
     public boolean removeHook(Hook h) {
         return hooks.remove(h);
     }
     public List<Hook> getHooks() {
-        synchronized (hooks) {
-            return new ArrayList<Hook>(hooks);
-        }
+        return Collections.unmodifiableList(hooks);
+    }
+
+    public void addInternalHook(Hook h) {
+        internalHooks.add(h);
+    }
+    public boolean removeInternalHook(Hook h) {
+        return internalHooks.remove(h);
+    }
+    public List<Hook> getInternalHooks() {
+        return Collections.unmodifiableList(internalHooks);
+    }
+
+    public Iterable<Hook> getAllHooks() {
+        return new Iterable<Hook>() {
+            public Iterator<Hook> iterator() {
+                return new Iterator<Hook>() {
+
+                    private Iterator<Hook> it = hooks.iterator();
+                    private boolean internal = false;
+
+                    public boolean hasNext() {
+                        if (it.hasNext()) return true;
+                        if (internal) return false;
+                        it = internalHooks.iterator();
+                        internal = true;
+                        return it.hasNext();
+                    }
+
+                    public Hook next() {
+                        return it.next();
+                    }
+
+                    public void remove() {
+                        it.remove();
+                    }
+
+                };
+            }
+        };
     }
 
     public CookieHandler getCookieHandler() {
@@ -165,11 +200,9 @@ public class InstantWebSocketServer extends WebSocketServer
             assign(info, h);
             h.onOpen(info, handshake);
         } else {
-            synchronized (hooks) {
-                for (Hook hook : hooks) {
-                    if (! hook.allowUnassigned()) break;
-                    hook.onOpen(info, handshake);
-                }
+            for (Hook hook : getAllHooks()) {
+                if (! hook.allowUnassigned()) break;
+                hook.onOpen(info, handshake);
             }
         }
         System.err.println(info.getBase().formatLogEntry());
@@ -183,11 +216,9 @@ public class InstantWebSocketServer extends WebSocketServer
             h.onClose(info, code, reason, remote);
             return;
         }
-        synchronized (hooks) {
-            for (Hook hook : hooks) {
-                if (! hook.allowUnassigned()) break;
-                hook.onClose(info, code, reason, remote);
-            }
+        for (Hook hook : getAllHooks()) {
+            if (! hook.allowUnassigned()) break;
+            hook.onClose(info, code, reason, remote);
         }
     }
 
@@ -198,11 +229,9 @@ public class InstantWebSocketServer extends WebSocketServer
             h.onMessage(info, message);
             return;
         }
-        synchronized (hooks) {
-            for (Hook hook : hooks) {
-                if (! hook.allowUnassigned()) break;
-                hook.onMessage(info, message);
-            }
+        for (Hook hook : getAllHooks()) {
+            if (! hook.allowUnassigned()) break;
+            hook.onMessage(info, message);
         }
     }
     public void onMessage(WebSocket conn, ByteBuffer message) {
@@ -212,11 +241,9 @@ public class InstantWebSocketServer extends WebSocketServer
             h.onMessage(info, message);
             return;
         }
-        synchronized (hooks) {
-            for (Hook hook : hooks) {
-                if (! hook.allowUnassigned()) break;
-                hook.onMessage(info, message);
-            }
+        for (Hook hook : getAllHooks()) {
+            if (! hook.allowUnassigned()) break;
+            hook.onMessage(info, message);
         }
     }
 
@@ -232,11 +259,9 @@ public class InstantWebSocketServer extends WebSocketServer
                 return;
             }
         }
-        synchronized (hooks) {
-            for (Hook hook : hooks) {
-                if (! hook.allowUnassigned()) break;
-                hook.onError(info, ex);
-            }
+        for (Hook hook : getAllHooks()) {
+            if (! hook.allowUnassigned()) break;
+            hook.onError(info, ex);
         }
     }
 
@@ -253,11 +278,9 @@ public class InstantWebSocketServer extends WebSocketServer
         response.put("X-Instant-Version", Main.VERSION);
         if (Main.FINE_VERSION != null)
             response.put("X-Instant-Revision", Main.FINE_VERSION);
-        synchronized (hooks) {
-            for (Hook hook : hooks) {
-                hook.postProcessRequest(this, info, eff_resp);
-                if (getAssignment(info) != null) break;
-            }
+        for (Hook hook : getAllHooks()) {
+            hook.postProcessRequest(this, info, eff_resp);
+            if (getAssignment(info) != null) break;
         }
     }
 

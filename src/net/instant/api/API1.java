@@ -45,6 +45,21 @@ public interface API1 {
     void addFileAlias(Pattern from, String to);
 
     /**
+     * Redirect clients from a path to another.
+     * Differently from file aliases, whose results are served as the path
+     * the client requested, redirects actually change the URL the client
+     * is requesting. code is the HTTP code to use.
+     */
+    void addRedirect(String from, String to, int code);
+
+    /**
+     * Redirect clients from paths defined by a regex to a template.
+     * See notes for addRedirect(String, String, int) and
+     * addFileAlias(Pattern, String).
+     */
+    void addRedirect(Pattern from, String to, int code);
+
+    /**
      * Add a hook for incoming WebSocket messages in rooms.
      * The hook can process a message on its own or allow others (or the
      * core) to do so.
