@@ -62,26 +62,6 @@ function $query(str, ret) {
   return ret;
 }
 
-/* Ensure console is always there */
-void function(window) {
-  var console = window.console || {};
-  /* Avoid triggering linter script */
-  if (! console.debug) console.debug = console["log"];
-  ["log", "warn", "error"].forEach(function(el) {
-    if (! console[el]) {
-      if (el == "log") {
-        console[el] = function() {};
-      } else {
-        console[el] = function() {
-          alert(el.toUpperCase() + ": " +
-            Array.prototype.join.call(arguments, " "));
-        };
-      }
-    }
-  });
-  window.console = console;
-}(this);
-
 /* Early preparation; define most of the functionality */
 this.Instant = function() {
   /* Locale-agnostic abbreviated month name table */
@@ -141,6 +121,30 @@ this.Instant = function() {
     callback();
     setInterval(callback, time);
   }
+  /* Logging handlers */
+  var console = {
+    /* Log a debugging message */
+    log: function() {
+      if (window.console) {
+        window.console["log"].apply(window.console, arguments);
+      }
+    },
+    /* Log a warning */
+    warn: function() {
+      if (window.console) {
+        window.console.warn.apply(window.console, arguments);
+      }
+    },
+    /* Log an error */
+    error: function() {
+      if (window.console) {
+        window.console.error.apply(window.console, arguments);
+      } else {
+        alert("ERROR: " + arguments.join(" "));
+      }
+    }
+  };
+  console["debug"] = console["log"];
   /* Own identity */
   Instant.identity = function() {
     /* Node to add the visible class to when there is an update */
@@ -260,7 +264,7 @@ this.Instant = function() {
           try {
             ws.close();
           } catch (e) {
-            console.error(e);
+            console.warn(e);
           }
           ws.onopen = null;
           ws.onmessage = null;
@@ -299,13 +303,13 @@ this.Instant = function() {
         try {
           msg = JSON.parse(event.data);
         } catch (e) {
-          console.error(e);
+          console.warn(e);
           return;
         }
         /* Switch on the message type */
         switch (msg.type) {
           case 'error': /* Error */
-            console.error('Error message:', msg);
+            console.warn('Error message:', msg);
             break;
           case 'identity': /* Own (and server's) identity */
             Instant.identity.initFields(msg.data);
@@ -408,7 +412,7 @@ this.Instant = function() {
             }
             break;
           default:
-            console.error('Unknown server message:', msg);
+            console.warn('Unknown server message:', msg);
             break;
         }
       },
@@ -435,7 +439,7 @@ this.Instant = function() {
         connected = false;
         /* Cannnot really do anything */
         if (event)
-          console.error('WebSocket error:', event);
+          console.warn('WebSocket error:', event);
         /* Re-connect */
         if (event)
           Instant.connection.reconnect();
