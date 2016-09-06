@@ -110,12 +110,13 @@ public class CookieHandler {
         return ret;
     }
 
-    public void set(ServerHandshakeBuilder response, Cookie cookie) {
+    public void set(ServerHandshakeBuilder response,
+                    net.instant.api.Cookie cookie) {
         response.put("Set-Cookie", cookie.toString());
     }
     public void set(ServerHandshakeBuilder response,
-                    Iterable<Cookie> cookies) {
-        for (Cookie c : cookies) set(response, c);
+                    Iterable<net.instant.api.Cookie> cookies) {
+        for (net.instant.api.Cookie c : cookies) set(response, c);
     }
 
     public Cookie make(String name, String value) {

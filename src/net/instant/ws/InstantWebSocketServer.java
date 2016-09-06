@@ -282,6 +282,7 @@ public class InstantWebSocketServer extends WebSocketServer
             hook.postProcessRequest(this, info, eff_resp);
             if (getAssignment(info) != null) break;
         }
+        cookies.set(response, info.getResponseCookies());
     }
 
     public boolean verifyConnection(ClientHandshake handshakedata,

@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.UUID;
 import java.util.regex.Pattern;
 import net.instant.Main;
+import net.instant.api.Cookie;
 import net.instant.api.RequestResponseData;
 import net.instant.api.Room;
 import net.instant.info.Datum;
@@ -70,15 +71,11 @@ public class RoomWebSocketHook extends WebSocketHook {
     }
 
     protected void postProcessRequestInner(InstantWebSocketServer parent,
-                                           Datum info,
-                                           ClientHandshake request,
-                                           ServerHandshakeBuilder response,
+                                           RequestInfo info,
                                            Handshakedata eff_resp) {
-        CookieHandler handler = parent.getCookieHandler();
-        if (handler == null) return;
-        List<CookieHandler.Cookie> l = handler.get(request);
-        CookieHandler.Cookie cookie = null;
-        for (CookieHandler.Cookie c : l) {
+        List<Cookie> l = info.getCookies();
+        Cookie cookie = null;
+        for (Cookie c : l) {
             if (c.getName().equals(COOKIE_NAME)) {
                 cookie = c;
                 break;
@@ -86,7 +83,7 @@ public class RoomWebSocketHook extends WebSocketHook {
         }
         JSONObject data;
         if (cookie == null || cookie.getData() == null) {
-            cookie = handler.make(COOKIE_NAME, "");
+            cookie = info.makeCookie(COOKIE_NAME, "");
             data = new JSONObject();
         } else {
             data = cookie.getData();
@@ -97,7 +94,7 @@ public class RoomWebSocketHook extends WebSocketHook {
         } catch (Exception exc) {
             uuid = distr.makeUUID();
         }
-        info.getExtra().put("uuid", uuid);
+        info.getExtraData().put("uuid", uuid);
         data.put("uuid", uuid.toString());
         cookie.setData(data);
         cookie.put("Path", "/");
@@ -107,7 +104,7 @@ public class RoomWebSocketHook extends WebSocketHook {
         cookie.put("Expires", Util.formatHttpTime(expiry));
         if (! InstantWebSocketServer.INSECURE_COOKIES)
             cookie.put("Secure", null);
-        handler.set(response, cookie);
+        info.putCookie(cookie);
     }
 
     public void onOpen(RequestInfo info, ClientHandshake handshake) {
