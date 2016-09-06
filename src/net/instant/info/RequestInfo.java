@@ -11,7 +11,7 @@ import net.instant.api.Cookie;
 import net.instant.api.ResponseBuilder;
 import net.instant.api.RequestResponseData;
 import net.instant.api.RequestType;
-import net.instant.hooks.CookieHandler;
+import net.instant.ws.CookieHandler;
 import net.instant.ws.Draft_Raw;
 import net.instant.ws.Draft_SSE;
 import net.instant.ws.InstantWebSocketServer;

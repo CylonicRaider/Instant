@@ -7,7 +7,6 @@ import java.net.InetSocketAddress;
 import java.net.URL;
 import java.util.jar.Manifest;
 import java.util.regex.Pattern;
-import net.instant.hooks.CookieHandler;
 import net.instant.hooks.Error404Hook;
 import net.instant.hooks.RoomWebSocketHook;
 import net.instant.hooks.RedirectHook;
@@ -24,6 +23,7 @@ import net.instant.util.fileprod.FileProducer;
 import net.instant.util.fileprod.FilesystemProducer;
 import net.instant.util.fileprod.ResourceProducer;
 import net.instant.util.fileprod.StringProducer;
+import net.instant.ws.CookieHandler;
 import net.instant.ws.InstantWebSocketServer;
 import org.java_websocket.server.WebSocketServer;
 

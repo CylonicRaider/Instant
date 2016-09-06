@@ -1,4 +1,4 @@
-package net.instant.hooks;
+package net.instant.ws;
 
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
