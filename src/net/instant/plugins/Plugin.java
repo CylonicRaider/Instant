@@ -2,6 +2,7 @@ package net.instant.plugins;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -11,7 +12,7 @@ import java.util.jar.Manifest;
 
 public class Plugin {
 
-    public static final PluginAttribute DEPENDS =
+    public static final PluginAttribute<Set<String>> DEPENDS =
         new StringSetAttribute("Depends");
 
     public static final PluginConstraintAttribute BEFORE =
@@ -84,6 +85,12 @@ public class Plugin {
             attrs.put(attr, (Object) val);
         }
         return val;
+    }
+
+    public Set<String> getDependencies() {
+        Set<String> deps = get(DEPENDS);
+        if (deps == null) deps = Collections.emptySet();
+        return deps;
     }
 
     public Constraint getConstraint(Plugin other) {

@@ -34,6 +34,7 @@ public class PluginManager {
         p = fetcher.fetch(this, name);
         if (p == null) throw new NoSuchPluginException(name);
         add(p);
+        for (String n : p.getDependencies()) fetch(n);
         return p;
     }
 
