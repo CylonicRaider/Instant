@@ -2,16 +2,44 @@ package net.instant.plugins;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
+import java.util.jar.Attributes;
 import java.util.jar.JarFile;
 import java.util.jar.Manifest;
 
 public class Plugin {
+
+    public static final PluginAttribute DEPENDS =
+        new StringSetAttribute("Depends");
+
+    public static final PluginConstraintAttribute BEFORE =
+        new PluginConstraintAttribute("Before", Constraint.BEFORE);
+    public static final PluginConstraintAttribute NOT_AFTER =
+        new PluginConstraintAttribute("Not-After", Constraint.NOT_AFTER);
+    public static final PluginConstraintAttribute WITH =
+        new PluginConstraintAttribute("With", Constraint.WITH);
+    public static final PluginConstraintAttribute NOT_BEFORE =
+        new PluginConstraintAttribute("Not-Before", Constraint.NOT_BEFORE);
+    public static final PluginConstraintAttribute AFTER =
+        new PluginConstraintAttribute("After", Constraint.AFTER);
+    public static final PluginConstraintAttribute BREAKS =
+        new PluginConstraintAttribute("Breaks", Constraint.BREAKS);
+
+    private static final PluginConstraintAttribute[] conAttrs =
+        new PluginConstraintAttribute[] {
+            BEFORE, NOT_AFTER, WITH, NOT_BEFORE, AFTER, BREAKS
+        };
 
     private final PluginManager parent;
     private final String name;
     private final File source;
     private final JarFile file;
     private final Manifest manifest;
+    private final Attributes rawAttrs;
+    private final Map<PluginAttribute<?>, Object> attrs;
+    private final Map<Plugin, Constraint> constraints;
     private Object pluginData;
 
     public Plugin(PluginManager parent, String name, File source)
@@ -21,6 +49,10 @@ public class Plugin {
         this.source = source;
         this.file = new JarFile(source);
         this.manifest = file.getManifest();
+        this.rawAttrs = manifest.getAttributes("Instant-Plugin");
+        this.attrs = new HashMap<PluginAttribute<?>, Object>();
+        this.constraints = new HashMap<Plugin, Constraint>();
+        this.pluginData = null;
     }
 
     public PluginManager getParent() {
@@ -37,6 +69,39 @@ public class Plugin {
     }
     public Manifest getManifest() {
         return manifest;
+    }
+    public Attributes getRawAttributes() {
+        return rawAttrs;
+    }
+
+    public <T> T get(PluginAttribute<T> attr) {
+        @SuppressWarnings("unchecked")
+        T val = (T) attrs.get(attr);
+        if (val == null) {
+            Attributes r = getRawAttributes();
+            String v = (r == null) ? null : r.getValue(attr.getName());
+            val = attr.parse(v);
+            attrs.put(attr, (Object) val);
+        }
+        return val;
+    }
+
+    public Constraint getConstraint(Plugin other) {
+        Constraint ret = constraints.get(other);
+        if (ret == null) {
+            String name = other.getName();
+            ret = Constraint.INDIFFERENT_OF;
+            for (PluginConstraintAttribute a : conAttrs) {
+                Set<String> cons = get(a);
+                if (cons != null && cons.contains(name))
+                    ret = ret.and(a.getConstraint());
+            }
+            constraints.put(other, ret);
+        }
+        return ret;
+    }
+    public void setConstraint(Plugin other, Constraint c) {
+        constraints.put(other, c);
     }
 
     public Object getData() {

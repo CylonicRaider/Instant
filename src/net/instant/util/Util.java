@@ -55,6 +55,9 @@ public final class Util {
 
     public static final Pattern ESCAPE = Pattern.compile("[^ !#-\\[\\]-~]");
 
+    public static final Pattern CLIST_ITEM = Pattern.compile(
+        "\\s*(?:([^,\"\\s]+)|\"((?:[^\\\\\"]|\\\\.)*)\")\\s*(,|$)");
+
     public static final Pattern HTTP_SPEC = Pattern.compile(
         "[\0-\040\177()<>@,;:\\\\\"/\\[\\]?={}]");
     public static final Pattern HTTP_TOKEN = Pattern.compile(
@@ -156,6 +159,25 @@ public final class Util {
         return false;
     }
 
+    public static List<String> parseCommaList(String list) {
+        if (list == null) return null;
+        List<String> ret = new ArrayList<String>();
+        Matcher m = CLIST_ITEM.matcher(list);
+        int lastIdx = 0;
+        for (;;) {
+            if (! m.find() || m.start() != lastIdx) return null;
+            String value = m.group(1), qval = m.group(2), end = m.group(3);
+            if (value != null) {
+                ret.add(value);
+            } else {
+                ret.add(qval.replaceAll("\\\\(.)", "$1"));
+            }
+            lastIdx = m.end();
+            if (end.isEmpty()) break;
+        }
+        return ret;
+    }
+
     public static List<HeaderEntry> parseHTTPHeader(String value) {
         if (value == null) return null;
         List<HeaderEntry> ret = new ArrayList<HeaderEntry>();
@@ -252,7 +274,7 @@ public final class Util {
         String ret = System.getProperty(propName);
         if (ret == null)
             ret = System.getenv(
-                propName.toUpperCase().replaceAll("\\.", "_"));
+                propName.toUpperCase().replace(".", "_"));
         if (ret != null && ret.isEmpty())
             ret = null;
         return ret;
