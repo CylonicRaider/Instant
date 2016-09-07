@@ -1,4 +1,6 @@
 
+JAVACFLAGS = -Xlint:unchecked -Xlint:rawtypes -Werror
+
 SOURCES = $(shell find src/ -name '*.java' 2>/dev/null)
 LIBRARIES = $(shell find src/org/ 2>/dev/null)
 ASSETS = $(shell find src/static/ src/pages/ 2>/dev/null)
@@ -15,7 +17,7 @@ Instant.jar: .build.jar $(LIBRARIES) $(ASSETS)
 .INTERMEDIATE: .build.jar
 .SECONDARY: .build.jar
 .build.jar: $(SOURCES)
-	cd src && javac -Xlint:unchecked -Werror $(_JAVA_SOURCES)
+	cd src && javac $(JAVACFLAGS) $(_JAVA_SOURCES)
 	cd src && jar cfe ../.build.jar Main $(_JAVA_SOURCES) \
 	$(patsubst %.java,%.class,$(_JAVA_SOURCES))
 

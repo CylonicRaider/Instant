@@ -39,7 +39,7 @@ public class ArgParser {
         return ret;
     }
 
-    public <T extends Option> T add(T opt) {
+    public <T extends Option<?>> T add(T opt) {
         opt.setParent(this);
         if (opt.isPositional()) {
             arguments.add(opt);
@@ -48,7 +48,7 @@ public class ArgParser {
         }
         return opt;
     }
-    public <T extends Option> T add(T opt, String help) {
+    public <T extends Option<?>> T add(T opt, String help) {
         add(opt);
         opt.setHelp(help);
         return opt;
