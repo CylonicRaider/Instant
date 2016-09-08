@@ -23,8 +23,8 @@ public class Draft_SSE extends Draft_Raw {
             return HandshakeState.NOT_MATCHED;
         for (Util.HeaderEntry ent : values) {
             String val = ent.getValue();
-            if (val.equals("*/*") || val.equals("text/*") || val.equals("text/event-stream"))
-                return HandshakeState.MATCHED;
+            // Cannot know if the browser requests text/plain or something like that.
+            if (val.equals("text/event-stream")) return HandshakeState.MATCHED;
         }
         return HandshakeState.NOT_MATCHED;
     }
