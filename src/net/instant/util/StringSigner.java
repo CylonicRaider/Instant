@@ -18,17 +18,17 @@ public class StringSigner {
 
     private final Mac impl;
 
-    public StringSigner(byte[] key) throws NoSuchAlgorithmException,
-            InvalidKeyException {
+    public StringSigner(byte[] key) throws InvalidKeyException,
+             NoSuchAlgorithmException {
         impl = Mac.getInstance(ALGORITHM);
         impl.init(new SecretKeySpec(key, ALGORITHM));
     }
-    public StringSigner(InputStream input) throws NoSuchAlgorithmException,
-            InvalidKeyException, IOException {
+    public StringSigner(InputStream input) throws IOException,
+            InvalidKeyException, NoSuchAlgorithmException {
         this(Util.extractBytes(Util.readInputStreamClosing(input)));
     }
-    public StringSigner(File file) throws NoSuchAlgorithmException,
-            InvalidKeyException, IOException {
+    public StringSigner(File file) throws IOException,
+            InvalidKeyException, NoSuchAlgorithmException {
         this(new FileInputStream(file));
     }
 
@@ -50,6 +50,7 @@ public class StringSigner {
         try {
             return new StringSigner(key);
         } catch (Exception exc) {
+            exc.printStackTrace();
             return null;
         }
     }

@@ -76,7 +76,7 @@ public class DraftWrapper extends Draft {
     }
 
     @Override
-    public List<Framedata> translateFrame(ByteBuffer buffer) throws LimitExedeedException, InvalidDataException {
+    public List<Framedata> translateFrame(ByteBuffer buffer) throws InvalidDataException, LimitExedeedException {
         return wrapped.translateFrame(buffer);
     }
 
