@@ -37,7 +37,7 @@ public class PluginFetcher {
     }
 
     public Plugin fetch(PluginManager parent, String name)
-            throws IOException {
+            throws IOException, PluginException {
         File path = getPath(name);
         if (path == null) return null;
         if (name.contains("/")) name = getName(name);

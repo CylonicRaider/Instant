@@ -44,12 +44,14 @@ public class Plugin {
     private Object pluginData;
 
     public Plugin(PluginManager parent, String name, File source)
-            throws IOException {
+            throws BadPluginException, IOException {
         this.parent = parent;
         this.name = name;
         this.source = source;
         this.file = new JarFile(source);
         this.manifest = file.getManifest();
+        if (this.manifest == null)
+            throw new BadPluginException("Plugin missing manifest");
         this.rawAttrs = manifest.getAttributes("Instant-Plugin");
         this.attrs = new HashMap<PluginAttribute<?>, Object>();
         this.constraints = new HashMap<Plugin, Constraint>();

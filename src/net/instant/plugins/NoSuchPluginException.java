@@ -1,6 +1,6 @@
 package net.instant.plugins;
 
-public class NoSuchPluginException extends Exception {
+public class NoSuchPluginException extends PluginException {
 
     public NoSuchPluginException() {
         super();

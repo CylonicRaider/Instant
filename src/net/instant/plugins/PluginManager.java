@@ -28,7 +28,7 @@ public class PluginManager {
     }
 
     public Plugin fetch(String name)
-            throws IOException, NoSuchPluginException {
+            throws IOException, PluginException {
         Plugin p = get(name);
         if (p != null) return p;
         p = fetcher.fetch(this, name);
