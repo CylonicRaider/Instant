@@ -19,6 +19,7 @@ body {
 #load-wrapper {
   display: inline-block;
   position: relative;
+  vertical-align: top;
   background: white;
   padding: 30px;
   margin: 30px auto;

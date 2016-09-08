@@ -59,17 +59,17 @@ a:visited {
 }
 
 .logo, .logo-small {
-  cursor: default;
   display: inline-block;
+  cursor: default;
   white-space: nowrap;
+  vertical-align: top;
 }
 a.logo-small {
   cursor: pointer;
   color: black;
 }
 .logo img {
-  width: 100%;
-  height: auto;
+  display: block;
   min-width: 32px;
   border-radius: 50%;
   box-shadow: 0 0 30px black;
