@@ -3143,12 +3143,11 @@ this.Instant = function() {
           var icon = options.icon || ICON;
           var oncreate = options.oncreate || null;
           var onclick = options.onclick || null;
-          /* HACK: Firefox < 48 wrecked silently when an icon was
-           *       specified; 48 does still wreck except for data:
-           *       URI-s. */
-          var m = navigator.userAgent.match(/Firefox\/(\d+)/i);
-          if (m && (parseInt(m[1]) < 48 || ! /^data:/.test(icon)))
-            icon = null;
+          /* HACK: Firefox fails quite often to display notifications with
+           *       icons (for me); version 48 improved the success rate (for
+           *       data: URI-s), but still not up to (nearly, at least) 100%.
+           *       :( */
+          if (navigator.userAgent.match(/Firefox/i)) icon = null;
           /* Actually create notification */
           var ret = new Notification(title, {body: body,
             icon: icon});
