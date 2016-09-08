@@ -59,13 +59,13 @@ public class RoomDistributor implements Room {
 
     public String sendUnicast(RequestResponseData conn,
                               MessageContents message) {
-        String id = parent.makeID();
+        String id = MessageDistributor.makeID();
         message.setID(id);
         conn.getConnection().send(message.toString());
         return id;
     }
     public String sendBroadcast(MessageContents message) {
-        String id = parent.makeID();
+        String id = MessageDistributor.makeID();
         message.setID(id);
         broadcast(message);
         return id;

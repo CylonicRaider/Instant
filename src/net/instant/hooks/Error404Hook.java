@@ -1,5 +1,6 @@
 package net.instant.hooks;
 
+import net.instant.api.RequestType;
 import net.instant.info.RequestInfo;
 import net.instant.ws.Draft_Raw;
 import net.instant.ws.InstantWebSocketServer;
@@ -19,7 +20,7 @@ public class Error404Hook extends HookAdapter {
     public void postProcessRequest(InstantWebSocketServer parent,
                                    RequestInfo info,
                                    Handshakedata eff_resp) {
-        if (! (parent.getEffectiveDraft(info) instanceof Draft_Raw)) return;
+        if (info.getRequestType() != RequestType.HTTP) return;
         info.respond((short) 404, "Not Found", RESPONSE.length());
         info.putHeader("Content-Type", "text/plain; charset=utf-8");
         parent.assign(info, this);

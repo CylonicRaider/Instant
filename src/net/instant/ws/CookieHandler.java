@@ -19,7 +19,7 @@ public class CookieHandler {
 
         private final String name;
         private String value;
-        private JSONObject data;
+        private transient JSONObject data;
 
         public Cookie(String name, String value) {
             if (! Util.HTTP_TOKEN.matcher(name).matches())

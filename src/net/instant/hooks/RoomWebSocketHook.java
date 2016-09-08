@@ -92,7 +92,7 @@ public class RoomWebSocketHook extends WebSocketHook {
         try {
             uuid = UUID.fromString(data.getString("uuid"));
         } catch (Exception exc) {
-            uuid = distr.makeUUID();
+            uuid = MessageDistributor.makeUUID();
         }
         info.getExtraData().put("uuid", uuid);
         data.put("uuid", uuid.toString());
@@ -116,7 +116,7 @@ public class RoomWebSocketHook extends WebSocketHook {
         if (! url.substring(cutoff, url.length()).equals(ROOM_POSTF))
             return;
         String name = url.substring(ROOM_PREF.length(), cutoff);
-        String id = distr.makeID();
+        String id = MessageDistributor.makeID();
         UUID uuid = (UUID) info.getExtraData().get("uuid");
         info.getExtraData().put("id", id);
         Message identity = new Message("identity").makeData("id", id,
@@ -200,7 +200,7 @@ public class RoomWebSocketHook extends WebSocketHook {
     }
 
     public Message prepare(String type) {
-        return new Message(type).id(distr.makeID());
+        return new Message(type).id(MessageDistributor.makeID());
     }
 
     public static void sendError(WebSocket conn, ProtocolError err) {

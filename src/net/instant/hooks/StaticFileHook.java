@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import net.instant.api.RequestType;
 import net.instant.info.Datum;
 import net.instant.info.InformationCollector;
 import net.instant.info.RequestInfo;
@@ -93,7 +94,7 @@ public class StaticFileHook extends HookAdapter {
                                    RequestInfo info,
                                    Handshakedata eff_resp) {
         if (getProducer() == null) return;
-        if (! (parent.getEffectiveDraft(info) instanceof Draft_Raw)) return;
+        if (info.getRequestType() != RequestType.HTTP) return;
         if (! "GET".equals(info.getBase().getMethod())) return;
         String path = info.getBase().getURL().replaceFirst("\\?.*$", "");
         processAs(parent, info, path);

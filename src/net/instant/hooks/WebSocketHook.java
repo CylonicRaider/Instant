@@ -3,6 +3,7 @@ package net.instant.hooks;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Pattern;
+import net.instant.api.RequestType;
 import net.instant.info.Datum;
 import net.instant.info.InformationCollector;
 import net.instant.info.RequestInfo;
@@ -42,7 +43,7 @@ public class WebSocketHook extends HookAdapter {
     public void postProcessRequest(InstantWebSocketServer parent,
                                    RequestInfo info,
                                    Handshakedata eff_resp) {
-        if (parent.getEffectiveDraft(info) instanceof Draft_Raw) return;
+        if (info.getRequestType() != RequestType.WS) return;
         info.respond(101, "Switching Protocols", -1);
         info.putHeader("Content-Type", "application/x-websocket");
         postProcessRequestInner(parent, info, eff_resp);

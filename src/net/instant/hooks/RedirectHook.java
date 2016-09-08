@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import net.instant.api.RequestType;
 import net.instant.info.RequestInfo;
 import net.instant.util.DefaultStringMatcher;
 import net.instant.util.StringMatcher;
@@ -107,7 +108,7 @@ public class RedirectHook extends HookAdapter {
     public void postProcessRequest(InstantWebSocketServer parent,
                                    RequestInfo info,
                                    Handshakedata eff_resp) {
-        if (! (parent.getEffectiveDraft(info) instanceof Draft_Raw)) return;
+        if (info.getRequestType() != RequestType.HTTP) return;
         if (! "GET".equals(info.getBase().getMethod())) return;
         String original = info.getBase().getURL();
         for (Redirect r : redirects) {
