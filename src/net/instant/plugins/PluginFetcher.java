@@ -40,12 +40,18 @@ public class PluginFetcher {
             throws IOException {
         File path = getPath(name);
         if (path == null) return null;
+        if (name.contains("/")) name = getName(name);
         return new Plugin(parent, name, path);
     }
 
+    public static String getName(String path) {
+        return path.split("_", 2)[0];
+    }
+    public static String getName(File path) {
+        return getName(path.getName());
+    }
     public static boolean matches(String name, File path) {
-        return (path.getName().split("_", 2)[0].equals(name) &&
-                path.isFile());
+        return (getName(path).equals(name) && path.isFile());
     }
 
 }
