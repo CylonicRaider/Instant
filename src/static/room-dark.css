@@ -51,6 +51,9 @@
   color: white;
   background: black;
 }
+.dark #notifies-any {
+  color: #c0c0c0;
+}
 .dark .update-message a {
   color: #008000 !important;
 }
