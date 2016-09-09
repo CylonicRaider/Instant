@@ -60,7 +60,7 @@ public enum Constraint {
         return flips[ordinal()];
     }
 
-    public boolean isCompatibleWith(Constraint other) {
+    public boolean isCompatible(Constraint other) {
         return ((ordinal() & other.ordinal()) != 0);
     }
 

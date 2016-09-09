@@ -41,6 +41,7 @@ public class Plugin {
     private final Attributes rawAttrs;
     private final Map<PluginAttribute<?>, Object> attrs;
     private final Map<Plugin, Constraint> constraints;
+    private PluginGroup group;
     private Object pluginData;
 
     public Plugin(PluginManager parent, String name, File source)
@@ -55,6 +56,7 @@ public class Plugin {
         this.rawAttrs = manifest.getAttributes("Instant-Plugin");
         this.attrs = new HashMap<PluginAttribute<?>, Object>();
         this.constraints = new HashMap<Plugin, Constraint>();
+        this.group = null;
         this.pluginData = null;
     }
 
@@ -111,6 +113,16 @@ public class Plugin {
     }
     public void setConstraint(Plugin other, Constraint c) {
         constraints.put(other, c);
+    }
+    public Map<Plugin, Constraint> getConstraints() {
+        return Collections.unmodifiableMap(constraints);
+    }
+
+    public PluginGroup getGroup() {
+        return group;
+    }
+    public void setGroup(PluginGroup g) {
+        group = g;
     }
 
     public Object getData() {
