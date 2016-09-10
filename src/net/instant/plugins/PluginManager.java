@@ -66,8 +66,8 @@ public class PluginManager {
         for (Plugin p : getAll()) {
             for (Plugin q : getAll()) {
                 Constraint pq = p.getConstraint(q);
-                Constraint qp = q.getConstraint(p);
-                if (! pq.isCompatible(qp.flip()))
+                Constraint qp = q.getConstraint(p).flip();
+                if (! pq.isCompatible(qp))
                     throw new MutualPluginConflictException(p, q);
                 p.setConstraint(q, pq.and(qp));
             }
