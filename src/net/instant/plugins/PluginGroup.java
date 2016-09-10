@@ -12,11 +12,14 @@ public class PluginGroup {
     private final PluginManager parent;
     private final Set<Plugin> plugins;
     private final Map<Plugin, Constraint> constraints;
+    private Set<PluginGroup> precedessors, successors;
 
     public PluginGroup(PluginManager m) {
         parent = m;
         plugins = new HashSet<Plugin>();
         constraints = new HashMap<Plugin, Constraint>();
+        precedessors = null;
+        successors = null;
     }
     public PluginGroup(PluginManager parent, Plugin base)
             throws PluginConflictException {
@@ -63,11 +66,46 @@ public class PluginGroup {
                 merge(gr);
             }
         }
+        resetPrecSucc();
     }
 
     public void merge(PluginGroup other) throws PluginConflictException {
         for (Plugin p : other.getAll()) add(p);
         parent.removeGroup(other);
+    }
+
+    protected void resetPrecSucc() {
+        if (precedessors != null) {
+            for (PluginGroup g : precedessors)
+                g.successors = null;
+            precedessors = null;
+        }
+        if (successors != null) {
+            for (PluginGroup g : successors)
+                g.precedessors = null;
+            successors = null;
+        }
+    }
+
+    public Set<PluginGroup> getPrecedessors() {
+        if (precedessors == null) {
+            precedessors = new HashSet<PluginGroup>();
+            for (Plugin p : plugins) {
+                for (Plugin d : p.getPrecedessors())
+                    precedessors.add(d.getGroup());
+            }
+        }
+        return precedessors;
+    }
+    public Set<PluginGroup> getSuccessors() {
+        if (successors == null) {
+            successors = new HashSet<PluginGroup>();
+            for (Plugin p : plugins) {
+                for (Plugin d : p.getSuccessors())
+                    successors.add(d.getGroup());
+            }
+        }
+        return successors;
     }
 
     public String getNames() {

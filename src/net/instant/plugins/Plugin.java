@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.jar.Attributes;
@@ -116,6 +117,20 @@ public class Plugin {
     }
     public Map<Plugin, Constraint> getConstraints() {
         return Collections.unmodifiableMap(constraints);
+    }
+
+    protected Set<Plugin> matchConstraint(Constraint c) {
+        Set<Plugin> ret = new HashSet<Plugin>();
+        for (Map.Entry<Plugin, Constraint> ent : constraints.entrySet()) {
+            if (ent.getValue() == c) ret.add(ent.getKey());
+        }
+        return ret;
+    }
+    public Set<Plugin> getPrecedessors() {
+        return matchConstraint(Constraint.AFTER);
+    }
+    public Set<Plugin> getSuccessors() {
+        return matchConstraint(Constraint.BEFORE);
     }
 
     public PluginGroup getGroup() {
