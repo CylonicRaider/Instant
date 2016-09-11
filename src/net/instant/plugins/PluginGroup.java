@@ -108,6 +108,29 @@ public class PluginGroup {
         return successors;
     }
 
+    public Set<PluginGroup> getAllPrecedessors() {
+        Set<PluginGroup> ret = new HashSet<PluginGroup>();
+        getAllPrecedessors(ret);
+        return ret;
+    }
+    public Set<PluginGroup> getAllSuccessors() {
+        Set<PluginGroup> ret = new HashSet<PluginGroup>();
+        getAllSuccessors(ret);
+        return ret;
+    }
+    protected void getAllPrecedessors(Set<PluginGroup> drain) {
+        for (PluginGroup g : getPrecedessors()) {
+            if (! drain.add(g)) continue;
+            g.getAllPrecedessors(drain);
+        }
+    }
+    protected void getAllSuccessors(Set<PluginGroup> drain) {
+        for (PluginGroup g : getSuccessors()) {
+            if (! drain.add(g)) continue;
+            g.getAllPrecedessors(drain);
+        }
+    }
+
     public String getNames() {
         StringBuilder sb = new StringBuilder("group(");
         boolean first = true;

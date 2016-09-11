@@ -52,6 +52,9 @@ public class PluginManager {
     public Set<PluginGroup> getGroups() {
         return Collections.unmodifiableSet(groups);
     }
+    public boolean hasGroup(PluginGroup g) {
+        return groups.contains(g);
+    }
     public void addGroup(PluginGroup g) {
         groups.add(g);
     }
