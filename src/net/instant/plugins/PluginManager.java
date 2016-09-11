@@ -1,6 +1,7 @@
 package net.instant.plugins;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
@@ -77,6 +78,15 @@ public class PluginManager {
         }
     }
 
+    protected boolean constraintOK(PluginGroup base,
+            Iterable<PluginGroup> others, Constraint constraint) {
+        for (PluginGroup g : others) {
+            if (! base.getConstraint(g).isCompatible(constraint))
+                return false;
+        }
+        return true;
+    }
+
     public void makeGroups() throws PluginConflictException {
         normalizeIndividualConstraints();
         /* Group plugins basing on WITH constraints; check for conflicts */
@@ -85,6 +95,37 @@ public class PluginManager {
             PluginGroup g = new PluginGroup(this, pending.remove(0));
             addGroup(g);
             pending.removeAll(g.getAll());
+        }
+        /* Merge groups where possible */
+        List<PluginGroup> grps = new ArrayList<PluginGroup>(groups);
+        for (int i = 0; i < grps.size(); i++) {
+            PluginGroup g = grps.get(i);
+            Set<PluginGroup> gPrecs = g.getAllPrecedessors();
+            Set<PluginGroup> gSuccs = g.getAllSuccessors();
+            if (gPrecs.contains(g))
+                throw new GroupConstraintLoopException(g, Constraint.AFTER);
+            if (gSuccs.contains(g))
+                throw new GroupConstraintLoopException(g, Constraint.BEFORE);
+            for (int j = i + 1; j < grps.size(); j++) {
+                PluginGroup h = grps.get(j);
+                if (gPrecs == null) gPrecs = g.getAllPrecedessors();
+                if (gSuccs == null) gSuccs = g.getAllSuccessors();
+                Set<PluginGroup> hPrecs = h.getAllPrecedessors();
+                Set<PluginGroup> hSuccs = h.getAllSuccessors();
+                // Strong constraints present, obviously, an obstacle.
+                if (gPrecs.contains(h) || gSuccs.contains(h) ||
+                    hPrecs.contains(g) || hSuccs.contains(g)) continue;
+                // Weak constraints of precedessors or successors as well.
+                if (! constraintOK(h, gPrecs, Constraint.AFTER) ||
+                    ! constraintOK(h, gSuccs, Constraint.BEFORE) ||
+                    ! constraintOK(g, hPrecs, Constraint.AFTER) ||
+                    ! constraintOK(g, hSuccs, Constraint.BEFORE)) continue;
+                // Can merge.
+                g.merge(h);
+                gPrecs = null;
+                gSuccs = null;
+                j--;
+            }
         }
     }
 

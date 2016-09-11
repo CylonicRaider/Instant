@@ -34,6 +34,15 @@ public class PluginGroup {
         return Collections.unmodifiableMap(constraints);
     }
 
+    public Constraint getConstraint(PluginGroup g) {
+        Constraint ret = Constraint.INDIFFERENT_OF;
+        for (Plugin p : g.getAll()) {
+            Constraint c = constraints.get(p);
+            if (c != null) ret = ret.and(c);
+        }
+        return ret;
+    }
+
     public void add(Plugin p) throws PluginConflictException {
         Constraint pc = constraints.remove(p);
         if (pc != null && ! Constraint.WITH.isCompatible(pc))
