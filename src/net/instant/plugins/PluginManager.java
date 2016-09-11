@@ -108,6 +108,10 @@ public class PluginManager {
                 throw new GroupConstraintLoopException(g, Constraint.BEFORE);
             for (int j = i + 1; j < grps.size(); j++) {
                 PluginGroup h = grps.get(j);
+                // Check basic constraints
+                if (! g.getConstraint(h).isCompatible(Constraint.WITH))
+                    continue;
+                // Calculate precedessors/successors
                 if (gPrecs == null) gPrecs = g.getAllPrecedessors();
                 if (gSuccs == null) gSuccs = g.getAllSuccessors();
                 Set<PluginGroup> hPrecs = h.getAllPrecedessors();
