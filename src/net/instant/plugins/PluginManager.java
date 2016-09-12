@@ -4,22 +4,29 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.SortedSet;
+import java.util.TreeSet;
 
 public class PluginManager {
 
     private final Map<String, Plugin> plugins;
+    private final Map<Plugin, Integer> order;
     private final Set<PluginGroup> groups;
+    private int nextIndex;
     private PluginFetcher fetcher;
 
     public PluginManager() {
         plugins = new LinkedHashMap<String, Plugin>();
+        order = new HashMap<Plugin, Integer>();
         groups = new HashSet<PluginGroup>();
+        nextIndex = 0;
     }
 
     public PluginFetcher getFetcher() {
@@ -36,7 +43,9 @@ public class PluginManager {
         return plugins.get(name);
     }
     public void add(Plugin p) {
+        order.remove(plugins.get(p.getName()));
         plugins.put(p.getName(), p);
+        order.put(p, nextIndex++);
     }
 
     public Plugin fetch(String name)
@@ -48,6 +57,10 @@ public class PluginManager {
         add(p);
         for (String n : p.getDependencies()) fetch(n);
         return p;
+    }
+
+    public int getIndex(Plugin p) {
+        return order.get(p);
     }
 
     public Set<PluginGroup> getGroups() {
@@ -132,6 +145,30 @@ public class PluginManager {
                 gSuccs = null;
             }
         }
+    }
+
+    protected void walkGroups(PluginGroup base, List<PluginGroup> drain,
+            Set<PluginGroup> visited) throws GroupConstraintLoopException {
+        if (! visited.add(base))
+            throw new GroupConstraintLoopException(base, Constraint.AFTER);
+        SortedSet<PluginGroup> precs =
+            new TreeSet<PluginGroup>(base.getPrecedessors());
+        for (PluginGroup p : precs)
+            walkGroups(p, drain, visited);
+        drain.add(base);
+    }
+    public List<PluginGroup> orderGroups() throws PluginConflictException {
+        SortedSet<PluginGroup> g = new TreeSet<PluginGroup>(groups);
+        List<PluginGroup> ret = new ArrayList<PluginGroup>();
+        Set<PluginGroup> visited = new HashSet<PluginGroup>();
+        int lastSize = 0;
+        while (! g.isEmpty()) {
+            walkGroups(g.first(), ret, visited);
+            g.removeAll(ret.subList(lastSize, ret.size()));
+            lastSize = ret.size();
+        }
+        Collections.reverse(ret);
+        return ret;
     }
 
 }

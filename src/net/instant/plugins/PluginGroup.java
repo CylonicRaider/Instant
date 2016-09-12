@@ -6,17 +6,19 @@ import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.SortedSet;
+import java.util.TreeSet;
 
-public class PluginGroup {
+public class PluginGroup implements Comparable<PluginGroup> {
 
     private final PluginManager parent;
-    private final Set<Plugin> plugins;
+    private final SortedSet<Plugin> plugins;
     private final Map<Plugin, Constraint> constraints;
     private Set<PluginGroup> precedessors, successors;
 
     public PluginGroup(PluginManager m) {
         parent = m;
-        plugins = new HashSet<Plugin>();
+        plugins = new TreeSet<Plugin>();
         constraints = new HashMap<Plugin, Constraint>();
         precedessors = null;
         successors = null;
@@ -27,8 +29,12 @@ public class PluginGroup {
         add(base);
     }
 
-    public Set<Plugin> getAll() {
-        return Collections.unmodifiableSet(plugins);
+    public int compareTo(PluginGroup g) {
+        return Integer.compare(getIndex(), g.getIndex());
+    }
+
+    public SortedSet<Plugin> getAll() {
+        return Collections.unmodifiableSortedSet(plugins);
     }
     public Map<Plugin, Constraint> getConstraints() {
         return Collections.unmodifiableMap(constraints);
@@ -138,6 +144,13 @@ public class PluginGroup {
             if (! drain.add(g)) continue;
             g.getAllPrecedessors(drain);
         }
+    }
+
+    public int getIndex() {
+        Plugin p = plugins.first();
+        if (p == null)
+            throw new IllegalStateException("Comparing empty PluginGroup");
+        return p.getIndex();
     }
 
     public String getNames() {

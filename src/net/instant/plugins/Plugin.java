@@ -11,7 +11,7 @@ import java.util.jar.Attributes;
 import java.util.jar.JarFile;
 import java.util.jar.Manifest;
 
-public class Plugin {
+public class Plugin implements Comparable<Plugin> {
 
     public static final PluginAttribute<Set<String>> DEPENDS =
         new StringSetAttribute("Depends");
@@ -59,6 +59,10 @@ public class Plugin {
         this.constraints = new HashMap<Plugin, Constraint>();
         this.group = null;
         this.pluginData = null;
+    }
+
+    public int compareTo(Plugin other) {
+        return Integer.compare(getIndex(), other.getIndex());
     }
 
     public PluginManager getParent() {
@@ -145,6 +149,10 @@ public class Plugin {
     }
     public void setData(Object data) {
         pluginData = data;
+    }
+
+    public int getIndex() {
+        return parent.getIndex(this);
     }
 
 }
