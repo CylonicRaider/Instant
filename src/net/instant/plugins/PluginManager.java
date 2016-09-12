@@ -126,9 +126,10 @@ public class PluginManager {
                     ! constraintOK(g, hSuccs, Constraint.BEFORE)) continue;
                 // Can merge.
                 g.merge(h);
+                // Prepare for next iteration.
+                grps.remove(j--);
                 gPrecs = null;
                 gSuccs = null;
-                j--;
             }
         }
     }
