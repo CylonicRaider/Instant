@@ -2,6 +2,10 @@ package net.instant.plugins;
 
 import java.io.File;
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -10,6 +14,7 @@ import java.util.Set;
 import java.util.jar.Attributes;
 import java.util.jar.JarFile;
 import java.util.jar.Manifest;
+import net.instant.api.API1;
 
 public class Plugin implements Comparable<Plugin> {
 
@@ -39,6 +44,7 @@ public class Plugin implements Comparable<Plugin> {
     private final File source;
     private final JarFile file;
     private final Manifest manifest;
+    private final String mainClass;
     private final Attributes rawAttrs;
     private final Map<PluginAttribute<?>, Object> attrs;
     private final Map<Plugin, Constraint> constraints;
@@ -54,6 +60,10 @@ public class Plugin implements Comparable<Plugin> {
         this.manifest = file.getManifest();
         if (this.manifest == null)
             throw new BadPluginException("Plugin missing manifest");
+        this.mainClass = this.manifest.getMainAttributes().getValue(
+            Attributes.Name.MAIN_CLASS);
+        if (this.mainClass == null)
+            throw new BadPluginException("Plugin not defining main class");
         this.rawAttrs = manifest.getAttributes("Instant-Plugin");
         this.attrs = new HashMap<PluginAttribute<?>, Object>();
         this.constraints = new HashMap<Plugin, Constraint>();
@@ -79,6 +89,9 @@ public class Plugin implements Comparable<Plugin> {
     }
     public Manifest getManifest() {
         return manifest;
+    }
+    public String getMainClass() {
+        return mainClass;
     }
     public Attributes getRawAttributes() {
         return rawAttrs;
@@ -153,6 +166,47 @@ public class Plugin implements Comparable<Plugin> {
 
     public int getIndex() {
         return parent.getIndex(this);
+    }
+
+    public void addURL() {
+        try {
+            parent.getClassLoader().addURL(
+                new File(file.getName()).toURI().toURL());
+        } catch (MalformedURLException exc) {
+            // Should not happen.
+            throw new RuntimeException(exc);
+        }
+    }
+    public Class<?> fetchClass() throws BadPluginException {
+        try {
+            return Class.forName(mainClass, true, parent.getClassLoader());
+        } catch (ClassNotFoundException exc) {
+            throw new BadPluginException("Main class not found", exc);
+        }
+    }
+    public Object initialize(Class<?> pluginCls) throws BadPluginException {
+        Method init;
+        try {
+            init = pluginCls.getMethod("initInstantPlugin1", API1.class);
+        } catch (NoSuchMethodException exc) {
+            throw new BadPluginException("Cannot find initializer method",
+                                         exc);
+        }
+        Object data;
+        try {
+            data = init.invoke(null, parent.getAPI());
+        } catch (IllegalAccessException exc) {
+            throw new RuntimeException(exc);
+        } catch (InvocationTargetException exc) {
+            throw new RuntimeException(exc);
+        }
+        setData(data);
+        return data;
+    }
+    public Object load() throws BadPluginException {
+        addURL();
+        Class<?> main = fetchClass();
+        return initialize(main);
     }
 
 }

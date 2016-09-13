@@ -13,20 +13,30 @@ import java.util.Map;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
+import net.instant.api.API1;
 
 public class PluginManager {
 
+    private final API1 apiImpl;
     private final Map<String, Plugin> plugins;
     private final Map<Plugin, Integer> order;
     private final Set<PluginGroup> groups;
+    private final PluginClassLoader classLoader;
     private int nextIndex;
     private PluginFetcher fetcher;
 
-    public PluginManager() {
+    public PluginManager(API1 api) {
+        apiImpl = api;
         plugins = new LinkedHashMap<String, Plugin>();
         order = new HashMap<Plugin, Integer>();
         groups = new HashSet<PluginGroup>();
+        classLoader = new PluginClassLoader(getClass().getClassLoader());
         nextIndex = 0;
+        fetcher = null;
+    }
+
+    public API1 getAPI() {
+        return apiImpl;
     }
 
     public PluginFetcher getFetcher() {
@@ -76,6 +86,10 @@ public class PluginManager {
         groups.remove(g);
     }
 
+    public PluginClassLoader getClassLoader() {
+        return classLoader;
+    }
+
     protected void normalizeIndividualConstraints()
             throws PluginConflictException {
         /* Ensure that all inter-plugin constraints are mutual and that no
@@ -90,7 +104,6 @@ public class PluginManager {
             }
         }
     }
-
     protected boolean constraintOK(PluginGroup base,
             Iterable<PluginGroup> others, Constraint constraint) {
         for (PluginGroup g : others) {
@@ -99,7 +112,6 @@ public class PluginManager {
         }
         return true;
     }
-
     public void makeGroups() throws PluginConflictException {
         normalizeIndividualConstraints();
         /* Group plugins basing on WITH constraints; check for conflicts */
@@ -169,6 +181,11 @@ public class PluginManager {
         }
         Collections.reverse(ret);
         return ret;
+    }
+
+    public void load() throws BadPluginException, PluginConflictException {
+        for (PluginGroup g : orderGroups())
+            g.load();
     }
 
 }

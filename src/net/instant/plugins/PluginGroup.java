@@ -168,4 +168,19 @@ public class PluginGroup implements Comparable<PluginGroup> {
         return sb.toString();
     }
 
+    public void addURLs() {
+        for (Plugin p : plugins)
+            p.addURL();
+    }
+    public void initializePlugins() throws BadPluginException {
+        for (Plugin p : plugins) {
+            Class<?> cls = p.fetchClass();
+            p.initialize(cls);
+        }
+    }
+    public void load() throws BadPluginException {
+        addURLs();
+        initializePlugins();
+    }
+
 }
