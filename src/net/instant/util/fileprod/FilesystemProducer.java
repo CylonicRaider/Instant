@@ -4,7 +4,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 
-public class FilesystemProducer implements Producer {
+public class FilesystemProducer extends WhitelistProducer {
 
     private File chroot;
     private File workdir;
@@ -39,7 +39,7 @@ public class FilesystemProducer implements Producer {
         return new File(chroot, adjustedPath.replaceFirst("^[/\\\\]+", ""));
     }
 
-    public ProducerJob produce(String name) {
+    public ProducerJob produceInner(String name) {
         final File path = convert(name);
         if (! path.isFile()) return null;
         return new ProducerJob(name) {

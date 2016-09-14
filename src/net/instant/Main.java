@@ -162,10 +162,14 @@ public class Main implements Runnable {
         InstantWebSocketServer srv = runner.make();
         srv.setCookieHandler(new CookieHandler(signer));
         FileProducer prod = runner.getFileHook().getProducer();
-        prod.addProducer(new FilesystemProducer(".", ""));
-        prod.addProducer(new ResourceProducer(manager.getClassLoader()));
-        prod.whitelist("/static/.*");
-        prod.whitelist("/pages/.*");
+        FilesystemProducer fp = new FilesystemProducer(".", "");
+        ResourceProducer rp = new ResourceProducer(manager.getClassLoader());
+        fp.whitelist("/static/.*");
+        fp.whitelist("/pages/.*");
+        rp.whitelist("/static/.*");
+        rp.whitelist("/pages/.*");
+        prod.addProducer(fp);
+        prod.addProducer(rp);
         runner.getStringProducer().addFile("/static/version.js",
                                            VERSION_FILE);
         srv.addInternalHook(new Error404Hook());
