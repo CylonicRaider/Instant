@@ -11,6 +11,8 @@ import net.instant.hooks.Error404Hook;
 import net.instant.hooks.RoomWebSocketHook;
 import net.instant.hooks.RedirectHook;
 import net.instant.hooks.StaticFileHook;
+import net.instant.plugins.PluginException;
+import net.instant.plugins.PluginManager;
 import net.instant.proto.MessageDistributor;
 import net.instant.util.StringSigner;
 import net.instant.util.Util;
@@ -64,10 +66,12 @@ public class Main implements Runnable {
 
     private final String[] args;
     private InstantRunner runner;
+    private PluginManager manager;
 
     public Main(String[] args) {
         this.args = args;
         this.runner = new InstantRunner();
+        this.manager = new PluginManager(this.runner);
     }
 
     public int getArguments() {
@@ -85,6 +89,15 @@ public class Main implements Runnable {
     }
     public void setRunner(InstantRunner r) {
         runner = r;
+        manager.setAPI(r);
+    }
+
+    public PluginManager getManager() {
+        return manager;
+    }
+    public void setManager(PluginManager mgr) {
+        manager = mgr;
+        mgr.setAPI(runner);
     }
 
     protected void parseArguments() {
@@ -110,6 +123,11 @@ public class Main implements Runnable {
 
     public void run() {
         parseArguments();
+        try {
+            manager.load();
+        } catch (PluginException exc) {
+            exc.printStackTrace();
+        }
         String signaturePath = Util.getConfiguration(
             "instant.cookies.keyfile");
         StringSigner signer = null;
@@ -145,7 +163,7 @@ public class Main implements Runnable {
         srv.setCookieHandler(new CookieHandler(signer));
         FileProducer prod = runner.getFileHook().getProducer();
         prod.addProducer(new FilesystemProducer(".", ""));
-        prod.addProducer(new ResourceProducer());
+        prod.addProducer(new ResourceProducer(manager.getClassLoader()));
         prod.whitelist("/static/.*");
         prod.whitelist("/pages/.*");
         runner.getStringProducer().addFile("/static/version.js",

@@ -17,26 +17,36 @@ import net.instant.api.API1;
 
 public class PluginManager {
 
-    private final API1 apiImpl;
     private final Map<String, Plugin> plugins;
     private final Map<Plugin, Integer> order;
     private final Set<PluginGroup> groups;
-    private final PluginClassLoader classLoader;
-    private int nextIndex;
+    private API1 apiImpl;
+    private PluginClassLoader classLoader;
     private PluginFetcher fetcher;
+    private int nextIndex;
 
     public PluginManager(API1 api) {
-        apiImpl = api;
         plugins = new LinkedHashMap<String, Plugin>();
         order = new HashMap<Plugin, Integer>();
         groups = new HashSet<PluginGroup>();
+        apiImpl = api;
         classLoader = new PluginClassLoader(getClass().getClassLoader());
-        nextIndex = 0;
         fetcher = null;
+        nextIndex = 0;
     }
 
     public API1 getAPI() {
         return apiImpl;
+    }
+    public void setAPI(API1 api) {
+        apiImpl = api;
+    }
+
+    public PluginClassLoader getClassLoader() {
+        return classLoader;
+    }
+    public void setClassLoader(PluginClassLoader cl) {
+        classLoader = cl;
     }
 
     public PluginFetcher getFetcher() {
@@ -84,10 +94,6 @@ public class PluginManager {
     }
     public void removeGroup(PluginGroup g) {
         groups.remove(g);
-    }
-
-    public PluginClassLoader getClassLoader() {
-        return classLoader;
     }
 
     protected void normalizeIndividualConstraints()
