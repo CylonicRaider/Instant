@@ -62,6 +62,8 @@ a:visited {
   display: inline-block;
   cursor: default;
   white-space: nowrap;
+}
+.logo {
   vertical-align: top;
 }
 a.logo-small {
