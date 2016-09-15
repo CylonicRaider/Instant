@@ -20,6 +20,8 @@ import net.instant.util.argparse.ArgParser;
 import net.instant.util.argparse.IntegerOption;
 import net.instant.util.argparse.ParseException;
 import net.instant.util.argparse.ParseResult;
+import net.instant.util.argparse.PathListOption;
+import net.instant.util.argparse.StringListOption;
 import net.instant.util.argparse.StringOption;
 import net.instant.util.fileprod.FileProducer;
 import net.instant.util.fileprod.FilesystemProducer;
@@ -104,9 +106,13 @@ public class Main implements Runnable {
         ArgParser p = new ArgParser("Instant");
         p.addHelp();
         StringOption host = p.add(new StringOption("host", false, "*"),
-                                  "Host to bind to");
+            "Host to bind to");
         IntegerOption port = p.add(new IntegerOption("port", true, 8080),
-                                   "Port number to use");
+            "Port number to use");
+        PathListOption pluginPath = p.add(new PathListOption(
+            "plugin-path", false), "Path to search for plugins in");
+        StringListOption plugins = p.add(new StringListOption(
+            "plugins", false), "List of plugins to load");
         ParseResult r;
         try {
             r = p.parse(args);
@@ -119,14 +125,22 @@ public class Main implements Runnable {
         if (hostName.equals("*")) hostName = "";
         runner.setHost(hostName);
         runner.setPort(port.get(r));
+        manager.getFetcher().addPaths(pluginPath.get(r));
+        manager.queueAll(plugins.get(r));
     }
 
     public void run() {
         parseArguments();
         try {
             manager.load();
+        } catch (IOException exc) {
+            exc.printStackTrace();
+            System.exit(1);
+            return;
         } catch (PluginException exc) {
             exc.printStackTrace();
+            System.exit(1);
+            return;
         }
         String signaturePath = Util.getConfiguration(
             "instant.cookies.keyfile");
