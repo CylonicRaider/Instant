@@ -16,6 +16,7 @@ import net.instant.plugins.PluginManager;
 import net.instant.proto.MessageDistributor;
 import net.instant.util.StringSigner;
 import net.instant.util.Util;
+import net.instant.util.argparse.ActionOption;
 import net.instant.util.argparse.ArgParser;
 import net.instant.util.argparse.IntegerOption;
 import net.instant.util.argparse.ParseException;
@@ -105,6 +106,15 @@ public class Main implements Runnable {
     protected void parseArguments() {
         ArgParser p = new ArgParser("Instant");
         p.addHelp();
+        p.add(new ActionOption("version") {
+            public void run() {
+                String output = "Instant v" + VERSION;
+                if (FINE_VERSION != null)
+                    output += " (" + FINE_VERSION + ")";
+                System.err.println(output);
+                System.exit(0);
+            }
+        }, "Show the current version");
         StringOption host = p.add(new StringOption("host", false, "*"),
             "Host to bind to");
         IntegerOption port = p.add(new IntegerOption("port", true, 8080),
