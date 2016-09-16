@@ -2416,6 +2416,8 @@ this.Instant = function() {
                       return Instant.message.get(key);
                     }
                   ));
+                  /* Avoid stale node references */
+                  Instant.animation.offscreen._updateMessages();
                   /* Detect earliest and latest message */
                   data.data.forEach(function(el) {
                     if (! before || el.id < before) before = el.id;
@@ -2958,6 +2960,14 @@ this.Instant = function() {
               }
               belowNode.href = '#' + ((unreadBelow) ? unreadBelow.id : '');
             }
+          },
+          /* Update the message nodes referenced if they could have been
+           * replaced */
+          _updateMessages: function() {
+            if (unreadAbove != null) unreadAbove = $id(unreadAbove.id);
+            if (unreadBelow != null) unreadBelow = $id(unreadBelow.id);
+            if (mentionAbove != null) mentionAbove = $id(mentionAbove.id);
+            if (mentionBelow != null) mentionBelow = $id(mentionBelow.id);
           },
           /* Get the bottommost unread message above the screen, if any */
           getUnreadAbove: function() {
