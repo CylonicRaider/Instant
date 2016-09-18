@@ -12,6 +12,7 @@ public class StringSetAttribute extends PluginAttribute<Set<String>> {
     }
 
     public Set<String> parse(String rawValue) {
+        if (rawValue == null) return null;
         return new HashSet<String>(Util.parseCommaList(rawValue));
     }
 

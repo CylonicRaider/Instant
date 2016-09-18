@@ -20,7 +20,7 @@ public abstract class ListOption<E> extends Option<List<E>> {
     public OptionValue<List<E>> parse(OptionValue<List<E>> old,
                                       String[] args) {
         List<E> newVal = new ArrayList<E>();
-        newVal.addAll(old.getValue());
+        if (old != null) newVal.addAll(old.getValue());
         String sep = getSeparator();
         for (String s : args) {
             newVal.addAll(parseItems(s.split(sep)));
