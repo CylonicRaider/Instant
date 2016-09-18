@@ -204,6 +204,7 @@ public class PluginManager {
     public void load() throws IOException, PluginException {
         fetchAll(pendingFetches);
         pendingFetches.clear();
+        makeGroups();
         for (PluginGroup g : orderGroups())
             g.load();
     }
