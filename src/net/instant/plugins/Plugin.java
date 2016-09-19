@@ -186,7 +186,8 @@ public class Plugin implements Comparable<Plugin> {
         try {
             return Class.forName(mainClass, true, parent.getClassLoader());
         } catch (ClassNotFoundException exc) {
-            throw new BadPluginException("Main class not found", exc);
+            throw new BadPluginException("Main class of plugin " +
+                getName() + " not found", exc);
         }
     }
     public Object initialize(Class<?> pluginCls) throws BadPluginException {
@@ -194,16 +195,18 @@ public class Plugin implements Comparable<Plugin> {
         try {
             init = pluginCls.getMethod("initInstantPlugin1", API1.class);
         } catch (NoSuchMethodException exc) {
-            throw new BadPluginException("Cannot find initializer method",
-                                         exc);
+            throw new BadPluginException("Cannot find initializer method " +
+                "for plugin " + getName(), exc);
         }
         Object data;
         try {
             data = init.invoke(null, parent.getAPI());
         } catch (IllegalAccessException exc) {
-            throw new RuntimeException(exc);
+            throw new BadPluginException("Cannot initialize plugin " + getName(),
+                                         exc);
         } catch (InvocationTargetException exc) {
-            throw new RuntimeException(exc);
+            throw new BadPluginException("Cannot initialize plugin " + getName(),
+                                         exc);
         }
         setData(data);
         hasLoaded = true;
