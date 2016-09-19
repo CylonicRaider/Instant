@@ -49,6 +49,7 @@ public class Plugin implements Comparable<Plugin> {
     private final Map<PluginAttribute<?>, Object> attrs;
     private final Map<Plugin, Constraint> constraints;
     private PluginGroup group;
+    private boolean hasLoaded;
     private Object pluginData;
 
     public Plugin(PluginManager parent, String name, File source)
@@ -68,6 +69,7 @@ public class Plugin implements Comparable<Plugin> {
         this.attrs = new HashMap<PluginAttribute<?>, Object>();
         this.constraints = new HashMap<Plugin, Constraint>();
         this.group = null;
+        this.hasLoaded = false;
         this.pluginData = null;
     }
 
@@ -157,6 +159,9 @@ public class Plugin implements Comparable<Plugin> {
         group = g;
     }
 
+    public boolean hasLoaded() {
+        return hasLoaded;
+    }
     public Object getData() {
         return pluginData;
     }
@@ -201,6 +206,7 @@ public class Plugin implements Comparable<Plugin> {
             throw new RuntimeException(exc);
         }
         setData(data);
+        hasLoaded = true;
         return data;
     }
     public Object load() throws BadPluginException {

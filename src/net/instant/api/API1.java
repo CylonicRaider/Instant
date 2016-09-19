@@ -93,4 +93,14 @@ public interface API1 {
      */
     Counter getCounter();
 
+    /**
+     * Get the object returned by a plugin's intializer method.
+     * Returns null if the method returns null or has a void return type,
+     * throws an IllegalArgumentException if there is no plugin referred to
+     * by name, or an IllegalStateException if the plugin has not been
+     * loaded yet.
+     */
+    Object getPluginData(String name) throws IllegalArgumentException,
+        IllegalStateException;
+
 }

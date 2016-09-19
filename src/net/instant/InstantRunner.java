@@ -1,5 +1,6 @@
 package net.instant;
 
+import java.io.File;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
@@ -17,6 +18,8 @@ import net.instant.hooks.StaticFileHook;
 import net.instant.hooks.RedirectHook;
 import net.instant.hooks.RoomWebSocketHook;
 import net.instant.info.RequestInfo;
+import net.instant.plugins.Plugin;
+import net.instant.plugins.PluginManager;
 import net.instant.proto.Message;
 import net.instant.proto.MessageDistributor;
 import net.instant.proto.MessageInfo;
@@ -165,6 +168,7 @@ public class InstantRunner implements API1 {
     private RedirectHook redirectHook;
     private StaticFileHook fileHook;
     private StringProducer stringProducer;
+    private PluginManager pluginManager;
 
     public InstantRunner() {
         messageHooks = new ArrayList<MessageHook>();
@@ -176,6 +180,7 @@ public class InstantRunner implements API1 {
         redirectHook = null;
         fileHook = null;
         stringProducer = null;
+        pluginManager = null;
     }
 
     public String getHost() {
@@ -314,6 +319,35 @@ public class InstantRunner implements API1 {
     }
     public void addSiteCode(String c) {
         makeStringProducer().appendFile(SITE_FILE, c);
+    }
+
+    public PluginManager getPluginManager() {
+        return pluginManager;
+    }
+    public void setPluginManager(PluginManager m) {
+        pluginManager = m;
+    }
+    public PluginManager makePluginManager() {
+        if (pluginManager == null)
+            pluginManager = new PluginManager(this);
+        return pluginManager;
+    }
+    public void addPluginPath(File path) {
+        makePluginManager().getFetcher().addPath(path);
+    }
+    public void addPlugin(String name) {
+        makePluginManager().queue(name);
+    }
+
+    public Object getPluginData(String name)
+            throws IllegalArgumentException, IllegalStateException {
+        Plugin pl = makePluginManager().get(name);
+        if (pl == null)
+            throw new IllegalArgumentException("No such plugin: " + name);
+        if (! pl.hasLoaded())
+            throw new IllegalStateException("Plugin " + name +
+                " has not loaded yet");
+        return pl.getData();
     }
 
     public InstantWebSocketServer make() {

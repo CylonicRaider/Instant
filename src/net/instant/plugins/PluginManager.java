@@ -104,9 +104,6 @@ public class PluginManager {
     public void queue(String name) {
         pendingFetches.add(name);
     }
-    public void queueAll(Iterable<String> l) {
-        for (String s : l) queue(s);
-    }
 
     protected void normalizeIndividualConstraints()
             throws PluginConflictException {

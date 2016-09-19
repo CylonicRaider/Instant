@@ -12,7 +12,6 @@ import net.instant.hooks.RoomWebSocketHook;
 import net.instant.hooks.RedirectHook;
 import net.instant.hooks.StaticFileHook;
 import net.instant.plugins.PluginException;
-import net.instant.plugins.PluginManager;
 import net.instant.proto.MessageDistributor;
 import net.instant.util.StringSigner;
 import net.instant.util.Util;
@@ -69,12 +68,10 @@ public class Main implements Runnable {
 
     private final String[] args;
     private InstantRunner runner;
-    private PluginManager manager;
 
     public Main(String[] args) {
         this.args = args;
         this.runner = new InstantRunner();
-        this.manager = new PluginManager(this.runner);
     }
 
     public int getArguments() {
@@ -92,15 +89,6 @@ public class Main implements Runnable {
     }
     public void setRunner(InstantRunner r) {
         runner = r;
-        manager.setAPI(r);
-    }
-
-    public PluginManager getManager() {
-        return manager;
-    }
-    public void setManager(PluginManager mgr) {
-        manager = mgr;
-        mgr.setAPI(runner);
     }
 
     protected void parseArguments() {
@@ -135,14 +123,16 @@ public class Main implements Runnable {
         if (hostName.equals("*")) hostName = "";
         runner.setHost(hostName);
         runner.setPort(port.get(r));
-        manager.getFetcher().addPaths(pluginPath.get(r));
-        manager.queueAll(plugins.get(r));
+        for (File path : pluginPath.get(r))
+            runner.addPluginPath(path);
+        for (String plugin : plugins.get(r))
+            runner.addPlugin(plugin);
     }
 
     public void run() {
         parseArguments();
         try {
-            manager.load();
+            runner.makePluginManager().load();
         } catch (IOException exc) {
             exc.printStackTrace();
             System.exit(1);
@@ -187,7 +177,8 @@ public class Main implements Runnable {
         srv.setCookieHandler(new CookieHandler(signer));
         FileProducer prod = runner.getFileHook().getProducer();
         FilesystemProducer fp = new FilesystemProducer(".", "");
-        ResourceProducer rp = new ResourceProducer(manager.getClassLoader());
+        ResourceProducer rp = new ResourceProducer(
+            runner.getPluginManager().getClassLoader());
         fp.whitelist("/static/.*");
         fp.whitelist("/pages/.*");
         rp.whitelist("/static/.*");

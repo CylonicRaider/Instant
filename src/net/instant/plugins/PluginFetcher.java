@@ -22,9 +22,6 @@ public class PluginFetcher {
             singlePath.add(ent);
         }
     }
-    public void addPaths(Iterable<File> l) {
-        for (File f : l) addPath(f);
-    }
 
     public File getPath(String name) {
         if (name.contains("/")) {
