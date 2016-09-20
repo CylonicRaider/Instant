@@ -194,7 +194,6 @@ public class PluginManager {
             g.removeAll(ret.subList(lastSize, ret.size()));
             lastSize = ret.size();
         }
-        Collections.reverse(ret);
         return ret;
     }
 
