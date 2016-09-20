@@ -45,7 +45,9 @@ public class PluginFetcher {
     }
 
     public static String getName(String path) {
-        return path.split("_", 2)[0];
+        String r = path.split("_", 2)[0];
+        if (r.endsWith(".jar")) r = r.substring(0, r.length() - 4);
+        return r;
     }
     public static String getName(File path) {
         return getName(path.getName());
