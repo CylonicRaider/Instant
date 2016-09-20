@@ -142,7 +142,7 @@ public class PluginGroup implements Comparable<PluginGroup> {
     protected void getAllSuccessors(Set<PluginGroup> drain) {
         for (PluginGroup g : getSuccessors()) {
             if (! drain.add(g)) continue;
-            g.getAllPrecedessors(drain);
+            g.getAllSuccessors(drain);
         }
     }
 
