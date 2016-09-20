@@ -176,6 +176,7 @@ public class PluginManager {
 
     protected void walkGroups(PluginGroup base, List<PluginGroup> drain,
             Set<PluginGroup> visited) throws GroupConstraintLoopException {
+        if (drain.contains(base)) return;
         if (! visited.add(base))
             throw new GroupConstraintLoopException(base, Constraint.AFTER);
         SortedSet<PluginGroup> precs =
