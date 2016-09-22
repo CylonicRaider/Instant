@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.Collections;
@@ -200,6 +201,9 @@ public class Plugin implements Comparable<Plugin> {
             throw new BadPluginException("Cannot find initializer method " +
                 "for plugin " + getName(), exc);
         }
+        if (! Modifier.isStatic(init.getModifiers()))
+            throw new BadPluginException("Initializer method for " +
+                getName() + " is not static");
         PluginData info = new PluginData() {
             public String getName() {
                 return name;
