@@ -26,6 +26,7 @@ import net.instant.proto.MessageInfo;
 import net.instant.proto.PresenceChangeInfo;
 import net.instant.util.DefaultStringMatcher;
 import net.instant.util.StringMatcher;
+import net.instant.util.Util;
 import net.instant.util.fileprod.FileCell;
 import net.instant.util.fileprod.FileProducer;
 import net.instant.util.fileprod.Producer;
@@ -337,6 +338,10 @@ public class InstantRunner implements API1 {
     }
     public void addPlugin(String name) {
         makePluginManager().queue(name);
+    }
+
+    public String getConfiguration(String name) {
+        return Util.getConfiguration(name, true);
     }
 
     public Object getPluginData(String name)

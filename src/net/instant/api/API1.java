@@ -94,6 +94,17 @@ public interface API1 {
     Counter getCounter();
 
     /**
+     * Obtain a configuration value.
+     * Configuration values are hierarchical dot-delimited lowercase strings.
+     * The code distinguishes between empty values and the absence of such;
+     * a non-null return does not guarantee the string not to be empty.
+     * Currently, system properties and environment variables (where the name
+     * is converted to uppercase and dots are replaced with underscores) are
+     * checked; additional sources may be salvaged in the future.
+     */
+    String getConfiguration(String name);
+
+    /**
      * Get the object returned by a plugin's intializer method.
      * Returns null if the method returns null or has a void return type,
      * throws an IllegalArgumentException if there is no plugin referred to

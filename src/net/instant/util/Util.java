@@ -270,14 +270,17 @@ public final class Util {
         return ret;
     }
 
-    public static String getConfiguration(String propName) {
+    public static String getConfiguration(String propName, boolean ex) {
         String ret = System.getProperty(propName);
         if (ret == null)
             ret = System.getenv(
                 propName.toUpperCase().replace(".", "_"));
-        if (ret != null && ret.isEmpty())
+        if (! ex && ret != null && ret.isEmpty())
             ret = null;
         return ret;
+    }
+    public static String getConfiguration(String propName) {
+        return getConfiguration(propName, false);
     }
 
 }
