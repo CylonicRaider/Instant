@@ -15,6 +15,7 @@ import java.util.jar.Attributes;
 import java.util.jar.JarFile;
 import java.util.jar.Manifest;
 import net.instant.api.API1;
+import net.instant.api.PluginData;
 
 public class Plugin implements Comparable<Plugin> {
 
@@ -193,14 +194,20 @@ public class Plugin implements Comparable<Plugin> {
     public Object initialize(Class<?> pluginCls) throws BadPluginException {
         Method init;
         try {
-            init = pluginCls.getMethod("initInstantPlugin1", API1.class);
+            init = pluginCls.getMethod("initInstantPlugin1", API1.class,
+                                       PluginData.class);
         } catch (NoSuchMethodException exc) {
             throw new BadPluginException("Cannot find initializer method " +
                 "for plugin " + getName(), exc);
         }
+        PluginData info = new PluginData() {
+            public String getName() {
+                return name;
+            }
+        };
         Object data;
         try {
-            data = init.invoke(null, parent.getAPI());
+            data = init.invoke(null, parent.getAPI(), info);
         } catch (IllegalAccessException exc) {
             throw new BadPluginException("Cannot initialize plugin " + getName(),
                                          exc);
