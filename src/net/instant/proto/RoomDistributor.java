@@ -75,4 +75,10 @@ public class RoomDistributor implements Room {
         return parent;
     }
 
+    public Message makeMessage(boolean makeID, String type) {
+        Message ret = new Message(type);
+        if (makeID) ret.setID(MessageDistributor.makeID());
+        return ret;
+    }
+
 }

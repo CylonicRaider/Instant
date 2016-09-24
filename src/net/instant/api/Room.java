@@ -36,4 +36,11 @@ public interface Room {
      */
     RoomGroup getGroup();
 
+    /**
+     * Construct a new message body.
+     * If makeID is true, the message is assigned a new unique ID; the given
+     * type is assigned to the corresponding field.
+     */
+    MessageContents makeMessage(boolean makeID, String type);
+
 }

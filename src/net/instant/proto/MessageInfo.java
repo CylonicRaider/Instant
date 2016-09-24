@@ -38,4 +38,8 @@ public class MessageInfo implements net.instant.api.Message {
         return room;
     }
 
+    public Message makeReply(String type) {
+        return new Message(type).seq(data.seq());
+    }
+
 }
