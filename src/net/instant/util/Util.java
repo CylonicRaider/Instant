@@ -18,6 +18,7 @@ import java.util.TimeZone;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import javax.xml.bind.DatatypeConverter;
+import net.instant.api.Utilities;
 import org.json.JSONObject;
 
 public final class Util {
@@ -52,8 +53,6 @@ public final class Util {
     }
 
     public static final int BUFFER_SIZE = 16384;
-
-    public static final Pattern ESCAPE = Pattern.compile("[^ !#-\\[\\]-~]");
 
     public static final Pattern CLIST_ITEM = Pattern.compile(
         "\\s*(?:([^,\"\\s]+)|\"((?:[^\\\\\"]|\\\\.)*)\")\\s*(,|$)");
@@ -124,20 +123,7 @@ public final class Util {
     }
 
     public static String escapeJSString(String s, boolean full) {
-        if (full && s == null) return "null";
-        Matcher m = ESCAPE.matcher(s);
-        // How old is *that* method to require a specific class?
-        StringBuffer sb = new StringBuffer();
-        if (full) sb.append('"');
-        while (m.find()) {
-            int ch = m.group().charAt(0);
-            String repl = String.format((ch < 256) ? "\\x%02x" : "\\u%04x",
-                                        ch);
-            m.appendReplacement(sb, repl);
-        }
-        m.appendTail(sb);
-        if (full) sb.append('"');
-        return sb.toString();
+        return Utilities.escapeStringJS(s, full);
     }
     public static String escapeJSString(String s) {
         return escapeJSString(s, false);
@@ -212,31 +198,11 @@ public final class Util {
     }
 
     public static JSONObject createJSONObject(Object... params) {
-        if (params.length % 2 == 1)
-            throw new IllegalArgumentException("Invalid parameter amount " +
-                "for createObject()");
-        JSONObject ret = new JSONObject();
-        for (int i = 0; i < params.length; i += 2) {
-            if (! (params[i] instanceof String))
-                throw new IllegalArgumentException("Invalid parameter " +
-                    "type for createObject()");
-            ret.put((String) params[i], params[i + 1]);
-        }
-        return ret;
+        return Utilities.createJSONObject(params);
     }
+
     public static void mergeJSONObjects(JSONObject base, JSONObject add) {
-        // Whoever made that API was a jerk.
-        Iterator<String> keys = add.keys();
-        while (keys.hasNext()) {
-            String k = keys.next();
-            if (base.has(k) && base.get(k) instanceof JSONObject &&
-                    add.get(k) instanceof JSONObject) {
-                mergeJSONObjects((JSONObject) base.get(k),
-                                 (JSONObject) add.get(k));
-            } else {
-                base.put(k, add.get(k));
-            }
-        }
+        Utilities.mergeJSONObjects(base, add);
     }
 
     public static ByteBuffer readInputStream(InputStream input)
