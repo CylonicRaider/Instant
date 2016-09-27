@@ -597,8 +597,8 @@ this.Instant = function() {
       '((?:\\*+([^*\\s]+)\\*+|\\*+([^*\\s]+)|([^*\\s]+)\\*+)(?=%AA%))|' +
       '((\\n)?```(\\n)?)'
       ).replace(/%MC%/g, mc).replace(/%AA%/g, aa).replace(/%AM%/g, am);
-      var ALLOW_BEFORE = /[^a-zA-Z0-9_]|^$/;
-      var ALLOW_BEFORE_MONO = /[^a-zA-Z0-9_`]|^$/;
+    var ALLOW_BEFORE = /[^a-zA-Z0-9_]|^$/;
+    var ALLOW_BEFORE_MONO = /[^a-zA-Z0-9_`]|^$/;
     /* Smiley table */
     var SMILEYS = {'+1': '#008000', '-1': '#c00000'};
     var SMILEY_DEFAULT = '#c0c000';
