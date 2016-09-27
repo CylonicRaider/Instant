@@ -599,17 +599,9 @@ this.Instant = function() {
       ).replace(/%MC%/g, mc).replace(/%AA%/g, aa).replace(/%AM%/g, am);
       var ALLOW_BEFORE = /[^a-zA-Z0-9_]|^$/;
       var ALLOW_BEFORE_MONO = /[^a-zA-Z0-9_`]|^$/;
-      /* Smiley table
-     * Keep in sync with the regex above */
-    var SMILEYS = {'+1': '#008000', '-1': '#c00000',
-      ':D': '#c0c000', ':)': '#c0c000', ':|': '#c0c000', ':/': '#c0c000',
-      ':(': '#c0c000', ':C': '#c0c000', ':S': '#c0c000', ':P': '#c0c000',
-      'S:': '#c0c000', 'D:': '#c0c000', '):': '#c0c000', '/:': '#c0c000',
-      '|:': '#c0c000', '(:': '#c0c000', 'C:': '#c0c000',
-      ':O': '#c0c000', ':o': '#c0c000', 'o:': '#c0c000', 'O:': '#c0c000',
-      ';)': '#c0c000', '^^': '#c0c000',
-      ':\\': '#c0c000', '\\:': '#c0c000', '\\o/': '#c0c000'
-    };
+    /* Smiley table */
+    var SMILEYS = {'+1': '#008000', '-1': '#c00000'};
+    var SMILEY_DEFAULT = '#c0c000';
     /* Pixel distance that differentiates a click from a drag */
     var DRAG_THRESHOLD = 4;
     return {
@@ -680,7 +672,8 @@ this.Instant = function() {
             out.push(Instant.nick.makeMention(m[9]));
           } else if (m[10] && ALLOW_BEFORE.test(before)) {
             /* Smiley (allowed characters after are already checked) */
-            out.push(makeNode(m[10], 'smiley', SMILEYS[m[10]]));
+            out.push(makeNode(m[10], 'smiley',
+                              SMILEYS[m[10]] || SMILEY_DEFAULT));
           } else if (m[11] && ALLOW_BEFORE_MONO.test(before) && ! mono) {
             /* Inline monospace */
             /* Leading sigil */
