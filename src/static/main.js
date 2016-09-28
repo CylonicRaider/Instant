@@ -605,10 +605,9 @@ this.Instant = function() {
     /* Pixel distance that differentiates a click from a drag */
     var DRAG_THRESHOLD = 4;
     return {
-      /* Detect links, emphasis, and smileys out of a flat string and render
-       * those into a DOM node */
-      parseContent: function(text) {
-        /* Quickly prepare DOM nodes */
+      /* Message parsing -- has an own namespace to avoid pollution */
+      parser: function() {
+        /* Helper: Quickly create a DOM node */
         function makeNode(text, className, color, tag) {
           var node = document.createElement(tag || 'span');
           if (className) node.className = className;
@@ -616,9 +615,23 @@ this.Instant = function() {
           if (text) node.textContent = text;
           return node;
         }
+        /* Helper: Create a sigil node */
         function makeSigil(text, className) {
           return makeNode(text, 'sigil ' + className);
         }
+        return {
+          /* Helper: Quickly create a DOM node */
+          makeNode: makeNode,
+          /* Helper: Quickly create a sigil node */
+          makeSigil: makeSigil
+        };
+      }(),
+      /* Detect links, emphasis, and smileys out of a flat string and render
+       * those into a DOM node */
+      parseContent: function(text) {
+        // Migration helpers
+        var makeNode = Instant.message.parser.makeNode;
+        var makeSigil = Instant.message.parser.makeSigil;
         /* Disable a wrongly-assumed emphasis mark */
         function declassify(elem) {
           elem.disabled = true;
