@@ -619,6 +619,123 @@ this.Instant = function() {
         function makeSigil(text, className) {
           return makeNode(text, 'sigil ' + className);
         }
+        /* Built-in message parsing fragments */
+        var MATCHERS = [
+          { /* Room/message links */
+            re: /\B&([a-zA-Z]([\w-]*[a-zA-Z0-9])?)(#([a-zA-Z0-9]+))?\b/,
+            cb: function(m, out) {
+              var node = makeNode(m[0], 'room-link', null, 'a');
+              node.href = ('../' + m[1] + '/' +
+                ((m[2]) ? '#message-' + m[2] : ''));
+              node.target = '_blank';
+              out.push(node);
+            }
+          },
+          { /* Hyperlinks */
+            re: new RegExp('<(((?!javascript:)[a-zA-Z]+://)?' +
+              '([a-zA-Z0-9._~-]+@)?([a-zA-Z0-9.-]+)(:[0-9]+)?(/[^>]*)?)>'),
+            cb: function(m) {
+              /* Hyperlink (must contain non-word character) */
+              out.push(makeSigil('<', 'link-before'));
+              /* Insert http:// if necessary */
+              var url = m[1];
+              if (! m[2]) url = 'http://' + url;
+                var node = makeNode(m[1], 'link', null, 'a');
+              node.href = url;
+              node.target = '_blank';
+              out.push(node);
+              out.push(makeSigil('>', 'link-after'));
+            }
+          },
+          { /* @-mentions */
+            re: /@[^.,:;!?()\s]+(?:\([^.,:;!?()\s]*\)[^.,:;!?()\s]*)*/,
+            bef: /\W|$/, aft: /\W|$/,
+            cb: function(m, out) {
+              out.push(Instant.nick.makeMention(m[0]));
+            }
+          },
+          { /* Smileys */
+            re: /[+-]1|>?[:;][D)|\/(CSP\\oO3]|[SD)/|(C\\oO]:<?|\^\^|\\o\//,
+            bef: /\s|\(|$/, aft: /\s|\)|$/,
+            cb: function(m, out) {
+              var c = SMILEYS[m[0]] || SMILEY_DEFAULT;
+              out.push(makeNode(m[0], 'smiley', c));
+            }
+          },
+          { /* Inline monospace */
+            re: /`([^`\s]+)`|`([^`\s]+)|([^`\s]+)`/,
+            bef: /[^\w`]|$/, aft: /[^\w`]|$/,
+            cb: function(m, out) {
+              /* Leading sigil */
+              if (m[1] != null || m[2] != null) {
+                var node = makeSigil('`', 'mono-before');
+                out.push(node);
+                out.push({monoAdd: true, node: node});
+              }
+              /* Embed actual text */
+              out.push(m[1] || m[1] || m[1]);
+              /* Trailing sigil */
+              if (m[1] != null || m[3] != null) {
+                var node = makeSigil('`', 'mono-after');
+                out.push({monoRem: true, node: node});
+                out.push(node);
+              }
+            }
+          },
+          { /* Emphasized text */
+            re: /\*+([^*\s]+)\*+|\*+([^*\s]+)|([^*\s]+)\*+/,
+            bef: /\W|$/, aft: /\W|$/,
+            cb: function(m, out) {
+              /* Emphasized text (again, only before has to be tested) */
+              var pref = $prefLength(m[0], '*');
+              var suff = $suffLength(m[0], '*');
+              /* Sigils are in individual nodes so they can be selectively
+               * disabled */
+              for (var i = 0; i < pref; i++) {
+                var node = makeSigil('*', 'emph-before');
+                out.push(node);
+                out.push({emphAdd: true, node: node});
+              }
+              /* Add actual text; which one does not matter */
+              out.push(m[1] || m[2] || m[3]);
+              /* Same as above for trailing sigil */
+              for (var i = 0; i < suff; i++) {
+                var node = makeSigil('*', 'emph-after');
+                out.push({emphRem: true, node: node});
+                out.push(node);
+              }
+            }
+          },
+          { /* Block monospace sigils */
+            re: /(\n)?```(\n)?/,
+            cb: function(m, out, status) {
+              /* Block-level monospace marker */
+              if (m[2] != null && ! status.grabbing) {
+                /* Sigil introducing block */
+                var st = (m[1] || '') + '```';
+                var node = makeSigil(st, 'mono-block-before');
+                var nl = makeNode('\n', 'hidden');
+                out.push(node);
+                out.push(nl);
+                out.push({monoAdd: true, monoBlock: true, node: node,
+                  node2: nl});
+                return {grab: true};
+              } else if (m[1] != null && status.grabbing) {
+                /* Sigil terminating block */
+                var st = '```' + (m[2] || '');
+                var node = makeSigil(st, 'mono-block-after');
+                var nl = makeNode('\n', 'hidden');
+                out.push({monoRem: true, monoBlock: true, node: node,
+                  node2: nl});
+                out.push(nl);
+                out.push(node);
+                return {grab: false};
+              } else {
+                out.push(m[0]);
+              }
+            }
+          }
+        ];
         return {
           /* Helper: Quickly create a DOM node */
           makeNode: makeNode,
