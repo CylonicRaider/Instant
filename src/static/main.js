@@ -619,8 +619,8 @@ this.Instant = function() {
         function makeSigil(text, className) {
           return makeNode(text, 'sigil ' + className);
         }
-        /* Built-in message parsing fragments */
-        var MATCHERS = [
+        /* Message parsing fragments */
+        var matcher = [
           { /* Room/message links */
             re: /\B&([a-zA-Z]([\w-]*[a-zA-Z0-9])?)(#([a-zA-Z0-9]+))?\b/,
             cb: function(m, out) {
@@ -740,7 +740,72 @@ this.Instant = function() {
           /* Helper: Quickly create a DOM node */
           makeNode: makeNode,
           /* Helper: Quickly create a sigil node */
-          makeSigil: makeSigil
+          makeSigil: makeSigil,
+          /* Parse a message into a sequence of DOM nodes */
+          parse: function(text) {
+            /* Intermediate result; current index; text length; array of
+             * matches; length of matchers */
+            var out = [], idx = 0, len = text.length, matches = [];
+            var mlen = matchers.length;
+            /* Duplicate regexes */
+            var regexes = matchers.map(function(el) {
+              return new RegExp(el.re.source, "g" +
+                (re.ignoreCase ? "i" : "") + (re.multiline ? "m" : ""));
+            });
+            /* Main loop */
+            while (idx < len) {
+              /* Index (into array) of foremost match so far */
+              var minIdx = null;
+              for (var i = 0; i < mlen; i++) {
+                /* This one won't match */
+                if (matches[i] == Infinity) continue;
+                /* Recalculate indices where necessary */
+                if (matches[i] == null || matches[i].index < idx) {
+                  regexes[i].lastIndex = idx;
+                  for (;;) {
+                    /* Match */
+                    var m = regexes[i].exec(text);
+                    matches[i] = m;
+                    /* No match */
+                    if (m == null) {
+                      matches[i] = Infinity;
+                      break;
+                    }
+                    /* Check pre- and postconditions */
+                    if (matchers[i].bef) {
+                      var chBefore = ((m.index == 0) ? '' :
+                        text.substr(m.index - 1, 1));
+                      if (! matchers[i].bef.test(chBefore))
+                        continue;
+                    }
+                    if (matchers[i].aft) {
+                      var ai = m.index + m[0].length;
+                      if (! matchers[i].aft.test(text.substr(ai, 1)))
+                        continue;
+                    }
+                    /* Match found */
+                    break;
+                  }
+                  if (matches[i] == Infinity) continue;
+                }
+                /* Update minimal match */
+                if (minIdx == null ||
+                    matches[minIdx].index > matches[i].index)
+                  minIdx = i;
+              }
+              /* Handle no matches */
+              if (minIdx == null) {
+                out.push(text.substring(idx));
+                break;
+              }
+              /* Insert text up to match */
+              if (matches[minIdx].index != idx)
+                out.push(text.substring(idx, matches[minIdx].index));
+              /* Process match */
+              var st = matchers[minIdx].cb(matches[minIdx], out, {});
+              // TODO process return value; grabbing
+            }
+          }
         };
       }(),
       /* Detect links, emphasis, and smileys out of a flat string and render
