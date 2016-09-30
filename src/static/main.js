@@ -620,7 +620,7 @@ this.Instant = function() {
           return makeNode(text, 'sigil ' + className);
         }
         /* Message parsing fragments */
-        var matcher = [
+        var matchers = [
           { /* Room/message links */
             re: /\B&([a-zA-Z]([\w-]*[a-zA-Z0-9])?)(#([a-zA-Z0-9]+))?\b/,
             cb: function(m, out) {
@@ -710,7 +710,7 @@ this.Instant = function() {
             re: /(\n)?```(\n)?/,
             cb: function(m, out, status) {
               /* Block-level monospace marker */
-              if (m[2] != null && ! status.grabbing) {
+              if (m[2] != null && status.grabbing == null) {
                 /* Sigil introducing block */
                 var st = (m[1] || '') + '```';
                 var node = makeSigil(st, 'mono-block-before');
@@ -719,8 +719,8 @@ this.Instant = function() {
                 out.push(nl);
                 out.push({monoAdd: true, monoBlock: true, node: node,
                   node2: nl});
-                return {grab: true};
-              } else if (m[1] != null && status.grabbing) {
+                status.grabbing = status.id;
+              } else if (m[1] != null && status.grabbing != null) {
                 /* Sigil terminating block */
                 var st = '```' + (m[2] || '');
                 var node = makeSigil(st, 'mono-block-after');
@@ -729,7 +729,7 @@ this.Instant = function() {
                   node2: nl});
                 out.push(nl);
                 out.push(node);
-                return {grab: false};
+                status.grabbing = null;
               } else {
                 out.push(m[0]);
               }
@@ -744,19 +744,28 @@ this.Instant = function() {
           /* Parse a message into a sequence of DOM nodes */
           parse: function(text) {
             /* Intermediate result; current index; text length; array of
-             * matches; length of matchers */
+             * matches; length of matchers; status object */
             var out = [], idx = 0, len = text.length, matches = [];
-            var mlen = matchers.length;
+            var mlen = matchers.length, status = {grabbing: null};
             /* Duplicate regexes */
             var regexes = matchers.map(function(el) {
               return new RegExp(el.re.source, "g" +
-                (re.ignoreCase ? "i" : "") + (re.multiline ? "m" : ""));
+                (el.re.ignoreCase ? "i" : "") +
+                (el.re.multiline ? "m" : ""));
             });
             /* Main loop */
             while (idx < len) {
               /* Index (into array) of foremost match so far */
-              var minIdx = null;
-              for (var i = 0; i < mlen; i++) {
+              var minIdx = null, ib, ie;
+              /* Which indices to iterate over */
+              if (status.grabbing == null) {
+                ib = 0;
+                ie = mlen;
+              } else {
+                ib = status.grabbing;
+                ie = ib + 1;
+              }
+              for (var i = ib; i < ie; i++) {
                 /* This one won't match */
                 if (matches[i] == Infinity) continue;
                 /* Recalculate indices where necessary */
@@ -802,8 +811,9 @@ this.Instant = function() {
               if (matches[minIdx].index != idx)
                 out.push(text.substring(idx, matches[minIdx].index));
               /* Process match */
-              var st = matchers[minIdx].cb(matches[minIdx], out, {});
-              // TODO process return value; grabbing
+              status.id = minIdx;
+              matchers[minIdx].cb(matches[minIdx], out, status);
+              idx = matches[minIdx].index + matches[minIdx][0].length;
             }
           }
         };
