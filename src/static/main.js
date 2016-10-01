@@ -335,6 +335,7 @@ this.Instant = function() {
           case 'left':
             /* User left */
             Instant.userList.remove(msg.data.id);
+            Instant.logs.pull._onmessage(msg);
             break;
           case 'unicast': /* Someone sent a message directly to us */
           case 'broadcast': /* Someone sent a message to everyone */
@@ -2444,6 +2445,23 @@ this.Instant = function() {
           },
           /* Handler for messages */
           _onmessage: function(msg) {
+            if (msg.type == 'left') {
+              /* Someone left */
+              var upd = false;
+              if (oldestPeer && oldestPeer.id == msg.data.id) {
+                oldestPeer = null;
+                upd = true;
+              }
+              if (newestPeer && newestPeer.id == msg.data.id) {
+                newestPeer = null;
+                upd = true;
+              }
+              if (upd) {
+                Instant.connection.sendBroadcast({type: 'log-query'});
+                lastUpdate = Date.now();
+              }
+              return;
+            }
             var reply = null, replyTo = msg.from;
             /* Check message */
             var data = msg.data;
