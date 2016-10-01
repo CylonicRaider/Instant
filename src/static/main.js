@@ -689,7 +689,7 @@ this.Instant = function() {
             }
           },
           { /* Emphasized text */
-            re: /\*+([^*\s]+)\*+|\*+([^*\s]+)|([^*\s]+)\*+/,
+            re: /\*+([^*\s-]+)\*+|\*+([^*\s-]+)|([^*\s-]+)\*+/,
             bef: /\W|^$/, aft: /\W|^$/,
             cb: function(m, out) {
               /* Emphasized text (again, only before has to be tested) */
@@ -794,8 +794,8 @@ this.Instant = function() {
                         continue;
                     }
                     if (matchers[i].aft) {
-                      var ai = m.index + m[0].length;
-                      if (! matchers[i].aft.test(text.substr(ai, 1)))
+                      var chAfter = text.substr(m.index + m[0].length, 1);
+                      if (! matchers[i].aft.test(chAfter))
                         continue;
                     }
                     /* Match found */
