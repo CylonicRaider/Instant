@@ -482,12 +482,13 @@ PARAM = re.compile(r'([a-zA-Z0-9_-]+)=([^"\']\S*'
     r'|"([^"\\]|\\.)*"|\'([^\'\\]|\\.)*\')(?=\s|$)')
 INTEGER = re.compile(r'^[0-9]+$')
 CONSTANTS = {'None': None, 'True': True, 'False': False}
-def read_logs(src):
+def read_logs(src, filt=None):
     for line in src:
         m = LOGLINE_START.match(line)
         if not m: continue
         ts, tag = m.group(1), m.group(2)
         args, idx = m.group(3), 0
+        if filt and not filt(tag): continue
         values, l = {}, len(args)
         while idx < len(args):
             m = WHITESPACE.match(args, idx)
@@ -507,9 +508,19 @@ def read_logs(src):
             values[name] = val
         else:
             yield (ts, tag, values)
-def read_posts(src, maxlen=None):
-    cver, froms, ret = (), {}, []
-    for ts, tag, values in read_logs(src):
+def read_posts_ex(src, maxlen=None):
+    def truncate(ret, uuids):
+        delset, kset = set(dels), set(sorted(uuids)[-maxlen:])
+        ret = [i for i in ret if i['id'] not in delset]
+        ret.sort()
+        ret = ret[-maxlen:]
+        uuids = dict((k, v) for k, v in uuids.items() if k in kset)
+        dels[:] = []
+        return (ret, uuids)
+    TAGS = ('SCRIBE', 'POST', 'LOGPOST', 'MESSAGE', 'DELETE',
+            'UUID')
+    cver, froms, dels, ret, uuids = (), {}, [], [], {}
+    for ts, tag, values in read_logs(src, TAGS.__contains__):
         if tag == 'SCRIBE':
             cver = parse_version(values.get('version'))
             continue
@@ -536,6 +547,18 @@ def read_posts(src, maxlen=None):
                     except KeyError:
                         pass
             continue
+        elif tag == 'DELETE':
+            try:
+                dels.append(values['id'])
+            except KeyError:
+                pass
+            continue
+        elif tag == 'UUID':
+            try:
+                uuids[values['id']] = values['uuid']
+            except KeyError:
+                pass
+            continue
         else:
             continue
         if 'id' not in values: continue
@@ -546,15 +569,17 @@ def read_posts(src, maxlen=None):
             values['text'] = values['content']
             del values['content']
         ret.append(values)
-        if maxlen is not None and len(ret) >= maxlen * 2:
-            ret.sort()
-            ret = ret[-maxlen:]
-    ret.sort()
-    if maxlen is not None: ret = ret[-maxlen:]
+        if maxlen is not None and len(ret) >= 2 * maxlen:
+            ret, uuids = truncate(ret, uuids)
+    if maxlen is not None:
+        ret, uuids = truncate(ret, uuids)
+    ret.sort(key=lambda x: x['id'])
     for e in ret:
-        if 'from' not in ret and e['id'] in froms:
+        if 'from' not in e and e['id'] in froms:
             e['from'] = froms[e['id']]
-    return ret
+    return (ret, uuids)
+def read_posts(src, maxlen=None):
+    return read_posts_ex(src, maxlen)[0]
 
 def log(msg):
     m = '[%s] %s\n' % (time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime()),
@@ -825,7 +850,10 @@ def main():
         log('READING file=%r maxlen=%r' % (fn, LOGS.capacity()))
         try:
             with openarg(fn) as f:
-                LOGS.extend(read_posts(f, LOGS.capacity()))
+                logs, uuids = read_posts_ex(f, LOGS.capacity())
+                LOGS.extend(logs)
+                LOGS.extend_uuid(uuids)
+                logs, uuids = None, None
         except IOError as e:
             log('ERROR reason=%r' % repr(e))
     log('LOGBOUNDS from=%r to=%r amount=%r' % LOGS.bounds())
