@@ -400,6 +400,7 @@ this.Instant = function() {
               case 'log-info': /* Someone informs us about their logs */
               case 'log-request': /* Someone requests logs from us */
               case 'log': /* Someone delivers logs to us */
+              case 'delete': /* Someone wants to remove a message */
                 Instant.logs.pull._onmessage(msg);
                 break;
               case 'log-inquiry': /* Are we done pulling logs? */
@@ -2516,6 +2517,9 @@ this.Instant = function() {
                 after = (key == 'initial' || key == 'after') ?
                   after || true : null;
                 Instant.logs.pull._done(before, after);
+                break;
+              case 'delete':
+                /* Nuh! */
                 break;
               default:
                 throw new Error('Bad message supplied to _onmessage().');

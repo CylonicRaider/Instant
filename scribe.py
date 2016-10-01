@@ -75,6 +75,8 @@ class LogDB:
         return bool(self.extend((entry,)))
     def extend(self, entries):
         raise NotImplementedError
+    def delete(self, ids):
+        raise NotImplementedError
     def append_uuid(self, uid, uuid):
         raise NotImplementedError
     def extend_uuid(self, mapping):
@@ -144,6 +146,12 @@ class LogDBList(LogDB):
         return ret
     def extend(self, entries):
         return self.merge_logs(self.data, entries, self.maxlen)
+    def delete(self, ids):
+        idset, ndata, ret = set(ids), [], []
+        for i in self.data:
+            (ret if i['id'] in idset else ndata).append(i)
+        self.data[:] = ndata
+        return ret
     def append_uuid(self, uid, uuid):
         ret = (uid not in self.uuids)
         self.uuids[uid] = uuid
@@ -304,6 +312,15 @@ class LogDBSQLite(LogDB):
             rows)
         self.conn.commit()
         return added
+    def delete(self, ids):
+        ret, msgids = [], [self.make_key(i) for i in ids]
+        for i in msgids:
+            self.cursor.execute('SELECT * FROM logs WHERE msgid = ?', (i,))
+            ret.extend(self.cursor.fetchall())
+        self.cursor.executemany('DELETE FROM logs WHERE msgid = ?',
+                                ((i,) for i in msgids))
+        self.conn.commit()
+        return list(map(self._wrap, ret))
     def append_uuid(self, uid, uuid):
         key = self.make_strkey(uid)
         try:
@@ -705,6 +722,11 @@ def on_message(ws, msg, _context={'oid': None, 'id': None, 'src': None,
                 send_broadcast(ws, {'type': 'log-done'})
                 if DONTSTAY:
                     raise SystemExit
+        elif msgt == 'delete':
+            for msg in LOGS.delete(msgd.get('ids', [])):
+                log('DELETE id=%r parent=%r from=%r nick=%r text=%r' %
+                    (msg['id'], msg['parent'], msg['from'], msg['nick'],
+                     msg['text']))
         elif msgt == 'log-inquiry':
             # Someone asks whether we're done with pulling logs
             if _context['done']:
