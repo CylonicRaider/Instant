@@ -560,55 +560,14 @@ this.Instant = function() {
     /* Message ID -> DOM node */
     var messages = {};
     var fakeMessages = {};
-    /* Interesting substring regex
-     * Groupings:  1: Room name matched
-     *                2: Message ID inside that room
-     *             3: Full URL matched (without surrounding marks)
-     *                 4: Scheme (with colon and double slash)
-     *                 5: Username with "@"
-     *                 6: Hostname
-     *                 7: Port
-     *                 8: Path
-     *             9: Nick-name @-mentioned (with the @ sign)
-     *            10: Smiley (space before must be ensured)
-     *            11: Text with monospace marker(s) (check space before)
-     *                12: Markers before and after
-     *                13: Marker before
-     *                14: Marker after
-     *            15: Text with emphasis marker(s) (check space before)
-     *                16: Markers before and after (not included themself)
-     *                17: Marker before (same)
-     *                18: Marker after (same as well)
-     *            19: Block-level monospace marker
-     *                20: Newline before
-     *                21: Newline after
-     * Keep in sync with mention matching in Instant.input.
-     */
-    var mc = '[^.,:;!?()\\s]';
-    var aa = '[^a-zA-Z0-9_]|$';
-    var am = '[^a-zA-Z0-9_`]|$';
-    var INTERESTING = (
-      '\\B&(?:([a-zA-Z](?:[a-zA-Z0-9_-]*[a-zA-Z0-9])?)' +
-        '(?:#([a-zA-Z0-9]+))?)\\b|' +
-      '<(((?!javascript:)[a-zA-Z]+://)?([a-zA-Z0-9._~-]+@)?' +
-        '([a-zA-Z0-9.-]+)(:[0-9]+)?(/[^>]*)?)>|' +
-      '\\B(@%MC%+(?:\\(%MC%*\\)%MC%*)*)|' +
-      '((?:[+-]1|:[D)|/(CSP\\\\oO]|[SD)/|(C\\\\oO]:|\\^\\^|;\\)|' +
-        '\\\\o/)(?=%AA%))|' +
-      '((?:`([^`\\s]+)`|`([^`\\s]+)|([^`\\s]+)`)(?=%AM%))|' +
-      '((?:\\*+([^*\\s]+)\\*+|\\*+([^*\\s]+)|([^*\\s]+)\\*+)(?=%AA%))|' +
-      '((\\n)?```(\\n)?)'
-      ).replace(/%MC%/g, mc).replace(/%AA%/g, aa).replace(/%AM%/g, am);
-    var ALLOW_BEFORE = /[^a-zA-Z0-9_]|^$/;
-    var ALLOW_BEFORE_MONO = /[^a-zA-Z0-9_`]|^$/;
-    /* Smiley table */
-    var SMILEYS = {'+1': '#008000', '-1': '#c00000'};
-    var SMILEY_DEFAULT = '#c0c000';
     /* Pixel distance that differentiates a click from a drag */
     var DRAG_THRESHOLD = 4;
     return {
       /* Message parsing -- has an own namespace to avoid pollution */
       parser: function() {
+        /* Smiley table */
+        var SMILEYS = {'+1': '#008000', '-1': '#c00000'};
+        var SMILEY_DEFAULT = '#c0c000';
         /* Helper: Quickly create a DOM node */
         function makeNode(text, className, color, tag) {
           var node = document.createElement(tag || 'span');
