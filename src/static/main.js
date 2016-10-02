@@ -583,12 +583,15 @@ this.Instant = function() {
         /* Disable a wrongly-assumed emphasis mark */
         function declassify(elem) {
           elem.disabled = true;
-          if (elem.node) elem.node.className += ' false';
-          if (elem.node2) elem.node2.className += ' false';
+          var nodes = elem.nodes || [];
+          for (var i = 0; i < nodes.length; i++) {
+            nodes[i].classList.add('false');
+          }
         }
         /* Message parsing fragments */
         var matchers = [
           { /* Room/message links */
+            name: 'room',
             re: /\B&([a-zA-Z]([\w-]*[a-zA-Z0-9])?)(#([a-zA-Z0-9]+))?\b/,
             cb: function(m, out) {
               var node = makeNode(m[0], 'room-link', null, 'a');
@@ -599,6 +602,7 @@ this.Instant = function() {
             }
           },
           { /* Hyperlinks */
+            name: 'link',
             re: new RegExp('<(((?!javascript:)[a-zA-Z]+://)?' +
               '([a-zA-Z0-9._~-]+@)?([a-zA-Z0-9.-]+)(:[0-9]+)?(/[^>]*)?)>'),
             cb: function(m, out) {
@@ -615,6 +619,7 @@ this.Instant = function() {
             }
           },
           { /* @-mentions */
+            name: 'mention',
             re: /@[^.,:;!?()\s]+(?:\([^.,:;!?()\s]*\)[^.,:;!?()\s]*)*/,
             bef: /\W|^$/, aft: /\W|^$/,
             cb: function(m, out) {
@@ -622,6 +627,7 @@ this.Instant = function() {
             }
           },
           { /* Smileys */
+            name: 'smiley',
             re: /[+-]1|>?[:;][D)|\/(CSP\\oO3]|[SD)/|(C\\oO]:<?|\^\^|\\o\//,
             bef: /\s|\(|^$/, aft: /\s|\)|^$/,
             cb: function(m, out) {
@@ -630,6 +636,7 @@ this.Instant = function() {
             }
           },
           { /* Inline monospace */
+            name: 'mono',
             re: /`([^`\s]+)`|`([^`\s]+)|([^`\s]+)`/,
             bef: /[^\w`]|^$/, aft: /[^\w`]|^$/,
             cb: function(m, out) {
@@ -637,19 +644,23 @@ this.Instant = function() {
               if (m[1] != null || m[2] != null) {
                 var node = makeSigil('`', 'mono-before');
                 out.push(node);
-                out.push({monoAdd: true, node: node});
+                out.push({add: 'mono', nodes: [node]});
               }
               /* Embed actual text */
               out.push(m[1] || m[2] || m[3]);
               /* Trailing sigil */
               if (m[1] != null || m[3] != null) {
                 var node = makeSigil('`', 'mono-after');
-                out.push({monoRem: true, node: node});
+                out.push({rem: 'mono', nodes: [node]});
                 out.push(node);
               }
+            },
+            add: function() {
+              return makeNode(null, 'monospace');
             }
           },
           { /* Emphasized text */
+            name: 'emph',
             re: /\*+([^*\s-]+)\*+|\*+([^*\s-]+)|([^*\s-]+)\*+/,
             bef: /\W|^$/, aft: /\W|^$/,
             cb: function(m, out) {
@@ -661,19 +672,34 @@ this.Instant = function() {
               for (var i = 0; i < pref; i++) {
                 var node = makeSigil('*', 'emph-before');
                 out.push(node);
-                out.push({emphAdd: true, node: node});
+                out.push({add: 'emph', nodes: [node]});
               }
               /* Add actual text; which one does not matter */
               out.push(m[1] || m[2] || m[3]);
               /* Same as above for trailing sigil */
               for (var i = 0; i < suff; i++) {
                 var node = makeSigil('*', 'emph-after');
-                out.push({emphRem: true, node: node});
+                out.push({rem: 'emph', nodes: [node]});
                 out.push(node);
               }
+            },
+            add: function(stack, status) {
+              var level = (status.emphLevel || 0) + 1;
+              status.emphLevel = level;
+              var node = makeNode(null, 'emph');
+              var style = node.style;
+              style.fontStyle = (lvl & 1) ? 'italic' : 'normal';
+              style.fontWeight = (lvl & 2) ? 'bold' : 'normal';
+              style.fontVariant = (lvl & 4) ? 'small-caps' : 'normal';
+              return node;
+            },
+            rem: function(stack, status) {
+              stack.pop();
+              status.emphLevel--;
             }
           },
           { /* Block monospace sigils */
+            name: 'monoBlock',
             re: /(\n)?```(\n)?/,
             cb: function(m, out, status) {
               /* Block-level monospace marker */
@@ -684,22 +710,23 @@ this.Instant = function() {
                 var nl = makeNode('\n', 'hidden');
                 out.push(node);
                 out.push(nl);
-                out.push({monoAdd: true, monoBlock: true, node: node,
-                  node2: nl});
+                out.push({add: 'monoBlock', nodes: [node, nl]});
                 status.grabbing = status.id;
               } else if (m[1] != null && status.grabbing != null) {
                 /* Sigil terminating block */
                 var st = '```' + (m[2] || '');
                 var node = makeSigil(st, 'mono-block-after');
                 var nl = makeNode('\n', 'hidden');
-                out.push({monoRem: true, monoBlock: true, node: node,
-                  node2: nl});
+                out.push({rem: 'monoBlock', nodes: [node, nl]});
                 out.push(nl);
                 out.push(node);
                 status.grabbing = null;
               } else {
                 out.push(m[0]);
               }
+            },
+            add: function() {
+              return makeNode(null, 'monospace monospace-block');
             }
           }
         ];
@@ -714,8 +741,10 @@ this.Instant = function() {
              * matches; length of matchers; status object */
             var out = [], idx = 0, len = text.length, matches = [];
             var mlen = matchers.length, status = {grabbing: null};
-            /* Duplicate regexes */
+            /* Duplicate regexes; create index */
+            var matcherIndex = {};
             var regexes = matchers.map(function(el) {
+              if (el.name) matcherIndex[el.name] = el;
               return new RegExp(el.re.source, "g" +
                 (el.re.ignoreCase ? "i" : "") +
                 (el.re.multiline ? "m" : ""));
@@ -791,14 +820,12 @@ this.Instant = function() {
               /* Filter such that only user-made objects remain */
               if (typeof e != 'object' || e.nodeType !== undefined) continue;
               /* Add or remove emphasis, respectively */
-              if (e.emphAdd || e.monoAdd) {
+              if (e.add) {
                 stack.push(e);
-              } else if (e.emphRem || e.monoRem) {
+              } else if (e.rem) {
                 if (stack.length) {
                   /* Check if it actually matches */
-                  var top = stack[stack.length - 1];
-                  if (e.emphRem == top.emphAdd && e.monoRem == top.monoAdd &&
-                      e.monoBlock == top.monoBlock) {
+                  if (e.rem == stack[stack.length - 1].add) {
                     stack.pop();
                   } else {
                     declassify(e);
@@ -815,6 +842,7 @@ this.Instant = function() {
              * with combinations in between) */
             var lvl = 0;
             stack = [makeNode(null, 'message-text')];
+            status = {};
             for (var i = 0; i < out.length; i++) {
               var e = out[i], top = stack[stack.length - 1];
               /* Drain non-metadata parts into the current node */
@@ -826,24 +854,20 @@ this.Instant = function() {
               /* Process emphasis nodes */
               if (e.disabled) {
                 /* NOP */
-              } else if (e.emphAdd) {
-                lvl++;
-                var node = makeNode(null, 'emph');
-                node.style.fontStyle = (lvl & 1) ? 'italic' : 'normal';
-                node.style.fontWeight = (lvl & 2) ? 'bold' : 'normal';
-                node.style.fontVariant = (lvl & 4) ? 'small-caps' : 'normal';
-                top.appendChild(node);
-                stack.push(node);
-              } else if (e.monoAdd) {
-                var node = makeNode(null, 'monospace');
-                if (e.monoBlock) node.className += ' monospace-block';
-                top.appendChild(node);
-                stack.push(node);
-              } else if (e.emphRem) {
-                lvl--;
-                stack.pop();
-              } else if (e.monoRem) {
-                stack.pop();
+              } else if (e.add) {
+                var cb = matcherIndex[e.add].add;
+                var node = (cb) ? cb(stack, status) : makeNode();
+                if (node) {
+                  top.appendChild(node);
+                  stack.push(node);
+                }
+              } else if (e.rem) {
+                var cb = matcherIndex[e.rem].rem;
+                if (cb) {
+                  cb(stack, status);
+                } else {
+                  stack.pop();
+                }
               }
             }
             /* Done! */
