@@ -566,7 +566,8 @@ this.Instant = function() {
       /* Message parsing -- has an own namespace to avoid pollution */
       parser: function() {
         /* Smiley table */
-        var SMILEYS = {'+1': '#008000', '-1': '#c00000'};
+        var SMILIES = {'+1': '#008000', '-1': '#c00000',
+          '>:)': '#c00000', '>:]': '#c00000', '>:D': '#c00000'};
         var SMILEY_DEFAULT = '#c0c000';
         /* Helper: Quickly create a DOM node */
         function makeNode(text, className, color, tag) {
@@ -628,10 +629,11 @@ this.Instant = function() {
           },
           { /* Smileys */
             name: 'smiley',
-            re: /[+-]1|>?[:;][D)|\/(CSP\\oO3]|[SD)/|(C\\oO]:<?|\^\^|\\o\//,
+            re: new RegExp('[+-]1|>?[:;][D)\\]|\\[/\\\\(CSPoO3]|' +
+              '[SD)\\\\/\\]|\\[(CoO]:<?|\\^\\^|\\\\o/'),
             bef: /\s|\(|^$/, aft: /\s|\)|^$/,
             cb: function(m, out) {
-              var c = SMILEYS[m[0]] || SMILEY_DEFAULT;
+              var c = SMILIES[m[0]] || SMILEY_DEFAULT;
               out.push(makeNode(m[0], 'smiley', c));
             }
           },
