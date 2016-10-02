@@ -688,9 +688,9 @@ this.Instant = function() {
               status.emphLevel = level;
               var node = makeNode(null, 'emph');
               var style = node.style;
-              style.fontStyle = (lvl & 1) ? 'italic' : 'normal';
-              style.fontWeight = (lvl & 2) ? 'bold' : 'normal';
-              style.fontVariant = (lvl & 4) ? 'small-caps' : 'normal';
+              style.fontStyle = (level & 1) ? 'italic' : 'normal';
+              style.fontWeight = (level & 2) ? 'bold' : 'normal';
+              style.fontVariant = (level & 4) ? 'small-caps' : 'normal';
               return node;
             },
             rem: function(stack, status) {
@@ -840,7 +840,6 @@ this.Instant = function() {
             }
             /* Assign actual emphasis levels (italic -> bold -> small-caps,
              * with combinations in between) */
-            var lvl = 0;
             stack = [makeNode(null, 'message-text')];
             status = {};
             for (var i = 0; i < out.length; i++) {
@@ -851,22 +850,24 @@ this.Instant = function() {
               } else if (e.nodeType !== undefined) {
                 top.appendChild(e);
               }
-              /* Process emphasis nodes */
-              if (e.disabled) {
-                /* NOP */
-              } else if (e.add) {
-                var cb = matcherIndex[e.add].add;
-                var node = (cb) ? cb(stack, status) : makeNode();
-                if (node) {
-                  top.appendChild(node);
-                  stack.push(node);
-                }
-              } else if (e.rem) {
+              /* Disabled emphasis nodes don't do anything */
+              if (e.disabled) continue;
+              /* First remove emphasis */
+              if (e.rem) {
                 var cb = matcherIndex[e.rem].rem;
                 if (cb) {
                   cb(stack, status);
                 } else {
                   stack.pop();
+                }
+              }
+              /* Then add some */
+              if (e.add) {
+                var cb = matcherIndex[e.add].add;
+                var node = (cb) ? cb(stack, status) : makeNode();
+                if (node) {
+                  top.appendChild(node);
+                  stack.push(node);
                 }
               }
             }
