@@ -567,7 +567,8 @@ this.Instant = function() {
       parser: function() {
         /* Smiley table */
         var SMILIES = {'+1': '#008000', '-1': '#c00000',
-          '>:)': '#c00000', '>:]': '#c00000', '>:D': '#c00000'};
+          '>:)': '#c00000', '>:]': '#c00000', '>:}': '#c00000',
+          '>:D': '#c00000'};
         var SMILEY_DEFAULT = '#c0c000';
         /* Helper: Quickly create a DOM node */
         function makeNode(text, className, color, tag) {
@@ -629,9 +630,9 @@ this.Instant = function() {
           },
           { /* Smileys */
             name: 'smiley',
-            re: new RegExp('[+-]1|>?[:;][D)\\]|\\[/\\\\(CSPoO3]|' +
-              '[SD)\\\\/\\]|\\[(CoO]:<?|\\^\\^|\\\\o/'),
-            bef: /\s|\(|^$/, aft: /\s|\)|^$/,
+            re: new RegExp('[+-]1|>?[:;][D)\\]}|{\\[/\\\\(cCSPoO3]|' +
+              '[SD)\\\\/\\]}|{\\[(cCoO]:<?|\\^\\^|\\\\o/'),
+            bef: /[\s(]|^$/, aft: /[\s.,:;!?)]|^$/,
             cb: function(m, out) {
               var c = SMILIES[m[0]] || SMILEY_DEFAULT;
               out.push(makeNode(m[0], 'smiley', c));
