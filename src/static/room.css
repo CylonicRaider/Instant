@@ -221,6 +221,7 @@ body {
 
 .sidebar-top {
   line-height: 1.2;
+  padding: 5px 0;
 }
 
 .throbber {
@@ -246,10 +247,12 @@ body {
   display: inline-block;
   width: 1.2em;
   height: 1.2em;
-  vertical-align: bottom;
-  border-radius: 50%;
+  margin-bottom: -2px;
+  padding: 1px;
   border: 1px solid black;
-  box-sizing: border-box;
+  border-radius: 50%;
+  vertical-align: bottom;
+  box-sizing: content-box;
 }
 
 .online-status {
@@ -280,7 +283,7 @@ body {
   padding: 0;
 }
 .settings img {
-  padding: 2px;
+  padding: 1px;
   width: 100%;
   height: 100%;
   box-sizing: border-box;
@@ -288,9 +291,8 @@ body {
 .settings-content {
   display: none;
   position: absolute;
-  top: 100%;
+  top: 0;
   right: 0;
-  margin-top: -1px;
   border: 1px solid black;
   padding: 5px;
   z-index: -1;
@@ -298,6 +300,17 @@ body {
   white-space: nowrap;
   background: white;
   color: black;
+}
+.settings-content h2, h3 {
+  font-size: inherit;
+}
+.settings-content h2 {
+  margin-top: -4px;
+  margin-right: 1.2em;
+}
+.settings-content h3 {
+  font-weight: normal;
+  font-style: italic;
 }
 .settings-content label {
   display: block;
@@ -309,8 +322,8 @@ body {
 
 .settings-wrapper.visible .settings {
   border-radius: 0;
-  border-bottom-width: 0;
-  padding-bottom: 1px;
+  border-width: 1px 1px 0 0;
+  padding: 1px 1px 2px 2px;
   box-shadow: none;
 }
 .settings-wrapper.visible .settings-content {
