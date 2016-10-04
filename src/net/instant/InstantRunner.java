@@ -318,6 +318,9 @@ public class InstantRunner implements API1 {
         }
         return stringProducer;
     }
+    public void addSyntheticFile(String name, String content) {
+        makeStringProducer().addFile(name, content);
+    }
     public void addSiteCode(String c) {
         makeStringProducer().appendFile(SITE_FILE, c);
     }

@@ -81,6 +81,12 @@ public interface API1 {
     void addMessageHook(MessageHook hook);
 
     /**
+     * Add a synthetic static file.
+     * This can be used instead of addFileGenerator() for convenience's sake.
+     */
+    void addSyntheticFile(String name, String content);
+
+    /**
      * Add some JavaScript code to /static/site.js.
      * This can be used to bootstrap frontend-side plugins.
      */
