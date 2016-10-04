@@ -12,8 +12,19 @@ For running an own instance, you can use the pre-built
 up-to-date with the latest backend and frontend (unless someone messed it
 up).
 
-As of now, the backend accepts exactly one command-line argument, namely
-the port number to serve from. *(TODO: Fix that.)*
+The backend accepts the following command-line arguments (the `--help` option
+can be used to report a summary):
+
+- `--host` *host* — *Hostname to bind to*: Can be used on machines with
+  multiple network interfaces; `localhost` can be used to accept local
+  connections only. Defaults to `*` (the asterisk), which is translated
+  to *all interfaces*.
+
+- *port* — *Port to bind to*: As a single optional positional argument, this
+  specifies the TCP port to listen on. Defaults to `8080`.
+
+(Options may not be listed here if the corresponding features are under
+development.)
 
 **TL;DR**: To run the stock backend on port 8080, run `java -jar Instant.jar
 8080`, and point your browser to [localhost:8080](http://localhost:8080).
@@ -84,7 +95,7 @@ tree to avoid polluting it.
 
          > java -jar Instant-run.jar 8080
 
-     Instant is not available under
+     Instant is now available under
      [`http://localhost:8080`](http://localhost:8080/).
 
 **TL;DR**: See above for running a stock backend if this is too messy for
@@ -131,10 +142,9 @@ a WebSocket client library (i.e.,
 requied.
 
 Scribe supports the following features, each controlled by a command-line
-option. Most of them require a single additional argument; refer to the
-`--help` message for (minimal) details.
+option. (Refer to the `--help` message for a listing.)
 
-- `--maxlen` — *Maximum log chunk length*: As default (and as the
+- `--maxlen` *num* — *Maximum log chunk length*: As default (and as the
   browser-based client does), Scribe delivers the entirety of its log
   database if asked to (and the Web client does that); this option caps the
   length of a single log reply to the given length to allow incremental
@@ -143,25 +153,25 @@ option. Most of them require a single additional argument; refer to the
     If logs are stored in memory, their amount is additionally capped to the
     given length to avoid memory leaks in long-running instances.
 
-- `--msgdb` — *Message database*: Stores messages in an SQLite database
-  instead of RAM, allowing for potentially unbounded storage.
+- `--msgdb` *file* — *Message database*: Stores messages in an SQLite
+  database instead of RAM, allowing for potentially unbounded storage.
 
-- `--read-file` — *Scrape messages from logfile*: Scribe formats its logfile
-  in a machine-readable way, and indeed supports restoring messages from it.
-  Since this may be very time-consuming, users are encouraged to use
+- `--read-file` *file* — *Scrape messages from logfile*: Scribe formats its
+  logfile in a machine-readable way, and indeed supports restoring messages
+  from it. Since this may be time-consuming, users are encouraged to use
   `--msgdb` instead. There may be multiple instances of this option.
 
     Ancient versions (without `--msgdb`) used this to persist messages across
     restarts; the name of the bot is derived from the very first version only
     noting down messages (which the second version could deliver to clients).
 
-- `--push-logs` — *Push logs*: Can be used to (crudely) transfer logs between
-  instances. When specified, Scribe pushes all of its logs to the participant
-  with the specified ID unconditionally after initializing the message
-  database and reading logfiles (if any). Because of the asynchronous nature
-  of the protocol (and the peer-to-peer-based log system), clients happily
-  accept any piece of logs offered to them, whether it was requested or not.
-  This option may be repeated (although support might be shaky).
+- `--push-logs` *client-ID* — *Push logs*: Can be used to (crudely) transfer
+  logs between instances. When specified, Scribe pushes all of its logs to the
+  participant with the specified ID unconditionally after initializing the
+  message database and reading logfiles (if any). Because of the asynchronous
+  nature of the protocol (and the peer-to-peer-based log system), clients
+  happily accept any piece of logs offered to them, whether it was requested
+  or not. This option may be repeated (although support might be shaky).
 
 - `--dont-stay` — *Do not remain in room*: Lets Scribe exit once it is
   finished updating its message database. Can be useful to grab a snapshot of
@@ -175,13 +185,14 @@ option. Most of them require a single additional argument; refer to the
     updating its logs. Intended to provide short-term coverage when the
     "main" instance of Scribe is being restarted.
 
-- `--nick` — *Nickname*: Last but not least, this allows setting a custom
-  nick-name for the bot. An empty nickname will make the bot invisible to
-  users, although it will still reply with the empty nickname upon request.
+- `--nick` *name* — *Nickname*: Last but not least, this allows setting a
+  custom nick-name for the bot. An empty nickname will make the bot invisible
+  to users, although it will still reply with the empty nickname upon request
+  and count towards the user count.
 
-Aside from the options, there is a single mandatory command-line argument,
-namely the WebSocket URL to connect to. It is the resource `ws` relative
-to the (standard) room to connect to, with a `ws` or `wss` scheme; for
-example, to connect to the upstream
-[&xkcd](https://instant.leet.nu/room/xkcd/), one would specify
-`wss://instant.leet.nu/room/xkcd/ws` as the URL.
+- *url* — *WebSocket URL to connect to*: The single mandatory positional
+  argument specifies (indeed) where to connect to. It is the resource `ws`
+  relative to the (slash-terminated) room URL to connect to, with a `ws` or
+  `wss` scheme; for example, to connect to the upstream *&test*
+  (<https://instant.leet.nu/room/test/>), one would specify
+  `wss://instant.leet.nu/room/test/ws`.

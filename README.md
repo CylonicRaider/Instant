@@ -34,7 +34,7 @@ whereafter Instant should be available under
 
 ## Whom to blame?
 
-The “original” developer should be present on the “upstream” instance most of
-the time — look for *@Xyzzy* in
+The “original” developer should be regularly present on the “upstream”
+instance — look for *@Xyzzy* in
 [&welcome](https://instant.leet.nu/room/welcome/). If he's not there, asking
 around in [&xkcd on euphoria.io](https://euphoria.io/room/xkcd/) might help.
