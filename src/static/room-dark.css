@@ -78,7 +78,8 @@
   background: #404040;
 }
 
-.dark .sidebar > * {
+.dark .sidebar-top > *, .dark .sidebar-middle > *,
+.dark .sidebar-bottom > * {
   background: rgba(0, 0, 0, 0.5);
 }
 
