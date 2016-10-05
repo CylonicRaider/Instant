@@ -2018,8 +2018,8 @@ this.Instant = function() {
         /* Update counter */
         if (node && collapser) {
           var c = $sel('span', collapser);
-          var n = node.children.length;
-          c.textContent = n + ' user' + ((n == 1) ? '' : 's');
+          var n = node.children.length.toString();
+          c.textContent = n + ' user' + ((/(^|[^1])1$/.test(n)) ? '' : 's');
         }
         /* Determine if the list is wrapped; cannot do anything if not */
         var par = node.parentNode;
