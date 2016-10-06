@@ -1633,9 +1633,7 @@ this.Instant = function() {
             }
           }
         });
-        /* Save the last focused node
-         * Have to work around Firefox bug of focusin missing. :( */
-        inputNode.addEventListener('focusin', updateFocus);
+        /* Save the last focused node */
         inputNick.addEventListener('focus', updateFocus);
         inputMsg.addEventListener('focus', updateFocus);
         /* Scroll input into view when resized */
@@ -1917,11 +1915,18 @@ this.Instant = function() {
         }
         node = listNode;
         collapser = collapseNode;
-        /* Collapse user list on click */
+        /* Collapse user list on click
+         * See Instant.message._installEventHandlers() for clickWasTouch.
+         */
+        var clickWasTouch = false;
+        collapser.addEventListener('touchstart', function(event) {
+          clickWasTouch = true;
+        });
         collapser.addEventListener('click', function(event) {
           Instant.userList.collapse(! Instant.userList.isCollapsed());
-          Instant.input.focus();
+          if (! clickWasTouch) Instant.input.focus();
           event.preventDefault();
+          clickWasTouch = false;
         });
         /* Collapse user list on small windows */
         var lastState = false;
