@@ -609,6 +609,10 @@ this.Instant = function() {
               '([a-zA-Z0-9._~-]+@)?([a-zA-Z0-9.-]+)(:[0-9]+)?(/[^>]*)?)>'),
             cb: function(m, out) {
               /* Hyperlink (must contain non-word character) */
+              if (! /\W/.test(m[1])) {
+                out.push(m[0]);
+                return;
+              }
               out.push(makeSigil('<', 'link-before'));
               /* Insert http:// if necessary */
               var url = m[1];
