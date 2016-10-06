@@ -911,21 +911,15 @@ this.Instant = function() {
       },
       /* Install event handlers into the given message node */
       _installEventHandlers: function(msgNode) {
-        /* HACK to improve mobile UX: On a mobile device, focusing the input
-         *      bar would likely trigger a noisy on-screen keyboard, hence,
-         *      it will be blurred instead on tapping a message to free more
-         *      space for navigation. Blame me. */
-        var clickWasTouch = false;
+        /* Flag telling whether the input was focused */
+        var inputWasFocused = false;
         /* For checking whether it was a click or a drag */
         var clickPos = null;
-        /* Touching a message sets the aforementioned flag */
-        $sel('.line', msgNode).addEventListener('touchstart', function(evt) {
-          clickWasTouch = true;
-        });
         /* Pressing a mouse button activates clicking mode */
         $sel('.line', msgNode).addEventListener('mousedown', function(evt) {
           if (evt.button != 0) return;
           clickPos = [evt.clientX, evt.clientY];
+          inputWasFocused = Instant.input.isFocused();
         });
         /* Clicking to a messages moves to it */
         $sel('.line', msgNode).addEventListener('click', function(evt) {
@@ -938,11 +932,10 @@ this.Instant = function() {
           if (evt.target.nodeName == 'A') return;
           /* Navigate to message */
           Instant.input.moveTo(msgNode);
-          if (clickWasTouch) {
-            clickWasTouch = false;
-            document.activeElement.blur();
-          } else {
+          if (inputWasFocused) {
             Instant.input.focus();
+          } else {
+            document.activeElement.blur();
           }
           Instant.pane.scrollIntoView(msgNode);
           evt.stopPropagation();
@@ -1662,6 +1655,10 @@ this.Instant = function() {
         if (! node || forceInput) node = $sel('.input-message', inputNode);
         node.focus();
       },
+      /* Query whether the input bar counts as focused */
+      isFocused: function() {
+        return inputNode.contains(document.activeElement);
+      },
       /* Get the message ID of the parent of the input bar */
       getParentID: function() {
         var parent = Instant.message.getParentMessage(inputNode);
@@ -1915,18 +1912,19 @@ this.Instant = function() {
         }
         node = listNode;
         collapser = collapseNode;
-        /* Collapse user list on click
-         * See Instant.message._installEventHandlers() for clickWasTouch.
-         */
-        var clickWasTouch = false;
-        collapser.addEventListener('touchstart', function(event) {
-          clickWasTouch = true;
+        /* Maintain focus state of input bar */
+        var inputWasFocused = false;
+        collapser.addEventListener('mousedown', function(event) {
+          inputWasFocused = Instant.input.isFocused();
         });
         collapser.addEventListener('click', function(event) {
           Instant.userList.collapse(! Instant.userList.isCollapsed());
-          if (! clickWasTouch) Instant.input.focus();
+          if (inputWasFocused) {
+            Instant.input.focus();
+          } else {
+            document.activeElement.blur();
+          }
           event.preventDefault();
-          clickWasTouch = false;
         });
         /* Collapse user list on small windows */
         var lastState = false;
