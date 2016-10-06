@@ -173,7 +173,7 @@ public class InstantRunner implements API1 {
 
     public InstantRunner() {
         messageHooks = new ArrayList<MessageHook>();
-        host = "";
+        host = null;
         port = 8080;
         counter = null;
         server = null;
@@ -213,8 +213,13 @@ public class InstantRunner implements API1 {
     }
     public InstantWebSocketServer makeServer() {
         if (server == null) {
-            server = new InstantWebSocketServer(
-                new InetSocketAddress(host, port));
+            InetSocketAddress addr;
+            if (host == null) {
+                addr = new InetSocketAddress(port);
+            } else {
+                addr = new InetSocketAddress(host, port);
+            }
+            server = new InstantWebSocketServer(addr);
             server.addInternalHook(makeRedirectHook());
             server.addInternalHook(makeFileHook());
             server.addInternalHook(makeRoomHook());

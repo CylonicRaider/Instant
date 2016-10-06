@@ -120,7 +120,7 @@ public class Main implements Runnable {
             return;
         }
         String hostName = host.get(r);
-        if (hostName.equals("*")) hostName = "";
+        if (hostName.equals("*")) hostName = null;
         runner.setHost(hostName);
         runner.setPort(port.get(r));
         for (File path : pluginPath.get(r))
