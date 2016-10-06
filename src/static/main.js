@@ -1583,7 +1583,7 @@ this.Instant = function() {
             /* Determine if we should complete at all */
             var m = MENTION_BEFORE.exec(text.substring(0, pos));
             if (! m) return;
-            /* No tabbing beyound this point */
+            /* No tabbing beyond this point */
             event.preventDefault();
             /* Perform actual completion */
             var res = Instant.userList.complete(m[1]);
