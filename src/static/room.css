@@ -224,11 +224,12 @@ body {
   flex-direction: column;
   align-items: flex-end;
   min-height: 0;
-  pointer-events: auto;
+  pointer-events: none;
 }
 .sidebar-top > *, .sidebar-middle > *, .sidebar-bottom > * {
   background: rgba(255, 255, 255, 0.5);
   padding: 3px 0 3px 3px;
+  pointer-events: auto;
 }
 .sidebar-top, .sidebar-bottom {
   -webkit-flex-shrink: 0;
@@ -239,10 +240,15 @@ body {
   line-height: 1.2;
   padding: 5px 0;
 }
-
+.sidebar-middle-wrapper {
+  padding: 0;
+  overflow: auto;
+}
+.sidebar-middle-wrapper.overflow {
+  padding-right: 3px;
+}
 .sidebar-middle {
-  -webkit-flex-shrink: 1;
-  flex-shrink: 1;
+  pointer-events: none;
 }
 
 .throbber {
@@ -380,14 +386,6 @@ body {
   font-weight: bold;
 }
 
-/* WARNING: Must have no horizontal margin or padding to avoid scrollbar
- *          insanities */
-.user-list-wrapper {
-  padding-left: 0;
-  max-height: 75vh;
-  overflow: auto;
-  background: none;
-}
 .user-list {
   display: -webkit-flex;
   display: flex;
@@ -395,15 +393,14 @@ body {
   -webkit-align-items: flex-end;
   flex-direction: column;
   align-items: flex-end;
+  background: none;
+  pointer-events: none;
 }
-.user-list-wrapper > .user-list {
-  padding-left: 3px;
-}
-.user-list-wrapper.overflow > .user-list {
-  padding-right: 3px;
-}
-.user-list.collapsed, .user-list-wrapper.collapsed {
+.user-list.collapsed {
   display: none;
+}
+.user-list > * {
+  pointer-events: auto;
 }
 
 .user-list .nick {
