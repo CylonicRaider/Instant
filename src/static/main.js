@@ -598,7 +598,7 @@ this.Instant = function() {
             cb: function(m, out) {
               var node = makeNode(m[0], 'room-link', null, 'a');
               node.href = ('../' + m[1] + '/' +
-                ((m[2]) ? '#message-' + m[2] : ''));
+                ((m[4]) ? '#message-' + m[4] : ''));
               node.target = '_blank';
               out.push(node);
             }
