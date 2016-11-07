@@ -599,7 +599,8 @@ this.Instant = function() {
               var node = makeNode(m[0], 'room-link', null, 'a');
               node.href = ('../' + m[1] + '/' +
                 ((m[4]) ? '#message-' + m[4] : ''));
-              node.target = '_blank';
+              if (m[1] != Instant.roomName || ! m[4])
+                node.target = '_blank';
               out.push(node);
             }
           },
