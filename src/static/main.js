@@ -635,8 +635,8 @@ this.Instant = function() {
           },
           { /* Smileys */
             name: 'smiley',
-            re: new RegExp('[+-]1|>?[:;][D)\\]}|{\\[/\\\\(cCSPoO3]|' +
-              '[SD)\\\\/\\]}|{\\[(cCoO]:<?|\\^\\^|\\\\o/'),
+            re: new RegExp('[+-]1|>?[:;=][D)\\]}|{\\[/\\\\(cCSPoO3]|' +
+              '[SD)\\\\/\\]}|{\\[(cCoO][:=]<?|\\^\\^|\\\\o/'),
             bef: /[\s(]|^$/, aft: /[\s.,:;!?)]|^$/,
             cb: function(m, out) {
               var c = SMILIES[m[0]] || SMILEY_DEFAULT;
