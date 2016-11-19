@@ -3275,10 +3275,8 @@ this.Instant = function() {
           var icon = options.icon || ICON;
           var oncreate = options.oncreate || null;
           var onclick = options.onclick || null;
-          /* HACK: Firefox failed quite often to display notifications with
-           *       icons (for me); version 48 improved the success rate (for
-           *       data: URI-s), but still not up to (nearly, at least) 100%;
-           *       versions 49 and 50 WFM, so rolling out on them. */
+          /* HACK: Firefox before release 49 would silently fail to display
+           *       notifications with icons to varying rates (for me). */
           var m = /Firefox\/(\d+)(?=\D)/i.exec(navigator.userAgent);
           if (m && m[1] < 49) icon = null;
           /* Actually create notification */
