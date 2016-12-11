@@ -690,3 +690,13 @@ body, #main, #main * {
   -webkit-transition: background 0.5s, color 0.5s, opacity 1s;
   transition: background 0.5s, color 0.5s, opacity 1s;
 }
+
+.message-pane {
+  direction: rtl;
+}
+.message-pane * {
+  direction: initial;
+}
+.sidebar {
+  margin-right: 2px !important;
+}
