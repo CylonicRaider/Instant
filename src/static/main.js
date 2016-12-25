@@ -2482,6 +2482,8 @@ this.Instant = function() {
                 if (data.data) {
                   /* Actually merge logs */
                   var added = Instant.logs.merge(data.data, true);
+                  /* Merge UUID-s */
+                  Instant.logs.mergeUUID(data.uuids);
                   /* Prepare for scrolling */
                   var restore = Instant.input.saveScrollState(true);
                   /* Import messages */
