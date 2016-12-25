@@ -2281,7 +2281,7 @@ this.Instant = function() {
       },
       /* Add the given pairs to the UUID cache */
       mergeUUID: function(mapping) {
-        for (k in mapping) {
+        for (var k in mapping) {
           if (! mapping.hasOwnProperty(k)) continue;
           uuids[k] = mapping[k];
         }
