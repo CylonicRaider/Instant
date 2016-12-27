@@ -382,9 +382,9 @@ this.Instant = function() {
                     (par && par.classList.contains('mine')) ? 1 : 0,
                     (msg.classList.contains('ping')) ? 1 : 0);
                   /* Possibly show a notification */
-                  if (Instant.notifications.check(msg) &&
-                      Instant.title.isBlurred())
-                    Instant.notifications.desktop.show(msg);
+                  Instant.message.createNotification(msg).then(function(n) {
+                    Instant.notifications.submit(n);
+                  });
                 } else {
                   /* Should not happen */
                   console.warn('Swallowing message:', ent);
@@ -1444,6 +1444,30 @@ this.Instant = function() {
       clear: function() {
         mesages = {};
         fakeMessages = {};
+      },
+      /* Create a Notification object for a given message */
+      createNotification: function(msg) {
+        var text;
+        if (msg.classList.contains('emote')) {
+          text = ('* ' + $sel('.nick', msg).textContent + ' ' +
+          $sel('.content', msg).textContent);
+        } else {
+          /* HACK: Some notification systems seem to interpret the body as
+           *       HTML, so the preferred "angled brackets" cannot be used
+           *       (unless we want the name to be an HTML tag). */
+          text = ('[' + $sel('.nick', msg).textContent + '] ' +
+          $sel('.content', msg).textContent);
+        }
+        var level = Instant.notifications.getLevel(msg);
+        return Instant.notifications.create({text: text,
+          level: level,
+          color: Instant.notifications.COLORS[level],
+          onclick: function() {
+            /* Go to the message */
+            Instant.input.jumpTo(msg);
+            Instant.input.focus();
+          }
+        });
       }
     };
   }();
@@ -2707,7 +2731,8 @@ this.Instant = function() {
               canvas.width = baseImg.naturalWidth;
               canvas.height = baseImg.naturalHeight;
             }
-            /* Favicon highlight color */
+            /* Favicon highlight color
+             * TODO: Migrate to unified notifications. */
             var color;
             if (updateAvailable) {
               /* Updates are considered more grave than messages; the user
@@ -3153,7 +3178,7 @@ this.Instant = function() {
           console.warn('Unknown theme:', theme);
         }
         var level = cnt.elements['notifies'].value;
-        Instant.notifications.desktop.level = level;
+        Instant.notifications.level = level;
         if (level != 'none') Instant.notifications.desktop.request();
         Instant.storage.set('theme', theme);
         Instant.storage.set('notification-level', level);
@@ -3187,7 +3212,17 @@ this.Instant = function() {
   /* Desktop notifications */
   Instant.notifications = function() {
     /* Notification levels (from most to least severe) */
-    var LEVELS = {none: 0, ping: 1, reply: 2, any: 3};
+    var LEVELS = { none: 0, ping: 1, update: 2, reply: 3, disconnect: 4,
+                   any: 5 };
+    /* The colors associated to the levels */
+    var COLORS = {
+      none: '#000000', /* No color in particular */
+      ping: '#c0c000', /* @-mentions are yellow */
+      update: '#008000', /* The update information is green */
+      reply: '#0040ff', /* Replies are color-coded with blue */
+      disconnect: '#c00000', /* Red... was not used */
+      any: '#c0c0c0' /* No color in particular, faint version */
+    };
     /* The default icon to display */
     var ICON_PATH = '/static/logo-static_128x128.png';
     var ICON = ICON_PATH;
@@ -3215,6 +3250,8 @@ this.Instant = function() {
       } else {
         this.icon = null;
       }
+      this.onclick = options.onclick || null;
+      this.data = options.data || null;
     }
     Notify.prototype = {
       /* Construct the icon for this notification using its color defined
@@ -3236,8 +3273,9 @@ this.Instant = function() {
       }
     };
     return {
-      /* Export levels to outside */
+      /* Export levels and colors to outside */
       LEVELS: LEVELS,
+      COLORS: COLORS,
       /* The current notification level (symbolic name) */
       level: null,
       /* Initialize submodule */
@@ -3284,34 +3322,25 @@ this.Instant = function() {
           }
         });
       },
-      /* Return whether the message should trigger a notify
-       * with respect to the current notification level
-       * WARNING: Obsolete; will be replaced by dynamic handling.
-       */
-      check: function(msg) {
-        return (LEVELS[Instant.notifications.getLevel(msg)] <=
-                LEVELS[Instant.notifications.desktop.level]);
+      /* Process a notification object properly */
+      submit: function(notify) {
+        if (LEVELS[notify.level] <= LEVELS[Instant.notifications.level] &&
+            Instant.title.isBlurred())
+          Instant.notifications.desktop.show(notify);
       },
       desktop: function() {
         /* The currently pending desktop notification */
         var current = null;
         return {
-          /* Display a desktop notification for msg (unconditionally)
-           * check() should have been called first to determine
-           * whether a notification should be displayed at all. */
-          show: function(msg) {
+          /* Display a desktop notification for the given notification object
+           * unconditionally
+           * The appropriate checking mechanisms (i.e. submit()) should have
+           * been used to determine whether to display it at all. */
+          show: function(notify) {
             /* Do not show two notifications at once */
             if (current) return;
-            var body;
-            /* TODO: Outline into generic notification construction */
-            if (msg.classList.contains('emote')) {
-              body = ('* ' + $sel('.nick', msg).textContent + ' ' +
-                $sel('.content', msg).textContent);
-            } else {
-              body = ('[' + $sel('.nick', msg).textContent + '] ' +
-                $sel('.content', msg).textContent);
-            }
-            Instant.notifications.desktop._show('Instant', body, {
+            Instant.notifications.desktop._show(notify.title, notify.text, {
+              icon: notify.icon,
               oncreate: function(notify) {
                 /* Set current notification */
                 current = notify;
@@ -3324,9 +3353,7 @@ this.Instant = function() {
                 }, 10000);
               },
               onclick: function(event) {
-                /* Go to the specified message */
-                Instant.input.jumpTo(msg);
-                Instant.input.focus();
+                if (notify.onclick) notify.onclick(event);
                 current = null;
                 event.target.close();
               }
