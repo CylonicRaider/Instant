@@ -3191,11 +3191,70 @@ this.Instant = function() {
     /* The default icon to display */
     var ICON_PATH = '/static/logo-static_128x128.png';
     var ICON = ICON_PATH;
+    /* A DOM Image holding the image for further use */
+    var ICON_IMG = null;
+    /* Canvas for icon rendering. Re-used. */
+    var icon_canvas = null;
+    /* Notification object
+     * The name is chosen to avoid clashes with the (desktop) Notification
+     * object. */
+    function Notify(options) {
+      if (! options) options = {};
+      /* Allow either style */
+      if (! (this instanceof Notify))
+        return new Notify(options);
+      /* Initialize attributes */
+      this.title = options.title || "Instant";
+      this.text = options.text;
+      this.level = options.level || LEVELS.any;
+      if (options.icon) {
+        this.icon = options.icon;
+      } else if (options.color) {
+        this.color = options.color;
+        if (icon_canvas) this._renderIcon();
+      } else {
+        this.icon = null;
+      }
+    }
+    Notify.prototype = {
+      /* Construct the icon for this notification using its color defined
+       * color */
+      _renderIcon: function() {
+        var stroke = icon_canvas.width / 32;
+        var radius = icon_canvas.width / 4;
+        var ctx = icon_canvas.getContext('2d');
+        ctx.clearRect(0, 0, icon_canvas.width, icon_canvas.height);
+        ctx.drawImage(ICON_IMG, 0, 0);
+        ctx.beginPath();
+        ctx.arc(icon_canvas.width - radius, radius, radius - stroke / 2,
+                0, 2 * Math.PI, true);
+        ctx.fillStyle = this.color;
+        ctx.fill();
+        ctx.lineWidth = stroke;
+        ctx.stroke();
+        this.icon = icon_canvas.toDataURL('image/png');
+      }
+    };
     return {
       /* Export levels to outside */
       LEVELS: LEVELS,
       /* The current notification level (symbolic name) */
       level: null,
+      /* Initialize submodule */
+      init: function() {
+        /* Load icon */
+        ICON_IMG = document.createElement('img');
+        ICON_IMG.addEventListener('load', function() {
+          /* Render to canvas */
+          icon_canvas = document.createElement('canvas');
+          icon_canvas.width = ICON_IMG.naturalWidth;
+          icon_canvas.height = ICON_IMG.naturalHeight;
+          var ctx = icon_canvas.getContext('2d');
+          ctx.drawImage(ICON_IMG, 0, 0);
+          ICON = icon_canvas.toDataURL('image/png');
+        });
+        ICON_IMG.src = ICON_PATH;
+      },
       /* Get the notification level of the given message */
       getLevel: function(msg) {
         var mlvl = 'any';
@@ -3207,6 +3266,23 @@ this.Instant = function() {
             mlvl = 'reply';
         }
         return mlvl;
+      },
+      /* Return a Promise of a notification object */
+      create: function(options) {
+        var res = new Notify(options);
+        return new Promise(function(resolve, reject) {
+          if (res.color && ! res.icon) {
+            ICON_IMG.addEventListener('load', function() {
+              res._renderIcon();
+              resolve(res);
+            });
+            ICON_IMG.addEventListener('error', function(event) {
+              reject(event);
+            });
+          } else {
+            resolve(res);
+          }
+        });
       },
       /* Return whether the message should trigger a notify
        * with respect to the current notification level
@@ -3220,21 +3296,6 @@ this.Instant = function() {
         /* The currently pending desktop notification */
         var current = null;
         return {
-          /* Initialize submodule */
-          init: function() {
-            /* Load icon */
-            var iconImg = new Image();
-            iconImg.addEventListener('load', function() {
-              /* Render to canvas */
-              var canvas = document.createElement('canvas');
-              canvas.width = iconImg.naturalWidth;
-              canvas.height = iconImg.naturalHeight;
-              var ctx = canvas.getContext('2d');
-              ctx.drawImage(iconImg, 0, 0);
-              ICON = canvas.toDataURL('image/png');
-            });
-            iconImg.src = ICON_PATH;
-          },
           /* Display a desktop notification for msg (unconditionally)
            * check() should have been called first to determine
            * whether a notification should be displayed at all. */
@@ -3431,7 +3492,7 @@ this.Instant = function() {
                           $sel('.user-list-counter', main));
     Instant.title.init();
     Instant.title.favicon.init();
-    Instant.notifications.desktop.init();
+    Instant.notifications.init();
     Instant.logs.pull.init($sel('.message-box', main));
     Instant.animation.init($sel('.message-box', main));
     Instant.animation.greeter.init(loadWrapper);
