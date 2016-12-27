@@ -1142,12 +1142,11 @@ this.Instant = function() {
         return Instant.message.getParent(message);
       },
       /* Compare the messages (which incidentally can be arbitrary DOM nodes)
-       * by document order (assuming they are laid out vertically, as
-       * messages are) */
+       * by document order  */
       documentCmp: function(a, b) {
-        var at = a.getBoundingClientRect().top;
-        var bt = b.getBoundingClientRect().top;
-        return (at < bt) ? -1 : (at > bt) ? 1 : 0;
+        var res = a.compareDocumentPosition(b);
+        return (res & Node.DOCUMENT_POSITION_FOLLOWING) ? -1 :
+          (res & Node.DOCUMENT_POSITION_PRECEDING) ? 1 : 0;
       },
       /* Get the node hosting the replies to the given message, or the message
        * itself if it's actually none at all */
