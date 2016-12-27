@@ -384,7 +384,7 @@ this.Instant = function() {
                   /* Possibly show a notification */
                   if (Instant.notifications.check(msg) &&
                       Instant.title.isBlurred())
-                    Instant.notifications.show(msg);
+                    Instant.notifications.desktop.show(msg);
                 } else {
                   /* Should not happen */
                   console.warn('Swallowing message:', ent);
@@ -3153,8 +3153,8 @@ this.Instant = function() {
           console.warn('Unknown theme:', theme);
         }
         var level = cnt.elements['notifies'].value;
-        Instant.notifications.level = level;
-        if (level != 'none') Instant.notifications.request();
+        Instant.notifications.desktop.level = level;
+        if (level != 'none') Instant.notifications.desktop.request();
         Instant.storage.set('theme', theme);
         Instant.storage.set('notification-level', level);
       },
@@ -3191,28 +3191,11 @@ this.Instant = function() {
     /* The default icon to display */
     var ICON_PATH = '/static/logo-static_128x128.png';
     var ICON = ICON_PATH;
-    /* The currently pending notification */
-    var current = null;
     return {
       /* Export levels to outside */
       LEVELS: LEVELS,
       /* The current notification level (symbolic name) */
       level: null,
-      /* Initialize submodule */
-      init: function() {
-        /* Load icon */
-        var iconImg = new Image();
-        iconImg.addEventListener('load', function() {
-          /* Render to canvas */
-          var canvas = document.createElement('canvas');
-          canvas.width = iconImg.naturalWidth;
-          canvas.height = iconImg.naturalHeight;
-          var ctx = canvas.getContext('2d');
-          ctx.drawImage(iconImg, 0, 0);
-          ICON = canvas.toDataURL('image/png');
-        });
-        iconImg.src = ICON_PATH;
-      },
       /* Get the notification level of the given message */
       getLevel: function(msg) {
         var mlvl = 'any';
@@ -3226,78 +3209,103 @@ this.Instant = function() {
         return mlvl;
       },
       /* Return whether the message should trigger a notify
-       * with respect to the current notification level */
+       * with respect to the current notification level
+       * WARNING: Obsolete; will be replaced by dynamic handling.
+       */
       check: function(msg) {
         return (LEVELS[Instant.notifications.getLevel(msg)] <=
-                LEVELS[Instant.notifications.level]);
+                LEVELS[Instant.notifications.desktop.level]);
       },
-      /* Display a desktop notification for msg (unconditionally)
-       * check() should have been called first to determine
-       * whether a notification should be displayed at all. */
-      show: function(msg) {
-        /* Do not show two notifications at once */
-        if (current) return;
-        var body;
-        if (msg.classList.contains('emote')) {
-          body = ('* ' + $sel('.nick', msg).textContent + ' ' +
-            $sel('.content', msg).textContent);
-        } else {
-          body = ('[' + $sel('.nick', msg).textContent + '] ' +
-            $sel('.content', msg).textContent);
-        }
-        Instant.notifications._show('Instant', body, {
-          oncreate: function(notify) {
-            /* Set current notification */
-            current = notify;
-            /* Since the close event is ambiguous and not supported
-             * anymore, we just let the notification stay for ten
-             * seconds, and forget about it thereafter. */
-            setTimeout(function() {
-              notify.close();
-              current = null;
-            }, 10000);
+      desktop: function() {
+        /* The currently pending desktop notification */
+        var current = null;
+        return {
+          /* Initialize submodule */
+          init: function() {
+            /* Load icon */
+            var iconImg = new Image();
+            iconImg.addEventListener('load', function() {
+              /* Render to canvas */
+              var canvas = document.createElement('canvas');
+              canvas.width = iconImg.naturalWidth;
+              canvas.height = iconImg.naturalHeight;
+              var ctx = canvas.getContext('2d');
+              ctx.drawImage(iconImg, 0, 0);
+              ICON = canvas.toDataURL('image/png');
+            });
+            iconImg.src = ICON_PATH;
           },
-          onclick: function(notify) {
-            /* Go to the specified message */
-            Instant.input.jumpTo(msg);
-            Instant.input.focus();
-            current = null;
+          /* Display a desktop notification for msg (unconditionally)
+           * check() should have been called first to determine
+           * whether a notification should be displayed at all. */
+          show: function(msg) {
+            /* Do not show two notifications at once */
+            if (current) return;
+            var body;
+            /* TODO: Outline into generic notification construction */
+            if (msg.classList.contains('emote')) {
+              body = ('* ' + $sel('.nick', msg).textContent + ' ' +
+                $sel('.content', msg).textContent);
+            } else {
+              body = ('[' + $sel('.nick', msg).textContent + '] ' +
+                $sel('.content', msg).textContent);
+            }
+            Instant.notifications.desktop._show('Instant', body, {
+              oncreate: function(notify) {
+                /* Set current notification */
+                current = notify;
+                /* Since the close event is ambiguous and not supported
+                 * anymore, we just let the notification stay for ten
+                 * seconds, and forget about it thereafter. */
+                setTimeout(function() {
+                  current = null;
+                  notify.close();
+                }, 10000);
+              },
+              onclick: function(event) {
+                /* Go to the specified message */
+                Instant.input.jumpTo(msg);
+                Instant.input.focus();
+                current = null;
+                event.target.close();
+              }
+            });
+          },
+          /* Request permission to display notifications */
+          request: function(callback) {
+            var res = Notification.requestPermission(callback);
+            if (res && res.then) res.then(callback);
+          },
+          /* Display an arbitrary notification */
+          _show: function(title, body, options) {
+            function run() {
+              /* Parse options */
+              var icon = options.icon || ICON;
+              var oncreate = options.oncreate || null;
+              var onclick = options.onclick || null;
+              /* HACK: Firefox before release 49 would silently fail to display
+               *       notifications with icons to varying rates (for me). */
+              var m = /Firefox\/(\d+)(?=\D)/i.exec(navigator.userAgent);
+              if (m && m[1] < 49) icon = null;
+              /* Actually create notification */
+              var ret = new Notification(title, {body: body,
+                icon: icon});
+              /* Install event handler */
+              ret.onclick = onclick;
+              /* Allow user to modify notification after creation */
+              if (oncreate) {
+                oncreate(ret);
+              }
+            }
+            /* Request permissions first */
+            if (Notification.permission == 'granted') {
+              run();
+            } else if (Notification.permission == 'default') {
+              Instant.notifications.desktop.request(run);
+            }
           }
-        });
-      },
-      /* Request permission to display notifications */
-      request: function(callback) {
-        var res = Notification.requestPermission(callback);
-        if (res && res.then) res.then(callback);
-      },
-      /* Display an arbitrary notification */
-      _show: function(title, body, options) {
-        function run() {
-          /* Parse options */
-          var icon = options.icon || ICON;
-          var oncreate = options.oncreate || null;
-          var onclick = options.onclick || null;
-          /* HACK: Firefox before release 49 would silently fail to display
-           *       notifications with icons to varying rates (for me). */
-          var m = /Firefox\/(\d+)(?=\D)/i.exec(navigator.userAgent);
-          if (m && m[1] < 49) icon = null;
-          /* Actually create notification */
-          var ret = new Notification(title, {body: body,
-            icon: icon});
-          /* Install event handler */
-          ret.onclick = onclick;
-          /* Allow user to modify notification after creation */
-          if (oncreate) {
-            oncreate(ret);
-          }
-        }
-        /* Request permissions first */
-        if (Notification.permission == 'granted') {
-          run();
-        } else if (Notification.permission == 'default') {
-          Instant.notifications.request(run);
-        }
-      }
+        };
+      }()
     };
   }();
   /* Query string parameters
@@ -3423,7 +3431,7 @@ this.Instant = function() {
                           $sel('.user-list-counter', main));
     Instant.title.init();
     Instant.title.favicon.init();
-    Instant.notifications.init();
+    Instant.notifications.desktop.init();
     Instant.logs.pull.init($sel('.message-box', main));
     Instant.animation.init($sel('.message-box', main));
     Instant.animation.greeter.init(loadWrapper);
