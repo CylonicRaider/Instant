@@ -1643,12 +1643,13 @@ this.Instant = function() {
         if (typeof nick == 'string') {
           inputNick.value = nick;
           refreshNick(true);
+          inputMsg.focus();
+        } else {
+          inputNick.focus();
+          inputNick.selectionStart = inputNick.value.length;
+          inputNick.selectionEnd = inputNick.value.length;
         }
         updateNick();
-        /* Focus the nick input */
-        inputNick.focus();
-        inputNick.selectionStart = inputNick.value.length;
-        inputNick.selectionEnd = inputNick.value.length;
       },
       /* Return the input bar */
       getNode: function() {
