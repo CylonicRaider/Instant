@@ -2808,13 +2808,15 @@ this.Instant = function() {
         /* Sidebar handling */
         var wrapper = $sel('.sidebar-middle-wrapper', sideBar);
         window.addEventListener('resize', Instant.animation.updateSidebar);
-        var obs = new MutationObserver(function(records, observer) {
-          if (records.some(mutationInvalid)) return;
-          Instant.animation.updateSidebar();
-        });
-        obs.observe(wrapper, {childList: true, attributes: true,
-          characterData: true, subtree: true,
-          attributeFilter: ['class', 'style']});
+        if (window.MutationObserver) {
+          var obs = new MutationObserver(function(records, observer) {
+            if (records.some(mutationInvalid)) return;
+            Instant.animation.updateSidebar();
+          });
+          obs.observe(wrapper, {childList: true, attributes: true,
+            characterData: true, subtree: true,
+            attributeFilter: ['class', 'style']});
+        }
       },
       /* Navigate the input to the given message */
       goToMessage: function(msg) {
