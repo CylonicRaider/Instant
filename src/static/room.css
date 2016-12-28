@@ -442,8 +442,14 @@ body {
 #notifies-ping {
   color: #808000;
 }
+#notifies-update {
+  color: #008000;
+}
 #notifies-reply {
   color: #0060c0;
+}
+#notifies-disconnect {
+  color: #c00000;
 }
 #notifies-any {
   color: #404040;
