@@ -1461,7 +1461,6 @@ this.Instant = function() {
         var level = Instant.notifications.getLevel(msg);
         return Instant.notifications.create({text: text,
           level: level,
-          color: Instant.notifications.COLORS[level],
           onclick: function() {
             /* Go to the message */
             Instant.input.jumpTo(msg);
@@ -2640,6 +2639,15 @@ this.Instant = function() {
         }
         Instant.title._set(Instant.baseTitle + ext);
       },
+      /* Process a notification object from Instant.notifications */
+      _notify: function(notify) {
+        Instant.title.addUnread(notify.data.unreadMessages || 0,
+                                notify.data.unreadReplies || 0,
+                                notify.data.unreadMentions || 0);
+        if (notify.data.updateAvailable != null)
+          Instant.title.setUpdateAvailable(notify.data.updateAvailable);
+        Instant.title._update();
+      },
       /* Add the given amounts of messages, replies, and pings to the
        * internal counters and update the window title */
       addUnread: function(messages, replies, mentions) {
@@ -2688,76 +2696,32 @@ this.Instant = function() {
       },
       /* Favicon management */
       favicon: function() {
-        /* The base image */
-        var baseImg = null;
-        /* The canvas for painting on */
-        var canvas = null;
-        /* The color currently being displayed */
-        var curColor = null;
+        /* The currently displayed notification level */
+        var curLevel = null;
         return {
-          /* Initialize submodule */
-          init: function() {
-            /* Try to fetch from <link>, use fallback otherwise */
-            var link = $sel('link[rel~=icon]');
-            var iconURL = (link && link.href) || '/favicon.ico';
-            baseImg = new Image();
-            baseImg.addEventListener('load', function() {
-              Instant.title.favicon._update();
-            });
-            baseImg.src = iconURL;
-          },
           /* Update the favicon to match the current unread message
            * status */
           _update: function() {
-            function makeDot(color) {
-              var stroke = canvas.width / 32;
-              var radius = canvas.width / 4;
-              var ctx = canvas.getContext('2d');
-              ctx.drawImage(baseImg, 0, 0);
-              ctx.beginPath();
-              ctx.arc(canvas.width - radius, radius, radius - stroke / 2,
-                      0, 2 * Math.PI, true);
-              ctx.fillStyle = color;
-              ctx.fill();
-              ctx.lineWidth = stroke;
-              ctx.stroke();
-              return canvas.toDataURL('image/png');
-            }
-            /* Skip if base image not loaded */
-            if (! baseImg || ! baseImg.complete) return;
-            /* Initialize canvas */
-            if (! canvas) {
-              canvas = document.createElement('canvas');
-              canvas.width = baseImg.naturalWidth;
-              canvas.height = baseImg.naturalHeight;
-            }
-            /* Favicon highlight color
-             * TODO: Migrate to unified notifications. */
-            var color;
-            if (updateAvailable) {
-              /* Updates are considered more grave than messages; the user
-               * would typically have a look at the page after it anyway.
-               * They are hence prioritized and get a green dot. */
-              color = '#008000';
-            } else if (unreadMentions) {
-              /* @-mentions get a yellow dot */
-              color = '#c0c000';
+            var level;
+            if (unreadMentions) {
+              level = 'ping';
+            } else if (updateAvailable) {
+              level = 'update';
             } else if (unreadReplies) {
-              /* Replies get a blue dot */
-              color = '#0040ff';
+              level = 'reply';
+            } else if (! Instant.connection.isConnected()) {
+              level = 'disconnect';
             } else if (unreadMessages) {
-              /* Messages get a gray dot (to be consistent with the
-               * new message highlights) */
-              color = '#c0c0c0';
+              level = 'any';
             } else {
-              color = null;
+              level = null;
             }
             /* Only update favicon when necessary */
-            if (color == curColor) return;
-            curColor = color;
-            var url = (color == null) ? baseImg.src : makeDot(color);
-            /* Push it out */
-            Instant.title.favicon._set(url);
+            if (level == curLevel) return;
+            curLevel = level;
+            /* Push out new one */
+            Instant.notifications.renderIcon(level).then(
+              Instant.title.favicon._set);
           },
           /* Set the favicon to whatever the given URL (which may be
            * a data URI) points at */
@@ -3232,6 +3196,8 @@ this.Instant = function() {
     var ICON_IMG = null;
     /* Canvas for icon rendering. Re-used. */
     var icon_canvas = null;
+    /* Cache of icons for notification levels. */
+    var level_icons = {};
     /* Notification object
      * The name is chosen to avoid clashes with the (desktop) Notification
      * object. */
@@ -3248,32 +3214,16 @@ this.Instant = function() {
         this.icon = options.icon;
       } else if (options.color) {
         this.color = options.color;
-        if (icon_canvas) this._renderIcon();
+      } else if (options.level) {
+        this.color = COLORS[options.level];
       } else {
         this.icon = null;
       }
       this.onclick = options.onclick || null;
       this.data = options.data || {};
+      if (! this.icon && this.color && icon_canvas)
+        this.icon = Instant.notifications._renderIcon(this.color);
     }
-    Notify.prototype = {
-      /* Construct the icon for this notification using its color defined
-       * color */
-      _renderIcon: function() {
-        var stroke = icon_canvas.width / 32;
-        var radius = icon_canvas.width / 4;
-        var ctx = icon_canvas.getContext('2d');
-        ctx.clearRect(0, 0, icon_canvas.width, icon_canvas.height);
-        ctx.drawImage(ICON_IMG, 0, 0);
-        ctx.beginPath();
-        ctx.arc(icon_canvas.width - radius, radius, radius - stroke / 2,
-                0, 2 * Math.PI, true);
-        ctx.fillStyle = this.color;
-        ctx.fill();
-        ctx.lineWidth = stroke;
-        ctx.stroke();
-        this.icon = icon_canvas.toDataURL('image/png');
-      }
-    };
     return {
       /* Export levels and colors to outside */
       LEVELS: LEVELS,
@@ -3310,25 +3260,67 @@ this.Instant = function() {
       /* Return a Promise of a notification object */
       create: function(options) {
         var res = new Notify(options);
-        return new Promise(function(resolve, reject) {
-          if (res.color && ! res.icon) {
-            ICON_IMG.addEventListener('load', function() {
-              res._renderIcon();
-              resolve(res);
+        if (res.color && ! res.icon) {
+          return Instant.notifications.renderIcon(res.color).then(
+            function(icon) {
+              res.icon = icon;
+              return res;
             });
-            ICON_IMG.addEventListener('error', function(event) {
-              reject(event);
-            });
-          } else {
-            resolve(res);
-          }
-        });
+        } else {
+          return Promise.resolve(res);
+        }
       },
       /* Process a notification object properly */
       submit: function(notify) {
-        if (LEVELS[notify.level] <= LEVELS[Instant.notifications.level] &&
-            Instant.title.isBlurred())
-          Instant.notifications.desktop.show(notify);
+        Instant.title._notify(notify);
+        Instant.notifications.desktop._notify(notify);
+        return notify;
+      },
+      /* Render the notification icon for the given color
+       * A color of null results in the base image. May return null if the
+       * base image is not loaded; see renderIconEx() and renderIcon(). */
+      _renderIcon: function(color) {
+        if (icon_canvas == null) return null;
+        var stroke = icon_canvas.width / 32;
+        var radius = icon_canvas.width / 4;
+        var ctx = icon_canvas.getContext('2d');
+        ctx.clearRect(0, 0, icon_canvas.width, icon_canvas.height);
+        ctx.drawImage(ICON_IMG, 0, 0);
+        if (color != null) {
+          ctx.beginPath();
+          ctx.arc(icon_canvas.width - radius, radius, radius - stroke / 2,
+                  0, 2 * Math.PI, true);
+          ctx.fillStyle = color;
+          ctx.fill();
+          ctx.lineWidth = stroke;
+          ctx.stroke();
+        }
+        return icon_canvas.toDataURL('image/png');
+      },
+      /* Return a Promise of a notification icon with the given color
+       * A color of null produces the base icon. */
+      renderIconEx: function(color) {
+        return new Promise(function(resolve, reject) {
+          if (icon_canvas != null) {
+            resolve(Instant.notifications._renderIcon(color));
+          }
+          ICON_IMG.addEventListener('load', function() {
+            resolve(Instant.notifications._renderIcon(color));
+          });
+          ICON_IMG.addEventListener('error', function(event) {
+            reject(event);
+          });
+        });
+      },
+      /* Return a Promise of a notification icon of the given level */
+      renderIcon: function(level) {
+        if (level_icons[level])
+          return Promise.resolve(level_icons[level]);
+        return Instant.notifications.renderIconEx(COLORS[level]).then(
+          function(icon) {
+            level_icons[level] = icon;
+            return icon;
+          });
       },
       desktop: function() {
         /* The currently pending desktop notification */
@@ -3365,6 +3357,13 @@ this.Instant = function() {
           request: function(callback) {
             var res = Notification.requestPermission(callback);
             if (res && res.then) res.then(callback);
+          },
+          /* Process a notification object */
+          _notify: function(notify) {
+            var nl = LEVELS[notify.level];
+            var ul = LEVELS[Instant.notifications.level];
+            if (nl <= ul && Instant.title.isBlurred())
+              Instant.notifications.desktop.show(notify);
           },
           /* Display an arbitrary notification */
           _show: function(title, body, options) {
@@ -3520,7 +3519,6 @@ this.Instant = function() {
     Instant.userList.init($sel('.user-list', main),
                           $sel('.user-list-counter', main));
     Instant.title.init();
-    Instant.title.favicon.init();
     Instant.notifications.init();
     Instant.logs.pull.init($sel('.message-box', main));
     Instant.animation.init($sel('.message-box', main));
