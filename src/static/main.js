@@ -376,15 +376,9 @@ this.Instant = function() {
                   restore();
                   /* Check whether the message is offscreen */
                   Instant.animation.offscreen.check(msg);
-                  /* Update window title */
-                  var par = Instant.message.getCommentParent(msg);
-                  Instant.title.addUnread(1,
-                    (par && par.classList.contains('mine')) ? 1 : 0,
-                    (msg.classList.contains('ping')) ? 1 : 0);
                   /* Possibly show a notification */
-                  Instant.message.createNotification(msg).then(function(n) {
-                    Instant.notifications.submit(n);
-                  });
+                  Instant.message.createNotification(msg).then(
+                    Instant.notifications.submit);
                 } else {
                   /* Should not happen */
                   console.warn('Swallowing message:', ent);
@@ -1459,12 +1453,21 @@ this.Instant = function() {
           $sel('.content', msg).textContent);
         }
         var level = Instant.notifications.getLevel(msg);
+        /* For window title et al. */
+        var par = Instant.message.getCommentParent(msg);
+        var isReply = (par && par.classList.contains('mine'));
+        var isPing = (msg.classList.contains('ping'));
         return Instant.notifications.create({text: text,
           level: level,
           onclick: function() {
             /* Go to the message */
             Instant.input.jumpTo(msg);
             Instant.input.focus();
+          },
+          data: {
+            unreadMessages: 1,
+            unreadReplies: (isReply) ? 1 : 0,
+            unreadMentions: (isPing) ? 1 : 0
           }
         });
       }
@@ -2646,7 +2649,6 @@ this.Instant = function() {
                                 notify.data.unreadMentions || 0);
         if (notify.data.updateAvailable != null)
           Instant.title.setUpdateAvailable(notify.data.updateAvailable);
-        Instant.title._update();
       },
       /* Add the given amounts of messages, replies, and pings to the
        * internal counters and update the window title */
