@@ -879,6 +879,7 @@ def main():
             while 1:
                 try:
                     msg = EVENTS.run()
+                    on_message(ws, msg)
                 except websocket.WebSocketTimeoutException as e:
                     continue
                 except websocket.WebSocketConnectionClosedException as e:
@@ -892,7 +893,6 @@ def main():
                 except Exception as e:
                     on_error(ws, e)
                     break
-                on_message(ws, msg)
             EVENTS.sleep = EVENTS._sleep
             on_close(ws)
             ws = None
@@ -909,7 +909,7 @@ def main():
             pass
     except Exception as e:
         log('CRASHED')
-        sys.stderr.write('***CRASH*** at %s\n' %
+        sys.stderr.write('\n***CRASH*** at %s\n' %
             time.strftime('%Y-%m-%d %H:%M:%S Z', time.gmtime()))
         sys.stderr.flush()
         raise
