@@ -907,6 +907,12 @@ def main():
             if ws: on_close(ws)
         except Exception:
             pass
+    except Exception as e:
+        log('CRASHED')
+        sys.stderr.write('***CRASH*** at %s\n' %
+            time.strftime('%Y-%m-%d %H:%M:%S Z', time.gmtime()))
+        sys.stderr.flush()
+        raise
     finally:
         LOGS.close()
 
