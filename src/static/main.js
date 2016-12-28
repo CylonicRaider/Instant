@@ -3243,7 +3243,7 @@ this.Instant = function() {
       /* Initialize attributes */
       this.title = options.title || "Instant";
       this.text = options.text;
-      this.level = options.level || LEVELS.any;
+      this.level = options.level || 'any';
       if (options.icon) {
         this.icon = options.icon;
       } else if (options.color) {
@@ -3253,7 +3253,7 @@ this.Instant = function() {
         this.icon = null;
       }
       this.onclick = options.onclick || null;
-      this.data = options.data || null;
+      this.data = options.data || {};
     }
     Notify.prototype = {
       /* Construct the icon for this notification using its color defined
