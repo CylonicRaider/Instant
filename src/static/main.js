@@ -3355,8 +3355,8 @@ this.Instant = function() {
                 }, 10000);
               },
               onclick: function(event) {
-                if (notify.onclick) notify.onclick(event);
                 current = null;
+                if (notify.onclick) notify.onclick(event);
                 event.target.close();
               }
             });
