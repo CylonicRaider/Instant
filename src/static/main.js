@@ -126,7 +126,7 @@ this.Instant = function() {
     /* Log a debugging message */
     log: function() {
       if (window.console) {
-        window.console["log"].apply(window.console, arguments);
+        window.console['log'].apply(window.console, arguments);
       }
     },
     /* Log a warning */
@@ -140,11 +140,11 @@ this.Instant = function() {
       if (window.console) {
         window.console.error.apply(window.console, arguments);
       } else {
-        alert("ERROR: " + arguments.join(" "));
+        alert('ERROR: ' + arguments.join(' '));
       }
     }
   };
-  console["debug"] = console["log"];
+  console['debug'] = console['log'];
   /* Own identity */
   Instant.identity = function() {
     /* Node to add the visible class to when there is an update */
@@ -227,7 +227,7 @@ this.Instant = function() {
       init: function(statusNode) {
         connStatus = statusNode;
         /* Apply URL override */
-        var override = Instant.query.get("connect");
+        var override = Instant.query.get('connect');
         if (override) {
           Instant.connectionURL = override;
           overridden = true;
@@ -329,7 +329,7 @@ this.Instant = function() {
             break;
           case 'joined':
             /* New user joined (might be ourself) */
-            Instant.userList.add(msg.data.id, "", msg.data.uuid);
+            Instant.userList.add(msg.data.id, '', msg.data.uuid);
             Instant.logs.addUUID(msg.data.id, msg.data.uuid);
             break;
           case 'left':
@@ -753,9 +753,9 @@ this.Instant = function() {
             var matcherIndex = {};
             var regexes = matchers.map(function(el) {
               if (el.name) matcherIndex[el.name] = el;
-              return new RegExp(el.re.source, "g" +
-                (el.re.ignoreCase ? "i" : "") +
-                (el.re.multiline ? "m" : ""));
+              return new RegExp(el.re.source, 'g' +
+                (el.re.ignoreCase ? 'i' : '') +
+                (el.re.multiline ? 'm' : ''));
             });
             /* Main loop */
             while (idx < len) {
@@ -3241,7 +3241,7 @@ this.Instant = function() {
       if (! (this instanceof Notify))
         return new Notify(options);
       /* Initialize attributes */
-      this.title = options.title || "Instant";
+      this.title = options.title || 'Instant';
       this.text = options.text;
       this.level = options.level || 'any';
       if (options.icon) {
