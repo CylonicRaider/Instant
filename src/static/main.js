@@ -506,11 +506,6 @@ this.Instant = function() {
       onRawMessage: null
     };
   }();
-  /* Connect ASAP
-   * Or not, since we're *much* quicker than Heim, and the user should be
-   * entertained by the greeting animation for a few seconds. */
-  /*if (Instant.connectionURL)
-    Instant.connection.connect();*/
   /* Nick-name handling */
   Instant.nick = function() {
     /* Nick -> Hue hash */
@@ -3592,14 +3587,6 @@ function init() {
   var isIE = /*@cc_on!@*/0;
   if (isIE) Instant.message.addReply({id: 'loading-1-ie', nick: 'Doom',
     text: '/me awaits IE users...'}, m);
-  /* "No connection" messages retained for historical significance */
-  /*var c = Instant.message.addReply({id: 'loading-2-conn',
-      nick: 'Connection', text: '/me is missing.'}, m);
-    Instant.message.addReply({id: 'loading-3-comment', nick: 'Loading',
-      text: 'Prepare for a long wait...', parent: 'loading-2-conn'});
-    Instant.message.addReply({id: 'loading-4-comment', nick: 'Loading',
-      text: 'Or, try solving the issue somehow.', parent: 'loading-2-conn'});
-  */
   /* Show room name, or none in local mode */
   var nameNode = $sel('.room-name');
   if (Instant.roomName) {
