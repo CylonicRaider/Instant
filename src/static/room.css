@@ -214,7 +214,6 @@ body {
   box-sizing: border-box;
   -webkit-flex-direction: column;
   flex-direction: column;
-  pointer-events: none;
 }
 .sidebar-content, .sidebar-content > * {
   display: -webkit-flex;
@@ -224,12 +223,10 @@ body {
   flex-direction: column;
   align-items: flex-end;
   min-height: 0;
-  pointer-events: none;
 }
 .sidebar-top > *, .sidebar-middle > *, .sidebar-bottom > * {
   background: rgba(255, 255, 255, 0.5);
   padding: 3px 0 3px 3px;
-  pointer-events: auto;
 }
 .sidebar-top, .sidebar-bottom {
   -webkit-flex-shrink: 0;
@@ -246,9 +243,6 @@ body {
 }
 .sidebar-middle-wrapper.overflow {
   padding-right: 3px;
-}
-.sidebar-middle {
-  pointer-events: none;
 }
 
 .throbber {
@@ -394,13 +388,9 @@ body {
   flex-direction: column;
   align-items: flex-end;
   background: none;
-  pointer-events: none;
 }
 .user-list.collapsed {
   display: none;
-}
-.user-list > * {
-  pointer-events: auto;
 }
 
 .user-list .nick {

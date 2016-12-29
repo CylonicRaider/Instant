@@ -1936,6 +1936,47 @@ this.Instant = function() {
       }
     };
   }();
+  /* Sidebar ahndling */
+  Instant.sidebar = function() {
+    /* The main sidebar node */
+    var node = null;
+    return {
+      /* Initialize submodule with given node */
+      init: function(sidebarNode) {
+        function mutationInvalid(el) {
+          return (el.target == wrapper);
+        }
+        node = sidebarNode;
+        var wrapper = $sel('.sidebar-middle-wrapper', node);
+        window.addEventListener('resize', Instant.sidebar.updateWidth);
+        if (window.MutationObserver) {
+          var obs = new MutationObserver(function(records, observer) {
+            if (records.some(mutationInvalid)) return;
+            Instant.sidebar.updateWidth();
+          });
+          obs.observe(wrapper, {childList: true, attributes: true,
+            characterData: true, subtree: true,
+            attributeFilter: ['class', 'style']});
+        }
+      },
+      /* Change the width of the content to avoid horizontal scrollbars */
+      updateWidth: function() {
+        /* Extract nodes */
+        var wrapper = $sel('.sidebar-middle-wrapper', node);
+        var content = $sel('.sidebar-middle', wrapper);
+        /* Make measurements accurate */
+        wrapper.style.minWidth = '';
+        /* HACK to check for the presence of (explicit) scrollbars */
+        if (wrapper.clientWidth != wrapper.offsetWidth) {
+          wrapper.classList.add('overflow');
+          wrapper.style.minWidth = wrapper.offsetWidth +
+            (wrapper.offsetWidth - wrapper.clientWidth) + 'px';
+        } else {
+          wrapper.classList.remove('overflow');
+        }
+      }
+    };
+  }();
   /* User list handling */
   Instant.userList = function() {
     /* ID -> node */
@@ -2068,8 +2109,8 @@ this.Instant = function() {
           var n = node.children.length;
           c.textContent = n + ' user' + ((n == 1) ? '' : 's');
         }
-        /* Now delegated to sidebar itself */
-        Instant.animation.updateSidebar();
+        /* Now actually delegated to sidebar itself */
+        Instant.sidebar.updateWidth();
       },
       /* Collapse or uncollapse the user list */
       collapse: function(invisible) {
@@ -2093,6 +2134,7 @@ this.Instant = function() {
             el.style.animationDelay = time + 'ms';
           });
         }
+        Instant.userList.update();
       },
       /* Return whether the user list is currently collapsed */
       isCollapsed: function() {
@@ -2757,11 +2799,9 @@ this.Instant = function() {
   Instant.animation = function() {
     /* The main message box */
     var messageBox = null;
-    /* The sidebar */
-    var sideBar = null;
     return {
       /* Initialize the submodule */
-      init: function(msgNode, barNode) {
+      init: function(msgNode) {
         function updateHash(event) {
           if (/^#?$/.test(location.hash)) {
             Instant.input.navigate('root');
@@ -2771,11 +2811,7 @@ this.Instant = function() {
             Instant.animation.navigateToMessage(location.hash);
           }
         }
-        function mutationInvalid(el) {
-          return (el.target == wrapper);
-        }
         messageBox = msgNode;
-        sideBar = barNode;
         var pane = Instant.pane.getPane(messageBox);
         /* Pull more logs when scrolled to top */
         pane.addEventListener('scroll', function(event) {
@@ -2784,18 +2820,6 @@ this.Instant = function() {
         });
         window.addEventListener('hashchange', updateHash);
         updateHash();
-        /* Sidebar handling */
-        var wrapper = $sel('.sidebar-middle-wrapper', sideBar);
-        window.addEventListener('resize', Instant.animation.updateSidebar);
-        if (window.MutationObserver) {
-          var obs = new MutationObserver(function(records, observer) {
-            if (records.some(mutationInvalid)) return;
-            Instant.animation.updateSidebar();
-          });
-          obs.observe(wrapper, {childList: true, attributes: true,
-            characterData: true, subtree: true,
-            attributeFilter: ['class', 'style']});
-        }
       },
       /* Navigate the input to the given message */
       goToMessage: function(msg) {
@@ -2826,22 +2850,6 @@ this.Instant = function() {
         var msg = $sel('.message', messageBox);
         if (msg && msg.offsetTop >= tp && pane.scrollTop == 0)
           Instant.logs.pull.more();
-      },
-      /* Update sidebar styles */
-      updateSidebar: function() {
-        /* Extract nodes */
-        var wrapper = $sel('.sidebar-middle-wrapper', sideBar);
-        var content = $sel('.sidebar-middle', wrapper);
-        /* Make measurements accurate */
-        wrapper.style.minWidth = '';
-        /* HACK to check for the presence of (explicit) scrollbars */
-        if (wrapper.clientWidth != wrapper.offsetWidth) {
-          wrapper.classList.add('overflow');
-          wrapper.style.minWidth = wrapper.offsetWidth +
-            (wrapper.offsetWidth - wrapper.clientWidth) + 'px';
-        } else {
-          wrapper.classList.remove('overflow');
-        }
       },
       /* Greeting pane */
       greeter: function() {
@@ -3553,6 +3561,7 @@ this.Instant = function() {
     Instant.identity.init($sel('.update-message', main),
                           $sel('.refresh-message', main));
     Instant.input.init($sel('.input-bar', main));
+    Instant.sidebar.init($sel('.sidebar', main));
     Instant.userList.init($sel('.user-list', main),
                           $sel('.user-list-counter', main));
     Instant.title.init();
