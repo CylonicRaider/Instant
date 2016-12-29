@@ -177,13 +177,24 @@ this.Instant = function() {
              Instant.identity.serverRevision != null &&
              Instant.identity.serverRevision != data.revision) &&
             updateNode) {
+          /* TODO: Move into notification handling. */
           updateNode.classList.add('visible');
-          Instant.title.setUpdateAvailable(true);
+          Instant.notifications.create({level: 'update',
+            text: 'Update available; click to reload.',
+            onclick: function() {
+              location.reload(true);
+            },
+            data: {updateAvailable: true}}).then(
+            Instant.notifications.submit);
         } else if (window._instantVersion_ &&
             (_instantVersion_.version != data.version ||
              _instantVersion_.revision != data.revision)) {
+          /* TODO: Move into notification handling. */
           refreshNode.classList.add('visible');
-          Instant.title.setUpdateAvailable(true);
+          Instant.notifications.create({level: 'update',
+            text: 'Your page is outdated; please refresh it manually.',
+            data: {updateAvailable: true}}).then(
+            Instant.notifications.submit);
         }
         Instant.identity.id = data.id;
         Instant.identity.uuid = data.uuid;
