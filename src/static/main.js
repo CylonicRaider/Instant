@@ -147,10 +147,6 @@ this.Instant = function() {
   console['debug'] = console['log'];
   /* Own identity */
   Instant.identity = function() {
-    /* Node to add the visible class to when there is an update */
-    var updateNode = null;
-    /* Node to show similarly to updateNode when the client is outdated */
-    var refreshNode = null;
     return {
       /* The session ID */
       id: null,
@@ -162,11 +158,6 @@ this.Instant = function() {
       serverVersion: null,
       /* Fine-grained server version */
       serverRevision: null,
-      /* Initialize the update notification and refresh request node */
-      init: function(unode, rnode) {
-        updateNode = unode;
-        refreshNode = rnode;
-      },
       /* Initialize the identity from the data part of a
        * server-side message */
       initFields: function(data) {
@@ -175,24 +166,29 @@ this.Instant = function() {
         } else if ((Instant.identity.serverVersion != null &&
              Instant.identity.serverVersion != data.version ||
              Instant.identity.serverRevision != null &&
-             Instant.identity.serverRevision != data.revision) &&
-            updateNode) {
-          /* TODO: Move into notification handling. */
-          updateNode.classList.add('visible');
+             Instant.identity.serverRevision != data.revision)) {
           Instant.notifications.submitNew({level: 'update',
             text: 'Update available; click to reload.',
             onclick: function() {
               location.reload(true);
             },
-            data: {updateAvailable: true}});
+            data: {
+              updateAvailable: true,
+              uiMessage: 'update'
+            }});
         } else if (window._instantVersion_ &&
             (_instantVersion_.version != data.version ||
              _instantVersion_.revision != data.revision)) {
-          /* TODO: Move into notification handling. */
-          refreshNode.classList.add('visible');
           Instant.notifications.submitNew({level: 'update',
             text: 'Your page is outdated; please refresh it manually.',
-            data: {updateAvailable: true}});
+            data: {
+              updateAvailable: true,
+              uiMessage: 'update',
+              uiMessageHTML: '<span style="color: #808000;">' +
+                'Your page is outdated;\n' +
+                'please refresh it manually.' +
+                '</span>'
+            }});
         }
         Instant.identity.id = data.id;
         Instant.identity.uuid = data.uuid;
@@ -1940,6 +1936,8 @@ this.Instant = function() {
   Instant.sidebar = function() {
     /* The main sidebar node */
     var node = null;
+    /* Already shown messages */
+    var shownUIMessages = {};
     return {
       /* Initialize submodule with given node */
       init: function(sidebarNode) {
@@ -1974,6 +1972,32 @@ this.Instant = function() {
         } else {
           wrapper.classList.remove('overflow');
         }
+      },
+      /* Possibly show a (persistent) UI message */
+      _notify: function(notify) {
+        var msgname = notify.data.uiMessage;
+        if (! msgname) return;
+        var msgbox = $sel('.ui-message-box', node);
+        var msgnode = document.createElement('div');
+        if (typeof msgname == 'string') {
+          if (shownUIMessages[msgname])
+            msgbox.removeChild(shownUIMessages[msgname]);
+          shownUIMessages[msgname] = msgnode;
+        }
+        if (notify.data.uiMessageHTML) {
+          msgnode.innerHTML = notify.data.uiMessageHTML;
+        } else {
+          msgnode.textContent = notify.text;
+        }
+        if (notify.color) {
+          msgnode.style.color = notify.color;
+        }
+        if (notify.onclick) {
+          msgnode.classList.add('clickable');
+          msgnode.addEventListener('click', notify.onclick);
+        }
+        msgbox.appendChild(msgnode);
+        Instant.sidebar.updateWidth();
       }
     };
   }();
@@ -3309,6 +3333,7 @@ this.Instant = function() {
           if (nl > ul) return;
         }
         Instant.title._notify(notify);
+        Instant.sidebar._notify(notify);
         Instant.notifications.desktop._notify(notify);
         return notify;
       },
@@ -3558,8 +3583,6 @@ this.Instant = function() {
   Instant.init = function(main, loadWrapper) {
     Instant.query.init();
     Instant.storage.init();
-    Instant.identity.init($sel('.update-message', main),
-                          $sel('.refresh-message', main));
     Instant.input.init($sel('.input-bar', main));
     Instant.sidebar.init($sel('.sidebar', main));
     Instant.userList.init($sel('.user-list', main),

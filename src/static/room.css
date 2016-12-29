@@ -361,23 +361,19 @@ body {
   display: block;
 }
 
-.ui-message {
+.ui-message-box {
+  text-align: right;
+  font-weight: bold;
+  white-space: pre-line;
+}
+.ui-message-box:empty {
   display: none;
 }
-.ui-message.visible {
-  display: block;
+.ui-message-box > .clickable {
+  cursor: pointer;
 }
-.sidebar .ui-message {
-  text-align: right;
-}
-
-.update-message a {
-  color: #004000;
-  font-weight: bold;
-}
-.refresh-message {
-  color: #808000;
-  font-weight: bold;
+.ui-message-box > .clickable:hover {
+  text-decoration: underline;
 }
 
 .user-list {
