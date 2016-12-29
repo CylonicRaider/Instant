@@ -282,11 +282,15 @@ this.Instant = function() {
         /* Update flag */
         connected = true;
         if (connStatus) {
-          /* Update status widget */
+          /* Update status widget
+           * TODO: Migrate to notification handling. */
           connStatus.classList.remove('broken');
           connStatus.classList.add('connected');
           connStatus.title = 'Connected';
         }
+        /* Send notification */
+        Instant.notifications.create({text: 'Connected.'}).then(
+          Instant.notifications.submit);
       },
       /* Handle a message */
       _message: function(event) {
@@ -418,13 +422,17 @@ this.Instant = function() {
         connected = false;
         /* Update status widget */
         if (connStatus && ws != null) {
-          /* Update status widget */
+          /* Update status widget
+           * TODO: Move into notification handling. */
           connStatus.classList.remove('connected');
           connStatus.classList.add('broken');
           connStatus.title = 'Broken';
         }
         /* Inform logs */
         Instant.logs.pull._disconnected();
+        /* Send a notification */
+        Instant.notifications.create({text: 'Disconnected!',
+          level: 'disconnect'}).then(Instant.notifications.submit);
         /* Re-connect */
         if (event)
           Instant.connection.reconnect();
