@@ -3166,8 +3166,11 @@ this.Instant = function() {
         var level = cnt.elements['notifies'].value;
         Instant.notifications.level = level;
         if (level != 'none') Instant.notifications.desktop.request();
+        var noDisturb = cnt.elements['no-disturb'].checked;
+        Instant.notifications.noDisturb = noDisturb;
         Instant.storage.set('theme', theme);
         Instant.storage.set('notification-level', level);
+        Instant.storage.set('no-disturb', noDisturb);
       },
       /* Restore the settings from storage */
       restore: function() {
@@ -3176,6 +3179,8 @@ this.Instant = function() {
         cnt.elements['theme'].value = theme;
         var level = Instant.storage.get('notification-level');
         cnt.elements['notifies'].value = level;
+        var noDisturb = Instant.storage.get('no-disturb');
+        cnt.elements['no-disturb'].checked = noDisturb;
       },
       /* Show the settings popup */
       show: function() {
@@ -3251,6 +3256,8 @@ this.Instant = function() {
       COLORS: COLORS,
       /* The current notification level (symbolic name) */
       level: null,
+      /* Whether notifications below level should be swallowed */
+      noDisturb: null,
       /* Initialize submodule */
       init: function() {
         /* Load icon */
@@ -3293,6 +3300,11 @@ this.Instant = function() {
       },
       /* Process a notification object properly */
       submit: function(notify) {
+        if (Instant.notifications.noDisturb) {
+          var nl = LEVELS[notify.level];
+          var ul = LEVELS[Instant.notifications.level];
+          if (nl > ul) return;
+        }
         Instant.title._notify(notify);
         Instant.notifications.desktop._notify(notify);
         return notify;
