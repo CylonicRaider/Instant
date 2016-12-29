@@ -179,22 +179,20 @@ this.Instant = function() {
             updateNode) {
           /* TODO: Move into notification handling. */
           updateNode.classList.add('visible');
-          Instant.notifications.create({level: 'update',
+          Instant.notifications.submitNew({level: 'update',
             text: 'Update available; click to reload.',
             onclick: function() {
               location.reload(true);
             },
-            data: {updateAvailable: true}}).then(
-            Instant.notifications.submit);
+            data: {updateAvailable: true}});
         } else if (window._instantVersion_ &&
             (_instantVersion_.version != data.version ||
              _instantVersion_.revision != data.revision)) {
           /* TODO: Move into notification handling. */
           refreshNode.classList.add('visible');
-          Instant.notifications.create({level: 'update',
+          Instant.notifications.submitNew({level: 'update',
             text: 'Your page is outdated; please refresh it manually.',
-            data: {updateAvailable: true}}).then(
-            Instant.notifications.submit);
+            data: {updateAvailable: true}});
         }
         Instant.identity.id = data.id;
         Instant.identity.uuid = data.uuid;
@@ -300,8 +298,7 @@ this.Instant = function() {
           connStatus.title = 'Connected';
         }
         /* Send notification */
-        Instant.notifications.create({text: 'Connected.'}).then(
-          Instant.notifications.submit);
+        Instant.notifications.submitNew({text: 'Connected.'});
       },
       /* Handle a message */
       _message: function(event) {
@@ -444,8 +441,8 @@ this.Instant = function() {
         Instant.logs.pull._disconnected();
         /* Send a notification */
         if (wasConnected)
-          Instant.notifications.create({text: 'Disconnected!',
-            level: 'disconnect'}).then(Instant.notifications.submit);
+          Instant.notifications.submitNew({text: 'Disconnected!',
+            level: 'disconnect'});
         /* Re-connect */
         if (event)
           Instant.connection.reconnect();
@@ -3298,6 +3295,15 @@ this.Instant = function() {
         Instant.title._notify(notify);
         Instant.notifications.desktop._notify(notify);
         return notify;
+      },
+      /* Convenience function for creating and submiting a notify */
+      submitNew: function(options) {
+        return Instant.notifications.create(options).then(
+          Instant.notifications.submit, function(error) {
+            console.error("Failed to create internal notification object:",
+                          error);
+            return Promise.reject(error);
+          });
       },
       /* Render the notification icon for the given color
        * A color of null results in the base image. May return null if the
