@@ -429,6 +429,7 @@ this.Instant = function() {
       },
       /* Handle a dead connection */
       _closed: function(event) {
+        var wasConnected = connected;
         /* Update flag */
         connected = false;
         /* Update status widget */
@@ -442,8 +443,9 @@ this.Instant = function() {
         /* Inform logs */
         Instant.logs.pull._disconnected();
         /* Send a notification */
-        Instant.notifications.create({text: 'Disconnected!',
-          level: 'disconnect'}).then(Instant.notifications.submit);
+        if (wasConnected)
+          Instant.notifications.create({text: 'Disconnected!',
+            level: 'disconnect'}).then(Instant.notifications.submit);
         /* Re-connect */
         if (event)
           Instant.connection.reconnect();
