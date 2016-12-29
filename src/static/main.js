@@ -3227,7 +3227,8 @@ this.Instant = function() {
       if (! (this instanceof Notify))
         return new Notify(options);
       /* Initialize attributes */
-      this.title = options.title || 'Instant';
+      this.title = options.title || (Instant.baseTitle +
+                                     Instant.titleExtension);
       this.text = options.text;
       this.level = options.level || 'none';
       if (options.icon) {
