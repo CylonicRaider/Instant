@@ -2714,7 +2714,7 @@ this.Instant = function() {
             } else if (! Instant.connection.isConnected()) {
               level = 'disconnect';
             } else if (unreadMessages) {
-              level = 'any';
+              level = 'activity';
             } else {
               level = null;
             }
@@ -3180,16 +3180,16 @@ this.Instant = function() {
   /* Desktop notifications */
   Instant.notifications = function() {
     /* Notification levels (from most to least severe) */
-    var LEVELS = { none: 0, ping: 1, update: 2, reply: 3, disconnect: 4,
-                   any: 5 };
+    var LEVELS = { none: 0, ping: 1, update: 2, reply: 3, activity: 4,
+                   disconnect: 5, none: 6 };
     /* The colors associated to the levels */
     var COLORS = {
       none: '#000000', /* No color in particular */
       ping: '#c0c000', /* @-mentions are yellow */
       update: '#008000', /* The update information is green */
       reply: '#0040ff', /* Replies are color-coded with blue */
-      disconnect: '#c00000', /* Red... was not used */
-      any: '#c0c0c0' /* No color in particular, faint version */
+      activity: '#c0c0c0', /* No color in particular, faint version */
+      disconnect: '#c00000' /* Red... was not used */
     };
     /* The default icon to display */
     var ICON_PATH = '/static/logo-static_128x128.png';
@@ -3211,7 +3211,7 @@ this.Instant = function() {
       /* Initialize attributes */
       this.title = options.title || 'Instant';
       this.text = options.text;
-      this.level = options.level || 'any';
+      this.level = options.level || 'none';
       if (options.icon) {
         this.icon = options.icon;
       } else if (options.color) {
@@ -3249,7 +3249,7 @@ this.Instant = function() {
       },
       /* Get the notification level of the given message */
       getLevel: function(msg) {
-        var mlvl = 'any';
+        var mlvl = 'activity';
         if (msg.classList.contains('ping')) {
           mlvl = 'ping';
         } else {
