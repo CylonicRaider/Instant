@@ -3199,7 +3199,7 @@ this.Instant = function() {
   Instant.notifications = function() {
     /* Notification levels (from most to least severe) */
     var LEVELS = { none: 0, ping: 1, update: 2, reply: 3, activity: 4,
-                   disconnect: 5, none: 6 };
+                   disconnect: 5, noise: 6 };
     /* The colors associated to the levels */
     var COLORS = {
       none: '#000000', /* No color in particular */
@@ -3230,7 +3230,7 @@ this.Instant = function() {
       this.title = options.title || (Instant.baseTitle +
                                      Instant.titleExtension);
       this.text = options.text;
-      this.level = options.level || 'none';
+      this.level = options.level || 'noise';
       if (options.icon) {
         this.icon = options.icon;
       } else if (options.color) {
