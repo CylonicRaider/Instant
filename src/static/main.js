@@ -3678,9 +3678,8 @@ function init() {
     Instant.animation.greeter.hide();
   }
   if (Instant.stagingLocation) {
-    var stagingNode = document.createElement('span');
-    stagingNode.className = 'staging';
-    stagingNode.textContent = ' (' + Instant.stagingLocation + ')';
+    var stagingNode = $makeNode('span', 'staging',
+      '(' + Instant.statingLocation + ')');
     nameNode.parentNode.insertBefore(stagingNode, nameNode.nextSibling);
   }
   /* Show main element */
