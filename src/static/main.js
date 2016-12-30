@@ -62,6 +62,61 @@ function $query(str, ret) {
   return ret;
 }
 
+/* Create a DOM element */
+function $makeNode(tag, className, attrs, children) {
+  /* Allow omitting parameters */
+  if (Array.isArray(className)) {
+    if (! attrs && ! children) {
+      children = className;
+      attrs = null;
+      className = null;
+    }
+  } else if (typeof className == 'object' && className != null) {
+    if (! children) {
+      children = attrs;
+      attrs = className;
+      className = null;
+    }
+  } else if (Array.isArray(attrs) || typeof attrs == 'string') {
+    if (! children) {
+      children = attrs;
+      attrs = null;
+    }
+  }
+  /* Create node */
+  var ret = document.createElement(tag);
+  /* Set classes */
+  if (className) ret.className = className;
+  /* Set additional attributes */
+  if (attrs) {
+    for (var name in attrs) {
+      if (! attrs.hasOwnProperty(name)) continue;
+      ret.setAttribute(name, attrs[name]);
+    }
+  }
+  /* Add children */
+  if (children) {
+    if (typeof children == "string") children = [children];
+    for (var i = 0; i < children.length; i++) {
+      var e = children[i];
+      if (typeof e == "string") {
+        /* Strings become text nodes */
+        ret.appendChild(document.createTextNode(e));
+      } else if (typeof e != "object") {
+        /* Other primitive types are not allowed */
+        throw new Error("Bad child encountered during DOM node creation");
+      } else if (Array.isArray(e)) {
+        /* Arrays are handled recursively */
+        ret.appendChild($makeNode.apply(null, e));
+      } else {
+        /* Everything else is assumed to be a DOM node */
+        ret.appendChild(e);
+      }
+    }
+  }
+  return ret;
+}
+
 /* Early preparation; define most of the functionality */
 this.Instant = function() {
   /* Locale-agnostic abbreviated month name table */
@@ -746,7 +801,7 @@ this.Instant = function() {
           makeNode: makeNode,
           /* Helper: Quickly create a sigil node */
           makeSigil: makeSigil,
-          /* Parse a message into a sequence of DOM nodes */
+          /* Parse a message into a DOM node */
           parse: function(text) {
             /* Intermediate result; current index; text length; array of
              * matches; length of matchers; status object */
@@ -964,20 +1019,16 @@ this.Instant = function() {
       /* Generate a fake message node */
       makeFakeMessage: function(id) {
         /* Allocate result; populate attributes */
-        var msgNode = document.createElement('div');
-        msgNode.id = 'message-' + id;
-        msgNode.className = 'message message-fake';
-        msgNode.setAttribute('data-id', id);
-        /* Populate contents */
-        msgNode.innerHTML = '<div class="line">' +
-          '<time><a class="permalink">N/A</a></time>' +
-          '<span class="nick-wrapper">' +
-            '<span class="hidden" data-key="indent"></span>' +
-            '<span class="nick">...</span>' +
-          '</span></div>';
-        /* Populate inner attributes */
-        $sel('.line', msgNode).title = 'Message absent or not loaded (yet)';
-        $sel('.permalink', msgNode).href = '#' + msgNode.id;
+        var msgNode = $makeNode('div', 'message message-fake',
+            {id: 'message-' + id, 'data-id': id}, [
+          ['div', 'line', {title: 'Message absent or not loaded (yet)'}, [
+            ['time', [['a', 'permalink', {href: '#message-' + id}, 'N/A']]],
+            ['span', 'nick-wrapper', [
+              ['span', 'hidden', {'data-key': 'indent'}],
+              ['span', 'nick', '...']
+            ]]
+          ]]
+        ]);
         /* Add event handlers */
         Instant.message._installEventHandlers(msgNode);
         /* Done */
@@ -985,44 +1036,44 @@ this.Instant = function() {
       },
       /* Generate a DOM node for the specified message parameters */
       makeMessage: function(params) {
-        /* Allocate return value; fill in basic values */
-        var msgNode = document.createElement('div');
-        msgNode.id = 'message-' + params.id;
-        msgNode.setAttribute('data-id', params.id);
-        if (typeof params.parent == 'string')
-          msgNode.setAttribute('data-parent', params.parent);
-        if (params.from)
-          msgNode.setAttribute('data-from', params.from);
-        /* Filter out emotes and whitespace */
+        /* Filter out emotes and whitespace; parse (remaining) content */
         var emote = /^\/me/.test(params.text);
         var text = (emote) ? params.text.substr(3) : params.text;
         text = text.trim();
-        /* Parse content */
         var content = Instant.message.parseContent(text);
-        /* Assign classes */
-        msgNode.className = 'message';
+        /* Collect some values */
+        var clsname = 'message';
         if (emote)
-          msgNode.className += ' emote';
+          clsname += ' emote';
         if (params.from && params.from == Instant.identity.id)
-          msgNode.className += ' mine';
+          clsname += ' mine';
         if (Instant.identity.nick != null &&
-            Instant.message.scanMentions(content, Instant.identity.nick))
-          msgNode.className += ' ping';
+          Instant.message.scanMentions(content, Instant.identity.nick))
+          clsname += ' ping';
         if (params.isNew)
-          msgNode.className += ' new';
-        /* Assign children */
-        msgNode.innerHTML = '<div class="line">' +
-          '<time><a class="permalink"></a></time>' +
-          '<span class="nick-wrapper">' +
-            '<span class="hidden" data-key="indent"></span>' +
-            '<span class="hidden" data-key="before-nick">&lt;</span>' +
-            '<span class="hidden" data-key="after-nick">&gt; </span>' +
-          '</span>' +
-          '<span class="content"></span></div>';
+          clsname += ' new';
+        /* Create node */
+        var msgNode = $makeNode('div', clsname, {id: 'message-' + params.id,
+            'data-id': params.id}, [
+          ['div', 'line', [
+            ['time', [['a', 'permalink', {href: '#message-' + params.id}]]],
+            ['span', 'nick-wrapper', [
+              ['span', 'hidden', {'data-key': 'indent'}],
+              ['span', 'hidden', {'data-key': 'before-nick'}, '<'],
+              Instant.nick.makeNode(params.nick),
+              ['span', 'hidden', {'data-key': 'after-nick'}, '>']
+            ]],
+            ['span', 'content', [content]]
+          ]]
+        ]);
+        /* Fill in optional values */
+        if (params.parent)
+          msgNode.setAttribute('data-parent', params.parent);
+        if (params.from)
+          msgNode.setAttribute('data-from', params.from);
         /* Fill in timestamp */
         var timeNode = $sel('time', msgNode);
         var permalink = $sel('.permalink', msgNode);
-        permalink.href = '#' + msgNode.id;
         if (typeof params.timestamp == 'number') {
           var date = new Date(params.timestamp);
           timeNode.setAttribute('datetime', date.toISOString());
@@ -1032,19 +1083,13 @@ this.Instant = function() {
         } else {
           permalink.innerHTML = '<i>N/A</i>';
         }
-        /* Embed nick */
-        var afterNick = $sel('[data-key=after-nick]', msgNode);
-        afterNick.parentNode.insertBefore(Instant.nick.makeNode(params.nick),
-                                          afterNick);
         /* Add emote styles */
         if (emote) {
           var hue = Instant.nick.hueHash(params.nick);
-          afterNick.textContent += '/me ';
+          $sel('[data-key=after-nick]', msgNode).textContent += '/me ';
           $sel('.content', msgNode).style.background = 'hsl(' + hue +
                                                        ', 75%, 90%)';
         }
-        /* Insert text */
-        $sel('.content', msgNode).appendChild(content);
         /* Add event handlers */
         Instant.message._installEventHandlers(msgNode);
         /* Done */
