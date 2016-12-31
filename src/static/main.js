@@ -3348,7 +3348,10 @@ this.Instant = function() {
       /* Get the notification level of the given message */
       getLevel: function(msg) {
         var mlvl = 'activity';
-        if (msg.classList.contains('ping')) {
+        if (msg.classList.contains('mine')) {
+          /* The user presumably knows about their own messages */
+          mlvl = 'noise';
+        } else if (msg.classList.contains('ping')) {
           mlvl = 'ping';
         } else {
           var par = Instant.message.getCommentParent(msg);
@@ -3372,13 +3375,14 @@ this.Instant = function() {
       },
       /* Process a notification object properly */
       submit: function(notify) {
+        Instant.sidebar._notify(notify);
+        /* Externally visible means of notification can be swallowed */
         if (Instant.notifications.noDisturb) {
           var nl = LEVELS[notify.level];
           var ul = LEVELS[Instant.notifications.level];
           if (nl > ul) return;
         }
         Instant.title._notify(notify);
-        Instant.sidebar._notify(notify);
         Instant.notifications.desktop._notify(notify);
         return notify;
       },
