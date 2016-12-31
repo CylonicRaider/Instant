@@ -579,13 +579,23 @@ this.Instant = function() {
         }
         return hash;
       },
+      /* Get the (background) color associated with the nick */
+      nickColor: function(name) {
+        var hue = Instant.nick.hueHash(name);
+        return 'hsl(' + hue + ', 75%, 80%)';
+      },
+      /* Get the foreground color associated with the nick */
+      pingColor: function(name) {
+        var hue = Instant.nick.hueHash(name);
+        return 'hsl(' + hue + ', 75%, 40%)';
+      },
       /* Generate a DOM node carrying the nick */
       makeNode: function(name) {
         var node = document.createElement('span');
         var hue = Instant.nick.hueHash(name);
         node.className = 'nick';
         node.textContent = name;
-        node.style.backgroundColor = 'hsl(' + hue + ', 75%, 80%)';
+        node.style.backgroundColor = Instant.nick.nickColor(name);
         node.setAttribute('data-nick', name);
         return node;
       },
@@ -594,11 +604,12 @@ this.Instant = function() {
       makeMention: function(name) {
         if (name[0] != '@') throw new Error('Bad nick for makeMention()');
         var node = document.createElement('span');
-        var hue = Instant.nick.hueHash(name.substr(1));
+        var realName = name.substr(1);
+        var hue = Instant.nick.hueHash(realName);
         node.className = 'mention';
         node.textContent = name;
-        node.style.color = 'hsl(' + hue + ', 75%, 40%)';
-        node.setAttribute('data-nick', name.substr(1));
+        node.style.color = Instant.nick.pingColor(realName);
+        node.setAttribute('data-nick', realName);
         return node;
       }
     };
