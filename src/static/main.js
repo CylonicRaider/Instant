@@ -3357,12 +3357,15 @@ this.Instant = function() {
       /* Initialize submodule */
       init: function() {
         function radio(name, value, checked) {
-          return $makeNode('input', {type: 'radio', name: name, value: value,
-            checked: checked || false});
+          var ret = $makeNode('input', {type: 'radio', name: name,
+            value: value});
+          if (checked) ret.checked = true;
+          return ret;
         }
         function checkbox(name, checked) {
-          return $makeNode('input', {type: 'checkbox', name: name,
-            checked: checked || false});
+          var ret = $makeNode('input', {type: 'checkbox', name: name});
+          if (checked) ret.checked = true;
+          return ret;
         }
         wrapperNode = $makeNode('div', 'settings-wrapper', [
           ['button', 'settings', [
@@ -3382,15 +3385,15 @@ this.Instant = function() {
               ['label', {id: 'notifies-none'}, [
                 radio('notifies', 'none', true), ' None']],
               ['label', {id: 'notifies-ping'}, [
-                radio('notifies', 'ping', true), ' When pinged']],
+                radio('notifies', 'ping'), ' When pinged']],
               ['label', {id: 'notifies-update'}, [
-                radio('notifies', 'update', true), ' On updates']],
+                radio('notifies', 'update'), ' On updates']],
               ['label', {id: 'notifies-reply'}, [
-                radio('notifies', 'reply', true), ' When replied to']],
+                radio('notifies', 'reply'), ' When replied to']],
               ['label', {id: 'notifies-activity'}, [
-                radio('notifies', 'activity', true), ' On activity']],
+                radio('notifies', 'activity'), ' On activity']],
               ['label', {id: 'notifies-disconnect'}, [
-                radio('notifies', 'disconnect', true), ' On disconnects']]
+                radio('notifies', 'disconnect'), ' On disconnects']]
             ]],
             ['hr'],
             ['div', 'settings-nodisturb', [
@@ -3447,11 +3450,11 @@ this.Instant = function() {
       restore: function() {
         var cnt = $sel('.settings-content', wrapperNode);
         var theme = Instant.storage.get('theme');
-        cnt.elements['theme'].value = theme;
+        if (theme) cnt.elements['theme'].value = theme;
         var level = Instant.storage.get('notification-level');
-        cnt.elements['notifies'].value = level;
+        if (level) cnt.elements['notifies'].value = level;
         var noDisturb = Instant.storage.get('no-disturb');
-        cnt.elements['no-disturb'].checked = noDisturb;
+        if (noDisturb) cnt.elements['no-disturb'].checked = noDisturb;
       },
       /* Show the settings popup */
       show: function() {
