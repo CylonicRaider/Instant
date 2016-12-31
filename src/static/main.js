@@ -562,7 +562,7 @@ this.Instant = function() {
       },
       /* Return an @-mention of the given nick */
       makeMentionText: function(name) {
-        return '@' + name.replace(/[^.,:;!?\s]+/g, '');
+        return '@' + name.replace(/[.,:;!?\s]+/g, '');
       },
       /* Actual "raw" hue hash */
       _hueHash: function(name) {
