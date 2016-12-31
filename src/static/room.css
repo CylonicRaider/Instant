@@ -295,6 +295,9 @@ body {
 .online-status.broken {
   background: #c00000;
 }
+.online-status.local {
+  background: #c0c0c0;
+}
 
 .settings-wrapper {
   display: inline-block;
@@ -437,7 +440,7 @@ body {
 #notifies-disconnect {
   color: #c00000;
 }
-#notifies-any {
+#notifies-activity {
   color: #404040;
 }
 

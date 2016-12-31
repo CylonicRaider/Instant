@@ -18,100 +18,11 @@
   </head>
   <body onLoad="init()">
     <div id="main" class="main-pane">
-      <div class="message-pane">
-        <div class="message-box">
-          <div class="input-bar">
-            <span class="input-info-cell">
-              <span class="alert-container">
-                <a href="#" class="offscreen-alert alert-above">
-                  <img src="/static/arrow-up.svg"/>
-                </a>
-                <a href="#" class="offscreen-alert alert-below">
-                  <img class="turn" src="/static/arrow-up.svg"/>
-                </a>
-              </span>
-            </span>
-            <span class="input-nick-cell">
-              <span class="input-nick-sizer"></span>
-              <input type="text" class="input-nick"/>
-            </span>
-            <span class="input-message-cell">
-              <span class="input-nick-prompt"><img src="/static/arrow-up.svg"
-                class="turn-left"/><span> Enter your nick into the colored
-                box</span></span>
-              <div class="input-group">
-                <textarea rows="1" class="input-message"></textarea>
-                <textarea rows="1" class="input-message-sizer"></textarea>
-              </div>
-            </span>
-          </div>
-        </div>
-      </div>
-      <div class="sidebar">
-        <div class="sidebar-content">
-          <div class="sidebar-top">
-            <div class="sidebar-top-line">
-              <div class="throbber"><img src="/static/throbber.svg"/></div>
-              <div class="breadcrumbs collapse"><a href="/" target="_blank"
-                class="collapse-show logo-small"><img class="collapse-show"
-                src="/static/logo-static.svg"/><strong>Instant</strong></a
-                ><span> &raquo; </span><a href="/about.html" target="_blank"
-                >About</a></div>
-              <a href="" class="room-name">...</a>
-              <span class="online-status" title="..."></span>
-              <div class="settings-wrapper"><button class="settings"><img
-                src="/static/gear.svg"/></button><form
-                    class="settings-content">
-                  <h2>Settings</h2>
-                  <div class="settings-theme">
-                    <h3>Theme:</h3>
-                    <label><input type="radio" name="theme" value="bright"
-                      checked="checked"/> Bright</label>
-                    <label><input type="radio" name="theme" value="dark"/>
-                      Dark</label>
-                    <label><input type="radio" name="theme"
-                      value="verydark"/> Very dark</label>
-                  </div>
-                  <hr/>
-                  <div class="settings-notifications">
-                    <h3>Notifications:</h3>
-                    <label id="notifies-none"><input type="radio"
-                      name="notifies" value="none" checked="checked"/>
-                      None</label>
-                    <label id="notifies-ping"><input type="radio"
-                      name="notifies" value="ping"/> When pinged</label>
-                    <label id="notifies-update"><input type="radio"
-                      name="notifies" value="update"/> On updates</label>
-                    <label id="notifies-reply"><input type="radio"
-                      name="notifies" value="reply"/> When replied to</label>
-                    <label id="notifies-activity"><input type="radio"
-                      name="notifies" value="activity"/> On activity</label>
-                    <label id="notifies-disconnect"><input type="radio"
-                      name="notifies" value="disconnect"/> On
-                      disconnects</label>
-                  </div>
-                  <hr/>
-                  <label id="no-disturb-wrapper"
-                    title="Void notififies that are below the chosen level"
-                    ><input type="checkbox" name="no-disturb"/> Do not
-                    disturb</label>
-                </form></div>
-            </div>
-            <div class="ui-message-box"></div>
-          </div>
-          <div class="sidebar-middle-wrapper">
-            <div class="sidebar-middle">
-              <div class="user-list"></div>
-            </div>
-          </div>
-          <div class="sidebar-bottom">
-            <div class="user-list-counter"><a href="#">
-              <img src="/static/arrow-up.svg"/>
-              <span>...</span>
-            </a></div>
-          </div>
-        </div>
-      </div>
+      <div class="breadcrumbs collapse"><a href="/" target="_blank"
+        class="collapse-show logo-small"><img class="collapse-show"
+        src="/static/logo-static.svg"/><strong>Instant</strong></a
+        ><span> &raquo; </span><a href="/about.html" target="_blank"
+        >About</a></div>
     </div>
     <div id="load-wrapper">
       <div class="logo">

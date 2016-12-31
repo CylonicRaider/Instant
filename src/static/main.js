@@ -263,14 +263,12 @@ this.Instant = function() {
   }();
   /* Connection handling */
   Instant.connection = function() {
-    /* The connection status widget */
-    var connStatus = null;
     /* Sequence ID of outgoing messages */
     var seqid = null;
     /* The actual WebSocket */
     var ws = null;
-    /* Whether the WebSocket is connected */
-    var connected = false;
+    /* Whether the WebSocket is connected, or was in the past */
+    var connected = false, wasConnected = false;
     /* Whether the default URL was overridden */
     var overridden = false;
     /* Send pings every thirty seconds */
@@ -284,8 +282,7 @@ this.Instant = function() {
     return {
       /* Initialize the submodule, by installing the connection status
        * widget */
-      init: function(statusNode) {
-        connStatus = statusNode;
+      init: function() {
         /* Apply URL override */
         var override = Instant.query.get('connect');
         if (override) {
@@ -298,6 +295,9 @@ this.Instant = function() {
         if (ws && ws.readyState == WebSocket.OPEN) {
           Instant.connection._connected();
         }
+        /* Update related modules */
+        Instant.animation.onlineStatus.update();
+        Instant.userList.update();
       },
       /* Actually connect */
       connect: function() {
@@ -339,15 +339,9 @@ this.Instant = function() {
       },
       /* Handle an opened connection */
       _connected: function(event) {
-        /* Update flag */
+        /* Update flags */
         connected = true;
-        if (connStatus) {
-          /* Update status widget
-           * TODO: Migrate to notification handling. */
-          connStatus.classList.remove('broken');
-          connStatus.classList.add('connected');
-          connStatus.title = 'Connected';
-        }
+        wasConnected = true;
         /* Send notification */
         Instant.notifications.submitNew({text: 'Connected.'});
       },
@@ -480,14 +474,6 @@ this.Instant = function() {
         var wasConnected = connected;
         /* Update flag */
         connected = false;
-        /* Update status widget */
-        if (connStatus && ws != null) {
-          /* Update status widget
-           * TODO: Move into notification handling. */
-          connStatus.classList.remove('connected');
-          connStatus.classList.add('broken');
-          connStatus.title = 'Broken';
-        }
         /* Inform logs */
         Instant.logs.pull._disconnected();
         /* Send a notification */
@@ -548,6 +534,10 @@ this.Instant = function() {
       /* Check whether the client is currently connected */
       isConnected: function() {
         return connected;
+      },
+      /* Return whether one was connected at all */
+      wasConnected: function() {
+        return wasConnected;
       },
       /* Check whether the default connection URL was overridden */
       isURLOverridden: function() {
@@ -618,9 +608,16 @@ this.Instant = function() {
     /* Message ID -> DOM node */
     var messages = {};
     var fakeMessages = {};
+    /* Message pane */
+    var msgPane = null;
     /* Pixel distance that differentiates a click from a drag */
     var DRAG_THRESHOLD = 4;
     return {
+      /* Initialize submodule; return DOM node */
+      init: function() {
+        msgPane = $makeNode('div', 'message-pane', [['div', 'message-box']]);
+        return msgPane;
+      },
       /* Message parsing -- has an own namespace to avoid pollution */
       parser: function() {
         /* Smiley table */
@@ -1493,6 +1490,14 @@ this.Instant = function() {
         mesages = {};
         fakeMessages = {};
       },
+      /* Return the message pane node */
+      getMessagePane: function() {
+        return msgPane;
+      },
+      /* Return the message box node */
+      getMessageBox: function() {
+        return $sel('.message-box', msgPane);
+      },
       /* Create a Notification object for a given message */
       createNotification: function(msg) {
         var text;
@@ -1539,8 +1544,8 @@ this.Instant = function() {
     /* The sub-node currently focused */
     var focusedNode = null;
     return {
-      /* Initialize input bar control with the given node */
-      init: function(node) {
+      /* Initialize input bar control */
+      init: function() {
         /* Helpers for below */
         function updateNick() {
           var hue = Instant.nick.hueHash(inputNick.value);
@@ -1580,8 +1585,32 @@ this.Instant = function() {
           focusedNode = event.target;
         }
         var fakeSeq = 0;
-        /* Assign inputNode */
-        inputNode = node;
+        inputNode = $makeNode('div', 'input-bar', [
+          ['div', 'input-info-cell', [
+            ['span', 'alert-container', [
+              ['a', 'offscreen-alert alert-above', {href: '#'}, [
+                ['img', {src: '/static/arrow-up.svg'}],
+              ]],
+              ['a', 'offscreen-alert alert-below', {href: '#'}, [
+                ['img', 'turn', {src: '/static/arrow-up.svg'}],
+              ]]
+            ]]
+          ]],
+          ['div', 'input-nick-cell', [
+            ['span', 'input-nick-sizer'],
+            ['input', 'input-nick', {type: 'text'}]
+          ]],
+          ['div', 'input-message-cell', [
+            ['span', 'input-nick-prompt', [
+              ['img', 'turn-left', {src: '/static/arrow-up.svg'}],
+              ['span', [' Enter your nick into the colored box']]
+            ]],
+            ['div', 'input-group', [
+              ['textarea', 'input-message', {rows: 1}],
+              ['textarea', 'input-message-sizer', {rows: 1}]
+            ]]
+          ]]
+        ]);
         /* Install event handlers */
         var inputNick = $sel('.input-nick', inputNode);
         var sizerNick = $sel('.input-nick-sizer', inputNode);
@@ -1729,6 +1758,7 @@ this.Instant = function() {
           inputNick.selectionEnd = inputNick.value.length;
         }
         updateNick();
+        return inputNode;
       },
       /* Return the input bar */
       getNode: function() {
@@ -1984,12 +2014,46 @@ this.Instant = function() {
     /* Already shown messages */
     var shownUIMessages = {};
     return {
-      /* Initialize submodule with given node */
-      init: function(sidebarNode) {
+      /* Initialize submodule */
+      init: function(navNode) {
         function mutationInvalid(el) {
           return (el.target == wrapper);
         }
-        node = sidebarNode;
+        Instant.userList.init();
+        node = $makeNode('div', 'sidebar', [
+          ['div', 'sidebar-content', [
+            ['div', 'sidebar-top', [
+              ['div', 'sidebar-top-line', [
+                Instant.animation.throbber.init(), ' ',
+                Instant.sidebar.roomName.init(), ' ',
+                Instant.animation.onlineStatus.init(), ' ',
+                Instant.settings.init()
+              ]],
+              ['div', 'ui-message-box']
+            ]],
+            ['div', 'sidebar-middle-wrapper', [
+              ['div', 'sidebar-middle', [
+                Instant.userList.getNode()
+              ]]
+            ]],
+            ['div', 'sidebar-bottom', [
+              Instant.userList.getCollapserNode()
+            ]]
+          ]]
+        ]);
+        var topLine = $sel('.sidebar-top-line', node);
+        var nameNode = $sel('.room-name', node);
+        if (navNode) {
+          topLine.insertBefore(navNode, nameNode);
+          topLine.insertBefore(document.createTextNode(' '), nameNode);
+        }
+        if (Instant.stagingLocation) {
+          var stagingNode = $makeNode('span', 'staging',
+            '(' + Instant.stagingLocation + ')');
+          topLine.insertBefore(stagingNode, nameNode.nextSibling);
+          topLine.insertBefore(document.createTextNode(' '),
+                               nameNode.nextSibling);
+        }
         var wrapper = $sel('.sidebar-middle-wrapper', node);
         window.addEventListener('resize', Instant.sidebar.updateWidth);
         if (window.MutationObserver) {
@@ -2001,12 +2065,15 @@ this.Instant = function() {
             characterData: true, subtree: true,
             attributeFilter: ['class', 'style']});
         }
+        return node;
       },
       /* Change the width of the content to avoid horizontal scrollbars */
       updateWidth: function() {
         /* Extract nodes */
         var wrapper = $sel('.sidebar-middle-wrapper', node);
         var content = $sel('.sidebar-middle', wrapper);
+        /* Prevent faults during initialization */
+        if (! wrapper) return;
         /* Make measurements accurate */
         wrapper.style.minWidth = '';
         /* HACK to check for the presence of (explicit) scrollbars */
@@ -2017,6 +2084,10 @@ this.Instant = function() {
         } else {
           wrapper.classList.remove('overflow');
         }
+      },
+      /* Return the main DOM node */
+      getNode: function() {
+        return node;
       },
       /* Possibly show a (persistent) UI message */
       _notify: function(notify) {
@@ -2043,7 +2114,25 @@ this.Instant = function() {
         }
         msgbox.appendChild(msgnode);
         Instant.sidebar.updateWidth();
-      }
+      },
+      /* Room name widget */
+      roomName: function() {
+        /* The DOM node */
+        var node = null;
+        return {
+          /* Initialize submodule */
+          init: function() {
+            node = $makeNode('a', 'room-name', {href: ''});
+            if (Instant.roomName) {
+              node.appendChild(document.createTextNode('&' +
+                Instant.roomName));
+            } else {
+              node.appendChild($makeNode('i', null, 'local'));
+            }
+            return node;
+          }
+        };
+      }()
     };
   }();
   /* User list handling */
@@ -2054,18 +2143,19 @@ this.Instant = function() {
     var node = null;
     /* The counter and collapser */
     var collapser = null;
+    /* Whether the list was previously collapsed */
+    var lastCollapsed = false;
     return {
       /* Initialize state with the given node */
-      init: function(listNode, collapseNode) {
+      init: function() {
         /* Helper */
-        function updateCollapse() {
-          var newState = (document.documentElement.offsetWidth <= 400);
-          if (newState == lastState) return;
-          lastState = newState;
-          Instant.userList.collapse(newState);
-        }
-        node = listNode;
-        collapser = collapseNode;
+        node = $makeNode('div', 'user-list');
+        collapser = $makeNode('div', 'user-list-counter', [
+          ['a', {href: '#'}, [
+            ['img', {src: '/static/arrow-up.svg'}], ' ',
+            ['span', ['...']]
+          ]]
+        ]);
         /* Maintain focus state of input bar */
         var inputWasFocused = false;
         collapser.addEventListener('mousedown', function(event) {
@@ -2081,9 +2171,8 @@ this.Instant = function() {
           event.preventDefault();
         });
         /* Collapse user list on small windows */
-        var lastState = false;
-        window.addEventListener('resize', updateCollapse);
-        updateCollapse();
+        window.addEventListener('resize', Instant.userList._updateCollapse);
+        Instant.userList._updateCollapse();
       },
       /* Scan the list for a place where to insert */
       bisect: function(id, name) {
@@ -2170,6 +2259,14 @@ this.Instant = function() {
         if (node) while (node.firstChild) node.removeChild(node.firstChild);
         Instant.userList.update();
       },
+      /* Update the collapsing state */
+      _updateCollapse: function() {
+        var newState = (document.documentElement.offsetWidth <= 400 ||
+                        ! node.children.length);
+        if (newState == lastCollapsed) return;
+        lastCollapsed = newState;
+        Instant.userList.collapse(newState);
+      },
       /* Update some CSS properties */
       update: function() {
         /* Update counter */
@@ -2178,6 +2275,8 @@ this.Instant = function() {
           var n = node.children.length;
           c.textContent = n + ' user' + ((n == 1) ? '' : 's');
         }
+        /* Collapse as necessary */
+        Instant.userList._updateCollapse();
         /* Now actually delegated to sidebar itself */
         Instant.sidebar.updateWidth();
       },
@@ -2253,6 +2352,14 @@ this.Instant = function() {
         }
         /* Return it */
         return pref;
+      },
+      /* Get the main user list node */
+      getNode: function() {
+        return node;
+      },
+      /* Get the collapser node */
+      getCollapserNode: function() {
+        return collapser;
       }
     };
   }();
@@ -2828,6 +2935,10 @@ this.Instant = function() {
           /* Update the favicon to match the current unread message
            * status */
           _update: function() {
+            /* HACK: Avoid displaying the "disconnected" favicon on page
+             *       load. */
+            var connected = (Instant.connection.isConnected() ||
+              ! Instant.connection.wasConnected());
             var level;
             if (unreadMentions) {
               level = 'ping';
@@ -2835,10 +2946,10 @@ this.Instant = function() {
               level = 'update';
             } else if (unreadReplies) {
               level = 'reply';
-            } else if (! Instant.connection.isConnected()) {
-              level = 'disconnect';
             } else if (unreadMessages) {
               level = 'activity';
+            } else if (! connected) {
+              level = 'disconnect';
             } else {
               level = null;
             }
@@ -2972,10 +3083,13 @@ this.Instant = function() {
         /* The actual throbber element */
         var node = null;
         return {
-          /* Initialize the submodule with the given node */
-          init: function(throbberNode) {
-            node = throbberNode;
+          /* Initialize the submodule */
+          init: function() {
+            node = $makeNode('div', 'throbber', [
+              ['img', {src: '/static/throbber.svg'}]
+            ]);
             Instant.animation.throbber._update();
+            return node;
           },
           /* Show the throbber, setting the given status variable */
           show: function(key) {
@@ -3011,6 +3125,45 @@ this.Instant = function() {
             } else {
               node.classList.remove('visible');
             }
+          }
+        };
+      }(),
+      /* Connection status widget */
+      onlineStatus: function() {
+        /* The DOM node */
+        var node = null;
+        return {
+          /* Initialize submodule */
+          init: function() {
+            node = $makeNode('span', 'online-status', {title: '...'});
+            return node;
+          },
+          /* Update node */
+          update: function() {
+            if (Instant.connection.isConnected()) {
+              node.classList.remove('broken');
+              node.classList.remove('local');
+              node.classList.add('connected');
+              node.title = 'Connected';
+            } else if (Instant.connection.wasConnected()) {
+              node.classList.remove('connected');
+              node.classList.remove('local');
+              node.classList.add('broken');
+              node.title = 'Broken';
+            } else if (Instant.connectionURL == null) {
+              node.classList.remove('conneced');
+              node.classList.remove('broken');
+              node.classList.add('local');
+              node.title = 'Local';
+            }
+          },
+          /* Return the DOM node */
+          getNode: function() {
+            return node;
+          },
+          /* Respond to a notification */
+          _notify: function(notify) {
+            Instant.animation.onlineStatus.update();
           }
         };
       }(),
@@ -3202,8 +3355,50 @@ this.Instant = function() {
     var wrapperNode = null;
     return {
       /* Initialize submodule */
-      init: function(node) {
-        wrapperNode = node;
+      init: function() {
+        function radio(name, value, checked) {
+          return $makeNode('input', {type: 'radio', name: name, value: value,
+            checked: checked || false});
+        }
+        function checkbox(name, checked) {
+          return $makeNode('input', {type: 'checkbox', name: name,
+            checked: checked || false});
+        }
+        wrapperNode = $makeNode('div', 'settings-wrapper', [
+          ['button', 'settings', [
+            ['img', {src: '/static/gear.svg'}],
+          ]],
+          ['form', 'settings-content', [
+            ['h2', ['Settings']],
+            ['div', 'settings-theme', [
+              ['h3', ['Theme:']],
+              ['label', [radio('theme', 'bright', true), ' Bright']],
+              ['label', [radio('theme', 'dark'), ' Dark']],
+              ['label', [radio('theme', 'verydark'), ' Very dark']]
+            ]],
+            ['hr'],
+            ['div', 'settings-notifications', [
+              ['h3', ['Notifications:']],
+              ['label', {id: 'notifies-none'}, [
+                radio('notifies', 'none', true), ' None']],
+              ['label', {id: 'notifies-ping'}, [
+                radio('notifies', 'ping', true), ' When pinged']],
+              ['label', {id: 'notifies-update'}, [
+                radio('notifies', 'update', true), ' On updates']],
+              ['label', {id: 'notifies-reply'}, [
+                radio('notifies', 'reply', true), ' When replied to']],
+              ['label', {id: 'notifies-activity'}, [
+                radio('notifies', 'activity', true), ' On activity']],
+              ['label', {id: 'notifies-disconnect'}, [
+                radio('notifies', 'disconnect', true), ' On disconnects']]
+            ]],
+            ['hr'],
+            ['div', 'settings-nodisturb', [
+              ['label', {title: 'Void notifications that are below your ' +
+                'chosen level'}, [checkbox('no-disturb'), ' Do not disturb']]
+            ]]
+          ]]
+        ]);
         var btn = $sel('.settings', wrapperNode);
         var cnt = $sel('.settings-content', wrapperNode);
         /* Toggle settings */
@@ -3215,6 +3410,10 @@ this.Instant = function() {
         Array.prototype.forEach.call($selAll('input', cnt), function(el) {
           el.addEventListener('change', apply);
         });
+        return wrapperNode;
+      },
+      /* Outlined final part of initialization */
+      load: function() {
         /* Restore settings from storage */
         Instant.settings.restore();
         Instant.settings.apply();
@@ -3376,6 +3575,7 @@ this.Instant = function() {
       /* Process a notification object properly */
       submit: function(notify) {
         Instant.sidebar._notify(notify);
+        Instant.animation.onlineStatus._notify(notify);
         /* Externally visible means of notification can be swallowed */
         if (Instant.notifications.noDisturb) {
           var nl = LEVELS[notify.level];
@@ -3629,26 +3829,29 @@ this.Instant = function() {
     };
   }();
   /* Global initialization function */
-  Instant.init = function(main, loadWrapper) {
+  Instant.init = function(main, loadWrapper, navigation) {
     Instant.query.init();
     Instant.storage.init();
-    Instant.input.init($sel('.input-bar', main));
-    Instant.sidebar.init($sel('.sidebar', main));
-    Instant.userList.init($sel('.user-list', main),
-                          $sel('.user-list-counter', main));
+    Instant.message.init();
+    Instant.input.init();
+    Instant.message.getMessageBox().appendChild(Instant.input.getNode());
+    Instant.sidebar.init(navigation);
     Instant.title.init();
     Instant.notifications.init();
-    Instant.logs.pull.init($sel('.message-box', main));
-    Instant.animation.init($sel('.message-box', main));
+    Instant.logs.pull.init(Instant.message.getMessageBox());
+    Instant.animation.init(Instant.message.getMessageBox());
     Instant.animation.greeter.init(loadWrapper);
-    Instant.animation.throbber.init($sel('.throbber', main));
-    Instant.animation.offscreen.init($sel('.alert-container', main));
-    Instant.settings.init($sel('.settings-wrapper', main));
-    Instant.connection.init($sel('.online-status', main));
+    Instant.animation.offscreen.init(
+      $sel('.alert-container', Instant.input.getNode()));
+    main.appendChild(Instant.message.getMessagePane());
+    main.appendChild(Instant.sidebar.getNode());
+    Instant.settings.load();
+    Instant.connection.init();
     repeat(function() {
       Instant.util.adjustScrollbar($sel('.sidebar', main),
                                    $sel('.message-pane', main));
     }, 1000);
+    Instant.notifications.submitNew({text: 'Ready.'});
   };
   /* To be assigned in window */
   return Instant;
@@ -3668,23 +3871,10 @@ function init() {
   var isIE = /*@cc_on!@*/0;
   if (isIE) Instant.message.addReply({id: 'loading-1-ie', nick: 'Doom',
     text: '/me awaits IE users...'}, m);
-  /* Show room name, or none in local mode */
-  var nameNode = $sel('.room-name');
-  if (Instant.roomName) {
-    nameNode.textContent = '&' + Instant.roomName;
-  } else {
-    nameNode.innerHTML = '<i>local</i>';
-    $sel('.online-status').style.background = '#c0c0c0';
-    $sel('.online-status').title = 'Local';
-    $sel('.user-list').style.display = 'none';
-    $sel('.user-list-counter').style.display = 'none';
+  /* Hide greeter */
+  if (! Instant.roomName) {
     /* Nothing is going to hide it, so we have to. */
     Instant.animation.greeter.hide();
-  }
-  if (Instant.stagingLocation) {
-    var stagingNode = $makeNode('span', 'staging',
-      '(' + Instant.statingLocation + ')');
-    nameNode.parentNode.insertBefore(stagingNode, nameNode.nextSibling);
   }
   /* Show main element */
   main.style.opacity = '1';
@@ -3698,5 +3888,5 @@ function init() {
     }
   });
   /* Fire up Instant! */
-  Instant.init(main, wrapper);
+  Instant.init(main, wrapper, $sel('.breadcrumbs'));
 }
