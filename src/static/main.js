@@ -560,6 +560,10 @@ this.Instant = function() {
       normalize: function(name) {
         return name.replace(/\s+/g, '').toLowerCase();
       },
+      /* Return an @-mention of the given nick */
+      makeMentionText: function(name) {
+        return '@' + name.replace(/\s+/g, '');
+      },
       /* Actual "raw" hue hash */
       _hueHash: function(name) {
         var hash = 0;
@@ -1910,6 +1914,16 @@ this.Instant = function() {
       /* Convenience wrapper for Instant.pane.saveScrollState() */
       saveScrollState: function(focus) {
         return Instant.pane.saveScrollState(inputNode, 1, focus);
+      },
+      /* Insert text at the current editing position (if any) */
+      insertText: function(text) {
+        var inputMsg = $sel('.input-message', inputNode);
+        var from = inputMsg.selectionStart, to = inputMsg.selectionEnd;
+        var oldText = inputMsg.value;
+        inputMsg.value = (oldText.substring(0, from) + text +
+                          oldText.substring(to));
+        inputMsg.selectionStart = from + text.length;
+        inputMsg.selectionEnd = inputMsg.selectionStart;
       }
     };
   }();
@@ -2178,6 +2192,8 @@ this.Instant = function() {
     var node = null;
     /* The counter and collapser */
     var collapser = null;
+    /* The "context menu" (re-anchored to the node currently in use) */
+    var menu = null;
     /* Whether the list was previously collapsed */
     var lastCollapsed = false;
     return {
@@ -2190,6 +2206,10 @@ this.Instant = function() {
             ['img', {src: '/static/arrow-up.svg'}], ' ',
             ['span', ['...']]
           ]]
+        ]);
+        menu = $makeNode('div', 'user-list-menu', [
+          ['h2', ['Actions:']], ' ',
+          ['button', 'action-ping', ['Insert ping']]
         ]);
         /* Maintain focus state of input bar */
         var inputWasFocused = false;
@@ -2208,6 +2228,17 @@ this.Instant = function() {
         /* Collapse user list on small windows */
         window.addEventListener('resize', Instant.userList._updateCollapse);
         Instant.userList._updateCollapse();
+        /* Context menu actions */
+        $sel('.action-ping', menu).addEventListener('click', function() {
+          var parent = menu.parentNode;
+          if (! parent) return;
+          var nickNode = parent.firstElementChild;
+          var nick = nickNode.getAttribute('data-nick');
+          var ping = Instant.nick.makeMentionText(nick);
+          Instant.input.insertText(ping);
+          Instant.userList.showMenu(null);
+          Instant.input.focus();
+        });
       },
       /* Scan the list for a place where to insert */
       bisect: function(id, name) {
@@ -2215,10 +2246,13 @@ this.Instant = function() {
         if (! node) return null;
         var children = node.children;
         var b = 0, e = children.length;
+        var ret;
         for (;;) {
           // Bounds met? Done.
-          if (b == e)
-            return children[b] || null;
+          if (b == e) {
+            ret = children[b];
+            break;
+          }
           // Middle index and text.
           var m = (b + e) >> 1;
           var t = children[m].textContent;
@@ -2235,9 +2269,11 @@ this.Instant = function() {
             if (b == m) m++;
             b = m;
           } else {
-            return children[m] || null;
+            ret = children[m];
+            break;
           }
         }
+        return (ret) ? ret.firstElementChild : null;
       },
       /* Get the node corresponding to id or null */
       get: function(id) {
@@ -2245,16 +2281,33 @@ this.Instant = function() {
       },
       /* Add or update the entry for id */
       add: function(id, name, uuid) {
+        function toggleMenu() {
+          if (menu.parentNode == newWrapper) {
+            Instant.userList.showMenu(null);
+          } else {
+            Instant.userList.showMenu(id);
+          }
+        }
         /* Create a new node if necessary */
-        var newNode = nicks[id];
+        var newNode = nicks[id], newWrapper;
         if (newNode) {
           /* Do not disturb searching */
-          node.removeChild(newNode);
+          newWrapper = newNode.parentNode;
+          node.removeChild(newWrapper);
         } else {
           newNode = document.createElement('span');
           newNode.className = 'nick';
           newNode.setAttribute('data-id', id);
           newNode.id = 'user-' + id;
+          newNode.tabIndex = 0;
+          newWrapper = document.createElement('div');
+          newWrapper.className = 'nick-box';
+          newWrapper.appendChild(newNode);
+          newNode.addEventListener('click', toggleMenu);
+          newNode.addEventListener('keydown', function(event) {
+            if (event.which == 13 || event.which == 32)
+              toggleMenu();
+          });
         }
         /* Apply new parameters to node */
         var hue = Instant.nick.hueHash(name);
@@ -2272,8 +2325,9 @@ this.Instant = function() {
         if (! node) return null;
         /* Find insertion position */
         var insBefore = Instant.userList.bisect(id, name);
+        if (insBefore) insBefore = insBefore.parentNode;
         /* Insert node into list */
-        node.insertBefore(newNode, insBefore);
+        node.insertBefore(newWrapper, insBefore);
         /* Maintain consistency */
         Instant.userList.update();
         /* Return something sensible */
@@ -2283,7 +2337,7 @@ this.Instant = function() {
       remove: function(id) {
         if (! nicks[id]) return;
         try {
-          node.removeChild(nicks[id]);
+          node.removeChild(nicks[id].parentNode);
         } catch (e) {}
         delete nicks[id];
         Instant.userList.update();
@@ -2331,10 +2385,11 @@ this.Instant = function() {
           /* Update animations */
           var now = Date.now();
           Array.prototype.forEach.call(node.children, function(el) {
-            var time = el.getAttribute('data-last-active') - now;
+            var nick = el.firstElementChild;
+            var time = nick.getAttribute('data-last-active') - now;
             if (time < -300000) time = -300000;
-            el.style.webkitAnimationDelay = time + 'ms';
-            el.style.animationDelay = time + 'ms';
+            nick.style.webkitAnimationDelay = time + 'ms';
+            nick.style.animationDelay = time + 'ms';
           });
         }
         Instant.userList.update();
@@ -2387,6 +2442,25 @@ this.Instant = function() {
         }
         /* Return it */
         return pref;
+      },
+      /* Show the context menu on the given node, or hide it */
+      showMenu: function(id) {
+        var curParent = menu.parentNode;
+        if (curParent) {
+          var curChild = curParent.firstElementChild;
+          if (curChild.getAttribute('data-id') == id) {
+            return;
+          } else {
+            curParent.classList.remove('selected');
+            curParent.removeChild(menu);
+          }
+        }
+        if (! id) return;
+        var newChild = Instant.userList.get(id);
+        if (! newChild) return;
+        var newParent = newChild.parentNode;
+        newParent.classList.add('selected');
+        newParent.appendChild(menu);
       },
       /* Get the main user list node */
       getNode: function() {

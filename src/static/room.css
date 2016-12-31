@@ -337,7 +337,7 @@ body {
   background: white;
   color: black;
 }
-.settings-content h2, h3 {
+.settings-content h2, .settings-content h3 {
   font-size: inherit;
 }
 .settings-content h2 {
@@ -394,16 +394,57 @@ body {
   display: none;
 }
 
-.user-list .nick {
-  margin-bottom: 2px;
+.user-list .nick-box {
+  padding-bottom: 2px;
   color: black;
   box-shadow: 0 0 5px #ffffff;
+  text-align: right;
 }
-.user-list .nick:last-child {
-  margin-bottom: 0;
+.user-list .nick-box:last-child {
+  padding-bottom: 0;
 }
-.user-list .nick:empty {
+.user-list .nick-box:empty {
   display: none;
+}
+.user-list .nick-box > .nick {
+  float: right;
+  z-index: 11;
+  cursor: pointer;
+  outline-offset: -1px;
+}
+
+.user-list .nick-box.selected .nick {
+  margin-bottom: 1px;
+  margin-left: 1px;
+  border-top: 1px solid black;
+  border-right: 1px solid black;
+  padding-top: 0;
+  padding-right: 1px;
+}
+
+.user-list-menu {
+  border: 1px solid black;
+  padding: 1px;
+  text-align: left;
+  min-width: 10em;
+}
+.user-list-menu h2 {
+  display: inline-block;
+  font-size: inherit;
+}
+.user-list-menu button {
+  margin: 0;
+  border: 1px solid black;
+  padding: 1px;
+  font: inherit;
+  background: none;
+  cursor: pointer;
+  outline-offset: -2px;
+}
+.user-list-menu button::-moz-focus-inner {
+  margin: 0;
+  border: 0;
+  padding: 0;
 }
 
 .user-list-counter {
