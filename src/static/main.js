@@ -562,7 +562,7 @@ this.Instant = function() {
       },
       /* Return an @-mention of the given nick */
       makeMentionText: function(name) {
-        return '@' + name.replace(/\s+/g, '');
+        return '@' + name.replace(/[^.,:;!?\s]+/g, '');
       },
       /* Actual "raw" hue hash */
       _hueHash: function(name) {
@@ -1552,7 +1552,7 @@ this.Instant = function() {
     /* Match @-mentions with arbitrary text before
      * Keep in sync with mention matching in Instant.message. */
     var MENTION_BEFORE = new RegExp(
-        ('(?:[^a-zA-Z0-9_]|^)\\B@(%MC%*(?:\\(%MC%*\\)%MC%*)*' +
+        ('(?:\\W|^)\\B@(%MC%*(?:\\(%MC%*\\)%MC%*)*' +
          '(?:\\(%MC%*)?)$').replace(/%MC%/g, '[^.,:;!?()\\s]'));
     /* The DOM node containing the input bar */
     var inputNode = null;
