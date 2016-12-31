@@ -2085,6 +2085,30 @@ this.Instant = function() {
           wrapper.classList.remove('overflow');
         }
       },
+      /* Mount the given node into the sidebar top area */
+      addTop: function(newNode) {
+        var box = $sel('.ui-message-box', node);
+        box.parentNode.insertBefore(newNode, node);
+        Instant.sidebar.updateWidth();
+      },
+      /* Mount the given node to the top of the middle of the sidebar */
+      addMiddleTop: function(newNode) {
+        var userList = $sel('.user-list', node);
+        userList.parentNode.insertBefore(newNode, userList);
+        Instant.sidebar.updateWidth();
+      },
+      /* Mount the given node to the bottom of the middle of the sidebar */
+      addMiddleBottom: function(newNode) {
+        var userList = $sel('.user-list', node);
+        userList.parentNode.appendChild(newNode);
+        Instant.sidebar.updateWidth();
+      },
+      /* Mount the given node to the bottom of the sidebar */
+      addBottom: function(newNode) {
+        var bottom = $sel('.sidebar-bottom', node);
+        bottom.appendChild(newNode);
+        Instant.sidebar.updateWidth();
+      },
       /* Return the main DOM node */
       getNode: function() {
         return node;
