@@ -583,6 +583,11 @@ this.Instant = function() {
         }
         return hash;
       },
+      /* Get the (background) color for emote messages */
+      emoteColor: function(name) {
+        var hue = Instant.nick.hueHash(name);
+        return 'hsl(' + hue + ', 75%, 90%)';
+      },
       /* Get the (background) color associated with the nick */
       nickColor: function(name) {
         var hue = Instant.nick.hueHash(name);
@@ -1097,10 +1102,9 @@ this.Instant = function() {
         }
         /* Add emote styles */
         if (emote) {
-          var hue = Instant.nick.hueHash(params.nick);
           $sel('[data-key=after-nick]', msgNode).textContent += '/me ';
-          $sel('.content', msgNode).style.background = 'hsl(' + hue +
-                                                       ', 75%, 90%)';
+          var cnt = $sel('.content', msgNode);
+          cnt.style.background = Instant.nick.emoteColor(params.nick);
         }
         /* Add event handlers */
         Instant.message._installEventHandlers(msgNode);
@@ -1563,10 +1567,10 @@ this.Instant = function() {
       init: function() {
         /* Helpers for below */
         function updateNick() {
-          var hue = Instant.nick.hueHash(inputNick.value);
-          sizerNick.textContent = inputNick.value;
-          sizerNick.style.background = 'hsl(' + hue + ', 75%, 80%)';
-          if (inputNick.value) {
+          var name = inputNick.value;
+          sizerNick.textContent = name;
+          sizerNick.style.background = Instant.nick.nickColor(name);
+          if (name) {
             sizerNick.style.minWidth = '';
           } else {
             sizerNick.style.minWidth = '1em';
@@ -2310,12 +2314,11 @@ this.Instant = function() {
           });
         }
         /* Apply new parameters to node */
-        var hue = Instant.nick.hueHash(name);
         if (uuid) newNode.setAttribute('data-uuid', uuid);
         newNode.setAttribute('data-last-active', Date.now());
         newNode.setAttribute('data-nick', name);
         newNode.textContent = name;
-        newNode.style.background = 'hsl(' + hue + ', 75%, 80%)';
+        newNode.style.background = Instant.nick.nickColor(name);
         newWrapper.style.display = ((name) ? '' : 'none');
         /* Update animation */
         newNode.style.webkitAnimationDelay = '';
