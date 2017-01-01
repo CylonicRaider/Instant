@@ -1766,12 +1766,12 @@ this.Instant = function() {
         });
         /* Read nickname from storage */
         var nick = Instant.storage.get('nickname');
-        if (typeof nick == 'string') {
+        if (typeof nick == 'string' && nick) {
           inputNick.value = nick;
           refreshNick(true);
-          inputMsg.focus();
+          focusedNode = inputMsg;
         } else {
-          inputNick.focus();
+          focusedNode = inputNick;
         }
         inputNick.selectionStart = inputNick.value.length;
         inputNick.selectionEnd = inputNick.value.length;
@@ -4006,4 +4006,5 @@ function init() {
   });
   /* Fire up Instant! */
   Instant.init(main, wrapper, $sel('.breadcrumbs'));
+  Instant.input.focus();
 }
