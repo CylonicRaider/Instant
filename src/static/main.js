@@ -2202,7 +2202,7 @@ this.Instant = function() {
     /* Whether the list was previously collapsed */
     var lastCollapsed = false;
     return {
-      /* Initialize state with the given node */
+      /* Initialize state */
       init: function() {
         /* Helper */
         node = $makeNode('div', 'user-list');
