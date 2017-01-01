@@ -1004,7 +1004,7 @@ this.Instant = function() {
         $sel('.line', msgNode).addEventListener('click', function(evt) {
           /* Filter out mouse drags */
           if (clickPos && $hypot(evt.clientX - clickPos[0],
-                                 evt.clientY - clickPos[1]) >= DRAG_THRESHOLD)
+              evt.clientY - clickPos[1]) >= DRAG_THRESHOLD)
             return;
           clickPos = null;
           /* Filter out clicks on links */
@@ -1137,7 +1137,8 @@ this.Instant = function() {
           return message.parentNode.parentNode;
         }
       },
-      /* Same as getParent(), but fail if the current node is not a message */
+      /* Same as getParent(), but fail if the current node is not a
+       * message */
       getParentOfMessage: function(message) {
         if (! Instant.message.isMessage(message))
           return null;
@@ -1211,8 +1212,8 @@ this.Instant = function() {
         return (res & Node.DOCUMENT_POSITION_FOLLOWING) ? -1 :
           (res & Node.DOCUMENT_POSITION_PRECEDING) ? 1 : 0;
       },
-      /* Get the node hosting the replies to the given message, or the message
-       * itself if it's actually none at all */
+      /* Get the node hosting the replies to the given message, or the
+       * message itself if it's actually none at all */
       _getReplyNode: function(message) {
         if (Instant.message.isMessage(message)) {
           var lc = message.lastElementChild;
@@ -3815,8 +3816,9 @@ this.Instant = function() {
               var icon = options.icon || ICON;
               var oncreate = options.oncreate || null;
               var onclick = options.onclick || null;
-              /* HACK: Firefox before release 49 would silently fail to display
-               *       notifications with icons to varying rates (for me). */
+              /* HACK: Firefox before release 49 would silently fail to
+               *       display notifications with icons to varying rates
+               *       (for me). */
               var m = /Firefox\/(\d+)(?=\D)/i.exec(navigator.userAgent);
               if (m && m[1] < 49) icon = null;
               /* Actually create notification */
