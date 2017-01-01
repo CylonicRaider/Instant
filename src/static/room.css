@@ -425,6 +425,7 @@ body {
 .user-list-menu {
   border: 1px solid black;
   padding: 1px;
+  background: white;
   text-align: left;
   min-width: 10em;
 }
@@ -437,6 +438,7 @@ body {
   border: 1px solid black;
   padding: 1px;
   font: inherit;
+  color: black;
   background: none;
   cursor: pointer;
   outline-offset: -2px;

@@ -43,16 +43,24 @@
 .dark .room-name, .dark a.room-name {
   color: white;
 }
-.dark .online-status, .dark .settings, .dark .settings-content {
+.dark .online-status, .dark .settings, .dark .settings-content,
+.dark .user-list-menu {
   border-color: white;
   box-shadow: 0 0 5px white;
 }
-.dark .settings, .dark .settings-content {
+.dark .settings, .dark .settings-content, .dark .user-list-menu {
   color: white;
   background: black;
 }
-.dark #notifies-any {
+.dark #notifies-activity {
   color: #c0c0c0;
+}
+.dark .user-list .nick-box.selected .nick {
+  border-color: white;
+}
+.dark .user-list-menu button {
+  border-color: white;
+  color: white;
 }
 .dark .user-list-counter a {
   color: #c0c0c0;

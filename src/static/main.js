@@ -2474,6 +2474,13 @@ this.Instant = function() {
         var newParent = newChild.parentNode;
         newParent.classList.add('selected');
         newParent.appendChild(menu);
+        newParent.scrollIntoView();
+      },
+      /* Return the ID of the currently selected user */
+      getSelectedUser: function() {
+        var curParent = menu.parentNode;
+        if (! curParent) return null;
+        return curParent.firstElementChild.getAttribute('data-id');
       },
       /* Get the main user list node */
       getNode: function() {
