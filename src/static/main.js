@@ -1659,8 +1659,8 @@ this.Instant = function() {
         } else {
           focusedNode = inputNick;
         }
-        inputNick.selectionStart = inputNick.value.length;
-        inputNick.selectionEnd = inputNick.value.length;
+        inputNick.setSelectionRange(inputNick.value.length,
+                                    inputNick.value.length);
         updateNick();
         return inputNode;
       },
@@ -1933,8 +1933,7 @@ this.Instant = function() {
         var oldText = inputMsg.value;
         inputMsg.value = (oldText.substring(0, from) + text +
                           oldText.substring(to));
-        inputMsg.selectionStart = from + text.length;
-        inputMsg.selectionEnd = inputMsg.selectionStart;
+        inputMsg.setSelectionRange(from + text.length, from + text.length);
       }
     };
   }();
