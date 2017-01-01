@@ -239,10 +239,9 @@ this.Instant = function() {
             data: {
               updateAvailable: true,
               uiMessage: 'update',
-              uiMessageHTML: '<span style="color: #808000;">' +
-                'Your page is outdated;\n' +
-                'please refresh it manually.' +
-                '</span>'
+              uiMessageColor: '#808000',
+              uiMessageNode: document.createTextNode('Your page is ' +
+                'outdated;\nplease refresh it manually.')
             }});
         }
         Instant.identity.id = data.id;
@@ -2153,12 +2152,14 @@ this.Instant = function() {
             msgbox.removeChild(shownUIMessages[msgname]);
           shownUIMessages[msgname] = msgnode;
         }
-        if (notify.data.uiMessageHTML) {
-          msgnode.innerHTML = notify.data.uiMessageHTML;
+        if (notify.data.uiMessageNode) {
+          msgnode.appendChild(notify.data.uiMessageNode);
         } else {
           msgnode.textContent = notify.text;
         }
-        if (notify.color) {
+        if (notify.data.uiMessageColor) {
+          msgnode.style.color = notify.data.uiMessageColor;
+        } else if (notify.color) {
           msgnode.style.color = notify.color;
         }
         if (notify.onclick) {
