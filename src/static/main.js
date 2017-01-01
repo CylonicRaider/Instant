@@ -4016,6 +4016,8 @@ function init() {
     if (event.keyCode == 27) { // Escape
       if (Instant.settings.isVisible())
         Instant.settings.hide();
+      if (Instant.userList.getSelectedUser() != null)
+        Instant.userList.showMenu(null);
       Instant.input.focus();
       event.preventDefault();
     }
