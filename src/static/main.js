@@ -2316,6 +2316,7 @@ this.Instant = function() {
         newNode.setAttribute('data-nick', name);
         newNode.textContent = name;
         newNode.style.background = 'hsl(' + hue + ', 75%, 80%)';
+        newWrapper.style.display = ((name) ? '' : 'none');
         /* Update animation */
         newNode.style.webkitAnimationDelay = '';
         newNode.style.animationDelay = '';
