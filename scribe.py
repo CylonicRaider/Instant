@@ -6,6 +6,7 @@ import threading
 import heapq, bisect
 import contextlib
 import signal, errno, ssl
+import traceback
 import ast, json
 import websocket
 import sqlite3
@@ -478,8 +479,14 @@ class BackgroundWebSocket:
 
 LOGLINE_START = re.compile(r'^\[([0-9 Z:-]+)\]\s+([A-Z_-]+)\s+(.*)$')
 WHITESPACE = re.compile(r'\s+')
-PARAM = re.compile(r'([a-zA-Z0-9_-]+)=([^"\']\S*'
-    r'|"([^"\\]|\\.)*"|\'([^\'\\]|\\.)*\')(?=\s|$)')
+SCALAR = re.compile(r'[^"\'\x28,\s]\S*|"(?:[^"\\]|\\.)*"|'
+    r'\'(?:[^\'\\]|\\.)*\'')
+TUPLE = re.compile(r'\(\s*(?:(?:%s)\s*,\s*)*(?:(?:%s)\s*)?\)' %
+                   (SCALAR.pattern, SCALAR.pattern))
+EMPTY_TUPLE = re.compile(r'^\(\s*\)$')
+TRAILING_COMMA = re.compile(r',\s*\)$')
+PARAM = re.compile(r'([a-zA-Z0-9_-]+)=(%s|%s)(?=\s|$)' %
+                   (SCALAR.pattern, TUPLE.pattern))
 INTEGER = re.compile(r'^[0-9]+$')
 CONSTANTS = {'None': None, 'True': True, 'False': False}
 def read_logs(src, filt=None):
@@ -503,8 +510,15 @@ def read_logs(src, filt=None):
                 val = CONSTANTS[val]
             elif INTEGER.match(val):
                 val = int(val)
-            elif val and val[0] in '\'"':
+            elif val[0] in '\'"':
                 val = ast.literal_eval(val)
+            elif val[0] == '(':
+                if EMPTY_TUPLE.match(val):
+                    val = ()
+                elif TRAILING_COMMA.search(val):
+                    val = ast.literal_eval(val)
+                else:
+                    val = ast.literal_eval('(' + val[1:-1] + ',)')
             values[name] = val
         else:
             yield (ts, tag, values)
@@ -580,6 +594,12 @@ def read_posts_ex(src, maxlen=None):
     return (ret, uuids)
 def read_posts(src, maxlen=None):
     return read_posts_ex(src, maxlen)[0]
+
+def format_log(o):
+    if isinstance(o, tuple):
+        return '(' + ','.join(map(repr, o)) + ')'
+    else:
+        return repr(o)
 
 def log(msg):
     m = '[%s] %s\n' % (time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime()),
@@ -761,7 +781,11 @@ def on_message(ws, msg, _context={'oid': None, 'id': None, 'src': None,
             if DONTPULL and DONTSTAY:
                 raise SystemExit
     except (ValueError, TypeError, AttributeError) as e:
-        log('FAULT reason=%r' % repr(e))
+        try:
+            lf = traceback.extract_tb(sys.exc_info()[2], 1)[-1]
+        except Exception:
+            lf = None
+        log('FAULT reason=%r last-frame=%s' % (repr(e), format_log(lf)))
         return
 def on_error(ws, exc):
     log('ERROR reason=%r' % repr(exc))
