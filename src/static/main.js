@@ -1769,9 +1769,9 @@ this.Instant = function() {
           inputMsg.focus();
         } else {
           inputNick.focus();
-          inputNick.selectionStart = inputNick.value.length;
-          inputNick.selectionEnd = inputNick.value.length;
         }
+        inputNick.selectionStart = inputNick.value.length;
+        inputNick.selectionEnd = inputNick.value.length;
         updateNick();
         return inputNode;
       },
