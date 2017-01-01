@@ -100,11 +100,11 @@ body {
   -moz-user-select: none;
   -webkit-user-select: none;
 }
-.message > .line time, .message > .line time a {
+.message:not(.ping) > .line time {
   color: #808080;
 }
-.message.ping > .line time, .message.ping > .line time a {
-  color: black;
+.message > .line time a {
+  color: inherit;
 }
 .message > .line .content {
   min-width: 0;
@@ -270,7 +270,7 @@ body {
 .room-name, a.room-name {
   font-weight: bold;
   text-decoration: none;
-  color: black;
+  color: inherit;
 }
 .staging {
   font-style: italic;
@@ -335,7 +335,6 @@ body {
   text-align: left;
   white-space: nowrap;
   background: white;
-  color: black;
 }
 .settings-content h2, .settings-content h3 {
   font-size: inherit;
@@ -396,8 +395,7 @@ body {
 
 .user-list .nick-box {
   padding-bottom: 2px;
-  color: black;
-  box-shadow: 0 0 5px #ffffff;
+  box-shadow: 0 0 5px white;
   text-align: right;
 }
 .user-list .nick-box:last-child {
@@ -416,8 +414,9 @@ body {
 .user-list .nick-box.selected .nick {
   margin-bottom: 1px;
   margin-left: 1px;
-  border-top: 1px solid black;
-  border-right: 1px solid black;
+  border-width: 1px 1px 0 0;
+  border-style: solid;
+  border-color: black;
   padding-top: 0;
   padding-right: 1px;
 }
@@ -438,7 +437,7 @@ body {
   border: 1px solid black;
   padding: 1px;
   font: inherit;
-  color: black;
+  color: inherit;
   background: none;
   cursor: pointer;
   outline-offset: -2px;
@@ -473,19 +472,19 @@ body {
   text-decoration: underline;
 }
 
-#notifies-ping {
+.notifies-ping {
   color: #808000;
 }
-#notifies-update {
+.notifies-update {
   color: #008000;
 }
-#notifies-reply {
+.notifies-reply {
   color: #0060c0;
 }
-#notifies-disconnect {
+.notifies-disconnect {
   color: #c00000;
 }
-#notifies-activity {
+.notifies-activity {
   color: #404040;
 }
 
@@ -554,7 +553,7 @@ body {
   top: 1px;
   left: 2px;
   min-width: 100%;
-  color: black;
+  color: inherit;
   background: transparent;
 }
 .input-bar .input-message-cell {
@@ -590,7 +589,7 @@ body {
 }
 .input-bar .input-message, .input-bar .input-message-sizer {
   width: 100%;
-  color: black;
+  color: inherit;
   background: transparent;
   overflow: hidden;
   resize: none;

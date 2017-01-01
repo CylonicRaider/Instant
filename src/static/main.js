@@ -3511,17 +3511,17 @@ this.Instant = function() {
             ['hr'],
             ['div', 'settings-notifications', [
               ['h3', ['Notifications:']],
-              ['label', {id: 'notifies-none'}, [
+              ['label', 'notifies-none', [
                 radio('notifies', 'none', true), ' None']],
-              ['label', {id: 'notifies-ping'}, [
+              ['label', 'notifies-ping', [
                 radio('notifies', 'ping'), ' When pinged']],
-              ['label', {id: 'notifies-update'}, [
+              ['label', 'notifies-update', [
                 radio('notifies', 'update'), ' On updates']],
-              ['label', {id: 'notifies-reply'}, [
+              ['label', 'notifies-reply', [
                 radio('notifies', 'reply'), ' When replied to']],
-              ['label', {id: 'notifies-activity'}, [
+              ['label', 'notifies-activity', [
                 radio('notifies', 'activity'), ' On activity']],
-              ['label', {id: 'notifies-disconnect'}, [
+              ['label', 'notifies-disconnect', [
                 radio('notifies', 'disconnect'), ' On disconnects']]
             ]],
             ['hr'],

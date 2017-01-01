@@ -17,50 +17,61 @@
   color: #c000c0;
 }
 
-.dark #load-wrapper, .dark .breadcrumbs.standalone {
-  color: white;
+.dark #load-wrapper, .dark .breadcrumbs {
   background: black;
+}
+.dark .breadcrumbs a {
+  color: inherit;
+}
+.dark #load-wrapper hr {
+  border-color: white;
 }
 
 .dark .logo img {
   box-shadow: 0 0 30px white;
 }
 
-.dark a.logo-small {
-  color: white;
-}
 .dark .logo-small img {
   box-shadow: 0 0 2px white;
-}
-.dark .logo-small strong {
-  color: white;
 }
 
 .dark .throbber {
   -webkit-filter: invert(1);
   filter: invert(1);
 }
-.dark .room-name, .dark a.room-name {
-  color: white;
-}
 .dark .online-status, .dark .settings, .dark .settings-content,
 .dark .user-list-menu {
   border-color: white;
   box-shadow: 0 0 5px white;
 }
+.dark .room-name a {
+  color: inherit;
+}
+
 .dark .settings, .dark .settings-content, .dark .user-list-menu {
-  color: white;
   background: black;
 }
-.dark #notifies-activity {
+.dark .notifies-ping {
+  color: #c0c000;
+}
+.dark .notifies-update {
+  color: #00c000;
+}
+.dark .notifies-reply {
+  color: #0080ff;
+}
+.dark .notifies-disconnect {
+  color: #ff0000;
+}
+.dark .notifies-activity {
   color: #c0c0c0;
 }
+
 .dark .user-list .nick-box.selected .nick {
   border-color: white;
 }
 .dark .user-list-menu button {
   border-color: white;
-  color: white;
 }
 .dark .user-list-counter a {
   color: #c0c0c0;
@@ -70,13 +81,11 @@
   filter: invert(1);
 }
 
-.dark .nick, .dark .message.emote > .line .content {
-  color: black;
-}
+.dark .nick, .dark .message.emote > .line .content,
 .dark .message.ping > .line {
   color: black;
 }
-.dark .message.ping > .line time a {
+.dark .message.ping > .line time {
   color: white;
 }
 .dark .message > .line .monospace {
@@ -88,10 +97,11 @@
   background: rgba(0, 0, 0, 0.5);
 }
 
-.dark .input-bar, .dark .input-bar .input-message-cell .input-message,
-.dark .input-bar .input-message-cell .input-nick-prompt {
-  color: white;
+.dark .input-bar, .dark .input-bar .input-nick-prompt {
   background: black;
+}
+.dark .input-bar .input-nick {
+  color: black;
 }
 
 .dark .input-bar .input-info-cell .alert-container,
