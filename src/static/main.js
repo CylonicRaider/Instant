@@ -96,15 +96,15 @@ function $makeNode(tag, className, attrs, children) {
   }
   /* Add children */
   if (children) {
-    if (typeof children == "string") children = [children];
+    if (typeof children == 'string') children = [children];
     for (var i = 0; i < children.length; i++) {
       var e = children[i];
-      if (typeof e == "string") {
+      if (typeof e == 'string') {
         /* Strings become text nodes */
         ret.appendChild(document.createTextNode(e));
-      } else if (typeof e != "object") {
+      } else if (typeof e != 'object') {
         /* Other primitive types are not allowed */
-        throw new Error("Bad child encountered during DOM node creation");
+        throw new Error('Bad child encountered during DOM node creation');
       } else if (Array.isArray(e)) {
         /* Arrays are handled recursively */
         ret.appendChild($makeNode.apply(null, e));
@@ -3707,7 +3707,7 @@ this.Instant = function() {
       submitNew: function(options) {
         return Instant.notifications.create(options).then(
           Instant.notifications.submit, function(error) {
-            console.error("Failed to create internal notification object:",
+            console.error('Failed to create internal notification object:',
                           error);
             return Promise.reject(error);
           });
