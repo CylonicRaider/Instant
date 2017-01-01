@@ -1561,6 +1561,8 @@ this.Instant = function() {
     var inputNode = null;
     /* The sub-node currently focused */
     var focusedNode = null;
+    /* Sequence ID for fake messages */
+    var fakeSeq = 0;
     return {
       /* Initialize input bar control */
       init: function() {
@@ -1581,28 +1583,9 @@ this.Instant = function() {
           Instant.identity.nick = inputNick.value;
           Instant.identity.sendNick();
         }
-        function updateMessage() {
-          sizerMsg.value = inputMsg.value;
-          /* Avoid devtools noise */
-          if (promptNick.style.display != 'none')
-            promptNick.style.display = 'none';
-          /* Using a separate node for measurement drastically reduces
-           * reflow load by having a single out-of-document-flow reflow
-           * only in the best case.
-           * The old approach of setting the height to 0 (to prevent
-           * it from keeping the input box "inflated") and then to
-           * the scrollHeight caused two whole-page reflows, which
-           * affected performance rather badly. */
-          if (sizerMsg.scrollHeight + 'px' == inputMsg.style.height)
-            return;
-          var restore = Instant.input.saveScrollState();
-          inputMsg.style.height = sizerMsg.scrollHeight + 'px';
-          restore();
-        }
         function updateFocus(event) {
           focusedNode = event.target;
         }
-        var fakeSeq = 0;
         inputNode = $makeNode('div', 'input-bar', [
           ['div', 'input-info-cell', [
             ['span', 'alert-container', [
@@ -1653,110 +1636,13 @@ this.Instant = function() {
           inputNick.focus();
         });
         /* Auto-size input bar; remove nick setting prompt */
-        inputMsg.addEventListener('input', updateMessage);
+        inputMsg.addEventListener('input', Instant.input._updateMessage);
         /* Remove nick setting prompt */
         inputMsg.addEventListener('focus', function() {
           promptNick.style.display = 'none';
         });
         /* Handle special keys */
-        inputMsg.addEventListener('keydown', function(event) {
-          var text = inputMsg.value;
-          if (event.keyCode == 13 && ! event.shiftKey) { // Return
-            /* Send message! */
-            /* Retrieve input text */
-            inputMsg.value = '';
-            event.preventDefault();
-            updateMessage();
-            /* Ignore empty sends */
-            if (! text) return;
-            if (! Instant.connectionURL) {
-              /* Save scroll state */
-              var restore = Instant.input.saveScrollState();
-              /* Fake messages if not connected */
-              var msgid = 'local-' + leftpad(fakeSeq++, 8, '0');
-              Instant.message.importMessage(
-                {id: msgid, nick: Instant.identity.nick || '', text: text,
-                 parent: Instant.input.getParentID(),
-                 timestamp: Date.now()},
-                Instant.message.getRoot(inputNode));
-              /* Restore scroll state */
-              restore();
-            } else if (Instant.connection.isConnected()) {
-              /* Send actual message */
-              Instant.connection.sendBroadcast({type: 'post',
-                nick: Instant.identity.nick, text: text,
-                parent: Instant.input.getParentID()});
-            } else {
-              /* Roll back */
-              inputMsg.value = text;
-              updateMessage();
-            }
-          } else if (event.keyCode == 27) { // Escape
-            if (Instant.input.navigate('root')) {
-              location.hash = '';
-              Instant.pane.scrollIntoView(inputNode);
-              event.preventDefault();
-            }
-            inputMsg.focus();
-          } else if (event.keyCode == 9 && ! event.shiftKey) { // Tab
-            /* Extract text with selection removed and obtain the cursor
-             * position */
-            var text = inputMsg.value;
-            if (inputMsg.selectionStart != inputMsg.selectionEnd) {
-              text = (text.substr(0, inputMsg.selectionStart) +
-                      text.substr(inputMsg.selectionEnd));
-            }
-            var pos = inputMsg.selectionStart;
-            /* Determine if we should complete at all */
-            var m = MENTION_BEFORE.exec(text.substring(0, pos));
-            if (! m) return;
-            /* No tabbing beyond this point */
-            event.preventDefault();
-            /* Perform actual completion */
-            var res = Instant.userList.complete(m[1]);
-            /* No completion -- no action */
-            if (res == null) return;
-            /* Insert completed text */
-            text = text.substring(0, pos) + res + text.substring(pos);
-            var newpos = pos + res.length;
-            /* Insert new text into entry */
-            inputMsg.value = text;
-            inputMsg.setSelectionRange(newpos, newpos);
-          }
-          if (text.indexOf('\n') == -1) {
-            if (event.keyCode == 38) { // Up
-              if (Instant.input.navigate('up')) {
-                Instant.pane.scrollIntoView(inputNode);
-                event.preventDefault();
-              } else {
-                /* Special case: Get more logs */
-                Instant.logs.pull.more();
-              }
-              inputMsg.focus();
-            } else if (event.keyCode == 40) { // Down
-              if (Instant.input.navigate('down')) {
-                Instant.pane.scrollIntoView(inputNode);
-                event.preventDefault();
-              }
-              inputMsg.focus();
-            }
-            if (! text) {
-              if (event.keyCode == 37) { // Left
-                if (Instant.input.navigate('left')) {
-                  Instant.pane.scrollIntoView(inputNode);
-                  event.preventDefault();
-                }
-                inputMsg.focus();
-              } else if (event.keyCode == 39) { // Right
-                if (Instant.input.navigate('right')) {
-                  Instant.pane.scrollIntoView(inputNode);
-                  event.preventDefault();
-                }
-                inputMsg.focus();
-              }
-            }
-          }
-        });
+        inputMsg.addEventListener('keydown', Instant.input._onkeydown);
         /* Save the last focused node */
         inputNick.addEventListener('focus', updateFocus);
         inputMsg.addEventListener('focus', updateFocus);
@@ -1917,6 +1803,128 @@ this.Instant = function() {
       /* Convenience wrapper for Instant.pane.saveScrollState() */
       saveScrollState: function(focus) {
         return Instant.pane.saveScrollState(inputNode, 1, focus);
+      },
+      /* Update the message bar sizer */
+      _updateMessage: function() {
+        var promptNick = $sel('.input-nick-prompt', inputNode);
+        var sizerMsg = $sel('.input-message-sizer', inputNode);
+        var inputMsg = $sel('.input-message', inputNode);
+        sizerMsg.value = inputMsg.value;
+        /* Avoid devtools noise */
+        if (promptNick.style.display != 'none')
+          promptNick.style.display = 'none';
+        /* Using a separate node for measurement drastically reduces
+         * reflow load by having a single out-of-document-flow reflow
+         * only in the best case.
+         * The old approach of setting the height to 0 (to prevent
+         * it from keeping the input box "inflated") and then to
+         * the scrollHeight caused two whole-page reflows, which
+         * affected performance rather badly. */
+        if (sizerMsg.scrollHeight + 'px' == inputMsg.style.height)
+          return;
+        var restore = Instant.input.saveScrollState();
+        inputMsg.style.height = sizerMsg.scrollHeight + 'px';
+        restore();
+      },
+      /* Respond to key presses in the input box */
+      _onkeydown: function(event) {
+        var inputMsg = $sel('.input-message', inputNode);
+        var text = inputMsg.value;
+        if (event.keyCode == 13 && ! event.shiftKey) { // Return
+          /* Send message! */
+          /* Retrieve input text */
+          inputMsg.value = '';
+          event.preventDefault();
+          Instant.input._updateMessage();
+          /* Ignore empty sends */
+          if (! text) return;
+          if (! Instant.connectionURL) {
+            /* Save scroll state */
+            var restore = Instant.input.saveScrollState();
+            /* Fake messages if not connected */
+            var msgid = 'local-' + leftpad(fakeSeq++, 8, '0');
+            Instant.message.importMessage(
+              {id: msgid, nick: Instant.identity.nick || '', text: text,
+               parent: Instant.input.getParentID(),
+               timestamp: Date.now()},
+              Instant.message.getRoot(inputNode));
+            /* Restore scroll state */
+            restore();
+          } else if (Instant.connection.isConnected()) {
+            /* Send actual message */
+            Instant.connection.sendBroadcast({type: 'post',
+              nick: Instant.identity.nick, text: text,
+              parent: Instant.input.getParentID()});
+          } else {
+            /* Roll back */
+            inputMsg.value = text;
+            Instant.input._updateMessage();
+          }
+        } else if (event.keyCode == 27) { // Escape
+          if (Instant.input.navigate('root')) {
+            location.hash = '';
+            Instant.pane.scrollIntoView(inputNode);
+            event.preventDefault();
+          }
+          inputMsg.focus();
+        } else if (event.keyCode == 9 && ! event.shiftKey) { // Tab
+          /* Extract text with selection removed and obtain the cursor
+           * position */
+          var text = inputMsg.value;
+          if (inputMsg.selectionStart != inputMsg.selectionEnd) {
+            text = (text.substr(0, inputMsg.selectionStart) +
+                    text.substr(inputMsg.selectionEnd));
+          }
+          var pos = inputMsg.selectionStart;
+          /* Determine if we should complete at all */
+          var m = MENTION_BEFORE.exec(text.substring(0, pos));
+          if (! m) return;
+          /* No tabbing beyond this point */
+          event.preventDefault();
+          /* Perform actual completion */
+          var res = Instant.userList.complete(m[1]);
+          /* No completion -- no action */
+          if (res == null) return;
+          /* Insert completed text */
+          text = text.substring(0, pos) + res + text.substring(pos);
+          var newpos = pos + res.length;
+          /* Insert new text into entry */
+          inputMsg.value = text;
+          inputMsg.setSelectionRange(newpos, newpos);
+        }
+        if (text.indexOf('\n') == -1) {
+          if (event.keyCode == 38) { // Up
+            if (Instant.input.navigate('up')) {
+              Instant.pane.scrollIntoView(inputNode);
+              event.preventDefault();
+            } else {
+              /* Special case: Get more logs */
+              Instant.logs.pull.more();
+            }
+            inputMsg.focus();
+          } else if (event.keyCode == 40) { // Down
+            if (Instant.input.navigate('down')) {
+              Instant.pane.scrollIntoView(inputNode);
+              event.preventDefault();
+            }
+            inputMsg.focus();
+          }
+          if (! text) {
+            if (event.keyCode == 37) { // Left
+              if (Instant.input.navigate('left')) {
+                Instant.pane.scrollIntoView(inputNode);
+                event.preventDefault();
+              }
+              inputMsg.focus();
+            } else if (event.keyCode == 39) { // Right
+              if (Instant.input.navigate('right')) {
+                Instant.pane.scrollIntoView(inputNode);
+                event.preventDefault();
+              }
+              inputMsg.focus();
+            }
+          }
+        }
       },
       /* Insert text at the current editing position (if any) */
       insertText: function(text) {
