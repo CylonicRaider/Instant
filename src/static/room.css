@@ -227,7 +227,7 @@ body {
   pointer-events: auto;
 }
 .sidebar-top > *, .sidebar-middle > *, .sidebar-bottom > * {
-  background: rgba(255, 255, 255, 0.5);
+  background: rgba(255, 255, 255, 0.85);
   padding: 3px 0 3px 3px;
 }
 .sidebar-top, .sidebar-bottom {
@@ -235,7 +235,6 @@ body {
   flex-shrink: 0;
 }
 .sidebar-top-line {
-  background: rgba(255, 255, 255, 0.5);
   line-height: 1.2;
   padding: 5px 0;
 }

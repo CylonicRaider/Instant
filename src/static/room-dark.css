@@ -94,7 +94,7 @@
 
 .dark .sidebar-top > *, .dark .sidebar-middle > *,
 .dark .sidebar-bottom > * {
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(0, 0, 0, 0.85);
 }
 
 .dark .input-bar, .dark .input-bar .input-nick-prompt {
