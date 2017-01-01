@@ -2248,7 +2248,7 @@ this.Instant = function() {
           var nickNode = parent.firstElementChild;
           var nick = nickNode.getAttribute('data-nick');
           var ping = Instant.nick.makeMentionText(nick);
-          Instant.input.insertText(ping);
+          Instant.input.insertText(ping + ' ');
           Instant.userList.showMenu(null);
           Instant.input.focus();
         });
@@ -2416,7 +2416,8 @@ this.Instant = function() {
       listMatchingNicks: function(prefix) {
         prefix = Instant.nick.seminormalize(prefix);
         var nicks = Array.prototype.map.call(node.children, function(n) {
-          return Instant.nick.seminormalize(n.getAttribute('data-nick'));
+          return Instant.nick.seminormalize(
+            n.firstElementChild.getAttribute('data-nick'));
         });
         var last = null;
         return nicks.filter(function(n) {
