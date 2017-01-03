@@ -3784,10 +3784,12 @@ this.Instant = function() {
            * been used to determine whether to display it at all. */
           show: function(notify) {
             /* Do not show two notifications at once */
-            if (current) return;
+            var allNotifies = Instant.storage.get("all-notifies");
+            if (current && ! allNotifies) return;
             Instant.notifications.desktop._show(notify.title, notify.text, {
               icon: notify.icon,
               oncreate: function(notify) {
+                if (allNotifies) return;
                 /* Set current notification */
                 current = notify;
                 /* Since the close event is ambiguous and not supported
@@ -3799,7 +3801,7 @@ this.Instant = function() {
                 }, 10000);
               },
               onclick: function(event) {
-                current = null;
+                if (! allNotifies) current = null;
                 if (notify.onclick) notify.onclick(event);
                 event.target.close();
               }
