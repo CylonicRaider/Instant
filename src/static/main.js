@@ -3786,12 +3786,16 @@ this.Instant = function() {
             /* Do not show two notifications at once */
             var allNotifies = Instant.storage.get("all-notifies");
             if (current && ! allNotifies) return;
+            /* Actual notification */
             Instant.notifications.desktop._show(notify.title, notify.text, {
               icon: notify.icon,
               oncreate: function(notify) {
-                if (allNotifies) return;
+                /* Do not clobber old notifications
+                 * At least my browser does this... :S */
+                if (current) current.close();
                 /* Set current notification */
                 current = notify;
+                if (allNotifies) return;
                 /* Since the close event is ambiguous and not supported
                  * anymore, we just let the notification stay for ten
                  * seconds, and forget about it thereafter. */
@@ -3801,7 +3805,7 @@ this.Instant = function() {
                 }, 10000);
               },
               onclick: function(event) {
-                if (! allNotifies) current = null;
+                current = null;
                 if (notify.onclick) notify.onclick(event);
                 event.target.close();
               }
