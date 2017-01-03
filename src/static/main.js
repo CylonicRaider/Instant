@@ -3887,18 +3887,25 @@ this.Instant = function() {
       },
       /* Assign the value to the key and save the results (asynchronously) */
       set: function(key, value) {
+        var oldValue = data[key];
         data[key] = value;
-        Instant.storage.save();
+        Instant.storage._save();
+        Instant._fireListeners(new InstantEvent("storage.set",
+          {key: key, value: value, oldValue: oldValue}));
       },
       /* Remove the given key and save the results (asynchronously) */
       del: function(key) {
+        var oldValue = data[key];
         delete data[key];
-        Instant.storage.save();
+        Instant.storage._save();
+        Instant._fireListeners(new InstantEvent("storage.del",
+          {key: key, oldValue: oldValue}));
       },
       /* Remove all keys and save the results (still asynchronously) */
       clear: function() {
-        data = {};
-        Instant.storage.save();
+        Instant.storage._clear(),
+        Instant.storage._save();
+        Instant._fireListeners(new InstantEvent("storage.clear"));
       },
       /* Reset the internal storage *without* saving automatically */
       _clear: function() {
@@ -3926,14 +3933,21 @@ this.Instant = function() {
           thaw(localStorage.getItem('instant-data'));
         if (window.sessionStorage)
           thaw(sessionStorage.getItem('instant-data'));
+        Instant._fireListeners(new InstantEvent("storage.load"));
       },
-      /* Serialize the current data to the backends */
-      save: function() {
+      /* Serialize the current data to the backends
+       * This version does not run event handlers. */
+      _save: function() {
         var encoded = JSON.stringify(data);
         if (window.sessionStorage)
           sessionStorage.setItem('instant-data', encoded);
         if (window.localStorage)
           localStorage.setItem('instant-data', encoded);
+      },
+      /* Serialize the current data to the backends */
+      save: function() {
+        Instant._fireListeners(new InstantEvent("storage.save"));
+        Instant.storage._save();
       },
       /* Obtain a reference to the raw data storage object
        * NOTE that the reference might silently become invalid, and remember
