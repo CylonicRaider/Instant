@@ -205,10 +205,10 @@ body {
 .sidebar {
   display: -webkit-flex;
   display: flex;
-  position: fixed;
+  position: absolute;
   top: 0;
   right: 0;
-  height: 100vh;
+  height: 100%;
   margin-right: 15px;
   padding: 3px 3px 5em 0;
   box-sizing: border-box;
