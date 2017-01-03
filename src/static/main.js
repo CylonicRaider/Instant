@@ -3962,6 +3962,51 @@ this.Instant = function() {
       }
     };
   }();
+  /* Event handling */
+  var handlers = {};
+  /* Event class */
+  function InstantEvent(type, data) {
+    if (! (this instanceof InstantEvent))
+      return new InstantEvent(type, data);
+    this.instant = Instant;
+    this.type = type;
+    for (var key in data) {
+      if (! data.hasOwnProperty(key)) continue;
+      this[key] = data[key];
+    }
+  }
+  Instant.InstantEvent = InstantEvent;
+  /* Stop listening for an event
+   * Returns where the listener had been installed at all. */
+  Instant.stopListening = function(name, handler) {
+    if (! handlers[name]) return;
+    var idx = handlers[name].indexOf(handler);
+    if (idx == -1) return false;
+    handlers.splice(idx, 1);
+    return true;
+  };
+  /* Listen for an event
+   * handler is invoked upon the event with an object containing at least the
+   * following properties:
+   * instant: The Instant object.
+   * type   : The type of the event.
+   * Specific events may define more properties. */
+  Instant.listen = function(name, handler) {
+    Instant.stopListening(name, handler);
+    if (! handlers[name]) handlers[name] = [];
+    handlers[name].push(handler);
+  };
+  /* Invoke the listeners for a given event */
+  Instant._fireListeners = function(event) {
+    if (! handlers[event.type]) return;
+    handlers[event.type].forEach(function(h) {
+      try {
+        h(event);
+      } catch (e) {
+        console.error("Event listener failed:", e);
+      }
+    });
+  };
   /* Global initialization function */
   Instant.init = function(main, loadWrapper, navigation) {
     Instant.query.init();
