@@ -44,7 +44,7 @@
   border-color: white;
   box-shadow: 0 0 5px white;
 }
-.dark .room-name a {
+.dark a.room-name {
   color: inherit;
 }
 

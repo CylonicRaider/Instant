@@ -393,7 +393,7 @@ body {
 }
 
 .user-list .nick-box {
-  padding-bottom: 2px;
+  margin-bottom: 2px;
   box-shadow: 0 0 5px white;
   text-align: right;
 }
