@@ -3567,9 +3567,7 @@ this.Instant = function() {
         var btn = $sel('.settings', wrapperNode);
         var cnt = $sel('.settings-content', wrapperNode);
         /* Toggle settings */
-        btn.addEventListener('click', function(event) {
-          Instant.settings.toggle();
-        });
+        btn.addEventListener('click', Instant.settings.toggle);
         /* Install event listener */
         var apply = Instant.settings.apply.bind(Instant.settings);
         Array.prototype.forEach.call($selAll('input', cnt), function(el) {
@@ -3584,7 +3582,7 @@ this.Instant = function() {
         Instant.settings.apply();
       },
       /* Actually apply the settings */
-      apply: function() {
+      apply: function(event) {
         var cnt = $sel('.settings-content', wrapperNode);
         var theme = cnt.elements['theme'].value;
         if (theme == 'bright') {
@@ -3607,6 +3605,7 @@ this.Instant = function() {
         Instant.storage.set('theme', theme);
         Instant.storage.set('notification-level', level);
         Instant.storage.set('no-disturb', noDisturb);
+        Instant._fireListeners('settings.apply', {source: event});
       },
       /* Restore the settings from storage */
       restore: function() {
@@ -3618,17 +3617,31 @@ this.Instant = function() {
         var noDisturb = Instant.storage.get('no-disturb');
         if (noDisturb) cnt.elements['no-disturb'].checked = noDisturb;
       },
+      /* Set the setting popup visibility */
+      _setVisible: function(vis, event) {
+        var wasVisible = Instant.settings.isVisible();
+        if (vis == null) {
+          wrapperNode.classList.toggle('visible');
+        } else if (vis) {
+          wrapperNode.classList.add('visible');
+        } else {
+          wrapperNode.classList.remove('visible');
+        }
+        var visible = Instant.settings.isVisible();
+        Instant._fireListeners('settings.visibility', {visible: visible,
+          wasVisible: wasVisible, source: event});
+      },
       /* Show the settings popup */
-      show: function() {
-        wrapperNode.classList.add('visible');
+      show: function(event) {
+        Instant.settings._setVisible(true, event);
       },
       /* Hide the settings popup */
-      hide: function() {
-        wrapperNode.classList.remove('visible');
+      hide: function(event) {
+        Instant.settings._setVisible(false, event);
       },
       /* Toggle the settings visibility */
-      toggle: function() {
-        wrapperNode.classList.toggle('visible');
+      toggle: function(event) {
+        Instant.settings._setVisible(null, event);
       },
       /* Returns whether the settings area is currently visible */
       isVisible: function() {
