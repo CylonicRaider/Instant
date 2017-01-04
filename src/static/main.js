@@ -1577,7 +1577,7 @@ this.Instant = function() {
       /* Initialize input bar control */
       init: function() {
         /* Helpers for below */
-        function updateNick() {
+        function updateNick(event) {
           var name = inputNick.value;
           sizerNick.textContent = name;
           sizerNick.style.background = Instant.nick.nickColor(name);
@@ -1586,12 +1586,17 @@ this.Instant = function() {
           } else {
             sizerNick.style.minWidth = '1em';
           }
+          Instant._fireListeners('input.nickEdit', {nick: name,
+            source: event});
         }
-        function refreshNick(force) {
+        function refreshNick(event, force) {
+          var oldNick = Instant.identity.nick;
           if (Instant.identity.nick == inputNick.value && ! force)
             return;
           Instant.identity.nick = inputNick.value;
           Instant.identity.sendNick();
+          Instant._fireListeners('input.nickChange', {oldNick: oldNick,
+            nick: inputNick.value, source: event});
         }
         function updateFocus(event) {
           focusedNode = event.target;
@@ -1635,7 +1640,7 @@ this.Instant = function() {
           if (event.keyCode == 13) { // Return
             inputMsg.focus();
             event.preventDefault();
-            refreshNick();
+            refreshNick(event, true);
           }
         });
         /* Update status when nick changes */
@@ -1664,7 +1669,7 @@ this.Instant = function() {
         var nick = Instant.storage.get('nickname');
         if (typeof nick == 'string' && nick) {
           inputNick.value = nick;
-          refreshNick(true);
+          refreshNick(null, true);
           focusedNode = inputMsg;
         } else {
           focusedNode = inputNick;
@@ -1815,7 +1820,7 @@ this.Instant = function() {
         return Instant.pane.saveScrollState(inputNode, 1, focus);
       },
       /* Update the message bar sizer */
-      _updateMessage: function() {
+      _updateMessage: function(event) {
         var promptNick = $sel('.input-nick-prompt', inputNode);
         var sizerMsg = $sel('.input-message-sizer', inputNode);
         var inputMsg = $sel('.input-message', inputNode);
@@ -1830,25 +1835,43 @@ this.Instant = function() {
          * it from keeping the input box "inflated") and then to
          * the scrollHeight caused two whole-page reflows, which
          * affected performance rather badly. */
-        if (sizerMsg.scrollHeight + 'px' == inputMsg.style.height)
-          return;
-        var restore = Instant.input.saveScrollState();
-        inputMsg.style.height = sizerMsg.scrollHeight + 'px';
-        restore();
+        if (sizerMsg.scrollHeight + 'px' != inputMsg.style.height) {
+          var restore = Instant.input.saveScrollState();
+          inputMsg.style.height = sizerMsg.scrollHeight + 'px';
+          restore();
+        }
+        Instant._fireListeners('input.edit', {text: inputMsg.value,
+          source: event});
       },
       /* Respond to key presses in the input box */
       _onkeydown: function(event) {
+        function navigate(dir) {
+          var ret = Instant.input.navigate(dir);
+          if (ret) {
+            Instant.pane.scrollIntoView(inputNode);
+            event.preventDefault();
+            Instant.input._updateMessage(event);
+          }
+          inputMsg.focus();
+          return ret;
+        }
+        Instant._fireListeners('input.keydown', {source: event});
+        if (event.defaultPrevented) return;
         var inputMsg = $sel('.input-message', inputNode);
         var text = inputMsg.value;
         if (event.keyCode == 13 && ! event.shiftKey) { // Return
           /* Send message! */
-          /* Retrieve input text */
-          inputMsg.value = '';
+          /* Whether to clear the input bar */
+          var clear = false;
+          /* Allow event handlers to have a word */
+          Instant._fireListeners('input.send', {text: text, source: event});
+          if (event.defaultPrevented) return;
+          /* Do not input line feeds in any case */
           event.preventDefault();
-          Instant.input._updateMessage();
           /* Ignore empty sends */
-          if (! text) return;
-          if (! Instant.connectionURL) {
+          if (! text) {
+            /* NOP */
+          } else if (! Instant.connectionURL) {
             /* Save scroll state */
             var restore = Instant.input.saveScrollState();
             /* Fake messages if not connected */
@@ -1860,22 +1883,22 @@ this.Instant = function() {
               Instant.message.getRoot(inputNode));
             /* Restore scroll state */
             restore();
+            clear = true;
           } else if (Instant.connection.isConnected()) {
             /* Send actual message */
             Instant.connection.sendBroadcast({type: 'post',
               nick: Instant.identity.nick, text: text,
               parent: Instant.input.getParentID()});
-          } else {
-            /* Roll back */
-            inputMsg.value = text;
-            Instant.input._updateMessage();
+            clear = true;
+          }
+          /* Clear input bar */
+          if (clear) {
+            inputMsg.value = '';
+            Instant.input._updateMessage(event);
           }
         } else if (event.keyCode == 27) { // Escape
-          if (Instant.input.navigate('root')) {
+          if (navigate('root'))
             location.hash = '';
-            Instant.pane.scrollIntoView(inputNode);
-            event.preventDefault();
-          }
           inputMsg.focus();
         } else if (event.keyCode == 9 && ! event.shiftKey) { // Tab
           /* Extract text with selection removed and obtain the cursor
@@ -1901,37 +1924,22 @@ this.Instant = function() {
           /* Insert new text into entry */
           inputMsg.value = text;
           inputMsg.setSelectionRange(newpos, newpos);
+          /* Update bar size */
+          Instant.input._updateMessage(event);
         }
         if (text.indexOf('\n') == -1) {
           if (event.keyCode == 38) { // Up
-            if (Instant.input.navigate('up')) {
-              Instant.pane.scrollIntoView(inputNode);
-              event.preventDefault();
-            } else {
-              /* Special case: Get more logs */
+            /* Special case: Get more logs */
+            if (! navigate('up'))
               Instant.logs.pull.more();
-            }
-            inputMsg.focus();
           } else if (event.keyCode == 40) { // Down
-            if (Instant.input.navigate('down')) {
-              Instant.pane.scrollIntoView(inputNode);
-              event.preventDefault();
-            }
-            inputMsg.focus();
+            navigate('down');
           }
           if (! text) {
             if (event.keyCode == 37) { // Left
-              if (Instant.input.navigate('left')) {
-                Instant.pane.scrollIntoView(inputNode);
-                event.preventDefault();
-              }
-              inputMsg.focus();
+              navigate('left');
             } else if (event.keyCode == 39) { // Right
-              if (Instant.input.navigate('right')) {
-                Instant.pane.scrollIntoView(inputNode);
-                event.preventDefault();
-              }
-              inputMsg.focus();
+              navigate('right');
             }
           }
         }
@@ -1944,6 +1952,7 @@ this.Instant = function() {
         inputMsg.value = (oldText.substring(0, from) + text +
                           oldText.substring(to));
         inputMsg.setSelectionRange(from + text.length, from + text.length);
+        Instant.input._updateMessage();
       }
     };
   }();
@@ -2327,7 +2336,8 @@ this.Instant = function() {
           newWrapper.appendChild(newNode);
           newNode.addEventListener('click', toggleMenu);
           newNode.addEventListener('keydown', function(event) {
-            if (event.which == 13 || event.which == 32)
+            // Return or Space
+            if (event.keyCode == 13 || event.keyCode == 32)
               toggleMenu();
           });
         }
