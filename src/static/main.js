@@ -1640,7 +1640,12 @@ this.Instant = function() {
           if (event.keyCode == 13) { // Return
             inputMsg.focus();
             event.preventDefault();
-            refreshNick(event, true);
+            refreshNick(event);
+          } else if (event.keyCode == 27) { // Escape
+            inputNick.value = Instant.identity.nick;
+            inputMsg.focus();
+            event.preventDefault();
+            updateNick(event);
           }
         });
         /* Update status when nick changes */
