@@ -3784,7 +3784,7 @@ this.Instant = function() {
            * been used to determine whether to display it at all. */
           show: function(notify) {
             /* Do not show two notifications at once */
-            var allNotifies = Instant.storage.get("all-notifies");
+            var allNotifies = Instant.storage.get('all-notifies');
             if (current && ! allNotifies) return;
             /* Actual notification */
             Instant.notifications.desktop._show(notify.title, notify.text, {
@@ -3896,7 +3896,7 @@ this.Instant = function() {
         var oldValue = data[key];
         data[key] = value;
         Instant.storage._save();
-        Instant._fireListeners("storage.set", {key: key, value: value,
+        Instant._fireListeners('storage.set', {key: key, value: value,
           oldValue: oldValue});
       },
       /* Remove the given key and save the results (asynchronously) */
@@ -3904,14 +3904,14 @@ this.Instant = function() {
         var oldValue = data[key];
         delete data[key];
         Instant.storage._save();
-        Instant._fireListeners("storage.del", {key: key,
+        Instant._fireListeners('storage.del', {key: key,
           oldValue: oldValue});
       },
       /* Remove all keys and save the results (still asynchronously) */
       clear: function() {
         Instant.storage._clear(),
         Instant.storage._save();
-        Instant._fireListeners("storage.clear");
+        Instant._fireListeners('storage.clear');
       },
       /* Reset the internal storage *without* saving automatically */
       _clear: function() {
@@ -3939,7 +3939,7 @@ this.Instant = function() {
           thaw(localStorage.getItem('instant-data'));
         if (window.sessionStorage)
           thaw(sessionStorage.getItem('instant-data'));
-        Instant._fireListeners("storage.load");
+        Instant._fireListeners('storage.load');
       },
       /* Serialize the current data to the backends
        * This version does not run event handlers. */
@@ -3952,7 +3952,7 @@ this.Instant = function() {
       },
       /* Serialize the current data to the backends */
       save: function() {
-        Instant._fireListeners("storage.save");
+        Instant._fireListeners('storage.save');
         Instant.storage._save();
       },
       /* Obtain a reference to the raw data storage object
@@ -4024,7 +4024,7 @@ this.Instant = function() {
       try {
         h(event);
       } catch (e) {
-        console.error("Event listener failed:", e);
+        console.error('Event listener failed:', e);
       }
     });
   };
