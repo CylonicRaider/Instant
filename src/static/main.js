@@ -2405,6 +2405,8 @@ this.Instant = function() {
         Instant.userList._updateCollapse();
         /* Now actually delegated to sidebar itself */
         Instant.sidebar.updateWidth();
+        /* Fire event */
+        Instant._fireListeners('userList.update');
       },
       /* Collapse or uncollapse the user list */
       collapse: function(invisible) {
@@ -2493,12 +2495,16 @@ this.Instant = function() {
             curParent.removeChild(menu);
           }
         }
-        if (! id) return;
-        var newChild = Instant.userList.get(id);
-        if (! newChild) return;
+        var newChild = null;
+        if (id) newChild = Instant.userList.get(id);
+        if (! newChild) {
+          Instant.userList.update();
+          return;
+        }
         var newParent = newChild.parentNode;
         newParent.classList.add('selected');
         newParent.appendChild(menu);
+        Instant.userList.update();
         newParent.scrollIntoView();
       },
       /* Return the ID of the currently selected user */
