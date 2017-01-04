@@ -341,6 +341,8 @@ this.Instant = function() {
         /* Update flags */
         connected = true;
         wasConnected = true;
+        /* Send event */
+        Instant._fireListeners('connection.connected', {source: event});
         /* Send notification */
         Instant.notifications.submitNew({text: 'Connected.'});
       },
@@ -354,6 +356,9 @@ this.Instant = function() {
           Instant.connection.onRawMessage(event);
           if (event.defaultPrevented) return;
         }
+        /* Send event */
+        Instant._fireListeners('connection.message', {source: event});
+        if (event.defaultPrevented) return;
         /* Extract message data */
         var msg;
         try {
@@ -475,6 +480,8 @@ this.Instant = function() {
         connected = false;
         /* Inform logs */
         Instant.logs.pull._disconnected();
+        /* Send event */
+        Instant._fireListeners('connection.closed', {source: event});
         /* Send a notification */
         if (wasConnected)
           Instant.notifications.submitNew({text: 'Disconnected!',
@@ -487,6 +494,8 @@ this.Instant = function() {
       _error: function(event) {
         /* Update flag */
         connected = false;
+        /* Send event */
+        Instant._fireListeners('connection.error', {source: event});
         /* Cannnot really do anything */
         if (event)
           console.warn('WebSocket error:', event);
