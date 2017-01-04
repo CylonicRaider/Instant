@@ -3752,16 +3752,21 @@ this.Instant = function() {
       },
       /* Process a notification object properly */
       submit: function(notify) {
-        Instant.sidebar._notify(notify);
-        Instant.animation.onlineStatus._notify(notify);
-        /* Externally visible means of notification can be swallowed */
+        var data = {notify: notify, suppress: false};
         if (Instant.notifications.noDisturb) {
           var nl = LEVELS[notify.level];
           var ul = LEVELS[Instant.notifications.level];
-          if (nl > ul) return;
+          data.suppress = (nl > ul);
         }
-        Instant.title._notify(notify);
-        Instant.notifications.desktop._notify(notify);
+        Instant._fireListeners('notifications.submit', data);
+        Instant.sidebar._notify(notify);
+        Instant.animation.onlineStatus._notify(notify);
+        /* Externally visible means of notification can be swallowed */
+        if (! data.suppress) {
+          Instant.title._notify(notify);
+          Instant.notifications.desktop._notify(notify);
+        }
+        Instant._fireListeners('notifications.submitLate', data);
         return notify;
       },
       /* Convenience function for creating and submiting a notify */
