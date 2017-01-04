@@ -4080,6 +4080,7 @@ this.Instant = function() {
   };
   /* Global initialization function */
   Instant.init = function(main, loadWrapper, navigation) {
+    Instant._fireListeners('init.early');
     Instant.query.init();
     Instant.storage.init();
     Instant.message.init();
@@ -4095,6 +4096,7 @@ this.Instant = function() {
       $sel('.alert-container', Instant.input.getNode()));
     main.appendChild(Instant.message.getMessagePane());
     main.appendChild(Instant.sidebar.getNode());
+    Instant._fireListeners('init.late');
     Instant.settings.load();
     Instant.connection.init();
     repeat(function() {
@@ -4102,6 +4104,7 @@ this.Instant = function() {
                                    $sel('.message-pane', main));
     }, 1000);
     Instant.notifications.submitNew({text: 'Ready.'});
+    Instant._fireListeners('init.final');
   };
   /* To be assigned in window */
   return Instant;
