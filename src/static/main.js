@@ -2937,6 +2937,8 @@ this.Instant = function() {
                 after = (key == 'initial' || key == 'after') ?
                   after || true : null;
                 Instant.logs.pull._done(before, after);
+                Instant._fireListeners('logs.new', {message: msg,
+                  data: data});
                 break;
               case 'delete':
                 /* Nuh! */
