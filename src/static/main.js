@@ -3896,22 +3896,22 @@ this.Instant = function() {
         var oldValue = data[key];
         data[key] = value;
         Instant.storage._save();
-        Instant._fireListeners(new InstantEvent("storage.set",
-          {key: key, value: value, oldValue: oldValue}));
+        Instant._fireListeners("storage.set", {key: key, value: value,
+          oldValue: oldValue});
       },
       /* Remove the given key and save the results (asynchronously) */
       del: function(key) {
         var oldValue = data[key];
         delete data[key];
         Instant.storage._save();
-        Instant._fireListeners(new InstantEvent("storage.del",
-          {key: key, oldValue: oldValue}));
+        Instant._fireListeners("storage.del", {key: key,
+          oldValue: oldValue});
       },
       /* Remove all keys and save the results (still asynchronously) */
       clear: function() {
         Instant.storage._clear(),
         Instant.storage._save();
-        Instant._fireListeners(new InstantEvent("storage.clear"));
+        Instant._fireListeners("storage.clear");
       },
       /* Reset the internal storage *without* saving automatically */
       _clear: function() {
@@ -3939,7 +3939,7 @@ this.Instant = function() {
           thaw(localStorage.getItem('instant-data'));
         if (window.sessionStorage)
           thaw(sessionStorage.getItem('instant-data'));
-        Instant._fireListeners(new InstantEvent("storage.load"));
+        Instant._fireListeners("storage.load");
       },
       /* Serialize the current data to the backends
        * This version does not run event handlers. */
@@ -3952,7 +3952,7 @@ this.Instant = function() {
       },
       /* Serialize the current data to the backends */
       save: function() {
-        Instant._fireListeners(new InstantEvent("storage.save"));
+        Instant._fireListeners("storage.save");
         Instant.storage._save();
       },
       /* Obtain a reference to the raw data storage object
@@ -4017,9 +4017,10 @@ this.Instant = function() {
     handlers[name].push(handler);
   };
   /* Invoke the listeners for a given event */
-  Instant._fireListeners = function(event) {
-    if (! handlers[event.type]) return;
-    handlers[event.type].forEach(function(h) {
+  Instant._fireListeners = function(type, data) {
+    if (! handlers[type]) return;
+    var event = new InstantEvent(type, data);
+    handlers[type].forEach(function(h) {
       try {
         h(event);
       } catch (e) {
