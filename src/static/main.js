@@ -2483,6 +2483,10 @@ this.Instant = function() {
         /* Return it */
         return pref;
       },
+      /* Append the given node to the context menu */
+      addMenuNode: function(node) {
+        menu.appendChild(node);
+      },
       /* Show the context menu on the given node, or hide it */
       showMenu: function(id) {
         var curParent = menu.parentNode;
