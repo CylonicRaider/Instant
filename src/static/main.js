@@ -673,6 +673,9 @@ this.Instant = function() {
             nodes[i].classList.add('false');
           }
         }
+        /* Counts of plugin-inserted matchers */
+        var earlyMatchers = 0;
+        var lateMatchers = 0;
         /* Message parsing fragments */
         var matchers = [
           { /* Room/message links */
@@ -964,6 +967,28 @@ this.Instant = function() {
             }
             /* Done! */
             return stack[0];
+          },
+          /* Add an early matcher */
+          addEarlyMatcher: function(m) {
+            matchers.splice(earlyMatchers++, 0, m);
+          },
+          /* Add a late matcher */
+          addLateMatcher: function(m) {
+            matchers.push(m);
+            lateMatchers++;
+          },
+          /* Obtain the raw matcher array
+           * Use with discretion. */
+          getMatchers: function() {
+            return matchers;
+          },
+          /* Count plugin-inserted early matchers */
+          countEarlyMatchers: function() {
+            return earlyMatchers;
+          },
+          /* Count plugin-inserted late matchers */
+          countLateMatchers: function() {
+            return lateMatchers;
           }
         };
       }(),
