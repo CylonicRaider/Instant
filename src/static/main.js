@@ -3930,6 +3930,19 @@ this.Instant = function() {
   }();
   /* Offline storage */
   Instant.storage = function() {
+    /* Utility function */
+    function thaw(str) {
+      if (! str) return null;
+      var res = null;
+      try {
+        res = JSON.parse(str);
+        if (typeof res != 'object') throw 'Malformed data';
+      } catch (e) {
+        console.warn('Could not deserialize storage:', e);
+        return null;
+      }
+      return res;
+    }
     /* Actual data */
     var data = {};
     return {
@@ -3970,35 +3983,40 @@ this.Instant = function() {
       /* Read the underlying storage backends and merge the results into the
        * data array. */
       load: function() {
-        function thaw(str) {
-          if (! str) return;
-          var res = null;
-          try {
-            res = JSON.parse(str);
-            if (typeof res != 'object') throw 'Malformed data';
-          } catch (e) {
-            console.warn('Could not deserialize storage:', e);
-            return;
-          }
+        function embed(res) {
+          if (! res) return;
           for (var key in res) {
             if (! res.hasOwnProperty(key)) continue;
             data[key] = res[key];
           }
         }
-        if (window.localStorage)
-          thaw(localStorage.getItem('instant-data'));
-        if (window.sessionStorage)
-          thaw(sessionStorage.getItem('instant-data'));
+        if (window.localStorage) {
+          embed(thaw(localStorage.getItem('instant-data')));
+          if (Instant.roomName) {
+            var d = thaw(localStorage.getItem('instant-data-rooms'));
+            if (d) embed(d[Instant.roomName]);
+          }
+        }
+        if (window.sessionStorage) {
+          embed(thaw(sessionStorage.getItem('instant-data')));
+        }
         Instant._fireListeners('storage.load');
       },
       /* Serialize the current data to the backends
        * This version does not run event handlers. */
       _save: function() {
         var encoded = JSON.stringify(data);
-        if (window.sessionStorage)
+        if (window.sessionStorage) {
           sessionStorage.setItem('instant-data', encoded);
-        if (window.localStorage)
+        }
+        if (window.localStorage) {
           localStorage.setItem('instant-data', encoded);
+          if (Instant.roomName) {
+            var rd = thaw(localStorage.getItem('instant-data-rooms')) || {};
+            rd[Instant.roomName] = data;
+            localStorage.setItem('instant-data-rooms', JSON.stringify(rd));
+          }
+        }
       },
       /* Serialize the current data to the backends */
       save: function() {
