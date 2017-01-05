@@ -122,7 +122,7 @@ this.Instant = function() {
   /* Locale-agnostic abbreviated month name table */
   var MONTH_NAMES = { 1: 'Jan',  2: 'Feb',  3: 'Mar',  4: 'Apr',
                       5: 'May',  6: 'Jun',  7: 'Jul',  8: 'Aug',
-                      9: 'Sep', 10: 'Oct', 11: 'Nov', 12: 'Dec'};
+                      9: 'Sep', 10: 'Oct', 11: 'Nov', 12: 'Dec' };
   /* Upcoming return value */
   var Instant = {};
   /* Prepare connection */
@@ -649,9 +649,10 @@ this.Instant = function() {
       /* Message parsing -- has an own namespace to avoid pollution */
       parser: function() {
         /* Smiley table */
-        var SMILIES = {'+1': '#008000', '-1': '#c00000',
-          '>:)': '#c00000', '>:]': '#c00000', '>:}': '#c00000',
-          '>:D': '#c00000'};
+        var SMILIES = {
+          '+1' : '#008000', '-1' : '#c00000', '>:)': '#c00000',
+          '>:]': '#c00000', '>:}': '#c00000', '>:D': '#c00000'
+        };
         var SMILEY_DEFAULT = '#c0c000';
         /* Helper: Quickly create a DOM node */
         function makeNode(text, className, color, tag) {
