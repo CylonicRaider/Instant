@@ -1531,13 +1531,13 @@ this.Instant = function() {
         var text;
         if (msg.classList.contains('emote')) {
           text = ('* ' + $sel('.nick', msg).textContent + ' ' +
-          $sel('.content', msg).textContent);
+                  $sel('.content', msg).textContent);
         } else {
           /* HACK: Some notification systems seem to interpret the body as
            *       HTML, so the preferred "angled brackets" cannot be used
            *       (unless we want the name to be an HTML tag). */
           text = ('[' + $sel('.nick', msg).textContent + '] ' +
-          $sel('.content', msg).textContent);
+                  $sel('.content', msg).textContent);
         }
         var level = Instant.notifications.getLevel(msg);
         /* For window title et al. */
