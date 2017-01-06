@@ -3722,6 +3722,10 @@ this.Instant = function() {
         var noDisturb = Instant.storage.get('no-disturb');
         if (noDisturb) cnt.elements['no-disturb'].checked = noDisturb;
       },
+      /* Add a node to the settings content */
+      addSetting: function(newNode) {
+        $sel('.settings-content', wrapperNode).appendChild(newNode);
+      },
       /* Set the setting popup visibility */
       _setVisible: function(vis, event) {
         var wasVisible = Instant.settings.isVisible();
@@ -3747,6 +3751,10 @@ this.Instant = function() {
       /* Toggle the settings visibility */
       toggle: function(event) {
         Instant.settings._setVisible(null, event);
+      },
+      /* Obtain the current setttings node */
+      getMainNode: function() {
+        return $sel('.settings-content', wrapperNode);
       },
       /* Returns whether the settings area is currently visible */
       isVisible: function() {
