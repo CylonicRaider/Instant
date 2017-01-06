@@ -1182,7 +1182,7 @@ this.Instant = function() {
               ['span', 'hidden', {'data-key': 'indent'}],
               ['span', 'hidden', {'data-key': 'before-nick'}, '<'],
               Instant.nick.makeNode(params.nick),
-              ['span', 'hidden', {'data-key': 'after-nick'}, '>']
+              ['span', 'hidden', {'data-key': 'after-nick'}, '> ']
             ]],
             ['span', 'content', [content]]
           ]]
