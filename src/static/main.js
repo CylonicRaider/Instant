@@ -176,6 +176,18 @@ this.Instant = function() {
     callback();
     setInterval(callback, time);
   }
+  /* Run a list of callbacks */
+  function runList(list) {
+    if (! list) return;
+    var args = Array.prototype.slice.call(arguments, 1);
+    for (var i = 0; i < list.length; i++) {
+      try {
+        list[i].apply(this, args);
+      } catch (e) {
+        console.error('Cannot run callback:', e);
+      }
+    }
+  }
   /* Logging handlers */
   var console = {
     /* Log a debugging message */
@@ -271,6 +283,8 @@ this.Instant = function() {
     var connected = false, wasConnected = false;
     /* Whether the default URL was overridden */
     var overridden = false;
+    /* Message handlers */
+    var rawHandlers = {}, handlers = {};
     /* Send pings every thirty seconds */
     setInterval(function() {
       if (Instant && Instant.connection && Instant.connection.isConnected())
@@ -365,8 +379,20 @@ this.Instant = function() {
         try {
           msg = JSON.parse(event.data);
         } catch (e) {
-          console.warn(e);
+          console.warn('Cannot parse message:', e);
           return;
+        }
+        /* Invoke handlers */
+        var handled = false;
+        if (msg.type && rawHandlers[msg.type]) {
+          handled = rawHandlers[msg.type].some(function(h) {
+            try {
+              return h(msg, event);
+            } catch (e) {
+              console.error('Could not run listener:', e);
+              return false;
+            }
+          });
         }
         /* Switch on the message type */
         switch (msg.type) {
@@ -402,6 +428,17 @@ this.Instant = function() {
           case 'unicast': /* Someone sent a message directly to us */
           case 'broadcast': /* Someone sent a message to everyone */
             var data = msg.data || {};
+            /* Run handlers again */
+            if (data.type && handlers[data.type]) {
+              handled |= handlers[data.type].some(function(h) {
+                try {
+                  return h(msg, event);
+                } catch (e) {
+                  console.error('Could not run listener:', e);
+                  return false;
+                }
+              });
+            }
             switch (data.type) {
               case 'post': /* Someone sent a message */
                 /* Sanitize input */
@@ -465,12 +502,12 @@ this.Instant = function() {
                 /* Both for log scraper interaction; not for the JS client */
                 break;
               default:
-                console.warn('Unknown client message:', data);
+                if (! handled) console.warn('Unknown client message:', data);
                 break;
             }
             break;
           default:
-            console.warn('Unknown server message:', msg);
+            if (! handled) console.warn('Unknown server message:', msg);
             break;
         }
       },
@@ -540,6 +577,30 @@ this.Instant = function() {
           return Instant.connection.sendBroadcast(data);
         }
       },
+      /* Add a handler for "raw" message types */
+      addRawHandler: function(type, handler) {
+        Instant.connection.removeRawHandler(type, handler);
+        if (! rawHandlers[type]) rawHandlers[type] = [];
+        rawHandlers[type].push(handler);
+      },
+      /* Remove a handler for a "raw" message type */
+      removeRawHandler: function(type, handler) {
+        if (! rawHandlers[type]) return;
+        var idx = rawHandlers[type].indexOf(handlers);
+        if (idx != -1) rawHandlers.splice(idx, 1);
+      },
+      /* Add a handler for a unicast/broadcast message subtype */
+      addHandler: function(type, handler) {
+        Instant.connection.removeHandler(type, handler);
+        if (! handlers[type]) handlers[type] = [];
+        handlers[type].push(handler);
+      },
+      /* Remove a handler for a unicast/broadcast message subtype */
+      removeHandler: function(type, handler) {
+        if (! handlers[type]) return;
+        var idx = handlers[type].indexOf(handlers);
+        if (idx != -1) handlers.splice(idx, 1);
+      },
       /* Check whether the client is currently connected */
       isConnected: function() {
         return connected;
@@ -551,6 +612,14 @@ this.Instant = function() {
       /* Check whether the default connection URL was overridden */
       isURLOverridden: function() {
         return overridden;
+      },
+      /* Obtain the whole raw handler mapping */
+      getRawHandlers: function() {
+        return rawHandlers;
+      },
+      /* Get the whole handler mapping */
+      getHandlers: function() {
+        return handlers;
       },
       /* Event handler for WebSocket messages */
       onRawMessage: null
@@ -4119,13 +4188,7 @@ this.Instant = function() {
   Instant._fireListeners = function(type, data) {
     if (! handlers[type]) return;
     var event = new InstantEvent(type, data);
-    handlers[type].forEach(function(h) {
-      try {
-        h(event);
-      } catch (e) {
-        console.error('Event listener failed:', e);
-      }
-    });
+    runList(handlers[type], event);
   };
   /* Global initialization function */
   Instant.init = function(main, loadWrapper, navigation) {
