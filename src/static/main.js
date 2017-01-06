@@ -1393,12 +1393,13 @@ this.Instant = function() {
         return lc;
       },
       /* Scan an array of messages where to insert
-       * If a matching node is (already) found, it is removed. */
-      bisect: function(array, id) {
+       * If a matching node is (already) found and remove is true, it is
+       * removed. */
+      bisect: function(array, id, remove) {
         if (! array || ! array.length) return null;
         var f = 0, t = array.length - 1;
         var last = null;
-        /* Exclude baloon */
+        /* Exclude baloon (if any), or anything else before messages */
         while (f <= t && ! Instant.message.isMessage(array[f]))
           f++;
         /* Exclude input bar */
@@ -1428,11 +1429,14 @@ this.Instant = function() {
               /* c will never be equal to t unless f == t */
               f = c + 1;
             }
-          } else {
+          } else if (remove) {
             /* Replace old node */
             var ret = array[c].nextElementSibling;
             array[c].parentNode.removeChild(array[c]);
             return ret;
+          } else {
+            /* Return old node */
+            return array[c].nextElementSibling;
           }
         }
       },
@@ -1467,7 +1471,7 @@ this.Instant = function() {
           messages[child.getAttribute('data-id')] = child;
         }
         /* Insert child */
-        var before = Instant.message.bisect(parent.children, child.id);
+        var before = Instant.message.bisect(parent.children, child.id, true);
         parent.insertBefore(child, before);
         /* Return the (possibly processed) child */
         return child;
