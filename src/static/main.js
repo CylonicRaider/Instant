@@ -1969,8 +1969,10 @@ this.Instant = function() {
           /* Whether to clear the input bar */
           var clear = false;
           /* Allow event handlers to have a word */
-          Instant._fireListeners('input.send', {text: text, source: event});
+          var evdata = {text: text, source: event};
+          Instant._fireListeners('input.send', evdata);
           if (event.defaultPrevented) return;
+          text = evdata.text;
           /* Do not input line feeds in any case */
           event.preventDefault();
           /* Ignore empty sends */
@@ -2008,7 +2010,6 @@ this.Instant = function() {
         } else if (event.keyCode == 9 && ! event.shiftKey) { // Tab
           /* Extract text with selection removed and obtain the cursor
            * position */
-          var text = inputMsg.value;
           if (inputMsg.selectionStart != inputMsg.selectionEnd) {
             text = (text.substr(0, inputMsg.selectionStart) +
                     text.substr(inputMsg.selectionEnd));
