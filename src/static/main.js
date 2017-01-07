@@ -4163,6 +4163,85 @@ this.Instant = function() {
       }
     };
   }();
+  /* Plugin utilities */
+  Instant.plugins = function() {
+    return {
+      /* Return a Promise of the result of an XMLHttpRequest GETting url
+       * init is a callback that (if true) is called with the XMLHttpRequest
+       * object as the only argument just before submitting the latter.
+       * The promise resolves to the XHR object for the user's examination,
+       * or rejects to an Error object that contains the XHR object as the
+       * "request" property. */
+      loadFile: function(url, init) {
+        return new Promise(function(resolve, reject) {
+          var req = new XMLHttpRequest();
+          req.open('GET', url, true);
+          req.onreadystatechange = function() {
+            if (req.readyState != 4) return; // DONE
+            if (req.status == 200) { // OK, and 304 Not Modified
+              resolve(req);
+            } else {
+              var err = new Error('Downlad failed');
+              err.request = req;
+              reject(err);
+            }
+          };
+          if (init) init(req);
+          req.send();
+        });
+      },
+      /* Return a Promise of an <img> element with data from url
+       * init is handled similarly to loadFile; also similarly to loadFile,
+       * on error, the promise is rejected to an Error object containing the
+       * Image the download was performed on as "image". Additionally,
+       * the "event" property of the rejection value holds the error event
+       * that led the promise to rejection. */
+      loadImage: function(url, init) {
+        return new Promise(function(resolve, reject) {
+          var img = document.createElement('img');
+          img.onload = function() {
+            resolve(img);
+          }
+          img.onerror = function(event) {
+            var err = new Error('Image download failed');
+            err.image = img;
+            err.event = event;
+            reject(err);
+          }
+          if (init) init(img);
+          img.src = url;
+        });
+      },
+      /* Return a Promise of the contents of the file at url */
+      loadContents: function(url) {
+        return Instant.plugins.loadFile(url).then(function(x) {
+          return x.response;
+        });
+      },
+      /* Add a stylesheet <link> referencing the given URL to the <head>
+       * If type is false, "text/css" is assigned to the link's "type"
+       * property. */
+      addStylesheet: function(url, type) {
+        var style = document.createElement('link');
+        style.rel = 'stylesheet';
+        style.type = type || 'text/css';
+        style.href = url;
+        document.head.appendChild(style);
+        return style;
+      },
+      /* Return a Promise of a <style> element with content from url
+       * type is handled exactly like the corresponding parameter of
+       * addStylesheet. */
+      loadStylesheet: function(url, type) {
+        return Instant.plugins.loadFile(url).then(function(req) {
+          var el = document.createElement('style');
+          el.innerHTML = req.response;
+          el.type = type || 'text/css';
+          return el;
+        });
+      }
+    };
+  }();
   /* Event handling */
   var handlers = {};
   /* Event class */
