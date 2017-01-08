@@ -117,6 +117,20 @@ function $makeNode(tag, className, attrs, children) {
   return ret;
 }
 
+/* Evaluate some code and return the results
+ * This is literally what one should normally not do.
+ * The function takes two undeclared arguments, code and global. code is the
+ * JavaScript code to execute; if global is true, the code is run in the
+ * global scope (and nothing can be passed in), otherwise, it is run in a
+ * function scope, and the this object is passed down to it. */
+function $evalIn() {
+  if (arguments[1]) {
+    return (0, eval)(arguments[0]);
+  } else {
+    return eval(arguments[0]);
+  }
+}
+
 /* Early preparation; define most of the functionality */
 this.Instant = function() {
   /* Locale-agnostic abbreviated month name table */
@@ -4165,7 +4179,51 @@ this.Instant = function() {
   }();
   /* Plugin utilities */
   Instant.plugins = function() {
+    /* Plugin registries */
+    var plugins = {}, pendingPlugins = {};
+    /* Plugin class */
+    function Plugin(name, options) {
+      this.name = name;
+      this.options = options || {};
+      this.data = undefined;
+      this._styles = null;
+      this._libs = null;
+      this._synclibs = null;
+    }
+    Plugin.prototype = {
+      /* Commence loading the plugin in question, and return a Promise of the
+       * loading result */
+      _load: function() {
+        var styles = this.options.styles || [];
+        this._styles = styles.map(Instant.plugins.addStylesheet);
+        var libs = this.options.libs || [];
+        this._libs = libs.map(Instant.plugins.addScript);
+        this._synclibs = [];
+        var pending = (this.options.synclibs || []).map(function(url, idx) {
+          return Instant.plugins.loadFile(url).then(function(req) {
+            return $evalIn.call(this, req.response, false);
+          }.bind(this)).then(function(res) {
+            this._synclibs[idx] = res;
+          }.bind(this));
+        }.bind(this));
+        var deps = this.options.deps || [];
+        pending = pending.concat(deps.map(Instant.plugins.getPluginAsync));
+        if (this.options.main) this._main = this.options.main;
+        return Promise.all(pending).then(function() {
+          return this._main();
+        }.bind(this)).then(function(data) {
+          this.data = data;
+          return this;
+        }.bind(this));
+      },
+      /* Stub of the plugin initializer function */
+      _main: function() {
+        return null;
+      }
+    };
     return {
+      /* Make constructor externally visible */
+      Plugin: Plugin,
       /* Return a Promise of the result of an XMLHttpRequest GETting url
        * init is a callback that (if true) is called with the XMLHttpRequest
        * object as the only argument just before submitting the latter.
@@ -4235,13 +4293,89 @@ this.Instant = function() {
       loadStylesheet: function(url, type) {
         return Instant.plugins.loadFile(url).then(function(req) {
           var el = document.createElement('style');
-          el.innerHTML = req.response;
           el.type = type || 'text/css';
+          el.innerHTML = req.response;
           return el;
         });
+      },
+      /* Add a <script> element to the <head>
+       * type is handled analogously to addStylesheet, but the default is
+       * application/javascript. */
+      addScript: function(url, type) {
+        var script = document.createElement('script');
+        script.type = type || 'application/javascript';
+        script.src = url;
+        document.head.appendChild(script);
+        return script;
+      },
+      /* Return a Promise of a <script> element with content from url */
+      loadScript: function(url, type) {
+        return Instant.plugins.loadFile(url).then(function(req) {
+          var el = document.createElement('script');
+          el.type = type || 'application/javascript';
+          el.innerHTML = req.response;
+          return el;
+        });
+      },
+      /* Load the given plugin asynchronously and return a Promise of it
+       * options contains the following properties (all optional):
+       * deps    : An array of names of plugins this plugin is dependent on.
+       *           All dependencies must be loaded before this plugin is
+       *           initialized.
+       * styles  : An array of stylesheet URL-s to be fetched and to added
+       *           to the document (asynchronously).
+       * libs    : An array of JavaScript file URL-s to be loaded and run
+       *           (asynchronously). The scripts are run in the global
+       *           context.
+       * synclibs: An array of JavaScript file URL-s to be loaded and
+       *           executed (in isolated scopes, with the this object
+       *           pointing to the plugin) before the plugin is finally
+       *           initialized.
+       *           References to objects that should persist must be assigned
+       *           to the this object explicitly.
+       *           Dependencies may or may not have been initialized.
+       * main    : Plugin initializer function. All synclibs have been run,
+       *           and their results are available in the this object. The
+       *           return value is assigned to the "data" property of the
+       *           plugin object; if it is thenable, it is resolved first. */
+      loadPlugin: function(name, options) {
+        var pl = new Plugin(name, options);
+        plugins[name] = null;
+        var ret = pl._load().then(function(p) {
+          plugins[name] = p;
+          return p;
+        });
+        pendingPlugins[name] = ret;
+        return ret;
+      },
+      /* Return the object corresponding to the named plugin */
+      getPlugin: function(name) {
+        var ret = plugins[name];
+        if (ret == null) throw new Error('Plugin ' +  name + ' not loaded yet!');
+        if (! ret) throw new Error('No such plugin: ' + name);
+        return ret;
+      },
+      /* Return a Promise of the object of the named plugin */
+      getPluginAsync: function(name) {
+        var ret = pendingPlugins[name];
+        if (! ret) throw new Error('No such plugin: ' + name);
+        return ret;
+      },
+      /* Return a Promise of the data of the given plugin */
+      getPluginDataAsync: function(name) {
+        return getPluginAsync(name).then(function(plugin) {
+          return plugin.data;
+        });
+      },
+      /* Return the internal mapping of all plugins
+       * Use with care. */
+      getAllPlugins: function() {
+        return plugins;
       }
     };
   }();
+  /* Alias */
+  Instant.loadPlugin = Instant.plugins.loadPlugin.bind(Instant.plugins);
   /* Event handling */
   var handlers = {};
   /* Event class */
