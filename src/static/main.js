@@ -4334,11 +4334,10 @@ this.Instant = function() {
        *           context.
        * synclibs: An array of JavaScript file URL-s to be loaded and
        *           executed (in isolated scopes, with the this object
-       *           pointing to the plugin) before the plugin is finally
-       *           initialized.
+       *           pointing to the plugin) before the plugin is initialized.
        *           References to objects that should persist must be assigned
        *           to the this object explicitly.
-       *           Dependencies are initialized when these are run.
+       *           Dependencies are already initialized when these are run.
        * main    : Plugin initializer function. All synclibs have been run,
        *           and their results are available in the this object. The
        *           return value is assigned to the "data" property of the
