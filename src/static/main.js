@@ -4194,6 +4194,7 @@ this.Instant = function() {
       /* Commence loading the plugin in question, and return a Promise of the
        * loading result */
       _load: function() {
+        var self = this;
         var styles = this.options.styles || [];
         this._styles = styles.map(Instant.plugins.addStylesheet);
         var libs = this.options.libs || [];
@@ -4205,19 +4206,20 @@ this.Instant = function() {
         var pending = synclibs.map(function(url, idx) {
           return Instant.plugins.loadFile(url).then(function(req) {
             return depsprom.then(function() {
-              return $evalIn.call(this, req.response, false);
-            }.bind(this)).then(function(res) {
-              this._synclibs[idx] = res;
-            }.bind(this));
-          }.bind(this));
-        }.bind(this));
+              return $evalIn.call(self, req.response, false);
+            }).then(function(res) {
+              self._synclibs[idx] = res;
+            });
+          });
+        });
+        pending.push(depsprom);
         if (this.options.main) this._main = this.options.main;
         return Promise.all(pending).then(function() {
-          return this._main();
-        }.bind(this)).then(function(data) {
-          this.data = data;
-          return this;
-        }.bind(this));
+          return self._main();
+        }).then(function(data) {
+          self.data = data;
+          return self;
+        });
       },
       /* Stub of the plugin initializer function */
       _main: function() {
