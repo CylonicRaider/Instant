@@ -4198,16 +4198,19 @@ this.Instant = function() {
         this._styles = styles.map(Instant.plugins.addStylesheet);
         var libs = this.options.libs || [];
         this._libs = libs.map(Instant.plugins.addScript);
+        var deps = this.options.deps || [];
+        var depsprom = Promise.all(deps.map(Instant.plugins.getPluginAsync));
+        var synclibs = this.options.synclibs || [];
         this._synclibs = [];
-        var pending = (this.options.synclibs || []).map(function(url, idx) {
+        var pending = synclibs.map(function(url, idx) {
           return Instant.plugins.loadFile(url).then(function(req) {
-            return $evalIn.call(this, req.response, false);
-          }.bind(this)).then(function(res) {
-            this._synclibs[idx] = res;
+            return depsprom.then(function() {
+              return $evalIn.call(this, req.response, false);
+            }.bind(this)).then(function(res) {
+              this._synclibs[idx] = res;
+            }.bind(this));
           }.bind(this));
         }.bind(this));
-        var deps = this.options.deps || [];
-        pending = pending.concat(deps.map(Instant.plugins.getPluginAsync));
         if (this.options.main) this._main = this.options.main;
         return Promise.all(pending).then(function() {
           return this._main();
@@ -4333,7 +4336,7 @@ this.Instant = function() {
        *           initialized.
        *           References to objects that should persist must be assigned
        *           to the this object explicitly.
-       *           Dependencies may or may not have been initialized.
+       *           Dependencies are initialized when these are run.
        * main    : Plugin initializer function. All synclibs have been run,
        *           and their results are available in the this object. The
        *           return value is assigned to the "data" property of the
