@@ -140,8 +140,8 @@ this.Instant = function() {
   /* Upcoming return value */
   var Instant = {};
   /* Prepare connection */
-  var roomPaths = new RegExp('^(?:\/dev\/([a-zA-Z0-9-]+))?(\/room\/' +
-    '([a-zA-Z](?:[a-zA-Z0-9_-]*[a-zA-Z0-9])?))\/?');
+  var roomPaths = new RegExp('^(?:/dev/([a-zA-Z0-9-]+))?(/room/' +
+    '([a-zA-Z](?:[a-zA-Z0-9_-]*[a-zA-Z0-9])?))/?');
   var roomMatch = roomPaths.exec(document.location.pathname);
   if (roomMatch) {
     var scheme = (document.location.protocol == 'https:') ? 'wss' : 'ws';
