@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <svg version="1.1" xmlns="http://www.w3.org/2000/svg" viewBox="0,0 16,16">
+    <title>Nonlinear black-on-transparent spinner</title>
     <g transform="translate(8,8)" fill="none" stroke="black">
         <circle r="6.5" stroke-width="1"/>
         <path d="M 0,-6.5 A 6.5,6.5 0 0,1 0,6.5 A 6.5,6.5 0 0,1 0,-6.5 Z"

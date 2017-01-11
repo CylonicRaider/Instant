@@ -246,7 +246,7 @@ body {
   padding-right: 3px;
 }
 
-.throbber {
+.spinner {
   display: none;
   position: relative;
   width: 1.2em;
@@ -255,10 +255,10 @@ body {
   padding: 2px;
   vertical-align: bottom;
 }
-.throbber.visible {
+.spinner.visible {
   display: inline-block;
 }
-.throbber img {
+.spinner img {
   position: absolute;
   top: 0;
   bottom: 0;

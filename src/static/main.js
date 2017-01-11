@@ -2198,7 +2198,7 @@ this.Instant = function() {
           ['div', 'sidebar-content', [
             ['div', 'sidebar-top', [
               ['div', 'sidebar-top-line', [
-                Instant.animation.throbber.init(), ' ',
+                Instant.animation.spinner.init(), ' ',
                 Instant.sidebar.roomName.init(), ' ',
                 Instant.animation.onlineStatus.init(), ' ',
                 Instant.settings.init()
@@ -2897,9 +2897,9 @@ this.Instant = function() {
               timer = setInterval(Instant.logs.pull._check, POLL_TIME);
             }
             if (pullType.before)
-              Instant.animation.throbber.show('logs-before');
+              Instant.animation.spinner.show('logs-before');
             if (pullType.after)
-              Instant.animation.throbber.show('logs-after');
+              Instant.animation.spinner.show('logs-after');
           },
           /* Start a round of log pulling */
           start: function() {
@@ -2959,7 +2959,7 @@ this.Instant = function() {
                 sentAfter = true;
               }
             }
-            /* Clear throbber */
+            /* Clear spinner */
             Instant.logs.pull._done(! sentBefore, ! sentAfter);
           },
           /* Handler for messages */
@@ -3073,11 +3073,11 @@ this.Instant = function() {
             /* Reset things */
             if (before) {
               pullType.before = false;
-              Instant.animation.throbber.hide('logs-before');
+              Instant.animation.spinner.hide('logs-before');
             }
             if (after) {
               pullType.after = false;
-              Instant.animation.throbber.hide('logs-after');
+              Instant.animation.spinner.hide('logs-after');
             }
             /* Check for more logs above */
             Instant.animation._updateLogs();
@@ -3356,32 +3356,32 @@ this.Instant = function() {
         };
       }(),
       /* Throbber indicating ongoing action */
-      throbber: function() {
+      spinner: function() {
         /* Status
-         * The throbber displays as long as at least one of the values in
+         * The spinner displays as long as at least one of the values in
          * here it true. */
         var status = {};
-        /* The actual throbber element */
+        /* The actual spinner element */
         var node = null;
         return {
           /* Initialize the submodule */
           init: function() {
-            node = $makeNode('div', 'throbber', [
-              ['img', {src: '/static/throbber.svg'}]
+            node = $makeNode('div', 'spinner', [
+              ['img', {src: '/static/spinner.svg'}]
             ]);
-            Instant.animation.throbber._update();
+            Instant.animation.spinner._update();
             return node;
           },
-          /* Show the throbber, setting the given status variable */
+          /* Show the spinner, setting the given status variable */
           show: function(key) {
             status[key] = true;
-            Instant.animation.throbber._update();
+            Instant.animation.spinner._update();
           },
-          /* Possibly hide the throbber, but at least mark this task as
+          /* Possibly hide the spinner, but at least mark this task as
            * done */
           hide: function(key) {
             status[key] = false;
-            Instant.animation.throbber._update();
+            Instant.animation.spinner._update();
             Instant.animation.greeter.hide();
           },
           /* Get the status value for the given key */
