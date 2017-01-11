@@ -730,353 +730,6 @@ this.Instant = function() {
         msgPane = $makeNode('div', 'message-pane', [['div', 'message-box']]);
         return msgPane;
       },
-      /* Message parsing -- has an own namespace to avoid pollution */
-      parser: function() {
-        /* Smiley table */
-        var SMILIES = {
-          '+1' : '#008000', '-1' : '#c00000', '>:)': '#c00000',
-          '>:]': '#c00000', '>:}': '#c00000', '>:D': '#c00000'
-        };
-        var SMILEY_DEFAULT = '#c0c000';
-        /* Helper: Quickly create a DOM node */
-        function makeNode(text, className, color, tag) {
-          var node = document.createElement(tag || 'span');
-          if (className) node.className = className;
-          if (color) node.style.color = color;
-          if (text) node.textContent = text;
-          return node;
-        }
-        /* Helper: Create a sigil node */
-        function makeSigil(text, className) {
-          return makeNode(text, 'sigil ' + className);
-        }
-        /* Disable a wrongly-assumed emphasis mark */
-        function declassify(elem) {
-          elem.disabled = true;
-          var nodes = elem.nodes || [];
-          for (var i = 0; i < nodes.length; i++) {
-            nodes[i].classList.add('false');
-          }
-        }
-        /* Counts of plugin-inserted matchers */
-        var earlyMatchers = 0;
-        var lateMatchers = 0;
-        /* Message parsing fragments */
-        var matchers = [
-          { /* Room/message links */
-            name: 'room',
-            re: /\B&([a-zA-Z]([\w-]*[a-zA-Z0-9])?)(#([a-zA-Z0-9]+))?\b/,
-            cb: function(m, out) {
-              var node = makeNode(m[0], 'room-link', null, 'a');
-              node.href = ('../' + m[1] + '/' +
-                ((m[4]) ? '#message-' + m[4] : ''));
-              if (m[1] != Instant.roomName || ! m[4])
-                node.target = '_blank';
-              out.push(node);
-            }
-          },
-          { /* Hyperlinks */
-            name: 'link',
-            re: new RegExp('<(((?!javascript:)[a-zA-Z]+://)?' +
-              '([a-zA-Z0-9._~-]+@)?([a-zA-Z0-9.-]+)(:[0-9]+)?(/[^>]*)?)>'),
-            cb: function(m, out) {
-              /* Hyperlink (must contain non-word character) */
-              if (! /\W/.test(m[1])) {
-                out.push(m[0]);
-                return;
-              }
-              out.push(makeSigil('<', 'link-before'));
-              /* Insert http:// if necessary */
-              var url = m[1];
-              if (! m[2]) url = 'http://' + url;
-                var node = makeNode(m[1], 'link', null, 'a');
-              node.href = url;
-              node.target = '_blank';
-              out.push(node);
-              out.push(makeSigil('>', 'link-after'));
-            }
-          },
-          { /* @-mentions */
-            name: 'mention',
-            re: /@[^.,:;!?()\s]+(?:\([^.,:;!?()\s]*\)[^.,:;!?()\s]*)*/,
-            bef: /\W|^$/, aft: /\W|^$/,
-            cb: function(m, out) {
-              out.push(Instant.nick.makeMention(m[0]));
-            }
-          },
-          { /* Smileys */
-            name: 'smiley',
-            re: new RegExp('[+-]1|>?[:;=][D)\\]}|{\\[/\\\\(cCSPoO3]|' +
-              '[SD)\\\\/\\]}|{\\[(cCoO][:=]<?|\\^\\^|\\\\o/'),
-            bef: /[\s(]|^$/, aft: /[\s.,:;!?)]|^$/,
-            cb: function(m, out) {
-              var c = SMILIES[m[0]] || SMILEY_DEFAULT;
-              out.push(makeNode(m[0], 'smiley', c));
-            }
-          },
-          { /* Inline monospace */
-            name: 'mono',
-            re: /`([^`\s]+)`|`([^`\s]+)|([^`\s]+)`/,
-            bef: /[^\w`]|^$/, aft: /[^\w`]|^$/,
-            cb: function(m, out) {
-              /* Leading sigil */
-              if (m[1] != null || m[2] != null) {
-                var node = makeSigil('`', 'mono-before');
-                out.push(node);
-                out.push({add: 'mono', nodes: [node]});
-              }
-              /* Embed actual text */
-              out.push(m[1] || m[2] || m[3]);
-              /* Trailing sigil */
-              if (m[1] != null || m[3] != null) {
-                var node = makeSigil('`', 'mono-after');
-                out.push({rem: 'mono', nodes: [node]});
-                out.push(node);
-              }
-            },
-            add: function() {
-              return makeNode(null, 'monospace');
-            }
-          },
-          { /* Emphasized text */
-            name: 'emph',
-            re: /\*+([^*\s-]+)\*+|\*+([^*\s-]+)|([^*\s-]+)\*+/,
-            bef: /\W|^$/, aft: /\W|^$/,
-            cb: function(m, out) {
-              /* Emphasized text (again, only before has to be tested) */
-              var pref = $prefLength(m[0], '*');
-              var suff = $suffLength(m[0], '*');
-              /* Sigils are in individual nodes so they can be selectively
-               * disabled */
-              for (var i = 0; i < pref; i++) {
-                var node = makeSigil('*', 'emph-before');
-                out.push(node);
-                out.push({add: 'emph', nodes: [node]});
-              }
-              /* Add actual text; which one does not matter */
-              out.push(m[1] || m[2] || m[3]);
-              /* Same as above for trailing sigil */
-              for (var i = 0; i < suff; i++) {
-                var node = makeSigil('*', 'emph-after');
-                out.push({rem: 'emph', nodes: [node]});
-                out.push(node);
-              }
-            },
-            add: function(stack, status) {
-              var level = (status.emphLevel || 0) + 1;
-              status.emphLevel = level;
-              var node = makeNode(null, 'emph');
-              var style = node.style;
-              style.fontStyle = (level & 1) ? 'italic' : 'normal';
-              style.fontWeight = (level & 2) ? 'bold' : 'normal';
-              style.fontVariant = (level & 4) ? 'small-caps' : 'normal';
-              return node;
-            },
-            rem: function(stack, status) {
-              stack.pop();
-              status.emphLevel--;
-            }
-          },
-          { /* Block monospace sigils */
-            name: 'monoBlock',
-            re: /(\n)?```(\n)?/,
-            cb: function(m, out, status) {
-              /* Block-level monospace marker */
-              if (m[2] != null && status.grabbing == null) {
-                /* Sigil introducing block */
-                var st = (m[1] || '') + '```';
-                var node = makeSigil(st, 'mono-block-before');
-                var nl = makeNode('\n', 'hidden');
-                out.push(node);
-                out.push(nl);
-                out.push({add: 'monoBlock', nodes: [node, nl]});
-                status.grabbing = status.id;
-              } else if (m[1] != null && status.grabbing != null) {
-                /* Sigil terminating block */
-                var st = '```' + (m[2] || '');
-                var node = makeSigil(st, 'mono-block-after');
-                var nl = makeNode('\n', 'hidden');
-                out.push({rem: 'monoBlock', nodes: [node, nl]});
-                out.push(nl);
-                out.push(node);
-                status.grabbing = null;
-              } else {
-                out.push(m[0]);
-              }
-            },
-            add: function() {
-              return makeNode(null, 'monospace monospace-block');
-            }
-          }
-        ];
-        return {
-          /* Helper: Quickly create a DOM node */
-          makeNode: makeNode,
-          /* Helper: Quickly create a sigil node */
-          makeSigil: makeSigil,
-          /* Parse a message into a DOM node */
-          parse: function(text) {
-            /* Intermediate result; current index; text length; array of
-             * matches; length of matchers; status object */
-            var out = [], idx = 0, len = text.length, matches = [];
-            var mlen = matchers.length, status = {grabbing: null};
-            /* Duplicate regexes; create index */
-            var matcherIndex = {};
-            var regexes = matchers.map(function(el) {
-              if (el.name) matcherIndex[el.name] = el;
-              return new RegExp(el.re.source, 'g' +
-                (el.re.ignoreCase ? 'i' : '') +
-                (el.re.multiline ? 'm' : ''));
-            });
-            /* Main loop */
-            while (idx < len) {
-              /* Index (into array) of foremost match so far */
-              var minIdx = null, ib, ie;
-              /* Which indices to iterate over */
-              if (status.grabbing == null) {
-                ib = 0;
-                ie = mlen;
-              } else {
-                ib = status.grabbing;
-                ie = ib + 1;
-              }
-              for (var i = ib; i < ie; i++) {
-                /* This one won't match */
-                if (matches[i] == Infinity) continue;
-                /* Recalculate indices where necessary */
-                if (matches[i] == null || matches[i].index < idx) {
-                  regexes[i].lastIndex = idx;
-                  for (;;) {
-                    /* Match */
-                    var m = regexes[i].exec(text);
-                    matches[i] = m;
-                    /* No match */
-                    if (m == null) {
-                      matches[i] = Infinity;
-                      break;
-                    }
-                    /* Check pre- and postconditions */
-                    if (matchers[i].bef) {
-                      var chBefore = ((m.index == 0) ? '' :
-                        text.substr(m.index - 1, 1));
-                      if (! matchers[i].bef.test(chBefore))
-                        continue;
-                    }
-                    if (matchers[i].aft) {
-                      var chAfter = text.substr(m.index + m[0].length, 1);
-                      if (! matchers[i].aft.test(chAfter))
-                        continue;
-                    }
-                    /* Match found */
-                    break;
-                  }
-                  if (matches[i] == Infinity) continue;
-                }
-                /* Update minimal match */
-                if (minIdx == null ||
-                    matches[minIdx].index > matches[i].index)
-                  minIdx = i;
-              }
-              /* Handle no matches */
-              if (minIdx == null) {
-                out.push(text.substring(idx));
-                break;
-              }
-              /* Insert text up to match */
-              if (matches[minIdx].index != idx)
-                out.push(text.substring(idx, matches[minIdx].index));
-              /* Process match */
-              status.id = minIdx;
-              matchers[minIdx].cb(matches[minIdx], out, status);
-              idx = matches[minIdx].index + matches[minIdx][0].length;
-            }
-            /* Disable stray emphasis marks
-             * Those nested highlights actually form a context-free
-             * grammar. */
-            var stack = [];
-            for (var i = 0; i < out.length; i++) {
-              var e = out[i];
-              /* Filter such that only user-made objects remain */
-              if (typeof e != 'object' || e.nodeType !== undefined) continue;
-              /* Add or remove emphasis, respectively */
-              if (e.add) {
-                stack.push(e);
-              } else if (e.rem) {
-                if (stack.length) {
-                  /* Check if it actually matches */
-                  if (e.rem == stack[stack.length - 1].add) {
-                    stack.pop();
-                  } else {
-                    declassify(e);
-                  }
-                } else {
-                  declassify(e);
-                }
-              }
-            }
-            for (var i = 0; i < stack.length; i++) {
-              declassify(stack[i]);
-            }
-            /* Assign actual emphasis levels (italic -> bold -> small-caps,
-             * with combinations in between) */
-            stack = [makeNode(null, 'message-text')];
-            status = {};
-            for (var i = 0; i < out.length; i++) {
-              var e = out[i], top = stack[stack.length - 1];
-              /* Drain non-metadata parts into the current node */
-              if (typeof e == 'string') {
-                top.appendChild(document.createTextNode(e));
-              } else if (e.nodeType !== undefined) {
-                top.appendChild(e);
-              }
-              /* Disabled emphasis nodes don't do anything */
-              if (e.disabled) continue;
-              /* First remove emphasis */
-              if (e.rem) {
-                var cb = matcherIndex[e.rem].rem;
-                if (cb) {
-                  cb(stack, status);
-                } else {
-                  stack.pop();
-                }
-              }
-              /* Then add some */
-              if (e.add) {
-                var cb = matcherIndex[e.add].add;
-                var node = (cb) ? cb(stack, status) : makeNode();
-                if (node) {
-                  top.appendChild(node);
-                  stack.push(node);
-                }
-              }
-            }
-            /* Done! */
-            return stack[0];
-          },
-          /* Add an early matcher */
-          addEarlyMatcher: function(m) {
-            matchers.splice(earlyMatchers++, 0, m);
-          },
-          /* Add a late matcher */
-          addLateMatcher: function(m) {
-            matchers.push(m);
-            lateMatchers++;
-          },
-          /* Obtain the raw matcher array
-           * Use with discretion. */
-          getMatchers: function() {
-            return matchers;
-          },
-          /* Count plugin-inserted early matchers */
-          countEarlyMatchers: function() {
-            return earlyMatchers;
-          },
-          /* Count plugin-inserted late matchers */
-          countLateMatchers: function() {
-            return lateMatchers;
-          }
-        };
-      }(),
       /* Detect links, emphasis, and smileys out of a flat string and render
        * those into a DOM node */
       parseContent: function(text) {
@@ -1671,7 +1324,354 @@ this.Instant = function() {
             unreadMentions: (isPing) ? 1 : 0
           }
         });
-      }
+      },
+      /* Message parsing -- has an own namespace to avoid pollution */
+      parser: function() {
+        /* Smiley table */
+        var SMILIES = {
+          '+1' : '#008000', '-1' : '#c00000', '>:)': '#c00000',
+          '>:]': '#c00000', '>:}': '#c00000', '>:D': '#c00000'
+        };
+        var SMILEY_DEFAULT = '#c0c000';
+        /* Helper: Quickly create a DOM node */
+        function makeNode(text, className, color, tag) {
+          var node = document.createElement(tag || 'span');
+          if (className) node.className = className;
+          if (color) node.style.color = color;
+          if (text) node.textContent = text;
+          return node;
+        }
+        /* Helper: Create a sigil node */
+        function makeSigil(text, className) {
+          return makeNode(text, 'sigil ' + className);
+        }
+        /* Disable a wrongly-assumed emphasis mark */
+        function declassify(elem) {
+          elem.disabled = true;
+          var nodes = elem.nodes || [];
+          for (var i = 0; i < nodes.length; i++) {
+            nodes[i].classList.add('false');
+          }
+        }
+        /* Counts of plugin-inserted matchers */
+        var earlyMatchers = 0;
+        var lateMatchers = 0;
+        /* Message parsing fragments */
+        var matchers = [
+          { /* Room/message links */
+            name: 'room',
+            re: /\B&([a-zA-Z]([\w-]*[a-zA-Z0-9])?)(#([a-zA-Z0-9]+))?\b/,
+            cb: function(m, out) {
+              var node = makeNode(m[0], 'room-link', null, 'a');
+              node.href = ('../' + m[1] + '/' +
+                ((m[4]) ? '#message-' + m[4] : ''));
+              if (m[1] != Instant.roomName || ! m[4])
+                node.target = '_blank';
+              out.push(node);
+            }
+          },
+          { /* Hyperlinks */
+            name: 'link',
+            re: new RegExp('<(((?!javascript:)[a-zA-Z]+://)?' +
+              '([a-zA-Z0-9._~-]+@)?([a-zA-Z0-9.-]+)(:[0-9]+)?(/[^>]*)?)>'),
+            cb: function(m, out) {
+              /* Hyperlink (must contain non-word character) */
+              if (! /\W/.test(m[1])) {
+                out.push(m[0]);
+                return;
+              }
+              out.push(makeSigil('<', 'link-before'));
+              /* Insert http:// if necessary */
+              var url = m[1];
+              if (! m[2]) url = 'http://' + url;
+                var node = makeNode(m[1], 'link', null, 'a');
+              node.href = url;
+              node.target = '_blank';
+              out.push(node);
+              out.push(makeSigil('>', 'link-after'));
+            }
+          },
+          { /* @-mentions */
+            name: 'mention',
+            re: /@[^.,:;!?()\s]+(?:\([^.,:;!?()\s]*\)[^.,:;!?()\s]*)*/,
+            bef: /\W|^$/, aft: /\W|^$/,
+            cb: function(m, out) {
+              out.push(Instant.nick.makeMention(m[0]));
+            }
+          },
+          { /* Smileys */
+            name: 'smiley',
+            re: new RegExp('[+-]1|>?[:;=][D)\\]}|{\\[/\\\\(cCSPoO3]|' +
+              '[SD)\\\\/\\]}|{\\[(cCoO][:=]<?|\\^\\^|\\\\o/'),
+            bef: /[\s(]|^$/, aft: /[\s.,:;!?)]|^$/,
+            cb: function(m, out) {
+              var c = SMILIES[m[0]] || SMILEY_DEFAULT;
+              out.push(makeNode(m[0], 'smiley', c));
+            }
+          },
+          { /* Inline monospace */
+            name: 'mono',
+            re: /`([^`\s]+)`|`([^`\s]+)|([^`\s]+)`/,
+            bef: /[^\w`]|^$/, aft: /[^\w`]|^$/,
+            cb: function(m, out) {
+              /* Leading sigil */
+              if (m[1] != null || m[2] != null) {
+                var node = makeSigil('`', 'mono-before');
+                out.push(node);
+                out.push({add: 'mono', nodes: [node]});
+              }
+              /* Embed actual text */
+              out.push(m[1] || m[2] || m[3]);
+              /* Trailing sigil */
+              if (m[1] != null || m[3] != null) {
+                var node = makeSigil('`', 'mono-after');
+                out.push({rem: 'mono', nodes: [node]});
+                out.push(node);
+              }
+            },
+            add: function() {
+              return makeNode(null, 'monospace');
+            }
+          },
+          { /* Emphasized text */
+            name: 'emph',
+            re: /\*+([^*\s-]+)\*+|\*+([^*\s-]+)|([^*\s-]+)\*+/,
+            bef: /\W|^$/, aft: /\W|^$/,
+            cb: function(m, out) {
+              /* Emphasized text (again, only before has to be tested) */
+              var pref = $prefLength(m[0], '*');
+              var suff = $suffLength(m[0], '*');
+              /* Sigils are in individual nodes so they can be selectively
+               * disabled */
+              for (var i = 0; i < pref; i++) {
+                var node = makeSigil('*', 'emph-before');
+                out.push(node);
+                out.push({add: 'emph', nodes: [node]});
+              }
+              /* Add actual text; which one does not matter */
+              out.push(m[1] || m[2] || m[3]);
+              /* Same as above for trailing sigil */
+              for (var i = 0; i < suff; i++) {
+                var node = makeSigil('*', 'emph-after');
+                out.push({rem: 'emph', nodes: [node]});
+                out.push(node);
+              }
+            },
+            add: function(stack, status) {
+              var level = (status.emphLevel || 0) + 1;
+              status.emphLevel = level;
+              var node = makeNode(null, 'emph');
+              var style = node.style;
+              style.fontStyle = (level & 1) ? 'italic' : 'normal';
+              style.fontWeight = (level & 2) ? 'bold' : 'normal';
+              style.fontVariant = (level & 4) ? 'small-caps' : 'normal';
+              return node;
+            },
+            rem: function(stack, status) {
+              stack.pop();
+              status.emphLevel--;
+            }
+          },
+          { /* Block monospace sigils */
+            name: 'monoBlock',
+            re: /(\n)?```(\n)?/,
+            cb: function(m, out, status) {
+              /* Block-level monospace marker */
+              if (m[2] != null && status.grabbing == null) {
+                /* Sigil introducing block */
+                var st = (m[1] || '') + '```';
+                var node = makeSigil(st, 'mono-block-before');
+                var nl = makeNode('\n', 'hidden');
+                out.push(node);
+                out.push(nl);
+                out.push({add: 'monoBlock', nodes: [node, nl]});
+                status.grabbing = status.id;
+              } else if (m[1] != null && status.grabbing != null) {
+                /* Sigil terminating block */
+                var st = '```' + (m[2] || '');
+                var node = makeSigil(st, 'mono-block-after');
+                var nl = makeNode('\n', 'hidden');
+                out.push({rem: 'monoBlock', nodes: [node, nl]});
+                out.push(nl);
+                out.push(node);
+                status.grabbing = null;
+              } else {
+                out.push(m[0]);
+              }
+            },
+            add: function() {
+              return makeNode(null, 'monospace monospace-block');
+            }
+          }
+        ];
+        return {
+          /* Helper: Quickly create a DOM node */
+          makeNode: makeNode,
+          /* Helper: Quickly create a sigil node */
+          makeSigil: makeSigil,
+          /* Parse a message into a DOM node */
+          parse: function(text) {
+            /* Intermediate result; current index; text length; array of
+             * matches; length of matchers; status object */
+            var out = [], idx = 0, len = text.length, matches = [];
+            var mlen = matchers.length, status = {grabbing: null};
+            /* Duplicate regexes; create index */
+            var matcherIndex = {};
+            var regexes = matchers.map(function(el) {
+              if (el.name) matcherIndex[el.name] = el;
+              return new RegExp(el.re.source, 'g' +
+                (el.re.ignoreCase ? 'i' : '') +
+                (el.re.multiline ? 'm' : ''));
+            });
+            /* Main loop */
+            while (idx < len) {
+              /* Index (into array) of foremost match so far */
+              var minIdx = null, ib, ie;
+              /* Which indices to iterate over */
+              if (status.grabbing == null) {
+                ib = 0;
+                ie = mlen;
+              } else {
+                ib = status.grabbing;
+                ie = ib + 1;
+              }
+              for (var i = ib; i < ie; i++) {
+                /* This one won't match */
+                if (matches[i] == Infinity) continue;
+                /* Recalculate indices where necessary */
+                if (matches[i] == null || matches[i].index < idx) {
+                  regexes[i].lastIndex = idx;
+                  for (;;) {
+                    /* Match */
+                    var m = regexes[i].exec(text);
+                    matches[i] = m;
+                    /* No match */
+                    if (m == null) {
+                      matches[i] = Infinity;
+                      break;
+                    }
+                    /* Check pre- and postconditions */
+                    if (matchers[i].bef) {
+                      var chBefore = ((m.index == 0) ? '' :
+                        text.substr(m.index - 1, 1));
+                      if (! matchers[i].bef.test(chBefore))
+                        continue;
+                    }
+                    if (matchers[i].aft) {
+                      var chAfter = text.substr(m.index + m[0].length, 1);
+                      if (! matchers[i].aft.test(chAfter))
+                        continue;
+                    }
+                    /* Match found */
+                    break;
+                  }
+                  if (matches[i] == Infinity) continue;
+                }
+                /* Update minimal match */
+                if (minIdx == null ||
+                    matches[minIdx].index > matches[i].index)
+                  minIdx = i;
+              }
+              /* Handle no matches */
+              if (minIdx == null) {
+                out.push(text.substring(idx));
+                break;
+              }
+              /* Insert text up to match */
+              if (matches[minIdx].index != idx)
+                out.push(text.substring(idx, matches[minIdx].index));
+              /* Process match */
+              status.id = minIdx;
+              matchers[minIdx].cb(matches[minIdx], out, status);
+              idx = matches[minIdx].index + matches[minIdx][0].length;
+            }
+            /* Disable stray emphasis marks
+             * Those nested highlights actually form a context-free
+             * grammar. */
+            var stack = [];
+            for (var i = 0; i < out.length; i++) {
+              var e = out[i];
+              /* Filter such that only user-made objects remain */
+              if (typeof e != 'object' || e.nodeType !== undefined) continue;
+              /* Add or remove emphasis, respectively */
+              if (e.add) {
+                stack.push(e);
+              } else if (e.rem) {
+                if (stack.length) {
+                  /* Check if it actually matches */
+                  if (e.rem == stack[stack.length - 1].add) {
+                    stack.pop();
+                  } else {
+                    declassify(e);
+                  }
+                } else {
+                  declassify(e);
+                }
+              }
+            }
+            for (var i = 0; i < stack.length; i++) {
+              declassify(stack[i]);
+            }
+            /* Assign actual emphasis levels (italic -> bold -> small-caps,
+             * with combinations in between) */
+            stack = [makeNode(null, 'message-text')];
+            status = {};
+            for (var i = 0; i < out.length; i++) {
+              var e = out[i], top = stack[stack.length - 1];
+              /* Drain non-metadata parts into the current node */
+              if (typeof e == 'string') {
+                top.appendChild(document.createTextNode(e));
+              } else if (e.nodeType !== undefined) {
+                top.appendChild(e);
+              }
+              /* Disabled emphasis nodes don't do anything */
+              if (e.disabled) continue;
+              /* First remove emphasis */
+              if (e.rem) {
+                var cb = matcherIndex[e.rem].rem;
+                if (cb) {
+                  cb(stack, status);
+                } else {
+                  stack.pop();
+                }
+              }
+              /* Then add some */
+              if (e.add) {
+                var cb = matcherIndex[e.add].add;
+                var node = (cb) ? cb(stack, status) : makeNode();
+                if (node) {
+                  top.appendChild(node);
+                  stack.push(node);
+                }
+              }
+            }
+            /* Done! */
+            return stack[0];
+          },
+          /* Add an early matcher */
+          addEarlyMatcher: function(m) {
+            matchers.splice(earlyMatchers++, 0, m);
+          },
+          /* Add a late matcher */
+          addLateMatcher: function(m) {
+            matchers.push(m);
+            lateMatchers++;
+          },
+          /* Obtain the raw matcher array
+           * Use with discretion. */
+          getMatchers: function() {
+            return matchers;
+          },
+          /* Count plugin-inserted early matchers */
+          countEarlyMatchers: function() {
+            return earlyMatchers;
+          },
+          /* Count plugin-inserted late matchers */
+          countLateMatchers: function() {
+            return lateMatchers;
+          }
+        };
+      }()
     };
   }();
   /* Input bar management */
