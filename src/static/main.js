@@ -140,7 +140,7 @@ this.Instant = function() {
   /* Upcoming return value */
   var Instant = {};
   /* Prepare connection */
-  var roomPaths = new RegExp('^(?:/([a-zA-Z0-9-]+))?(\/room\/' +
+  var roomPaths = new RegExp('^(?:\/dev\/([a-zA-Z0-9-]+))?(\/room\/' +
     '([a-zA-Z](?:[a-zA-Z0-9_-]*[a-zA-Z0-9])?))\/?');
   var roomMatch = roomPaths.exec(document.location.pathname);
   if (roomMatch) {
