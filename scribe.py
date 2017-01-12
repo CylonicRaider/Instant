@@ -17,7 +17,7 @@ except ImportError:
     from Queue import Queue, Empty as QueueEmpty
 
 NICKNAME = 'Scribe'
-VERSION = 'v1.3.2'
+VERSION = 'v1.4'
 MAXLEN = None
 DONTSTAY = False
 DONTPULL = False
