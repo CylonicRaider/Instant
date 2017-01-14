@@ -8,15 +8,10 @@ import contextlib
 import signal, errno, ssl
 import traceback
 import ast, json
-import websocket
 import sqlite3
 
+import websocket
 import instabot
-
-try:
-    from queue import Queue, Empty as QueueEmpty
-except ImportError:
-    from Queue import Queue, Empty as QueueEmpty
 
 NICKNAME = 'Scribe'
 VERSION = instabot.VERSION
@@ -376,45 +371,10 @@ class LogDBSQLite(LogDB):
 
 LOGS = LogDBList()
 
-class Sequence:
-    def __init__(self):
-        self.value = 0
-    def __call__(self):
-        ret = self.value
-        self.value += 1
-        return ret
-SEQUENCE = Sequence()
-IDENTIFIER = Sequence()
+SEQUENCE = instabot.AtomicSequence()
+IDENTIFIER = instabot.AtomicSequence()
 
 EVENTS = instabot.EventScheduler()
-
-class BackgroundWebSocket:
-    def __init__(self, url):
-        self.url = url
-        self.queue = Queue()
-        self.ws = None
-    def connect(self):
-        self.ws = websocket.create_connection(self.url)
-        thr = threading.Thread(target=self._reader)
-        thr.setDaemon(True)
-        thr.start()
-    def _reader(self):
-        try:
-            while 1:
-                self.queue.put(self.ws.recv())
-        except BaseException as e:
-            self.queue.put(e)
-    def recv(self, timeout=None):
-        try:
-            ret = self.queue.get(timeout=timeout)
-        except QueueEmpty:
-            raise websocket.WebSocketTimeoutException
-        if isinstance(ret, BaseException): raise ret
-        return ret
-    def send(self, datum):
-        self.ws.send(datum)
-    def close(self):
-        self.ws.close()
 
 LOGLINE_START = re.compile(r'^\[([0-9 Z:-]+)\]\s+([A-Z_-]+)\s+(.*)$')
 WHITESPACE = re.compile(r'\s+')
@@ -825,7 +785,7 @@ def main():
         while 1:
             log('CONNECT url=%r' % addr)
             try:
-                ws = BackgroundWebSocket(addr)
+                ws = instabot.BackgroundWebSocket(addr)
                 ws.connect()
             except Exception as e:
                 log('ERROR reason=%r' % repr(e))
