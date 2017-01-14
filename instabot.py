@@ -130,28 +130,11 @@ class Bot(object):
         if nickname is None: nickname = self.NICKNAME
         self.url = url
         self.nickname = nickname
-        self.identity = None
+        self.ws = None
         self.sequence = AtomicSequence()
-        self.ws = BackgroundWebSocket(url)
-        self.ws.on_message = self._on_message
-        self.ws.on_error = self._on_error
+        self.identity = None
     def connect(self):
-        try:
-            self.ws.connect()
-        except Exception as exc:
-            self.on_error(exc)
-        else:
-            self.on_open()
-    def _on_message(self, msg):
-        self.on_message(msg)
-        # Ensure correct return value
-        return True
-    def _on_error(self, exc):
-        self.on_error(exc)
-        return True
-    def _recv(self, t=None):
-        self.ws.recv(t)
-        return True
+        self.ws = websocket.create_connection(url)
     def on_open(self):
         if self.nickname is not None:
             self.send_broadcast({'type': 'nick', 'nick': self.nickname})
@@ -207,15 +190,23 @@ class Bot(object):
             self.on_error(exc)
         finally:
             self.on_close()
-    def main(self):
+    def run(self):
         try:
             self.connect()
-        except Exception as exc:
-            self.on_error(exc)
-            return
-        try:
-            self.scheduler.main()
+            while 1:
+                rawmsg = self.ws.recv()
+                if rawmsg is None: break
+                self.on_message(rawmsg)
         except Exception as exc:
             self.on_error(exc)
         finally:
-            self.close()
+            try:
+                self.ws.close()
+            except Exception as exc:
+                self.on_error(exc)
+            self.on_close()
+    def main(self):
+        thr = threading.Thread(target=self.run)
+        thr.setDaemon(True)
+        thr.start()
+        return thr
