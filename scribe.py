@@ -376,51 +376,6 @@ IDENTIFIER = instabot.AtomicSequence()
 
 EVENTS = instabot.EventScheduler()
 
-LOGLINE_START = re.compile(r'^\[([0-9 Z:-]+)\]\s+([A-Z_-]+)\s+(.*)$')
-WHITESPACE = re.compile(r'\s+')
-SCALAR = re.compile(r'[^"\'\x28,\s]\S*|"(?:[^"\\]|\\.)*"|'
-    r'\'(?:[^\'\\]|\\.)*\'')
-TUPLE = re.compile(r'\(\s*(?:(?:%s)\s*,\s*)*(?:(?:%s)\s*)?\)' %
-                   (SCALAR.pattern, SCALAR.pattern))
-EMPTY_TUPLE = re.compile(r'^\(\s*\)$')
-TRAILING_COMMA = re.compile(r',\s*\)$')
-PARAM = re.compile(r'([a-zA-Z0-9_-]+)=(%s|%s)(?=\s|$)' %
-                   (SCALAR.pattern, TUPLE.pattern))
-INTEGER = re.compile(r'^[0-9]+$')
-CONSTANTS = {'None': None, 'True': True, 'False': False}
-def read_logs(src, filt=None):
-    for line in src:
-        m = LOGLINE_START.match(line)
-        if not m: continue
-        ts, tag = m.group(1), m.group(2)
-        args, idx = m.group(3), 0
-        if filt and not filt(tag): continue
-        values, l = {}, len(args)
-        while idx < len(args):
-            m = WHITESPACE.match(args, idx)
-            if m:
-                idx = m.end()
-                continue
-            m = PARAM.match(args, idx)
-            if not m: break
-            idx = m.end()
-            name, val = m.group(1), m.group(2)
-            if val in CONSTANTS:
-                val = CONSTANTS[val]
-            elif INTEGER.match(val):
-                val = int(val)
-            elif val[0] in '\'"':
-                val = ast.literal_eval(val)
-            elif val[0] == '(':
-                if EMPTY_TUPLE.match(val):
-                    val = ()
-                elif TRAILING_COMMA.search(val):
-                    val = ast.literal_eval(val)
-                else:
-                    val = ast.literal_eval('(' + val[1:-1] + ',)')
-            values[name] = val
-        else:
-            yield (ts, tag, values)
 def read_posts_ex(src, maxlen=None):
     def truncate(ret, uuids):
         delset, kset = set(dels), set(sorted(uuids)[-maxlen:])
@@ -430,10 +385,10 @@ def read_posts_ex(src, maxlen=None):
         uuids = dict((k, v) for k, v in uuids.items() if k in kset)
         dels[:] = []
         return (ret, uuids)
-    TAGS = ('SCRIBE', 'POST', 'LOGPOST', 'MESSAGE', 'DELETE',
-            'UUID')
+    TAGS = frozenset(('SCRIBE', 'POST', 'LOGPOST', 'MESSAGE', 'DELETE',
+                      'UUID'))
     cver, froms, dels, ret, uuids = (), {}, [], [], {}
-    for ts, tag, values in read_logs(src, TAGS.__contains__):
+    for ts, tag, values in instabot.read_logs(src, TAGS.__contains__):
         if tag == 'SCRIBE':
             cver = parse_version(values.get('version'))
             continue
@@ -494,17 +449,7 @@ def read_posts_ex(src, maxlen=None):
 def read_posts(src, maxlen=None):
     return read_posts_ex(src, maxlen)[0]
 
-def format_log(o):
-    if isinstance(o, tuple):
-        return '(' + ','.join(map(repr, o)) + ')'
-    else:
-        return repr(o)
-
-def log(msg):
-    m = '[%s] %s\n' % (time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime()),
-                       msg)
-    sys.stdout.write(m.encode('ascii', 'backslashreplace').decode('ascii'))
-    sys.stdout.flush()
+log = instabot.log
 
 def send(ws, msg, verbose=True):
     if verbose: log('SEND content=%r' % msg)
@@ -684,7 +629,8 @@ def on_message(ws, msg, _context={'oid': None, 'id': None, 'src': None,
             lf = traceback.extract_tb(sys.exc_info()[2], 1)[-1]
         except Exception:
             lf = None
-        log('FAULT reason=%r last-frame=%s' % (repr(e), format_log(lf)))
+        log('FAULT reason=%r last-frame=%s' % (repr(e),
+                                               instabot.format_log(lf)))
         return
 def on_error(ws, exc):
     log('ERROR reason=%r' % repr(exc))

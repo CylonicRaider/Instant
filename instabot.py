@@ -1,8 +1,9 @@
 # -*- coding: ascii -*-
 
-import time
+import sys, re, time
 import heapq
 import json
+import ast
 import threading
 
 import websocket
@@ -239,3 +240,60 @@ class Bot(InstantClient):
         if data.get('type') == 'who':
             self.send_unicast(content['from'], {'type': 'nick',
                 'nick': self.nickname, 'uuid': self.identity['uuid']})
+
+def format_log(o):
+    if isinstance(o, tuple):
+        return '(' + ','.join(map(repr, o)) + ')'
+    else:
+        return repr(o)
+def log(msg):
+    m = '[%s] %s\n' % (time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime()),
+                       msg)
+    sys.stdout.write(m.encode('ascii', 'backslashreplace').decode('ascii'))
+    sys.stdout.flush()
+
+LOGLINE_START = re.compile(r'^\[([0-9 Z:-]+)\]\s+([A-Z_-]+)\s+(.*)$')
+WHITESPACE = re.compile(r'\s+')
+SCALAR = re.compile(r'[^"\'\x28,\s]\S*|"(?:[^"\\]|\\.)*"|'
+    r'\'(?:[^\'\\]|\\.)*\'')
+TUPLE = re.compile(r'\(\s*(?:(?:%s)\s*,\s*)*(?:(?:%s)\s*)?\)' %
+                   (SCALAR.pattern, SCALAR.pattern))
+EMPTY_TUPLE = re.compile(r'^\(\s*\)$')
+TRAILING_COMMA = re.compile(r',\s*\)$')
+PARAM = re.compile(r'([a-zA-Z0-9_-]+)=(%s|%s)(?=\s|$)' %
+                   (SCALAR.pattern, TUPLE.pattern))
+INTEGER = re.compile(r'^[0-9]+$')
+CONSTANTS = {'None': None, 'True': True, 'False': False}
+def read_logs(src, filt=None):
+    for line in src:
+        m = LOGLINE_START.match(line)
+        if not m: continue
+        ts, tag = m.group(1), m.group(2)
+        args, idx = m.group(3), 0
+        if filt and not filt(tag): continue
+        values, l = {}, len(args)
+        while idx < len(args):
+            m = WHITESPACE.match(args, idx)
+            if m:
+                idx = m.end()
+                continue
+            m = PARAM.match(args, idx)
+            if not m: break
+            idx = m.end()
+            name, val = m.group(1), m.group(2)
+            if val in CONSTANTS:
+                val = CONSTANTS[val]
+            elif INTEGER.match(val):
+                val = int(val)
+            elif val[0] in '\'"':
+                val = ast.literal_eval(val)
+            elif val[0] == '(':
+                if EMPTY_TUPLE.match(val):
+                    val = ()
+                elif TRAILING_COMMA.search(val):
+                    val = ast.literal_eval(val)
+                else:
+                    val = ast.literal_eval('(' + val[1:-1] + ',)')
+            values[name] = val
+        else:
+            yield (ts, tag, values)
