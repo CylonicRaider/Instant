@@ -124,21 +124,18 @@ class AtomicSequence(object):
             self.value += 1
         return ret
 
-class Bot(object):
-    NICKNAME = None
-    PING_TIMEOUT = None
-    def __init__(self, url, nickname=None):
-        if nickname is None: nickname = self.NICKNAME
+class InstantClient(object):
+    TIMEOUT = None
+    def __init__(self, url, timeout=None):
+        if timeout is None: timeout = self.TIMEOUT
         self.url = url
-        self.nickname = nickname
-        self.ping_timeout = self.PING_TIMEOUT
+        self.timeout = timeout
         self.ws = None
         self.sequence = AtomicSequence()
-        self.identity = None
     def connect(self):
         self.ws = websocket.create_connection(self.url)
-        if self.ping_timeout is not None:
-            self.ws.settimeout(self.ping_timeout)
+        if self.timeout is not None:
+            self.ws.settimeout(self.timeout)
     def on_open(self):
         pass
     def on_message(self, rawmsg):
@@ -151,15 +148,14 @@ class Bot(object):
             'left': self.handle_left, 'error': self.handle_error
         }.get(msgt, self.on_unknown)
         func(content, rawmsg)
+    def on_timeout(self, exc):
+        raise exc
     def on_error(self, exc):
         raise exc
     def on_close(self):
         pass
     def handle_identity(self, content, rawmsg):
-        self.identity = content['data']
-        if self.nickname is not None:
-            self.send_broadcast({'type': 'nick', 'nick': self.nickname,
-                                 'uuid': self.identity['uuid']})
+        pass
     def handle_pong(self, content, rawmsg):
         pass
     def handle_joined(self, content, rawmsg):
@@ -177,9 +173,9 @@ class Bot(object):
     def on_unknown(self, content, rawmsg):
         pass
     def on_client_message(self, data, content, rawmsg):
-        if data.get('type') == 'who':
-            self.send_unicast(content['from'], {'type': 'nick',
-                'nick': self.nickname, 'uuid': self.identity['uuid']})
+        pass
+    def recv(self):
+        return self.ws.recv()
     def send_raw(self, rawmsg):
         self.ws.send(rawmsg)
     def send_seq(self, content):
@@ -199,13 +195,10 @@ class Bot(object):
             self.on_open()
             while 1:
                 try:
-                    rawmsg = self.ws.recv()
-                except websocket.WebSocketTimeoutException:
-                    if self.ping_timeout is not None:
-                        self.send_seq({'type': 'ping'})
-                        continue
-                    else:
-                        raise
+                    rawmsg = self.recv()
+                except websocket.WebSocketTimeoutException as exc:
+                    self.on_timeout(exc)
+                    continue
                 if rawmsg is None: break
                 self.on_message(rawmsg)
         except websocket.WebSocketConnectionClosedException:
@@ -219,8 +212,30 @@ class Bot(object):
             except Exception as exc:
                 self.on_error(exc)
             self.on_close()
-    def main(self):
+    def start(self):
         thr = threading.Thread(target=self.run)
         thr.setDaemon(True)
         thr.start()
         return thr
+
+class Bot(InstantClient):
+    NICKNAME = None
+    def __init__(self, url, nickname=None, timeout=None):
+        if nickname is None: nickname = self.NICKNAME
+        InstantClient.__init__(self, url, timeout)
+        self.nickname = nickname
+        self.identity = None
+    def on_timeout(self, exc):
+        if self.timeout is not None:
+            self.send_seq({'type': 'ping'})
+        else:
+            raise exc
+    def handle_identity(self, content, rawmsg):
+        self.identity = content['data']
+        if self.nickname is not None:
+            self.send_broadcast({'type': 'nick', 'nick': self.nickname,
+                                 'uuid': self.identity['uuid']})
+    def on_client_message(self, data, content, rawmsg):
+        if data.get('type') == 'who':
+            self.send_unicast(content['from'], {'type': 'nick',
+                'nick': self.nickname, 'uuid': self.identity['uuid']})
