@@ -126,18 +126,21 @@ class AtomicSequence(object):
 
 class Bot(object):
     NICKNAME = None
+    PING_TIMEOUT = None
     def __init__(self, url, nickname=None):
         if nickname is None: nickname = self.NICKNAME
         self.url = url
         self.nickname = nickname
+        self.ping_timeout = self.PING_TIMEOUT
         self.ws = None
         self.sequence = AtomicSequence()
         self.identity = None
     def connect(self):
-        self.ws = websocket.create_connection(url)
+        self.ws = websocket.create_connection(self.url)
+        if self.ping_timeout is not None:
+            self.ws.settimeout(self.ping_timeout)
     def on_open(self):
-        if self.nickname is not None:
-            self.send_broadcast({'type': 'nick', 'nick': self.nickname})
+        pass
     def on_message(self, rawmsg):
         content = json.loads(rawmsg)
         msgt = content.get('type')
@@ -154,6 +157,9 @@ class Bot(object):
         pass
     def handle_identity(self, content, rawmsg):
         self.identity = content['data']
+        if self.nickname is not None:
+            self.send_broadcast({'type': 'nick', 'nick': self.nickname,
+                                 'uuid': self.identity['uuid']})
     def handle_pong(self, content, rawmsg):
         pass
     def handle_joined(self, content, rawmsg):
@@ -171,7 +177,9 @@ class Bot(object):
     def on_unknown(self, content, rawmsg):
         pass
     def on_client_message(self, data, content, rawmsg):
-        pass
+        if data.get('type') == 'who':
+            self.send_unicast(content['from'], {'type': 'nick',
+                'nick': self.nickname, 'uuid': self.identity['uuid']})
     def send_raw(self, rawmsg):
         self.ws.send(rawmsg)
     def send_seq(self, content):
@@ -184,24 +192,30 @@ class Bot(object):
     def send_broadcast(self, data):
         return self.send_seq({'type': 'broadcast', 'data': data})
     def close(self):
-        try:
-            self.ws.close()
-        except Exception as exc:
-            self.on_error(exc)
-        finally:
-            self.on_close()
+        self.ws.close()
     def run(self):
         try:
             self.connect()
+            self.on_open()
             while 1:
-                rawmsg = self.ws.recv()
+                try:
+                    rawmsg = self.ws.recv()
+                except websocket.WebSocketTimeoutException:
+                    if self.ping_timeout is not None:
+                        self.send_seq({'type': 'ping'})
+                        continue
+                    else:
+                        raise
                 if rawmsg is None: break
                 self.on_message(rawmsg)
+        except websocket.WebSocketConnectionClosedException:
+            # Server-side timeouts cause the connection to be dropped.
+            pass
         except Exception as exc:
             self.on_error(exc)
         finally:
             try:
-                self.ws.close()
+                self.close()
             except Exception as exc:
                 self.on_error(exc)
             self.on_close()
