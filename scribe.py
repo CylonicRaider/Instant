@@ -637,6 +637,21 @@ def on_error(ws, exc):
 def on_close(ws):
     log('CLOSED')
 
+class Scribe(instabot.Bot):
+    NICKNAME = NICKNAME
+    def __init__(self, url, nickname=None, **kwds):
+        instabot.Bot.__init__(self, url, nickname, **kwds)
+        self.scheduler = kwds['scheduler']
+        self.db = kwds['db']
+        self.dont_stay = kwds.get('dont_stay', False)
+        self.dont_pull = kwds.get('dont_pull', False)
+        self.oldest_peer = None
+        self.logs_done = False
+    def send_raw(self, rawmsg, verbose=True):
+        if verbose:
+            log('SEND content=%r' % rawmsg)
+        return instabot.Bot.send_raw(self, rawmsg)
+
 def main():
     global LOGS, NICKNAME, DONTSTAY, DONTPULL
     @contextlib.contextmanager
