@@ -179,15 +179,17 @@ class InstantClient(object):
         return self.ws.recv()
     def send_raw(self, rawmsg):
         self.ws.send(rawmsg)
-    def send_seq(self, content):
+    def send_seq(self, content, **kwds):
         seq = self.sequence()
         content['seq'] = seq
-        self.send_raw(json.dumps(content, separators=(',', ':')))
+        self.send_raw(json.dumps(content, separators=(',', ':')), **kwds)
         return seq
-    def send_unicast(self, dest, data):
-        return self.send_seq({'type': 'unicast', 'to': dest, 'data': data})
-    def send_broadcast(self, data):
-        return self.send_seq({'type': 'broadcast', 'data': data})
+    def send_unicast(self, dest, data, **kwds):
+        return self.send_seq({'type': 'unicast', 'to': dest, 'data': data},
+                             **kwds)
+    def send_broadcast(self, data, **kwds):
+        return self.send_seq({'type': 'broadcast', 'data': data},
+                             **kwds)
     def close(self):
         self.ws.close()
     def run(self):
