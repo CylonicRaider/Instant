@@ -127,7 +127,7 @@ class AtomicSequence(object):
 
 class InstantClient(object):
     TIMEOUT = None
-    def __init__(self, url, timeout=None):
+    def __init__(self, url, timeout=None, **kwds):
         if timeout is None: timeout = self.TIMEOUT
         self.url = url
         self.timeout = timeout
@@ -223,9 +223,9 @@ class InstantClient(object):
 
 class Bot(InstantClient):
     NICKNAME = None
-    def __init__(self, url, nickname=None, timeout=None):
+    def __init__(self, url, nickname=None, timeout=None, **kwds):
         if nickname is None: nickname = self.NICKNAME
-        InstantClient.__init__(self, url, timeout)
+        InstantClient.__init__(self, url, timeout, **kwds)
         self.nickname = nickname
         self.identity = None
     def on_timeout(self, exc):

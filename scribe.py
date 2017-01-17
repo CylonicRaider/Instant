@@ -647,10 +647,37 @@ class Scribe(instabot.Bot):
         self.dont_pull = kwds.get('dont_pull', False)
         self.oldest_peer = None
         self.logs_done = False
+    def on_open(self):
+        instabot.Bot.on_open(self)
+        log('OPENED')
+    def on_message(self, rawmsg):
+        log('MESSAGE content=%r' % rawmsg)
+        instabot.Bot.on_message(self, rawmsg)
+    def on_timeout(self, exc):
+        self.log_exception('TIMEOUT', exc)
+        instabot.Bot.on_timeout(self, exc)
+    def on_error(self, exc):
+        self.log_exception('ERROR', exc)
+        instabot.Bot.on_error(self, exc)
+    def on_close(self):
+        instabot.Bot.on_close(self)
+        log('CLOSED')
+    def handle_identity(self, content, rawmsg):
+        instabot.Bot.handle_identity(self, content, rawmsg)
+        self.send_broadcast({'type': 'who'})
+        if not self.dont_pull:
+            self.send_broadcast({'type': 'log-query'})
     def send_raw(self, rawmsg, verbose=True):
         if verbose:
             log('SEND content=%r' % rawmsg)
         return instabot.Bot.send_raw(self, rawmsg)
+    def log_exception(self, name, exc):
+        try:
+            frame = traceback.extract_tb(sys.exc_info()[2], 1)[-1]
+        except Exception:
+            frame = None
+        log('%s reason=%r last-frame=%s' % (name, repr(exc),
+                                            instabot.format_log(frame)))
 
 def main():
     global LOGS, NICKNAME, DONTSTAY, DONTPULL
