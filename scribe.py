@@ -671,6 +671,18 @@ class Scribe(instabot.Bot):
         if verbose:
             log('SEND content=%r' % rawmsg)
         return instabot.Bot.send_raw(self, rawmsg)
+    def send_logs(self, peer, data):
+        data.setdefault('type', 'log')
+        ls = 'LOGSEND to=%r' % (peer,)
+        if data['data']:
+            ls += ' log-from=%r log-to=%r log-count=%r' % (data.get('from'),
+                data.get('to'), data['data'])
+        else:
+            ls += ' log-count=0'
+        if data.get('key'):
+            ls += ' key=%r' % (data.get('key'),)
+        log(ls)
+        return self.send_unicast(peer, data, verbose=False)
     def log_exception(self, name, exc):
         try:
             frame = traceback.extract_tb(sys.exc_info()[2], 1)[-1]
