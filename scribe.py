@@ -452,7 +452,7 @@ def read_posts(src, maxlen=None):
 log = instabot.log
 
 def send(ws, msg, verbose=True):
-    if verbose: log('SEND content=%r' % msg)
+    if verbose: log('SEND content=%r' % (msg,))
     ws.send(msg)
 def send_seq(ws, msg, verbose=True):
     seq = SEQUENCE()
@@ -507,7 +507,7 @@ def on_message(ws, msg, _context={'oid': None, 'id': None, 'src': None,
     def add_uuid(uid, uuid):
         if uid and uuid and LOGS.append_uuid(uid, uuid):
             log('UUID id=%r uuid=%r' % (uid, uuid))
-    log('MESSAGE content=%r' % msg)
+    log('MESSAGE content=%r' % (msg,))
     # Try to extract message parameters
     try:
         data = json.loads(msg)
@@ -651,7 +651,7 @@ class Scribe(instabot.Bot):
         instabot.Bot.on_open(self)
         log('OPENED')
     def on_message(self, rawmsg):
-        log('MESSAGE content=%r' % rawmsg)
+        log('MESSAGE content=%r' % (rawmsg,))
         instabot.Bot.on_message(self, rawmsg)
     def on_timeout(self, exc):
         self.log_exception('TIMEOUT', exc)
@@ -669,7 +669,7 @@ class Scribe(instabot.Bot):
             self.send_broadcast({'type': 'log-query'})
     def send_raw(self, rawmsg, verbose=True):
         if verbose:
-            log('SEND content=%r' % rawmsg)
+            log('SEND content=%r' % (rawmsg,))
         return instabot.Bot.send_raw(self, rawmsg)
     def send_logs(self, peer, data):
         data.setdefault('type', 'log')
@@ -705,7 +705,7 @@ def main():
     def run_push_logs():
         while push_logs:
             peer = push_logs.pop(0)
-            log('LOGPUSH to=%r' % peer)
+            log('LOGPUSH to=%r' % (peer,))
             send_logs(ws, peer)
         send_broadcast(ws, {'type': 'log-inquiry'})
     def run_ping():
