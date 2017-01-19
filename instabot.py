@@ -117,13 +117,12 @@ class BackgroundWebSocket(object):
 
 class AtomicSequence(object):
     def __init__(self):
-        self.value = 0
+        self.value = -1
         self._lock = threading.Lock()
     def __call__(self):
         with self._lock:
-            ret = self.value
             self.value += 1
-        return ret
+            return self.value
 
 class InstantClient(object):
     TIMEOUT = None
