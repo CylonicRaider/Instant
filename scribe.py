@@ -676,8 +676,11 @@ class Scribe(instabot.Bot):
         instabot.Bot.on_client_message(self, data, content, rawmsg)
         tp = data.get('type')
         if tp == 'nick':
-            self._execute(self._process_nick, uid=content.get('from'),
+            self._execute(self._process_nick, uid=content['from'],
                           nick=data.get('nick'), uuid=data.get('uuid'))
+        elif tp == 'post':
+            data['id'] = content['id']
+            self._execute(self._process_post, data=data)
     def send_raw(self, rawmsg, verbose=True):
         if verbose:
             log('SEND content=%r' % (rawmsg,))
@@ -712,6 +715,15 @@ class Scribe(instabot.Bot):
         if uuid:
             if self.db.append_uuid(uid, uuid):
                 log('UUID id=%r uuid=%r' % (uid, uuid))
+    def _process_post(self, data):
+        post = LogEntry(id=data.get('id'), parent=data.get('parent'),
+                        nick=data.get('nick'), text=data.get('text'),
+                        timestamp=data.get('timestamp'),
+                        **{'from': data.get('from')})
+        log('POST id=%r parent=%r from=%r nick=%r text=%r' %
+            (post['id'], post['parent'], post['from'], post['nick'],
+             post['text']))
+        self.db.append(post)
 
 def main():
     global LOGS, NICKNAME, DONTSTAY, DONTPULL
