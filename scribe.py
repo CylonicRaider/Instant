@@ -668,6 +668,16 @@ class Scribe(instabot.Bot):
         self.send_broadcast({'type': 'who'})
         if not self.dont_pull:
             self.send_broadcast({'type': 'log-query'})
+    def handle_joined(self, content, rawmsg):
+        instabot.Bot.handle_joined(self, content, rawmsg)
+        data = content['data']
+        self._execute(self._process_nick, uid=data['id'], uuid=data['uuid'])
+    def on_client_message(self, data, content, rawmsg):
+        instabot.Bot.on_client_message(self, data, content, rawmsg)
+        tp = data.get('type')
+        if tp == 'nick':
+            self._execute(self._process_nick, uid=content.get('from'),
+                          nick=data.get('nick'), uuid=data.get('uuid'))
     def send_raw(self, rawmsg, verbose=True):
         if verbose:
             log('SEND content=%r' % (rawmsg,))
@@ -691,6 +701,17 @@ class Scribe(instabot.Bot):
             frame = None
         log('%s reason=%r last-frame=%s' % (name, repr(exc),
                                             instabot.format_log(frame)))
+    def _execute(self, func, *args, **kwds):
+        self.scheduler.add_now(lambda: func(*args, **kwds))
+    def _process_nick(self, uid, nick, uuid):
+        if nick:
+            if uuid:
+                log('NICK id=%r uuid=%r nick=%r' % (uid, uuid, nick))
+            else:
+                log('NICK id=%r nick=%r' % (uid, nick))
+        if uuid:
+            if self.db.append_uuid(uid, uuid):
+                log('UUID id=%r uuid=%r' % (uid, uuid))
 
 def main():
     global LOGS, NICKNAME, DONTSTAY, DONTPULL
