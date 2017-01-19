@@ -61,6 +61,8 @@ class LogEntry(dict):
 class LogDB:
     def __init__(self):
         self.maxlen = MAXLEN
+    def init(self):
+        pass
     def capacity(self):
         return self.maxlen
     def bounds(self):
@@ -185,10 +187,9 @@ class LogDBSQLite(LogDB):
     def __init__(self, filename):
         LogDB.__init__(self)
         self.filename = filename
+    def init(self):
         self.conn = sqlite3.connect(filename)
         self.cursor = self.conn.cursor()
-        self.init()
-    def init(self):
         # The REFERENCES is not enforced to allow "stray" messages to
         # be preserved.
         self.cursor.execute('CREATE TABLE IF NOT EXISTS logs ('
@@ -769,6 +770,7 @@ def main():
         LOGS = LogDBSQLite(msgdb)
     if maxlen is not None:
         LOGS.maxlen = maxlen
+    LOGS.init()
     for fn in toread:
         log('READING file=%r maxlen=%r' % (fn, LOGS.capacity()))
         try:
