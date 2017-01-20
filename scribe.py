@@ -646,8 +646,8 @@ class Scribe(instabot.Bot):
         self.db = kwds['db']
         self.dont_stay = kwds.get('dont_stay', False)
         self.dont_pull = kwds.get('dont_pull', False)
-        self.oldest_peer = None
-        self.logs_done = False
+        self._cur_candidate = None
+        self._logs_done = False
     def on_open(self):
         instabot.Bot.on_open(self)
         log('OPENED')
@@ -668,6 +668,7 @@ class Scribe(instabot.Bot):
         self.send_broadcast({'type': 'who'})
         if not self.dont_pull:
             self.send_broadcast({'type': 'log-query'})
+            self.scheduler.add(1, lambda: self._send_request(None))
     def handle_joined(self, content, rawmsg):
         instabot.Bot.handle_joined(self, content, rawmsg)
         data = content['data']
@@ -681,10 +682,50 @@ class Scribe(instabot.Bot):
         elif tp == 'post':
             data['id'] = content['id']
             self._execute(self._process_post, data=data)
+        elif tp == 'log-query':
+            self._execute(self._process_log_query, uid=content['from'])
+        elif tp == 'log-info':
+            if self.dont_pull: return
+            self._execute(self._process_log_info, data=data,
+                          uid=content['from'])
+        elif tp == 'log-request':
+            self._execute(self._process_log_request, data=data,
+                          uid=content['from'])
+        elif tp == 'log':
+            self._execute(self._process_log, data=data, uid=content['from'])
     def send_raw(self, rawmsg, verbose=True):
         if verbose:
             log('SEND content=%r' % (rawmsg,))
         return instabot.Bot.send_raw(self, rawmsg)
+    def process_logs(self, rawlogs, uuids, data=None):
+        logs = []
+        for e in rawlogs:
+            if not isinstance(e, dict): continue
+            logs.append(LogEntry(id=e.get('id'), parent=e.get('parent'),
+                nick=e.get('nick'), timestamp=e.get('timestamp'),
+                text=e.get('text'), **{'from': e.get('from')}))
+        logs.sort()
+        added = set(self.db.extend(logs))
+        for e in logs:
+            eid = e['id']
+            if eid not in added: continue
+            log('LOGPOST id=%r parent=%r from=%r nick=%r text=%r' %
+                (eid, e['parent'], e['from'], e['nick'], e['text']))
+        uuid_added = self.db.extend_uuid(uuids)
+        uuid_added.sort()
+        for k in uuid_added:
+            log('LOGUUID id=%r uuid=%r' % (k, uuids[k]))
+        if data is not None:
+            oldest, oldestRemote = self.db.bounds()[0], data.get('from')
+            if (oldestRemote is not None and (oldest is None or
+                    oldestRemote < oldest)):
+                self._cur_candidate = None
+                self.send_broadcast({'type': 'log-query'})
+                return
+            self._logs_done = True
+            self.send_broadcast({'type': 'log-done'})
+            if self.dont_stay:
+                self.close()
     def send_logs(self, peer, data):
         data.setdefault('type', 'log')
         ls = 'LOGSEND to=%r' % (peer,)
@@ -724,6 +765,36 @@ class Scribe(instabot.Bot):
             (post['id'], post['parent'], post['from'], post['nick'],
              post['text']))
         self.db.append(post)
+    def _process_log_query(self, uid):
+        bounds = self.db.bounds()
+        if bounds[2] and uid != self.identity['id']:
+            self.send_unicast(uid, {'type': 'log-info', 'from': bounds[0],
+                'to': bounds[1], 'length': bounds[2]})
+    def _process_log_info(self, data, uid):
+        if not data.get('from'): return
+        if (self._cur_candidate is None or
+                data['from'] < self._cur_candidate['from']):
+            data['uid'] = uid
+            data['reqto'] = self.db.bounds()[0]
+            self._cur_candidate = data
+            self.scheduler.add(1, lambda: self._send_request(data))
+    def _send_request(self, data, uid):
+        if data is None:
+            self._logs_done = True
+            return
+        if self._cur_candidate is not data:
+            return
+        self.send_unicast(uid, {'type': 'log-request', 'to': data['reqto']})
+    def _process_log_request(self, data, uid):
+        logs = self.db.query(data.get('from'), data.get('to'),
+                             data.get('amount'))
+        reply = {'data': logs,
+                 'uuids': self.db.query_uuid(ent['from'] for ent in logs)}
+        for k in ('from', 'to', 'amount', 'key'):
+            if data.get(k) is not None: reply[k] = data[k]
+        self.send_logs(uid, reply)
+    def _process_log(self, data):
+        self.process_logs(data.get('data', []), data.get('uuids', {}), data)
 
 def main():
     global LOGS, NICKNAME, DONTSTAY, DONTPULL
