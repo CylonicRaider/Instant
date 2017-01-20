@@ -796,6 +796,13 @@ class Scribe(instabot.Bot):
     def _process_log(self, data):
         self.process_logs(data.get('data', []), data.get('uuids', {}), data)
 
+def test(url):
+    sched = instabot.EventScheduler()
+    db = LogDBList()
+    s = Scribe(url, 'Scribe (test)', scheduler=sched, db=db)
+    sched.add_now(s.start)
+    sched.main()
+
 def main():
     global LOGS, NICKNAME, DONTSTAY, DONTPULL
     @contextlib.contextmanager
@@ -842,6 +849,8 @@ def main():
                     DONTPULL = True
                 elif arg == '--nick':
                     NICKNAME = next(it)
+                elif arg == '--test':
+                    test(next(it))
                 elif arg == '--':
                     at_args = True
                 else:
