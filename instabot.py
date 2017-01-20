@@ -51,9 +51,9 @@ class EventScheduler(object):
     def _time(self):
         return time.time()
     def _sleep(self, delay):
-        with self.cond:
+        with self:
             self.cond.wait(delay)
-            return True
+            return bool(self.pending)
     def add_abs(self, timestamp, callback):
         with self:
             heapq.heappush(self.pending, self.Event(timestamp, callback))

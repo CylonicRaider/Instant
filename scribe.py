@@ -692,6 +692,12 @@ class Scribe(instabot.Bot):
                           uid=content['from'])
         elif tp == 'log':
             self._execute(self._process_log, data=data, uid=content['from'])
+        elif tp == 'log-inquiry':
+            if self._logs_done:
+                self.send_unicast(content['from'], {'type': 'log-done'})
+        elif tp == 'log-done':
+            if self.dont_stay and self.dont_pull:
+                self.close()
     def send_raw(self, rawmsg, verbose=True):
         if verbose:
             log('SEND content=%r' % (rawmsg,))
