@@ -667,8 +667,7 @@ class Scribe(instabot.Bot):
         instabot.Bot.handle_identity(self, content, rawmsg)
         self.send_broadcast({'type': 'who'})
         if not self.dont_pull:
-            self.send_broadcast({'type': 'log-query'})
-            self.scheduler.add(1, lambda: self._send_request(None))
+            self._logs_begin()
     def handle_joined(self, content, rawmsg):
         instabot.Bot.handle_joined(self, content, rawmsg)
         data = content['data']
@@ -697,7 +696,7 @@ class Scribe(instabot.Bot):
         if verbose:
             log('SEND content=%r' % (rawmsg,))
         return instabot.Bot.send_raw(self, rawmsg)
-    def process_logs(self, rawlogs, uuids, data=None):
+    def process_logs(self, rawlogs, uuids):
         logs = []
         for e in rawlogs:
             if not isinstance(e, dict): continue
@@ -715,17 +714,6 @@ class Scribe(instabot.Bot):
         uuid_added.sort()
         for k in uuid_added:
             log('LOGUUID id=%r uuid=%r' % (k, uuids[k]))
-        if data is not None:
-            oldest, oldestRemote = self.db.bounds()[0], data.get('from')
-            if (oldestRemote is not None and (oldest is None or
-                    oldestRemote < oldest)):
-                self._cur_candidate = None
-                self.send_broadcast({'type': 'log-query'})
-                return
-            self._logs_done = True
-            self.send_broadcast({'type': 'log-done'})
-            if self.dont_stay:
-                self.close()
     def send_logs(self, peer, data):
         data.setdefault('type', 'log')
         ls = 'LOGSEND to=%r' % (peer,)
@@ -746,8 +734,8 @@ class Scribe(instabot.Bot):
         log('%s reason=%r last-frame=%s' % (name, repr(exc),
                                             instabot.format_log(frame)))
     def _execute(self, func, *args, **kwds):
-        self.scheduler.add_now(lambda: func(*args, **kwds))
-    def _process_nick(self, uid, nick, uuid):
+        self.scheduler.add_now(lambda: func(*args, **kwds) or True)
+    def _process_nick(self, uid, nick=None, uuid=None):
         if nick:
             if uuid:
                 log('NICK id=%r uuid=%r nick=%r' % (uid, uuid, nick))
@@ -774,13 +762,12 @@ class Scribe(instabot.Bot):
         if not data.get('from'): return
         if (self._cur_candidate is None or
                 data['from'] < self._cur_candidate['from']):
-            data['uid'] = uid
             data['reqto'] = self.db.bounds()[0]
             self._cur_candidate = data
-            self.scheduler.add(1, lambda: self._send_request(data))
-    def _send_request(self, data, uid):
-        if data is None:
-            self._logs_done = True
+            self.scheduler.add(1, lambda: self._send_request(data, uid))
+    def _send_request(self, data, uid=None):
+        if data is None or uid is None:
+            self._logs_finish()
             return
         if self._cur_candidate is not data:
             return
@@ -793,8 +780,22 @@ class Scribe(instabot.Bot):
         for k in ('from', 'to', 'amount', 'key'):
             if data.get(k) is not None: reply[k] = data[k]
         self.send_logs(uid, reply)
-    def _process_log(self, data):
-        self.process_logs(data.get('data', []), data.get('uuids', {}), data)
+    def _process_log(self, data, uid):
+        rawlogs, uuids = data.get('data', []), data.get('uuids', {})
+        self.process_logs(rawlogs, uuids)
+        if not self.dont_pull:
+            if rawlogs:
+                self._logs_begin()
+            else:
+                self._logs_finish()
+    def _logs_begin(self):
+        self._cur_candidate = None
+        self.send_broadcast({'type': 'log-query'})
+        self.scheduler.add(1, lambda: self._send_request(None))
+    def _logs_finish(self):
+        self._logs_done = True
+        self.send_broadcast({'type': 'log-done'})
+        if self.dont_stay: self.close()
 
 def test(url):
     sched = instabot.EventScheduler()
@@ -851,6 +852,7 @@ def main():
                     NICKNAME = next(it)
                 elif arg == '--test':
                     test(next(it))
+                    raise SystemExit
                 elif arg == '--':
                     at_args = True
                 else:
