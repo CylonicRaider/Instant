@@ -676,6 +676,7 @@ class Scribe(instabot.Bot):
         if not self.dont_pull:
             self._logs_begin()
         self._send_ping(False)
+        self.scheduler.forever = False
     def handle_joined(self, content, rawmsg):
         instabot.Bot.handle_joined(self, content, rawmsg)
         data = content['data']

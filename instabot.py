@@ -42,6 +42,7 @@ class EventScheduler(object):
         self.pending = []
         self.time = time
         self.sleep = sleep
+        self.forever = True
         self.cond = threading.Condition()
     def __enter__(self):
         return self.cond.__enter__()
@@ -73,7 +74,7 @@ class EventScheduler(object):
         with self:
             self.pending[:] = []
             self.cond.notify()
-    def run(self):
+    def run(self, hangup=True):
         wait = None
         while 1:
             with self:
@@ -87,9 +88,12 @@ class EventScheduler(object):
                 head.handled = True
                 if head.canceled: continue
             head()
+        if wait is None and not hangup: return False
         return self.sleep(wait)
-    def main(self, forever=False):
-        while self.run() or forever: pass
+    def main(self):
+        while 1:
+            f = self.forever
+            if not self.run(f) and not f: break
 
 class BackgroundWebSocket(object):
     def __init__(self, url):
