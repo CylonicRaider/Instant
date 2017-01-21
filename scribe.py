@@ -691,6 +691,8 @@ class Scribe(instabot.Bot):
         elif tp == 'post':
             # An individual message.
             data['id'] = content['id']
+            data['from'] = content['from']
+            data['timestamp'] = content['timestamp']
             self._execute(self._process_post, data=data)
         elif tp == 'log-query':
             # Someone interested in our logs.
@@ -740,12 +742,14 @@ class Scribe(instabot.Bot):
         uuid_added.sort()
         for k in uuid_added:
             log('LOGUUID id=%r uuid=%r' % (k, uuids[k]))
+        return (added, uuid_added)
     def send_logs(self, peer, data):
         data.setdefault('type', 'log')
         ls = 'LOGSEND to=%r' % (peer,)
         if data['data']:
-            ls += ' log-from=%r log-to=%r log-count=%r' % (data.get('from'),
-                data.get('to'), data['data'])
+            ret = data['data']
+            ls += ' log-from=%r log-to=%r log-count=%r' % (ret[0]['id'],
+                ret[-1]['id'], len(ret))
         else:
             ls += ' log-count=0'
         if data.get('key'):
@@ -808,9 +812,9 @@ class Scribe(instabot.Bot):
         self.send_logs(uid, reply)
     def _process_log(self, data, uid):
         rawlogs, uuids = data.get('data', []), data.get('uuids', {})
-        self.process_logs(rawlogs, uuids)
+        res = self.process_logs(rawlogs, uuids)
         if not self.dont_pull:
-            if rawlogs:
+            if res[0] or res[1]:
                 self._logs_begin()
             else:
                 self._logs_finish()
