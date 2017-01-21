@@ -701,6 +701,8 @@ class Scribe(instabot.Bot):
                           uid=content['from'])
         elif tp == 'log':
             self._execute(self._process_log, data=data, uid=content['from'])
+        elif tp == 'delete':
+            self._execute(self._delete, ids=data.get('ids', ()))
         elif tp == 'log-inquiry':
             if self._logs_done:
                 self.send_unicast(content['from'], {'type': 'log-done'})
@@ -803,6 +805,11 @@ class Scribe(instabot.Bot):
                 self._logs_begin()
             else:
                 self._logs_finish()
+    def _delete(self, ids):
+        for msg in self.db.delete(ids):
+            log('DELETE id=%r parent=%r from=%r nick=%r text=%r' %
+                (msg['id'], msg['parent'], msg['from'], msg['nick'],
+                 msg['text']))
     def _logs_begin(self):
         self._cur_candidate = None
         self.send_broadcast({'type': 'log-query'})
