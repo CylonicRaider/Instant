@@ -646,8 +646,11 @@ class Scribe(instabot.Bot):
         self.db = kwds['db']
         self.dont_stay = kwds.get('dont_stay', False)
         self.dont_pull = kwds.get('dont_pull', False)
+        self.ping_delay = kwds.get('ping_delay', PING_DELAY)
         self._cur_candidate = None
         self._logs_done = False
+        self._ping_job = None
+        self._ping_lock = threading.RLock()
     def on_open(self):
         instabot.Bot.on_open(self)
         log('OPENED')
@@ -663,11 +666,16 @@ class Scribe(instabot.Bot):
     def on_close(self):
         instabot.Bot.on_close(self)
         log('CLOSED')
+        with self._ping_lock:
+            if self._ping_job is not None:
+                self.scheduler.cancel(self._ping_job)
+                self._ping_job = None
     def handle_identity(self, content, rawmsg):
         instabot.Bot.handle_identity(self, content, rawmsg)
         self.send_broadcast({'type': 'who'})
         if not self.dont_pull:
             self._logs_begin()
+        self._send_ping(False)
     def handle_joined(self, content, rawmsg):
         instabot.Bot.handle_joined(self, content, rawmsg)
         data = content['data']
@@ -802,6 +810,11 @@ class Scribe(instabot.Bot):
         self._logs_done = True
         self.send_broadcast({'type': 'log-done'})
         if self.dont_stay: self.close()
+    def _send_ping(self, actually=True):
+        if actually: self.send_seq({'type': 'ping'})
+        with self._ping_lock:
+            self._ping_job = self.scheduler.add(self.ping_delay,
+                                                self._send_ping)
 
 def test(url):
     sched = instabot.EventScheduler()
