@@ -685,28 +685,37 @@ class Scribe(instabot.Bot):
         instabot.Bot.on_client_message(self, data, content, rawmsg)
         tp = data.get('type')
         if tp == 'nick':
+            # Someone sharing their nick.
             self._execute(self._process_nick, uid=content['from'],
                           nick=data.get('nick'), uuid=data.get('uuid'))
         elif tp == 'post':
+            # An individual message.
             data['id'] = content['id']
             self._execute(self._process_post, data=data)
         elif tp == 'log-query':
+            # Someone interested in our logs.
             self._execute(self._process_log_query, uid=content['from'])
         elif tp == 'log-info':
+            # Someone telling about their logs.
             if self.dont_pull: return
             self._execute(self._process_log_info, data=data,
                           uid=content['from'])
         elif tp == 'log-request':
+            # Someone requesting some logs.
             self._execute(self._process_log_request, data=data,
                           uid=content['from'])
         elif tp == 'log':
+            # Someone delivering logs.
             self._execute(self._process_log, data=data, uid=content['from'])
         elif tp == 'delete':
+            # Message deletion request.
             self._execute(self._delete, ids=data.get('ids', ()))
         elif tp == 'log-inquiry':
+            # Inquiry about whether we are done loading logs.
             if self._logs_done:
                 self.send_unicast(content['from'], {'type': 'log-done'})
         elif tp == 'log-done':
+            # Someone is done loading logs.
             if self.dont_stay and self.dont_pull:
                 self.close()
     def send_raw(self, rawmsg, verbose=True):
