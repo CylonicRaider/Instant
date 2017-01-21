@@ -16,13 +16,12 @@ except ImportError:
 VERSION = 'v1.4'
 
 class EventScheduler(object):
-    @staticmethod
-    def sleep(delay):
-        if delay is not None: time.sleep(delay)
     class Event:
         def __init__(self, time, callback):
             self.time = time
             self.callback = callback
+            self.handled = False
+            self.canceled = False
         def __call__(self):
             self.callback()
         def __gt__(self, other):
@@ -56,12 +55,20 @@ class EventScheduler(object):
             return bool(self.pending)
     def add_abs(self, timestamp, callback):
         with self:
-            heapq.heappush(self.pending, self.Event(timestamp, callback))
+            evt = self.Event(timestamp, callback)
+            heapq.heappush(self.pending, evt)
             self.cond.notify()
+            return evt
     def add(self, delay, callback):
         return self.add_abs(self.time() + delay, callback)
     def add_now(self, callback):
         return self.add_abs(self.time(), callback)
+    def cancel(self, event):
+        with self:
+            event.canceled = True
+            ret = (not event.handled)
+            self.cond.notify()
+            return ret
     def clear(self):
         with self:
             self.pending[:] = []
@@ -73,14 +80,16 @@ class EventScheduler(object):
                 if not self.pending: break
                 now = self.time()
                 head = self.pending[0]
-                if head.time > now:
+                if head.time > now and not head.canceled:
                     wait = head.time - now
                     break
                 heapq.heappop(self.pending)
+                head.handled = True
+                if head.canceled: continue
             head()
         return self.sleep(wait)
-    def main(self):
-        while self.run(): pass
+    def main(self, forever=False):
+        while self.run() or forever: pass
 
 class BackgroundWebSocket(object):
     def __init__(self, url):
