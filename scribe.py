@@ -188,7 +188,7 @@ class LogDBSQLite(LogDB):
         LogDB.__init__(self)
         self.filename = filename
     def init(self):
-        self.conn = sqlite3.connect(filename)
+        self.conn = sqlite3.connect(self.filename)
         self.cursor = self.conn.cursor()
         # The REFERENCES is not enforced to allow "stray" messages to
         # be preserved.
@@ -839,8 +839,12 @@ class Scribe(instabot.Bot):
 
 def test(url, **kwds):
     sched = instabot.EventScheduler()
-    db = LogDBList()
+    if 'msgdb' in kwds:
+        db = LogDBSQLite(kwds['msgdb'])
+    else:
+        db = LogDBList()
     s = Scribe(url, 'Scribe (test)', scheduler=sched, db=db, **kwds)
+    sched.add_now(db.init)
     sched.add_now(s.start)
     sched.main()
 
@@ -892,7 +896,7 @@ def main():
                     NICKNAME = next(it)
                 elif arg == '--test':
                     test(next(it), dont_stay=DONTSTAY, dont_pull=DONTPULL,
-                         ping_delay=10)
+                         msgdb=msgdb, ping_delay=10)
                     raise SystemExit
                 elif arg == '--':
                     at_args = True
