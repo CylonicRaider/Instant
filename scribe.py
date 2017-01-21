@@ -816,10 +816,10 @@ class Scribe(instabot.Bot):
             self._ping_job = self.scheduler.add(self.ping_delay,
                                                 self._send_ping)
 
-def test(url):
+def test(url, **kwds):
     sched = instabot.EventScheduler()
     db = LogDBList()
-    s = Scribe(url, 'Scribe (test)', scheduler=sched, db=db)
+    s = Scribe(url, 'Scribe (test)', scheduler=sched, db=db, **kwds)
     sched.add_now(s.start)
     sched.main()
 
@@ -870,7 +870,8 @@ def main():
                 elif arg == '--nick':
                     NICKNAME = next(it)
                 elif arg == '--test':
-                    test(next(it))
+                    test(next(it), dont_stay=DONTSTAY, dont_pull=DONTPULL,
+                         ping_delay=10)
                     raise SystemExit
                 elif arg == '--':
                     at_args = True
