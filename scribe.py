@@ -748,7 +748,7 @@ class Scribe(instabot.Bot):
         log('%s reason=%r last-frame=%s' % (name, repr(exc),
                                             instabot.format_log(frame)))
     def _execute(self, func, *args, **kwds):
-        self.scheduler.add_now(lambda: func(*args, **kwds) or True)
+        self.scheduler.add_now(lambda: func(*args, **kwds))
     def _process_nick(self, uid, nick=None, uuid=None):
         if nick:
             if uuid:
