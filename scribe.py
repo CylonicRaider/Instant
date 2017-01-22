@@ -16,8 +16,6 @@ import instabot
 NICKNAME = 'Scribe'
 VERSION = instabot.VERSION
 MAXLEN = None
-DONTSTAY = False
-DONTPULL = False
 
 PING_DELAY = 2700 # 45 min
 
@@ -59,8 +57,9 @@ class LogEntry(dict):
         return self.__cmp__(other) < 0
 
 class LogDB:
-    def __init__(self):
-        self.maxlen = MAXLEN
+    def __init__(self, maxlen=None):
+        if maxlen is None: maxlen = MAXLEN
+        self.maxlen = maxlen
     def init(self):
         pass
     def capacity(self):
@@ -105,8 +104,8 @@ class LogDBList(LogDB):
         if maxlen:
             base[:] = base[-maxlen:]
         return added
-    def __init__(self):
-        LogDB.__init__(self)
+    def __init__(self, maxlen=None):
+        LogDB.__init__(self, maxlen)
         self.data = []
         self.uuids = {}
         self._uuid_list = []
@@ -184,8 +183,8 @@ class LogDBSQLite(LogDB):
     @staticmethod
     def make_strkey(msgid):
         return (None if msgid is None else str(int(msgid, 16)))
-    def __init__(self, filename):
-        LogDB.__init__(self)
+    def __init__(self, filename, maxlen=None):
+        LogDB.__init__(self, maxlen)
         self.filename = filename
     def init(self):
         self.conn = sqlite3.connect(self.filename)
@@ -361,13 +360,6 @@ class LogDBSQLite(LogDB):
     def close(self):
         self.conn.close()
 
-LOGS = LogDBList()
-
-SEQUENCE = instabot.AtomicSequence()
-IDENTIFIER = instabot.AtomicSequence()
-
-EVENTS = instabot.EventScheduler()
-
 def read_posts_ex(src, maxlen=None):
     def truncate(ret, uuids):
         delset, kset = set(dels), set(sorted(uuids)[-maxlen:])
@@ -443,192 +435,6 @@ def read_posts(src, maxlen=None):
 
 log = instabot.log
 
-def send(ws, msg, verbose=True):
-    if verbose: log('SEND content=%r' % (msg,))
-    ws.send(msg)
-def send_seq(ws, msg, verbose=True):
-    seq = SEQUENCE()
-    msg['seq'] = seq
-    send(ws, json.dumps(msg, separators=(',', ':')), verbose)
-    return seq
-def send_unicast(ws, dest, msg, verbose=True):
-    return send_seq(ws, {'type': 'unicast', 'to': dest, 'data': msg},
-                    verbose)
-def send_broadcast(ws, msg, verbose=True):
-    return send_seq(ws, {'type': 'broadcast', 'data': msg}, verbose)
-
-def send_logs(ws, peer, lfrom=None, lto=None, amount=None, key=None):
-    ret = LOGS.query(lfrom, lto, amount)
-    reply = {'type': 'log', 'data': ret,
-             'uuids': LOGS.query_uuid(ent['from'] for ent in ret)}
-    if lfrom is not None: reply['from'] = lfrom
-    if lto is not None: reply['to'] = lto
-    if amount is not None: reply['amount'] = amount
-    if key is not None: reply['key'] = key
-    ls = 'LOGSEND to=%r' % (peer,)
-    if ret:
-        ls += ' log-from=%r log-to=%r log-count=%r' % (ret[0]['id'],
-          ret[-1]['id'], len(ret))
-    else:
-        ls += ' log-count=0'
-    if key:
-        ls += ' key=%r' % (key,)
-    log(ls)
-    return send_unicast(ws, peer, reply, False)
-
-def on_open(ws):
-    def send_greetings():
-        send_broadcast(ws, {'type': 'who'})
-        if not DONTPULL:
-            send_broadcast(ws, {'type': 'log-query'})
-        send_broadcast(ws, {'type': 'nick', 'nick': NICKNAME})
-    log('OPENED')
-    EVENTS.add(1, send_greetings)
-def on_message(ws, msg, _context={'oid': None, 'id': None, 'src': None,
-                                  'from': None, 'to': None, 'done': False,
-                                  'uuid': None}):
-    def send_request(ws, rid):
-        if rid is Ellipsis:
-            if _context['id'] is None:
-                _context['done'] = True
-            return
-        elif rid !=  _context['id']:
-            return
-        send_unicast(ws, _context['src'], {'type': 'log-request',
-                                           'to': _context['to']})
-    def add_uuid(uid, uuid):
-        if uid and uuid and LOGS.append_uuid(uid, uuid):
-            log('UUID id=%r uuid=%r' % (uid, uuid))
-    log('MESSAGE content=%r' % (msg,))
-    # Try to extract message parameters
-    try:
-        data = json.loads(msg)
-        msgd = data.get('data', {})
-        if data.get('type') == 'identity':
-            _context['oid'] = msgd.get('id')
-            _context['uuid'] = msgd.get('uuid')
-            add_uuid(_context['oid'], _context['uuid'])
-            return
-        elif data.get('type') not in ('unicast', 'broadcast'):
-            return
-        msgt = msgd.get('type')
-        # Protocollary replies / other handling
-        if msgt == 'joined':
-            add_uuid(data.get('from'), msgd.get('uuid'))
-        elif msgt == 'who':
-            # Own nick
-            reply = {'type': 'nick', 'nick': NICKNAME}
-            if _context['uuid']: reply['uuid'] = _context['uuid']
-            send_unicast(ws, data.get('from'), reply)
-        elif msgt == 'nick':
-            uuid = msgd.get('uuid')
-            if uuid:
-                log('NICK id=%r uuid=%r nick=%r' % (data.get('from'),
-                    uuid, msgd.get('nick')))
-                add_uuid(data.get('from'), uuid)
-            else:
-                log('NICK id=%r nick=%r' % (data.get('from'),
-                                            msgd.get('nick')))
-        elif msgt == 'post':
-            # A single mesage
-            post = LogEntry(id=data.get('id'), parent=msgd.get('parent'),
-                            nick=msgd.get('nick'), text=msgd.get('text'),
-                            timestamp=data.get('timestamp'),
-                            **{'from': data.get('from')})
-            log('POST id=%r parent=%r from=%r nick=%r text=%r' %
-                (post['id'], post['parent'], post['from'], post['nick'],
-                 post['text']))
-            LOGS.append(post)
-        elif msgt == 'log-query':
-            # Someone querying how far my logs go
-            bounds = LOGS.bounds()
-            if bounds[2]:
-                send_unicast(ws, data.get('from'),
-                    {'type': 'log-info', 'from': bounds[0],
-                     'to': bounds[1], 'length': bounds[2]})
-        elif msgt == 'log-info':
-            # Log availability report
-            if data.get('from') == _context['oid']:
-                EVENTS.add(1, lambda: send_request(ws, Ellipsis))
-            elif DONTPULL:
-                return
-            oldest = msgd.get('from')
-            if oldest is None:
-                pass
-            elif _context['from'] is None or oldest < _context['from']:
-                rid = IDENTIFIER()
-                _context['id'] = rid
-                _context['src'] = data.get('from')
-                _context['from'] = oldest
-                _context['to'] = LOGS.bounds()[0]
-                EVENTS.add(1, lambda: send_request(ws, rid))
-        elif msgt == 'log-request':
-            # Someone requesting chat logs
-            send_logs(ws, data.get('from'), msgd.get('from'),
-                      msgd.get('to'), msgd.get('amount'), msgd.get('key'))
-        elif msgt == 'log':
-            # Someone delivering chat logs
-            if DONTPULL: return
-            raw, logs = msgd.get('data', []), []
-            for e in raw:
-                if not isinstance(e, dict): continue
-                logs.append(LogEntry(id=e.get('id'), parent=e.get('parent'),
-                    nick=e.get('nick'), timestamp=e.get('timestamp'),
-                    text=e.get('text'), **{'from': e.get('from')}))
-            logs.sort()
-            added = set(LOGS.extend(logs))
-            for e in logs:
-                eid = e['id']
-                if eid not in added: continue
-                log('LOGPOST id=%r parent=%r from=%r nick=%r text=%r' %
-                    (eid, e['parent'], e['from'], e['nick'], e['text']))
-            uuids = msgd.get('uuids', {})
-            uuid_added = LOGS.extend_uuid(uuids)
-            uuid_added.sort()
-            for k in uuid_added:
-                log('LOGUUID id=%r uuid=%r' % (k, uuids[k]))
-            # Request more if applicable
-            oldest = LOGS.bounds()[0]
-            oldestRemote = msgd.get('from')
-            if oldestRemote is None: oldestRemote = _context['from']
-            if (oldestRemote is not None and (oldest is None or
-                                              oldestRemote < oldest)):
-                _context['id'] = None
-                _context['src'] = None
-                _context['from'] = None
-                _context['to'] = None
-                send_broadcast(ws, {'type': 'log-query'})
-            else:
-                _context['done'] = True
-                send_broadcast(ws, {'type': 'log-done'})
-                if DONTSTAY:
-                    raise SystemExit
-        elif msgt == 'delete':
-            for msg in LOGS.delete(msgd.get('ids', [])):
-                log('DELETE id=%r parent=%r from=%r nick=%r text=%r' %
-                    (msg['id'], msg['parent'], msg['from'], msg['nick'],
-                     msg['text']))
-        elif msgt == 'log-inquiry':
-            # Someone asks whether we're done with pulling logs
-            if _context['done']:
-                send_unicast(ws, data.get('from'), {'type': 'log-done'})
-        elif msgt == 'log-done':
-            # Logs were transferred
-            if DONTPULL and DONTSTAY:
-                raise SystemExit
-    except (ValueError, TypeError, AttributeError) as e:
-        try:
-            lf = traceback.extract_tb(sys.exc_info()[2], 1)[-1]
-        except Exception:
-            lf = None
-        log('FAULT reason=%r last-frame=%s' % (repr(e),
-                                               instabot.format_log(lf)))
-        return
-def on_error(ws, exc):
-    log('ERROR reason=%r' % repr(exc))
-def on_close(ws):
-    log('CLOSED')
-
 class Scribe(instabot.Bot):
     NICKNAME = NICKNAME
     def __init__(self, url, nickname=None, **kwds):
@@ -643,6 +449,10 @@ class Scribe(instabot.Bot):
         self._logs_done = False
         self._ping_job = None
         self._ping_lock = threading.RLock()
+    def connect(self):
+        log('CONNECT url=%r' % self.url)
+        self.scheduler.forever = True
+        instabot.Bot.connect(self)
     def on_open(self):
         instabot.Bot.on_open(self)
         log('OPENED')
@@ -846,7 +656,6 @@ class Scribe(instabot.Bot):
                                                 self._send_ping)
 
 def main():
-    global LOGS, NICKNAME, DONTSTAY, DONTPULL
     @contextlib.contextmanager
     def openarg(fname):
         if fname == '-':
@@ -856,19 +665,10 @@ def main():
                 yield f
     def interrupt(signum, frame):
         raise SystemExit
-    def run_push_logs():
-        while push_logs:
-            peer = push_logs.pop(0)
-            log('LOGPUSH to=%r' % (peer,))
-            send_logs(ws, peer)
-        send_broadcast(ws, {'type': 'log-inquiry'})
-    def run_ping():
-        EVENTS.add(PING_DELAY, run_ping)
-        send_seq(ws, {'type': 'ping'})
     try:
         it, at_args = iter(sys.argv[1:]), False
-        maxlen, toread, msgdb, push_logs = MAXLEN, [], None, []
-        addr = None
+        maxlen, toread, msgdb_file, push_logs = MAXLEN, [], None, []
+        dont_stay, dont_pull, nickname, url = False, False, NICKNAME, None
         for arg in it:
             if arg.startswith('-') and not at_args:
                 if arg == '--help':
@@ -882,33 +682,33 @@ def main():
                 elif arg == '--read-file':
                     toread.append(next(it))
                 elif arg == '--msgdb':
-                    msgdb = next(it)
+                    msgdb_file = next(it)
                 elif arg == '--push-logs':
                     push_logs.append(next(it))
                 elif arg == '--dont-stay':
-                    DONTSTAY = True
+                    dont_stay = True
                 elif arg == '--dont-pull':
-                    DONTPULL = True
+                    dont_pull = True
                 elif arg == '--nick':
-                    NICKNAME = next(it)
+                    nickname = next(it)
                 elif arg == '--':
                     at_args = True
                 else:
                     sys.stderr.write('ERROR: Unknown option: %r\n' % arg)
                     sys.exit(1)
                 continue
-            if addr is not None:
-                sys.stderr.write('ERROR: More than one address specified.\n')
+            if url is not None:
+                sys.stderr.write('ERROR: More than one URL specified.\n')
                 sys.exit(1)
-            addr = arg
+            url = arg
     except StopIteration:
         sys.stderr.write('ERROR: Missing required argument for %s!\n' % arg)
         sys.exit(1)
     except ValueError:
         sys.stderr.write('ERROR: Invalid valid for %s!\n' % arg)
         sys.exit(1)
-    if addr is None:
-        sys.stderr.write('ERROR: No address specified.\n')
+    if url is None:
+        sys.stderr.write('ERROR: No URL specified.\n')
         sys.exit(1)
     try:
         signal.signal(signal.SIGINT, interrupt)
@@ -919,72 +719,37 @@ def main():
     except Exception:
         pass
     log('SCRIBE version=%s' % VERSION)
-    if msgdb is not None:
-        LOGS = LogDBSQLite(msgdb)
-    if maxlen is not None:
-        LOGS.maxlen = maxlen
-    LOGS.init()
+    log('OPENING file=%r maxlen=%r' % (msgdb_file, maxlen))
+    if msgdb_file is None:
+        msgdb = LogDBList(maxlen)
+    else:
+        msgdb = LogDBSQLite(msgdb_file, maxlen)
+    msgdb.init()
     for fn in toread:
-        log('READING file=%r maxlen=%r' % (fn, LOGS.capacity()))
+        log('READING file=%r maxlen=%r' % (fn, msgdb.capacity()))
         try:
             with openarg(fn) as f:
-                logs, uuids = read_posts_ex(f, LOGS.capacity())
-                LOGS.extend(logs)
-                LOGS.extend_uuid(uuids)
+                logs, uuids = read_posts_ex(f, msgdb.capacity())
+                msgdb.extend(logs)
+                msgdb.extend_uuid(uuids)
                 logs, uuids = None, None
         except IOError as e:
             log('ERROR reason=%r' % repr(e))
-    log('LOGBOUNDS from=%r to=%r amount=%r' % LOGS.bounds())
-    ws, reconnect = None, 0
+    log('LOGBOUNDS from=%r to=%r amount=%r' % msgdb.bounds())
+    sched = instabot.EventScheduler()
+    bot = Scribe(url, nickname, scheduler=sched, db=msgdb,
+        push_logs=push_logs, dont_stay=dont_stay, dont_pull=dont_pull)
+    reconnect = 0
     try:
-        while 1:
-            log('CONNECT url=%r' % addr)
-            try:
-                ws = instabot.BackgroundWebSocket(addr)
-                ws.connect()
-            except Exception as e:
-                log('ERROR reason=%r' % repr(e))
-                time.sleep(reconnect)
-                reconnect += 1
-                continue
-            EVENTS.time = time.time
-            EVENTS.sleep = ws.recv
-            EVENTS.clear()
-            EVENTS.add(0.5, run_push_logs)
-            EVENTS.add(PING_DELAY, run_ping)
-            on_open(ws)
-            reconnect = 0
-            while 1:
-                try:
-                    msg = EVENTS.run()
-                    on_message(ws, msg)
-                except websocket.WebSocketTimeoutException as e:
-                    continue
-                except websocket.WebSocketConnectionClosedException as e:
-                    break
-                except IOError as e:
-                    if (e.errno == errno.EAGAIN or
-                            e.errno == errno.EWOULDBLOCK):
-                        continue
-                    on_error(ws, e)
-                    break
-                except Exception as e:
-                    on_error(ws, e)
-                    break
-            EVENTS.sleep = EVENTS._sleep
-            on_close(ws)
-            ws = None
-            time.sleep(reconnect)
-            reconnect += 1
-    except (KeyboardInterrupt, SystemExit) as e:
         try:
+            while 1:
+                bot.start()
+                sched.main()
+        except (KeyboardInterrupt, SystemExit) as e:
             if isinstance(e, SystemExit):
                 log('EXITING')
             else:
                 log('INTERRUPTED')
-            if ws: on_close(ws)
-        except Exception:
-            pass
     except Exception as e:
         log('CRASHED')
         sys.stderr.write('\n***CRASH*** at %s\n' %
@@ -992,6 +757,6 @@ def main():
         sys.stderr.flush()
         raise
     finally:
-        LOGS.close()
+        msgdb.close()
 
 if __name__ == '__main__': main()
