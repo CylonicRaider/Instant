@@ -173,7 +173,8 @@ class InstantClient(object):
         return self.send_seq({'type': 'broadcast', 'data': data},
                              **kwds)
     def close(self):
-        self.ws.close()
+        ws = self.ws
+        if ws is not None: ws.close()
     def run(self):
         try:
             self.connect()
