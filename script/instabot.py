@@ -119,10 +119,13 @@ class InstantClient(object):
         self.timeout = timeout
         self.ws = None
         self.sequence = AtomicSequence()
+        self._wslock = threading.RLock()
     def connect(self):
-        self.ws = websocket.create_connection(self.url)
-        if self.timeout is not None:
-            self.ws.settimeout(self.timeout)
+        with self._wslock:
+            if self.ws is not None: return
+            self.ws = websocket.create_connection(self.url)
+            if self.timeout is not None:
+                self.ws.settimeout(self.timeout)
     def on_open(self):
         pass
     def on_message(self, rawmsg):
@@ -162,9 +165,13 @@ class InstantClient(object):
     def on_client_message(self, data, content, rawmsg):
         pass
     def recv(self):
-        return self.ws.recv()
+        ws = self.ws
+        if ws is None: return None
+        return ws.recv()
     def send_raw(self, rawmsg):
-        self.ws.send(rawmsg)
+        ws = self.ws
+        if ws is None: raise websocket.WebSocketConnectionClosedException
+        ws.send(rawmsg)
     def send_seq(self, content, **kwds):
         seq = self.sequence()
         content['seq'] = seq
@@ -177,8 +184,9 @@ class InstantClient(object):
         return self.send_seq({'type': 'broadcast', 'data': data},
                              **kwds)
     def close(self):
-        ws = self.ws
-        if ws is not None: ws.close()
+        with self._wslock:
+            if self.ws is not None: self.ws.close()
+            self.ws = None
     def run(self):
         try:
             self.connect()
