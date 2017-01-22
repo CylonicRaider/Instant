@@ -839,7 +839,7 @@ class Scribe(instabot.Bot):
 
 def test(url, **kwds):
     sched = instabot.EventScheduler()
-    if 'msgdb' in kwds:
+    if kwds.get('msgdb'):
         db = LogDBSQLite(kwds['msgdb'])
     else:
         db = LogDBList()
