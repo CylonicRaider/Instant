@@ -845,17 +845,6 @@ class Scribe(instabot.Bot):
             self._ping_job = self.scheduler.add(self.ping_delay,
                                                 self._send_ping)
 
-def test(url, **kwds):
-    sched = instabot.EventScheduler()
-    if kwds.get('msgdb'):
-        db = LogDBSQLite(kwds['msgdb'])
-    else:
-        db = LogDBList()
-    s = Scribe(url, 'Scribe (test)', scheduler=sched, db=db, **kwds)
-    sched.add_now(db.init)
-    sched.add_now(s.start)
-    sched.main()
-
 def main():
     global LOGS, NICKNAME, DONTSTAY, DONTPULL
     @contextlib.contextmanager
@@ -902,10 +891,6 @@ def main():
                     DONTPULL = True
                 elif arg == '--nick':
                     NICKNAME = next(it)
-                elif arg == '--test':
-                    test(next(it), dont_stay=DONTSTAY, dont_pull=DONTPULL,
-                         msgdb=msgdb, push_logs=push_logs, ping_delay=10)
-                    raise SystemExit
                 elif arg == '--':
                     at_args = True
                 else:
