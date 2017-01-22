@@ -1,6 +1,7 @@
 # -*- coding: ascii -*-
 
 import sys, re, time
+import traceback
 import heapq
 import json
 import ast
@@ -248,6 +249,26 @@ def log(msg):
                        msg)
     sys.stdout.write(m.encode('ascii', 'backslashreplace').decode('ascii'))
     sys.stdout.flush()
+def log_exception(name, exc, trailer=None):
+    try:
+        # frame is the frame where the exception is caught; cause is the
+        # frame where it originated. The former might be more useful in that
+        # it points into the user's code (instead of nested libraries).
+        frame = traceback.extract_tb(sys.exc_info()[2], 1)[-1]
+        cause = traceback.extract_tb(sys.exc_info()[2])[-1]
+    except:
+        frame, cause = None, None
+    # The exception is repr()-ed twice, since many of those objects have
+    # custom representations, which are not necessarily machine-readable,
+    # and str() is hardly appropriate.
+    if frame == cause:
+        msg = '%s reason=%r last-frame=%s' % (name, repr(exc),
+                                              format_log(frame))
+    else:
+        msg = '%s reason=%r last-frame=%s cause-frame=%s' % (name, repr(exc),
+            format_log(frame), format_log(cause))
+    if trailer is not None: msg += ' ' + trailer
+    log(msg)
 
 LOGLINE_START = re.compile(r'^\[([0-9 Z:-]+)\]\s+([A-Z_-]+)\s+(.*)$')
 WHITESPACE = re.compile(r'\s+')

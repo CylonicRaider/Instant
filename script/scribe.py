@@ -434,6 +434,7 @@ def read_posts(src, maxlen=None):
     return read_posts_ex(src, maxlen)[0]
 
 log = instabot.log
+log_exception = instabot.log_exception
 
 class Scribe(instabot.Bot):
     NICKNAME = NICKNAME
@@ -461,10 +462,10 @@ class Scribe(instabot.Bot):
         log('MESSAGE content=%r' % (rawmsg,))
         instabot.Bot.on_message(self, rawmsg)
     def on_timeout(self, exc):
-        self.log_exception('TIMEOUT', exc)
+        log_exception('TIMEOUT', exc)
         instabot.Bot.on_timeout(self, exc)
     def on_error(self, exc):
-        self.log_exception('ERROR', exc)
+        log_exception('ERROR', exc)
         instabot.Bot.on_error(self, exc)
     def on_close(self):
         instabot.Bot.on_close(self)
@@ -561,13 +562,6 @@ class Scribe(instabot.Bot):
             ls += ' key=%r' % (data.get('key'),)
         log(ls)
         return self.send_unicast(peer, data, verbose=False)
-    def log_exception(self, name, exc):
-        try:
-            frame = traceback.extract_tb(sys.exc_info()[2], 1)[-1]
-        except Exception:
-            frame = None
-        log('%s reason=%r last-frame=%s' % (name, repr(exc),
-                                            instabot.format_log(frame)))
     def _execute(self, func, *args, **kwds):
         self.scheduler.add_now(lambda: func(*args, **kwds))
     def _process_nick(self, uid, nick=None, uuid=None):
@@ -747,7 +741,7 @@ def main():
             try:
                 bot.connect()
             except Exception as exc:
-                log('ERROR reason=%r' % repr(exc))
+                log_exception('ERROR', exc)
                 time.sleep(reconnect)
                 reconnect += 1
                 continue
