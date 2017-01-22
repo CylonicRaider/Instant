@@ -77,6 +77,10 @@ class EventScheduler(object):
         with self:
             self.pending[:] = []
             self.cond.notify()
+    def set_forever(self, v):
+        with self:
+            self.forever = v
+            self.cond.notify()
     def run(self, hangup=True):
         wait = None
         while 1:

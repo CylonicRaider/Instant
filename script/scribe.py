@@ -451,7 +451,7 @@ class Scribe(instabot.Bot):
         self._ping_lock = threading.RLock()
     def connect(self):
         log('CONNECT url=%r' % self.url)
-        self.scheduler.forever = True
+        self.scheduler.set_forever(True)
         instabot.Bot.connect(self)
     def on_open(self):
         instabot.Bot.on_open(self)
@@ -472,6 +472,7 @@ class Scribe(instabot.Bot):
             if self._ping_job is not None:
                 self.scheduler.cancel(self._ping_job)
                 self._ping_job = None
+        self.scheduler.set_forever(False)
     def handle_identity(self, content, rawmsg):
         instabot.Bot.handle_identity(self, content, rawmsg)
         self.send_broadcast({'type': 'who'})
@@ -479,7 +480,7 @@ class Scribe(instabot.Bot):
         if not self.dont_pull:
             self._logs_begin()
         self._send_ping(False)
-        self.scheduler.forever = False
+        self.scheduler.set_forever(False)
     def handle_joined(self, content, rawmsg):
         instabot.Bot.handle_joined(self, content, rawmsg)
         data = content['data']
