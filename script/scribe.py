@@ -741,7 +741,7 @@ def main():
     sched = instabot.EventScheduler()
     bot = Scribe(url, nickname, scheduler=sched, db=msgdb,
         push_logs=push_logs, dont_stay=dont_stay, dont_pull=dont_pull)
-    reconnect = 0
+    reconnect, thr = 0, None
     try:
         while 1:
             try:
@@ -752,10 +752,11 @@ def main():
                 reconnect += 1
                 continue
             reconnect = 0
-            bot.start()
+            thr = bot.start()
             sched.main()
             time.sleep(1)
     except (KeyboardInterrupt, SystemExit) as e:
+        bot.close()
         if isinstance(e, SystemExit):
             log('EXITING')
         else:
@@ -767,6 +768,7 @@ def main():
         sys.stderr.flush()
         raise
     finally:
+        if thr: thr.join(1)
         msgdb.close()
 
 if __name__ == '__main__': main()
