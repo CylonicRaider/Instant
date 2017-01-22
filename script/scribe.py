@@ -450,7 +450,8 @@ class Scribe(instabot.Bot):
         self._ping_job = None
         self._ping_lock = threading.RLock()
     def connect(self):
-        log('CONNECT url=%r' % self.url)
+        # HACK to avoid logging doubly
+        if not self.ws: log('CONNECT url=%r' % self.url)
         self.scheduler.set_forever(True)
         instabot.Bot.connect(self)
     def on_open(self):
@@ -743,8 +744,17 @@ def main():
     reconnect = 0
     try:
         while 1:
+            try:
+                bot.connect()
+            except Exception as exc:
+                log('ERROR reason=%r' % exc)
+                time.sleep(reconnect)
+                reconnect += 1
+                continue
+            reconnect = 0
             bot.start()
             sched.main()
+            time.sleep(1)
     except (KeyboardInterrupt, SystemExit) as e:
         if isinstance(e, SystemExit):
             log('EXITING')
