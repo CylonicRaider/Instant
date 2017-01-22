@@ -253,38 +253,29 @@ class LogDBSQLite(LogDB):
             amount = str(amount)
         flip = False
         if fromkey is not None and tokey is not None:
-            stmt = ('SELECT * FROM logs '
-                    'WHERE msgid BETWEEN ? AND ? '
+            stmt = ('SELECT * FROM logs WHERE msgid BETWEEN ? AND ? '
                     'ORDER BY msgid ASC', (fromkey, tokey))
         elif fromkey is not None:
             if amount is not None:
-                stmt = ('SELECT * FROM logs '
-                        'WHERE msgid >= ? '
-                        'ORDER BY msgid ASC '
-                        'LIMIT ?', (fromkey, amount))
+                stmt = ('SELECT * FROM logs WHERE msgid >= ? '
+                        'ORDER BY msgid ASC LIMIT ?', (fromkey, amount))
             else:
-                stmt = ('SELECT * FROM logs '
-                        'WHERE msgid >= ? '
+                stmt = ('SELECT * FROM logs WHERE msgid >= ? '
                         'ORDER BY msgid ASC', (fromkey,))
         elif tokey is not None:
             if amount is not None:
-                stmt = ('SELECT * FROM logs '
-                        'WHERE msgid <= ? '
-                        'ORDER BY msgid DESC '
-                        'LIMIT ?', (tokey, amount))
+                stmt = ('SELECT * FROM logs WHERE msgid <= ? '
+                        'ORDER BY msgid DESC LIMIT ?', (tokey, amount))
             else:
-                stmt = ('SELECT * FROM logs '
-                        'WHERE msgid <= ? '
+                stmt = ('SELECT * FROM logs WHERE msgid <= ? '
                         'ORDER BY msgid DESC', (tokey,))
             flip = True
         elif amount is not None:
-            stmt = ('SELECT * FROM logs '
-                    'ORDER BY msgid DESC '
+            stmt = ('SELECT * FROM logs ORDER BY msgid DESC '
                     'LIMIT ?', (amount,))
             flip = True
         else:
-            stmt = ('SELECT * FROM logs '
-                    'ORDER BY msgid',)
+            stmt = ('SELECT * FROM logs ORDER BY msgid',)
         self.cursor.execute(*stmt)
         data = self.cursor.fetchall()
         if flip: data.reverse()
@@ -647,6 +638,7 @@ class Scribe(instabot.Bot):
         self.dont_stay = kwds.get('dont_stay', False)
         self.dont_pull = kwds.get('dont_pull', False)
         self.ping_delay = kwds.get('ping_delay', PING_DELAY)
+        self.push_logs = kwds.get('push_logs', [])
         self._cur_candidate = None
         self._logs_done = False
         self._ping_job = None
@@ -673,6 +665,7 @@ class Scribe(instabot.Bot):
     def handle_identity(self, content, rawmsg):
         instabot.Bot.handle_identity(self, content, rawmsg)
         self.send_broadcast({'type': 'who'})
+        self._execute(self._push_logs)
         if not self.dont_pull:
             self._logs_begin()
         self._send_ping(False)
@@ -807,8 +800,7 @@ class Scribe(instabot.Bot):
                              data.get('amount'))
         reply = {'data': logs,
                  'uuids': self.db.query_uuid(ent['from'] for ent in logs)}
-        for k in ('from', 'to', 'amount', 'key'):
-            if data.get(k) is not None: reply[k] = data[k]
+        if data.get('key') is not None: reply['key'] = data['key']
         self.send_logs(uid, reply)
     def _process_log(self, data, uid):
         rawlogs, uuids = data.get('data', []), data.get('uuids', {})
@@ -823,6 +815,22 @@ class Scribe(instabot.Bot):
             log('DELETE id=%r parent=%r from=%r nick=%r text=%r' %
                 (msg['id'], msg['parent'], msg['from'], msg['nick'],
                  msg['text']))
+    def _push_logs(self, peer=None):
+        if peer is None:
+            if not self.push_logs: return
+            peer = self.push_logs.pop(0)
+            do_again = bool(self.push_logs)
+            inquire = (not do_again)
+        else:
+            do_again, inquire = False, False
+        bounds = self.db.bounds()
+        data = self.db.query(bounds[0], bounds[1])
+        uuids = self.db.query_uuid(ent['from'] for ent in data)
+        self.send_logs(peer, {'data': data, 'uuids': uuids})
+        if do_again:
+            self._execute(self._push_logs)
+        elif inquire:
+            self.send_broadcast({'type': 'log-inquiry'})
     def _logs_begin(self):
         self._cur_candidate = None
         self.send_broadcast({'type': 'log-query'})
@@ -896,7 +904,7 @@ def main():
                     NICKNAME = next(it)
                 elif arg == '--test':
                     test(next(it), dont_stay=DONTSTAY, dont_pull=DONTPULL,
-                         msgdb=msgdb, ping_delay=10)
+                         msgdb=msgdb, push_logs=push_logs, ping_delay=10)
                     raise SystemExit
                 elif arg == '--':
                     at_args = True
