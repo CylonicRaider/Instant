@@ -98,41 +98,6 @@ class EventScheduler(object):
             f = self.forever
             if not self.run(f) and not f: break
 
-class BackgroundWebSocket(object):
-    def __init__(self, url):
-        self.url = url
-        self.queue = Queue()
-        self.ws = None
-    def connect(self):
-        self.ws = websocket.create_connection(self.url)
-        thr = threading.Thread(target=self._reader)
-        thr.setDaemon(True)
-        thr.start()
-    def _reader(self):
-        try:
-            while 1:
-                msg = self.ws.recv()
-                if not self.on_message(msg):
-                    self.queue.put(msg)
-        except BaseException as e:
-            if not self.on_error(e):
-                self.queue.put(e)
-    def on_message(self, msg):
-        return False
-    def on_error(self, exc):
-        return False
-    def recv(self, timeout=None):
-        try:
-            ret = self.queue.get(timeout=timeout)
-        except QueueEmpty:
-            raise websocket.WebSocketTimeoutException
-        if isinstance(ret, BaseException): raise ret
-        return ret
-    def send(self, datum):
-        self.ws.send(datum)
-    def close(self):
-        self.ws.close()
-
 class AtomicSequence(object):
     def __init__(self):
         self.value = -1
