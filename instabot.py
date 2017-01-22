@@ -17,25 +17,26 @@ VERSION = 'v1.4'
 
 class EventScheduler(object):
     class Event:
-        def __init__(self, time, callback):
+        def __init__(self, time, seq, callback):
             self.time = time
+            self.sortkey = (time, seq)
             self.callback = callback
             self.handled = False
             self.canceled = False
         def __call__(self):
             self.callback()
         def __gt__(self, other):
-            return self.time > other.time
+            return self.sortkey > other.sortkey
         def __ge__(self, other):
-            return self.time >= other.time
+            return self.sortkey >= other.sortkey
         def __eq__(self, other):
-            return self.time == other.time
+            return self.sortkey == other.sortkey
         def __ne__(self, other):
-            return self.time != other.time
+            return self.sortkey != other.sortkey
         def __le__(self, other):
-            return self.time <= other.time
+            return self.sortkey <= other.sortkey
         def __lt__(self, other):
-            return self.time < other.time
+            return self.sortkey < other.sortkey
     def __init__(self, time=None, sleep=None):
         if time is None: time = self._time
         if sleep is None: sleep = self._sleep
@@ -44,6 +45,7 @@ class EventScheduler(object):
         self.sleep = sleep
         self.forever = True
         self.cond = threading.Condition()
+        self._seq = 0
     def __enter__(self):
         return self.cond.__enter__()
     def __exit__(self, *args):
@@ -56,7 +58,8 @@ class EventScheduler(object):
             return bool(self.pending)
     def add_abs(self, timestamp, callback):
         with self:
-            evt = self.Event(timestamp, callback)
+            evt = self.Event(timestamp, self._seq, callback)
+            self._seq += 1
             heapq.heappush(self.pending, evt)
             self.cond.notify()
             return evt
