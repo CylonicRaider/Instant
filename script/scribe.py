@@ -742,15 +742,14 @@ def main():
         push_logs=push_logs, dont_stay=dont_stay, dont_pull=dont_pull)
     reconnect = 0
     try:
-        try:
-            while 1:
-                bot.start()
-                sched.main()
-        except (KeyboardInterrupt, SystemExit) as e:
-            if isinstance(e, SystemExit):
-                log('EXITING')
-            else:
-                log('INTERRUPTED')
+        while 1:
+            bot.start()
+            sched.main()
+    except (KeyboardInterrupt, SystemExit) as e:
+        if isinstance(e, SystemExit):
+            log('EXITING')
+        else:
+            log('INTERRUPTED')
     except Exception as e:
         log('CRASHED')
         sys.stderr.write('\n***CRASH*** at %s\n' %
