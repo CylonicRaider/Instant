@@ -181,8 +181,7 @@ class InstantClient(object):
         return self.send_seq({'type': 'unicast', 'to': dest, 'data': data},
                              **kwds)
     def send_broadcast(self, data, **kwds):
-        return self.send_seq({'type': 'broadcast', 'data': data},
-                             **kwds)
+        return self.send_seq({'type': 'broadcast', 'data': data}, **kwds)
     def close(self):
         with self._wslock:
             if self.ws is not None: self.ws.close()
@@ -234,9 +233,10 @@ class Bot(InstantClient):
             self.send_broadcast({'type': 'nick', 'nick': self.nickname,
                                  'uuid': self.identity['uuid']})
     def on_client_message(self, data, content, rawmsg):
-        if data.get('type') == 'who':
-            self.send_unicast(content['from'], {'type': 'nick',
-                'nick': self.nickname, 'uuid': self.identity['uuid']})
+        peer = content['from']
+        if data.get('type') == 'who' and peer != self.identity['id']:
+            self.send_unicast(peer, {'type': 'nick', 'nick': self.nickname,
+                                     'uuid': self.identity['uuid']})
 
 def format_log(o):
     if isinstance(o, tuple):
