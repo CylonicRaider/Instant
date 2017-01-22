@@ -747,7 +747,7 @@ def main():
             try:
                 bot.connect()
             except Exception as exc:
-                log('ERROR reason=%r' % exc)
+                log('ERROR reason=%r' % repr(exc))
                 time.sleep(reconnect)
                 reconnect += 1
                 continue
