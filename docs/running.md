@@ -133,13 +133,15 @@ use a reverse proxy.
 ## Running bots
 
 There is a bot shipped alongside Instant, *Scribe*, which stores room logs
-independently of browser-based clients.
+independently of browser-based clients; it is found in the `script/`
+subdirectory of the repository.
 
 It depends on a recent version of *Python* (Python 2.7 is confirmed to work,
 and Python 3.4 was extensively tested “in the field”); aside from that,
-a WebSocket client library (i.e.,
-[`websocket-client`](https://pypi.python.org/pypi/websocket-client/)) is
-requied.
+the `instabot` library found alongside the source file, and a WebSocket
+client library (i.e.,
+[`websocket-client`](https://pypi.python.org/pypi/websocket-client/)) are
+required.
 
 Scribe supports the following features, each controlled by a command-line
 option. (Refer to the `--help` message for a listing.)

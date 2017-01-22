@@ -24,8 +24,8 @@ so.
 
 ### Running an own clone
 
-Refer to [`README.running.md`](README.running.md) for an extensive guide on
-how to run Instant.
+Refer to [`docs/running.md`](docs/running.md) for an extensive guide on how
+to run Instant.
 
 **TL;DR**: The stock backend (as provided in every commit, unless someone
 messes it up) can be put up quickly like `java -jar Instant.jar 8080`,
