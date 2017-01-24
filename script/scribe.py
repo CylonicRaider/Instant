@@ -1,16 +1,14 @@
 #!/usr/bin/env python3
 # -*- coding: ascii -*-
 
-import sys, re, time
+import sys, time
 import threading
-import heapq, bisect
+import bisect
 import contextlib
-import signal, errno, ssl
-import traceback
-import ast, json
+import signal
+import json
 import sqlite3
 
-import websocket
 import instabot
 
 NICKNAME = 'Scribe'
