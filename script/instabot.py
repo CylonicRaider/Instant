@@ -253,8 +253,8 @@ def log_exception(name, exc, trailer=None):
         # frame is the frame where the exception is caught; cause is the
         # frame where it originated. The former might be more useful in that
         # it points into the user's code (instead of nested libraries).
-        frame = traceback.extract_tb(sys.exc_info()[2], 1)[-1]
-        cause = traceback.extract_tb(sys.exc_info()[2])[-1]
+        frame = tuple(traceback.extract_tb(sys.exc_info()[2], 1)[-1])
+        cause = tuple(traceback.extract_tb(sys.exc_info()[2])[-1])
     except:
         frame, cause = None, None
     # The exception is repr()-ed twice, since many of those objects have
