@@ -255,11 +255,21 @@ class HookBot(Bot):
             post = dict(data, timestamp=content['timestamp'],
                 id=content['id'], **{'from': content['from']})
             if self.post_cb is not None:
-                self.post_cb(self, post, {'content': content,
-                                          'rawmsg': rawmsg})
+                res = self.post_cb(self, post, {'content': content,
+                                                'rawmsg': rawmsg})
+                if res is not None:
+                    self.send_post(res, content['id'])
     def on_close(self):
         Bot.on_close(self)
         if self.close_cb is not None: self.close_cb(self)
+    def send_post(self, text, parent=None, nickname=None):
+        data = {'type': 'post', 'text': text}
+        if parent is not None: data['parent'] = parent
+        if nickname is None:
+            data['nick'] = self.nickname
+        else:
+            data['nick'] = nickname
+        return self.send_broadcast(data)
 
 def format_log(o):
     if isinstance(o, tuple):
