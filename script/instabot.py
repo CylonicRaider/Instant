@@ -238,6 +238,29 @@ class Bot(InstantClient):
             self.send_unicast(peer, {'type': 'nick', 'nick': self.nickname,
                                      'uuid': self.identity['uuid']})
 
+class HookBot(Bot):
+    def __init__(self, url, nickname=None, **kwds):
+        Bot.__init__(self, url, nickname, **kwds)
+        self.init_cb = kwds.get('init_cb')
+        self.open_cb = kwds.get('open_cb')
+        self.post_cb = kwds.get('post_cb')
+        self.close_cb = kwds.get('close_cb')
+        if self.init_cb is not None: self.init_cb(self)
+    def on_open(self):
+        Bot.on_open(self)
+        if self.open_cb is not None: self.open_cb(self)
+    def on_client_message(self, data, content, rawmsg):
+        Bot.on_client_message(self, data, content, rawmsg)
+        if data.get('type') == 'post':
+            post = dict(data, timestamp=content['timestamp'],
+                id=content['id'], **{'from': content['from']})
+            if self.post_cb is not None:
+                self.post_cb(self, post, {'content': content,
+                                          'rawmsg': rawmsg})
+    def on_close(self):
+        Bot.on_close(self)
+        if self.close_cb is not None: self.close_cb(self)
+
 def format_log(o):
     if isinstance(o, tuple):
         return '(' + ','.join(map(repr, o)) + ')'
