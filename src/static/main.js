@@ -4056,6 +4056,66 @@ this.Instant = function() {
       }()
     };
   }();
+  /* Popup nodes */
+  Instant.popups = function() {
+    /* The main node */
+    var stack = null;
+    return {
+      /* Initialize submodule */
+      init: function() {
+        stack = $makeNode('div', 'popups');
+        return stack;
+      },
+      /* Add a node to the popup stack */
+      add: function(node) {
+        stack.appendChild(node);
+      },
+      /* Remove a node from the popup stack */
+      del: function(node) {
+        stack.removeChild(node);
+      },
+      /* Create a new popup */
+      make: function(options) {
+        function addContent(cls, cnt) {
+          if (typeof cnt == 'string') {
+            $sel(cls, ret).textContent = cnt;
+          } else if (cnt) {
+            $sel(cls, ret).appendChild(cnt);
+          }
+        }
+        var ret = $makeNode('div', 'popup', [
+          ['div', 'popup-header', [
+            ['span', 'popup-title'],
+            ['a', 'popup-close', {href: '#'}, [
+              ['img', {src: '/static/close.svg'}]
+            ]]
+          ]],
+          ['div', 'popup-content'],
+          ['div', 'popup-bottom']
+        ]);
+        if (options.id) ret.id = options.id;
+        if (options.className) ret.className += ' ' + options.className;
+        addContent('.popup-title', options.title);
+        addContent('.popup-content', options.content);
+        addContent('.popup-bottom', options.bottom);
+        $sel('.popup-close', ret).addEventListener('click', function(event) {
+          event.preventDefault();
+          Instant.popups.del(ret);
+        });
+        return ret;
+      },
+      /* Create a new popup and show it */
+      addNew: function(options) {
+        var ret = Instant.popups.make(options);
+        Instant.popups.add(ret);
+        return ret;
+      },
+      /* Return the internal main node of the submodule */
+      getNode: function() {
+        return stack;
+      }
+    };
+  }();
   /* Query string parameters
    * The backend does not parse them (as of now), and even if it did not,
    * some of those are only relevant to the frontend. */
@@ -4459,8 +4519,10 @@ this.Instant = function() {
     Instant.animation.greeter.init(loadWrapper);
     Instant.animation.offscreen.init(
       $sel('.alert-container', Instant.input.getNode()));
+    Instant.popups.init();
     main.appendChild(Instant.message.getMessagePane());
     main.appendChild(Instant.sidebar.getNode());
+    main.appendChild(Instant.popups.getNode());
     Instant.pane.main.init(main);
     Instant._fireListeners('init.late');
     Instant.settings.load();

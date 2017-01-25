@@ -487,6 +487,71 @@ body {
   color: #404040;
 }
 
+.popups {
+  display: -webkit-flex;
+  display: flex;
+  -webkit-flex-direction: column;
+  -webkit-justify-content: center;
+  flex-direction: column;
+  justify-content: center;
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(255, 255, 255, 0.5);
+  z-index: 1000;
+}
+.popups:empty {
+  display: none;
+}
+
+.popups .popup {
+  margin: auto;
+  border: 1px solid black;
+}
+.popups .popup:not(:first-child) {
+  margin-top: 0.5em;
+}
+.popups .popup:not(:last-child) {
+  margin-bottom: 0.5em;
+}
+
+.popups .popup .popup-header {
+  display: -webkit-flex;
+  display: flex;
+  border-bottom: 1px solid black;
+}
+.popups .popup .popup-title {
+  font-weight: bold;
+  margin-right: auto;
+  padding: 5px;
+  line-height: 1.2em;
+}
+.popups .popup .popup-close {
+  position: relative;
+  width: 1.2em;
+  border-left: 1px solid black;
+  padding: 5px;
+}
+.popups .popup .popup-close img {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+  padding: 5px;
+}
+.popups .popup .popup-content {
+  padding: 5px;
+  clear: both;
+}
+.popups .popup .popup-bottom {
+  padding: 0 5px 5px 5px;
+  text-align: right;
+}
+
 .input-bar {
   display: -webkit-flex;
   display: flex;
