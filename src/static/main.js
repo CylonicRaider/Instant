@@ -2178,7 +2178,30 @@ this.Instant = function() {
         } else if (nodeRect.bottom > paneRect.bottom - dist) {
           pane.scrollTop -= paneRect.bottom - dist - nodeRect.bottom;
         }
-      }
+      },
+      /* Instant main pane utilities */
+      main: function() {
+        /* The pane */
+        var pane = null;
+        /* Original first and last child */
+        var origFirst = null, origLast = null;
+        return {
+          /* Initialize submodule */
+          init: function(node) {
+            pane = node;
+            origFirst = pane.firstChild;
+            origLast = pane.lastChild;
+          },
+          /* Add a node before the main pane content */
+          addBefore: function(node) {
+            pane.insertBefore(node, origFirst);
+          },
+          /* Add a node after the main pane content */
+          addAfter: function(node) {
+            pane.appendChild(node);
+          }
+        };
+      }()
     };
   }();
   /* Sidebar ahndling */
@@ -4438,6 +4461,7 @@ this.Instant = function() {
       $sel('.alert-container', Instant.input.getNode()));
     main.appendChild(Instant.message.getMessagePane());
     main.appendChild(Instant.sidebar.getNode());
+    Instant.pane.main.init(main);
     Instant._fireListeners('init.late');
     Instant.settings.load();
     Instant.connection.init();
