@@ -97,6 +97,23 @@
   background: rgba(0, 0, 0, 0.85);
 }
 
+.dark .popups {
+  background: rgba(0, 0, 0, 0.5);
+}
+.dark .popups .popup {
+  background: black;
+}
+.dark .popups .popup, .dark .popups .popup-header {
+  border-color: white;
+}
+.dark .popups .popup .popup-title-sep {
+  background: white;
+}
+.dark .popups .popup .popup-close img {
+  -webkit-filter: invert(1);
+  filter: invert(1);
+}
+
 .dark .input-bar, .dark .input-bar .input-nick-prompt {
   background: black;
 }
