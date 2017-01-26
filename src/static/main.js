@@ -4086,6 +4086,7 @@ this.Instant = function() {
         var ret = $makeNode('div', 'popup', [
           ['div', 'popup-header', [
             ['span', 'popup-title'],
+            ['span', 'popup-title-sep'],
             ['a', 'popup-close', {href: '#'}, [
               ['img', {src: '/static/close.svg'}]
             ]]

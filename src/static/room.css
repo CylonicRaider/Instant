@@ -491,16 +491,16 @@ body {
   display: -webkit-flex;
   display: flex;
   -webkit-flex-direction: column;
-  -webkit-justify-content: center;
   flex-direction: column;
-  justify-content: center;
   position: absolute;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
+  box-sizing: border-box;
   background: rgba(255, 255, 255, 0.5);
   z-index: 1000;
+  overflow: auto;
 }
 .popups:empty {
   display: none;
@@ -509,6 +509,7 @@ body {
 .popups .popup {
   margin: auto;
   border: 1px solid black;
+  background: white;
 }
 .popups .popup:not(:first-child) {
   margin-top: 0.5em;
@@ -528,20 +529,19 @@ body {
   padding: 5px;
   line-height: 1.2em;
 }
+.popups .popup .popup-title-sep {
+  width: 1px;
+  background: black;
+}
 .popups .popup .popup-close {
-  position: relative;
-  width: 1.2em;
-  border-left: 1px solid black;
-  padding: 5px;
+  margin: auto 0;
+  line-height: 0;
+  outline-offset: 1px;
 }
 .popups .popup .popup-close img {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  box-sizing: border-box;
-  padding: 5px;
+  width: 1.2em;
+  height: 1.2em;
+  margin: 5px;
 }
 .popups .popup .popup-content {
   padding: 5px;
