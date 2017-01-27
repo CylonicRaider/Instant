@@ -2383,7 +2383,7 @@ this.Instant = function() {
         ]);
         menu = $makeNode('div', 'user-list-menu', [
           ['h2', ['Actions:']], ' ',
-          ['button', 'action-ping', ['Insert ping']]
+          ['button', 'button action-ping', ['Insert ping']]
         ]);
         /* Maintain focus state of input bar */
         var inputWasFocused = false;

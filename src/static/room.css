@@ -431,7 +431,8 @@ body {
   display: inline-block;
   font-size: inherit;
 }
-.user-list-menu button {
+
+.button {
   margin: 0;
   border: 1px solid black;
   padding: 1px;
@@ -441,7 +442,10 @@ body {
   cursor: pointer;
   outline-offset: -2px;
 }
-.user-list-menu button::-moz-focus-inner {
+.button:hover {
+  text-decoration: underline;
+}
+.button::-moz-focus-inner {
   margin: 0;
   border: 0;
   padding: 0;
