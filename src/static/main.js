@@ -4099,7 +4099,21 @@ this.Instant = function() {
         addContent('.popup-title', options.title);
         addContent('.popup-content', options.content);
         addContent('.popup-bottom', options.bottom);
+        if (options.buttons) {
+          var bottom = $sel('.popup-bottom', ret);
+          options.buttons.forEach(function(el) {
+            var btn = $makeNode('button', 'button', [el[0]]);
+            if (el[1]) btn.addEventListener('click', el[1]);
+            if (bottom.childNodes.length)
+              bottom.appendChild(document.createTextNode(' '));
+            bottom.appendChild(btn);
+          });
+        }
         $sel('.popup-close', ret).addEventListener('click', function(event) {
+          if (options.onclose) {
+            options.onclose(event);
+            if (event.defaultPrevented) return;
+          }
           event.preventDefault();
           Instant.popups.del(ret);
         });
