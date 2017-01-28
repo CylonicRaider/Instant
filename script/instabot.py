@@ -347,3 +347,51 @@ def read_logs(src, filt=None):
             values[name] = val
         else:
             yield (ts, tag, values)
+
+def argparse(args, cmd=None):
+    it, option = iter(args), None
+    while 1:
+        if isinstance(cmd, (tuple, list)):
+            cmd, cmdarg = cmd
+        elif callable(cmd):
+            cmd, cmdarg = 'convert', cmd
+        else:
+            cmd, cmdarg = cmd, None
+        foropt = (' for %r' % (option,) if option is not None else '')
+        if cmd is None or cmd == 'next':
+            value = next(it)
+            option = value
+        elif cmd == 'arg':
+            try:
+                value = next(it)
+            except StopIteration:
+                raise SystemExit('ERROR: Missing required argument' + foropt)
+        elif cmd == 'convert':
+            try:
+                raw = next(it)
+                value = cmdarg(raw)
+            except StopIteration:
+                raise SystemExit('ERROR: Missing required argument' + foropt)
+            except ValueError:
+                raise SystemExit('ERROR: Bad argument %s: %r' %
+                                 (foropt, raw))
+        elif cmd == 'close':
+            next(it)
+            raise SystemExit('ERROR: Too many arguments')
+        elif cmd == 'unknown':
+            if option is None:
+                raise RuntimeError("No option for 'unknown' command")
+            raise SystemExit('ERROR: Unknown option %r' % (option,))
+        elif cmd == 'toofew':
+            raise SystemExit('ERROR: Too few arguments')
+        elif cmd == 'toomany':
+            raise SystemExit('ERROR: Too many arguments')
+        elif cmd == 'die':
+            if cmdarg is None: raise SystemExit
+            raise SystemExit('ERROR: %s' % (cmdarg,))
+        else:
+            raise ValueError('Bad argparse command: %r' % (cmd,))
+        try:
+            cmd = yield value
+        except GeneratorExit:
+            cmd = 'close'

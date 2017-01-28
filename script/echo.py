@@ -12,28 +12,22 @@ def post_cb(self, msg, meta):
         return msg['text'][6:]
 
 def main():
+    parser = instabot.argparse(sys.argv[1:])
     url, nickname = None, NICKNAME
-    try:
-        it = iter(sys.argv[1:])
-        for arg in it:
-            if arg == '--help':
-                sys.stderr.write('USAGE: %s [--help] [--nick name] url\n' %
-                                 sys.argv[0])
-                sys.exit(0)
-            elif arg == '--nick':
-                nickname = next(it)
-            elif arg.startswith('-'):
-                sys.stderr.write('ERROR: Unknown option %s!\n' % arg)
-                sys.exit(1)
-            elif url is not None:
-                sys.stderr.write('ERROR: Too many URL-s passed!\n')
-                sys.exit(1)
-            else:
-                url = arg
-    except StopIteration:
-        sys.stderr.write('ERROR: Missing required argument for %s!\n' %
-                         arg)
-        sys.exit(1)
+    for arg in parser:
+        if arg == '--help':
+            sys.stderr.write('USAGE: %s [--help] [--nick name] url\n' %
+                             sys.argv[0])
+            sys.exit(0)
+        elif arg == '--nick':
+            nickname = parser.send('arg')
+        elif arg.startswith('-'):
+            parser.send('unknown')
+        elif url is not None:
+            parser.send('toomany')
+        else:
+            url = arg
+    if url is None: raise SystemExit('ERROR: Too few arguments')
     bot = instabot.HookBot(url, nickname, post_cb=post_cb)
     bot.run()
 

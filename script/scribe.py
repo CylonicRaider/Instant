@@ -659,51 +659,39 @@ def main():
                 yield f
     def interrupt(signum, frame):
         raise SystemExit
-    try:
-        it, at_args = iter(sys.argv[1:]), False
-        maxlen, toread, msgdb_file, push_logs = MAXLEN, [], None, []
-        dont_stay, dont_pull, nickname, url = False, False, NICKNAME, None
-        for arg in it:
-            if arg.startswith('-') and not at_args:
-                if arg == '--help':
-                    sys.stderr.write('USAGE: %s [--help] [--maxlen maxlen] '
-                        '[--msgdb file] [--read-file file] [--push-logs id] '
-                        '[--dont-stay] [--dont-pull] [--nick name] url\n' %
-                        sys.argv[0])
-                    sys.exit(0)
-                elif arg == '--maxlen':
-                    maxlen = int(next(it))
-                elif arg == '--read-file':
-                    toread.append(next(it))
-                elif arg == '--msgdb':
-                    msgdb_file = next(it)
-                elif arg == '--push-logs':
-                    push_logs.append(next(it))
-                elif arg == '--dont-stay':
-                    dont_stay = True
-                elif arg == '--dont-pull':
-                    dont_pull = True
-                elif arg == '--nick':
-                    nickname = next(it)
-                elif arg == '--':
-                    at_args = True
-                else:
-                    sys.stderr.write('ERROR: Unknown option: %r\n' % arg)
-                    sys.exit(1)
-                continue
-            if url is not None:
-                sys.stderr.write('ERROR: More than one URL specified.\n')
-                sys.exit(1)
-            url = arg
-    except StopIteration:
-        sys.stderr.write('ERROR: Missing required argument for %s!\n' % arg)
-        sys.exit(1)
-    except ValueError:
-        sys.stderr.write('ERROR: Invalid valid for %s!\n' % arg)
-        sys.exit(1)
-    if url is None:
-        sys.stderr.write('ERROR: No URL specified.\n')
-        sys.exit(1)
+    parser, at_args = instabot.argparse(sys.argv[1:]), False
+    maxlen, toread, msgdb_file, push_logs = MAXLEN, [], None, []
+    dont_stay, dont_pull, nickname, url = False, False, NICKNAME, None
+    for arg in parser:
+        if arg.startswith('-') and not at_args:
+            if arg == '--help':
+                sys.stderr.write('USAGE: %s [--help] [--maxlen maxlen] '
+                    '[--msgdb file] [--read-file file] [--push-logs id] '
+                    '[--dont-stay] [--dont-pull] [--nick name] url\n' %
+                    sys.argv[0])
+                sys.exit(0)
+            elif arg == '--maxlen':
+                maxlen = parser.send(int)
+            elif arg == '--read-file':
+                toread.append(next(it))
+            elif arg == '--msgdb':
+                maxlen = parser.send('arg')
+            elif arg == '--push-logs':
+                push_logs.append(parser.send('arg'))
+            elif arg == '--dont-stay':
+                dont_stay = True
+            elif arg == '--dont-pull':
+                dont_pull = True
+            elif arg == '--nick':
+                nickname = parser.send('arg')
+            elif arg == '--':
+                at_args = True
+            else:
+                parser.send('unknown')
+            continue
+        if url is not None: parser.send('toomany')
+        url = arg
+    if url is None: raise SystemExit('ERROR: Too few arguments')
     try:
         signal.signal(signal.SIGINT, interrupt)
     except Exception:
