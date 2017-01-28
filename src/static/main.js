@@ -4063,6 +4063,8 @@ this.Instant = function() {
     return {
       /* Initialize submodule */
       init: function() {
+        /* Preload image */
+        document.createElement('img').src = '/static/close.svg';
         stack = $makeNode('div', 'popups');
         return stack;
       },
