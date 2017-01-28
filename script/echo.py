@@ -29,6 +29,11 @@ def main():
             url = arg
     if url is None: raise SystemExit('ERROR: Too few arguments')
     bot = instabot.HookBot(url, nickname, post_cb=post_cb)
-    bot.run()
+    try:
+        bot.run()
+    except KeyboardInterrupt:
+        sys.stderr.write('\n')
+    finally:
+        bot.close()
 
 if __name__ == '__main__': main()
