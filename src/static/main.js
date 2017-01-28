@@ -4076,6 +4076,10 @@ this.Instant = function() {
       del: function(node) {
         stack.removeChild(node);
       },
+      /* Check whether a popup is already shown */
+      isShown: function(node) {
+        return stack.contains(node);
+      },
       /* Create a new popup */
       make: function(options) {
         function addContent(cls, cnt) {
