@@ -659,39 +659,34 @@ def main():
                 yield f
     def interrupt(signum, frame):
         raise SystemExit
-    parser, at_args = instabot.argparse(sys.argv[1:]), False
     maxlen, toread, msgdb_file, push_logs = MAXLEN, [], None, []
     dont_stay, dont_pull, nickname, url = False, False, NICKNAME, None
-    for arg in parser:
-        if arg.startswith('-') and not at_args:
-            if arg == '--help':
-                sys.stderr.write('USAGE: %s [--help] [--maxlen maxlen] '
-                    '[--msgdb file] [--read-file file] [--push-logs id] '
-                    '[--dont-stay] [--dont-pull] [--nick name] url\n' %
-                    sys.argv[0])
-                sys.exit(0)
-            elif arg == '--maxlen':
-                maxlen = parser.send(int)
-            elif arg == '--read-file':
-                toread.append(next(it))
-            elif arg == '--msgdb':
-                maxlen = parser.send('arg')
-            elif arg == '--push-logs':
-                push_logs.append(parser.send('arg'))
-            elif arg == '--dont-stay':
-                dont_stay = True
-            elif arg == '--dont-pull':
-                dont_pull = True
-            elif arg == '--nick':
-                nickname = parser.send('arg')
-            elif arg == '--':
-                at_args = True
-            else:
-                parser.send('unknown')
-            continue
-        if url is not None: parser.send('toomany')
-        url = arg
-    if url is None: raise SystemExit('ERROR: Too few arguments')
+    parser = instabot.ArgParser(sys.argv[1:])
+    for tp, arg in parser.pairs(1, 1):
+        if tp == 'arg':
+            url = arg
+        elif arg == '--help':
+            sys.stderr.write('USAGE: %s [--help] [--maxlen maxlen] '
+                '[--msgdb file] [--read-file file] [--push-logs id] '
+                '[--dont-stay] [--dont-pull] [--nick name] url\n' %
+                sys.argv[0])
+            sys.exit(0)
+        elif arg == '--maxlen':
+            maxlen = parser.argument(int)
+        elif arg == '--read-file':
+            toread.append(parser.argument())
+        elif arg == '--msgdb':
+            maxlen = parser.argument()
+        elif arg == '--push-logs':
+            push_logs.append(parser.argument())
+        elif arg == '--dont-stay':
+            dont_stay = True
+        elif arg == '--dont-pull':
+            dont_pull = True
+        elif arg == '--nick':
+            nickname = parser.argument()
+        else:
+            parser.unknown()
     try:
         signal.signal(signal.SIGINT, interrupt)
     except Exception:

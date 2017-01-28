@@ -12,22 +12,19 @@ def post_cb(self, msg, meta):
         return msg['text'][6:]
 
 def main():
-    parser = instabot.argparse(sys.argv[1:])
     url, nickname = None, NICKNAME
-    for arg in parser:
-        if arg == '--help':
+    parser = instabot.ArgParser(sys.argv[1:])
+    for tp, arg in parser.pairs(1, 1):
+        if tp == 'arg':
+            url = arg
+        elif arg == '--help':
             sys.stderr.write('USAGE: %s [--help] [--nick name] url\n' %
                              sys.argv[0])
             sys.exit(0)
         elif arg == '--nick':
-            nickname = parser.send('arg')
-        elif arg.startswith('-'):
-            parser.send('unknown')
-        elif url is not None:
-            parser.send('toomany')
+            nickname = parser.argument()
         else:
-            url = arg
-    if url is None: raise SystemExit('ERROR: Too few arguments')
+            parser.unknown()
     bot = instabot.HookBot(url, nickname, post_cb=post_cb)
     try:
         bot.run()

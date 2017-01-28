@@ -348,50 +348,62 @@ def read_logs(src, filt=None):
         else:
             yield (ts, tag, values)
 
-def argparse(args, cmd=None):
-    it, option = iter(args), None
-    while 1:
-        if isinstance(cmd, (tuple, list)):
-            cmd, cmdarg = cmd
-        elif callable(cmd):
-            cmd, cmdarg = 'convert', cmd
-        else:
-            cmd, cmdarg = cmd, None
-        foropt = (' for %r' % (option,) if option is not None else '')
-        if cmd is None or cmd == 'next':
-            value = next(it)
-            option = value
-        elif cmd == 'arg':
-            try:
-                value = next(it)
-            except StopIteration:
-                raise SystemExit('ERROR: Missing required argument' + foropt)
-        elif cmd == 'convert':
-            try:
-                raw = next(it)
-                value = cmdarg(raw)
-            except StopIteration:
-                raise SystemExit('ERROR: Missing required argument' + foropt)
-            except ValueError:
-                raise SystemExit('ERROR: Bad argument %s: %r' %
-                                 (foropt, raw))
-        elif cmd == 'close':
-            next(it)
-            raise SystemExit('ERROR: Too many arguments')
-        elif cmd == 'unknown':
-            if option is None:
-                raise RuntimeError("No option for 'unknown' command")
-            raise SystemExit('ERROR: Unknown option %r' % (option,))
-        elif cmd == 'toofew':
-            raise SystemExit('ERROR: Too few arguments')
-        elif cmd == 'toomany':
-            raise SystemExit('ERROR: Too many arguments')
-        elif cmd == 'die':
-            if cmdarg is None: raise SystemExit
-            raise SystemExit('ERROR: %s' % (cmdarg,))
-        else:
-            raise ValueError('Bad argparse command: %r' % (cmd,))
+class ArgParser:
+    def __init__(self, args):
+        self.args = args
+        self.iter = None
+        self.at_arguments = False
+        self.last_option = None
+    def __iter__(self):
+        if self.iter is None: self.iter = iter(self.args)
+        return self
+    def __next__(self):
+        return next(self.iter)
+    def close(self):
         try:
-            cmd = yield value
-        except GeneratorExit:
-            cmd = 'close'
+            next(self)
+            self.toomany()
+        except StopIteration:
+            pass
+    def argument(self, type=None):
+        try:
+            arg = next(self)
+            if type is not None: arg = type(arg)
+            return arg
+        except StopIteration:
+            self._die_opt('Missing required argument')
+        except ValueError:
+            self._die_opt('Bad argument', tail=': %r' % (arg,))
+    def die(self, msg=None):
+        if msg is None: raise SystemExit
+        raise SystemExit('ERROR: ' + msg)
+    def _die_opt(self, msg, tail=None):
+        if self.last_option is not None:
+            msg += ' for %r' % (self.last_option,)
+        if tail is not None:
+            msg += tail
+        self.die(msg)
+    def toomany(self):
+        self.die('Too many arguments')
+    def toofew(self):
+        self.die('Too few arguments')
+    def unknown(self):
+        if self.last_option is None:
+            raise RuntimeError('No option to be unknown')
+        self.die('Unknown option ' + repr(self.last_option))
+    def pairs(self, posmin=None, posmax=None):
+        positional = 0
+        for arg in self:
+            if self.at_arguments or not arg.startswith('-'):
+                positional += 1
+                if posmax is not None and positional > posmax:
+                    self.toomany()
+                yield 'arg', arg
+                continue
+            elif arg == '--':
+                self.at_arguments = True
+            else:
+                self.last_option = arg
+                yield 'opt', arg
+        if posmin is not None and positional < posmin:
+            self.toofew()
