@@ -195,7 +195,10 @@ class InstantClient(object):
                 except websocket.WebSocketTimeoutException as exc:
                     self.on_timeout(exc)
                     continue
-                if rawmsg is None: break
+                if rawmsg is None:
+                    break
+                elif not rawmsg:
+                    continue
                 self.on_message(rawmsg)
         except websocket.WebSocketConnectionClosedException:
             # Server-side timeouts cause the connection to be dropped.
