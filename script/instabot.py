@@ -399,7 +399,6 @@ class ArgParser:
                 if posmax is not None and positional > posmax:
                     self.toomany()
                 yield 'arg', arg
-                continue
             elif arg == '--':
                 self.at_arguments = True
             else:
