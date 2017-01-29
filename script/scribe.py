@@ -659,34 +659,20 @@ def main():
                 yield f
     def interrupt(signum, frame):
         raise SystemExit
-    maxlen, toread, msgdb_file, push_logs = MAXLEN, [], None, []
-    dont_stay, dont_pull, nickname, url = False, False, NICKNAME, None
-    parser = instabot.ArgParser(sys.argv[1:])
-    for tp, arg in parser.pairs(1, 1):
-        if tp == 'arg':
-            url = arg
-        elif arg == '--help':
-            sys.stderr.write('USAGE: %s [--help] [--maxlen maxlen] '
-                '[--msgdb file] [--read-file file] [--push-logs id] '
-                '[--dont-stay] [--dont-pull] [--nick name] url\n' %
-                sys.argv[0])
-            sys.exit(0)
-        elif arg == '--maxlen':
-            maxlen = parser.argument(int)
-        elif arg == '--read-file':
-            toread.append(parser.argument())
-        elif arg == '--msgdb':
-            maxlen = parser.argument()
-        elif arg == '--push-logs':
-            push_logs.append(parser.argument())
-        elif arg == '--dont-stay':
-            dont_stay = True
-        elif arg == '--dont-pull':
-            dont_pull = True
-        elif arg == '--nick':
-            nickname = parser.argument()
-        else:
-            parser.unknown()
+    p = instabot.OptionParser(sys.argv[0])
+    p.help_action()
+    p.option('maxlen', MAXLEN, type=int)
+    p.option('msgdb', placeholder='<file>')
+    p.option('read-file', [], accum=True, placeholder='<file>')
+    p.option('push-logs', [], accum=True, placeholder='<id>')
+    p.flag('dont-stay')
+    p.flag('dont-pull')
+    p.option('nick', NICKNAME)
+    p.argument('url')
+    p.parse(sys.argv[1:])
+    (maxlen, msgdb_file, toread, push_logs, dont_stay, dont_pull, nickname,
+     url) = p.get('maxlen', 'msgdb', 'read-file', 'push-logs', 'dont-stay',
+                  'dont-pull', 'nick', 'url')
     try:
         signal.signal(signal.SIGINT, interrupt)
     except Exception:

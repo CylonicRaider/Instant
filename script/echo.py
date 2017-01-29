@@ -12,19 +12,12 @@ def post_cb(self, msg, meta):
         return msg['text'][6:]
 
 def main():
-    url, nickname = None, NICKNAME
-    parser = instabot.ArgParser(sys.argv[1:])
-    for tp, arg in parser.pairs(1, 1):
-        if tp == 'arg':
-            url = arg
-        elif arg == '--help':
-            sys.stderr.write('USAGE: %s [--help] [--nick name] url\n' %
-                             sys.argv[0])
-            sys.exit(0)
-        elif arg == '--nick':
-            nickname = parser.argument()
-        else:
-            parser.unknown()
+    p = instabot.OptionParser(sys.argv[0])
+    p.help_action()
+    p.option('nick', NICKNAME, help='The nickname to use')
+    p.argument('url', help='The URL to connect to')
+    p.parse(sys.argv[1:])
+    url, nickname = p.get('url', 'nick')
     bot = instabot.HookBot(url, nickname, post_cb=post_cb)
     try:
         bot.run()

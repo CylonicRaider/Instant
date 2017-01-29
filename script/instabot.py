@@ -2,9 +2,8 @@
 
 import sys, re, time
 import traceback
-import heapq
+import collections, heapq, ast
 import json
-import ast
 import threading
 
 import websocket
@@ -406,3 +405,159 @@ class ArgParser:
                 yield 'opt', arg
         if posmin is not None and positional < posmin:
             self.toofew()
+
+class OptionParser:
+    def __init__(self, progname=None):
+        self.progname = progname
+        self.options = collections.OrderedDict()
+        self.arguments = []
+        self.values = {}
+        self.arg_index = 0
+    def _set_accum(self, opt, kwds, default=True):
+        def accum_list(list, item):
+            list.append(item)
+            return list
+        def accum_add(accum, item):
+            accum += item
+            return accum
+        if default and 'default' in kwds:
+            opt['default'] = kwds['default']
+        if 'accum' not in kwds:
+            pass
+        elif callable(kwds['accum']):
+            opt['accum'] = kwds['accum']
+        elif kwds['accum']:
+            if 'default' not in opt:
+                opt['default'] = []
+                opt['accum'] = accum_list
+            elif isinstance(opt['default'], list):
+                opt['accum'] = accum_list
+            else:
+                opt['accum'] = accum_add
+    def _make_desc(self, opt, name, placeholder):
+        if name is None:
+            if placeholder is None:
+                res = '...'
+            else:
+                res = placeholder
+        else:
+            if placeholder is None:
+                res = '--' + name
+            else:
+                res = '--%s %s' % (name, placeholder)
+        opt['rawdesc'] = res
+        if 'default' in opt or opt.get('omissible'):
+            res = '[%s]' % res
+        opt['desc'] = res
+    def option(self, name, default=None, type=None, **kwds):
+        if type is None: type = str
+        try:
+            placeholder = kwds['placeholder']
+        except KeyError:
+            placeholder = '<%s>' % type.__name__
+        opt = {'option': name, 'argument': True, 'varname': name,
+            'convert': type, 'default': default, 'help': kwds.get('help')}
+        self._set_accum(opt, kwds)
+        self._make_desc(opt, name, placeholder)
+        self.options[name] = opt
+    def flag_ex(self, name, value=True, varname=None, **kwds):
+        opt = {'option': name, 'varname': varname or name, 'value': value,
+            'omissible': True, 'help': kwds.get('help')}
+        self._set_accum(opt, kwds)
+        self._make_desc(opt, name, None)
+        self.options[name] = opt
+    def flag(self, name, **kwds):
+        self.flag_ex(name, default=False, **kwds)
+    def action(self, name, function, **kwds):
+        self.options[name] = {'option': name, 'action': function,
+            'rawdesc': '--%s' % name, 'desc': '[--%s]' % name,
+            'help': kwds.get('help')}
+    def argument(self, name=None, type=None, **kwds):
+        if type is None: type = str
+        try:
+            placeholder = kwds['placeholder']
+        except KeyError:
+            placeholder = '<%s>' % name
+        arg = {'varname': name, 'convert': type, 'help': kwds.get('help')}
+        self._set_accum(arg, kwds)
+        self._make_desc(arg, None, placeholder)
+        self.arguments.append(arg)
+    def help_action(self, name='help', help='Display help'):
+        self.action(name, lambda: self.help(0), help=help)
+    def usage(self, exit=None, write=True):
+        usage = ' '.join(['USAGE:', self.progname or '...'] +
+            [opt['desc'] for opt in self.options.values()] +
+            [arg['desc'] for arg in self.arguments])
+        if write:
+            sys.stderr.write(usage + '\n')
+            sys.stderr.flush()
+        if exit is not None:
+            sys.exit(exit)
+        return usage
+    def help(self, exit=None, write=True):
+        help = [self.usage(write=False)]
+        descs, helps = [], []
+        for item in list(self.options.values()) + self.arguments:
+            if not item['help']: continue
+            descs.append(item['rawdesc'])
+            helps.append(item['help'])
+        mdl = max(map(len, descs))
+        newline = '\n' + ' ' * (mdl + 2)
+        for d, h in zip(descs, helps):
+            help.append('%-*s: %s' % (mdl, d, h.replace('\n', newline)))
+        help = '\n'.join(help)
+        if write:
+            sys.stderr.write(help + '\n')
+            sys.stderr.flush()
+        if exit is not None:
+            sys.exit(exit)
+        return help
+    def parse(self, args):
+        def process(opt, value=None):
+            if opt.get('action'):
+                opt['action']()
+                return
+            if value is None:
+                try:
+                    value = opt['value']
+                except KeyError:
+                    value = parser.argument(opt.get('convert'))
+            else:
+                value = opt.get('convert', str)(value)
+            sv, varname = self.values, opt['varname']
+            if 'accum' in opt:
+                sv[varname] = opt['accum'](sv[varname], value)
+            else:
+                sv[varname] = value
+        for item in list(self.options.values()) + self.arguments:
+            if 'default' not in item: continue
+            self.values.setdefault(item['varname'], item['default'])
+        parser = ArgParser(args)
+        for tp, arg in parser.pairs():
+            if tp == 'arg':
+                try:
+                    process(self.arguments[self.arg_index], arg)
+                    self.arg_index += 1
+                except IndexError:
+                    parser.toomany()
+            elif arg.startswith('--'):
+                try:
+                    opt = self.options[arg[2:]]
+                except KeyError:
+                    parser.unknown()
+                process(opt)
+            else:
+                # Single-letter options are not supported.
+                parser.unknown()
+    def get(self, *names, force_tuple=False):
+        try:
+            if len(names) == 1 and not force_tuple:
+                n = names[0]
+                return self.values[n]
+            ret = []
+            for n in names:
+                ret.append(self.values[n])
+            return ret
+        except KeyError:
+            if n in self.options: n = '--' + n
+            raise SystemExit('ERROR: Missing value for %r' % n)
