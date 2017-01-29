@@ -2310,33 +2310,49 @@ this.Instant = function() {
       getNode: function() {
         return node;
       },
-      /* Possibly show a (persistent) UI message */
+      /* Possibly show a UI message */
       _notify: function(notify) {
-        var msgname = notify.data.uiMessage;
-        if (! msgname) return;
-        var msgbox = $sel('.ui-message-box', node);
+        var data = notify.data;
+        var msgid = data.uiMessage;
+        if (! msgid) return;
+        var msgnode = Instant.sidebar.makeMessage(msgid, {
+          contentNode: data.uiMessageNode, content: notify.text,
+          color: data.uiMessageColor || notify.color,
+          onclick: notify.onclick});
+        Instant.sidebar.showMessage(msgid, msgnode);
+      },
+      /* Make a UI message */
+      makeMessage: function(id, options) {
         var msgnode = document.createElement('div');
-        if (typeof msgname == 'string') {
-          if (shownUIMessages[msgname])
-            msgbox.removeChild(shownUIMessages[msgname]);
-          shownUIMessages[msgname] = msgnode;
+        if (options.contentNode) {
+          msgnode.appendChild(options.contentNode);
+        } else if (options.content) {
+          msgnode.textContent = options.content;
         }
-        if (notify.data.uiMessageNode) {
-          msgnode.appendChild(notify.data.uiMessageNode);
-        } else {
-          msgnode.textContent = notify.text;
+        if (options.color) {
+          msgnode.style.color = options.color;
         }
-        if (notify.data.uiMessageColor) {
-          msgnode.style.color = notify.data.uiMessageColor;
-        } else if (notify.color) {
-          msgnode.style.color = notify.color;
-        }
-        if (notify.onclick) {
+        if (options.onclick) {
           msgnode.classList.add('clickable');
-          msgnode.addEventListener('click', notify.onclick);
+          msgnode.addEventListener('click', options.onclick);
         }
+        return msgnode;
+      },
+      /* Show a UI message */
+      showMessage: function(id, msgnode) {
+        var msgbox = $sel('.ui-message-box', node);
+        if (shownUIMessages[id])
+          msgbox.removeChild(shownUIMessages[id]);
+        shownUIMessages[id] = msgnode;
         msgbox.appendChild(msgnode);
         Instant.sidebar.updateWidth();
+      },
+      /* Hide a UI message */
+      hideMessage: function(id) {
+        if (! shownUIMessages[id]) return;
+        var msgbox = $sel('.ui-message-box', node);
+        msgbox.removeChild(shownUIMessages[id]);
+        delete shownUIMessages[id];
       },
       /* Room name widget */
       roomName: function() {
