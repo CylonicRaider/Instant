@@ -2316,7 +2316,7 @@ this.Instant = function() {
         var msgid = data.uiMessage;
         if (! msgid) return;
         var msgnode = Instant.sidebar.makeMessage(msgid, {
-          contentNode: data.uiMessageNode, content: notify.text,
+          content: data.uiMessageNode || notify.text,
           color: data.uiMessageColor || notify.color,
           onclick: notify.onclick});
         Instant.sidebar.showMessage(msgid, msgnode);
@@ -2324,10 +2324,10 @@ this.Instant = function() {
       /* Make a UI message */
       makeMessage: function(id, options) {
         var msgnode = document.createElement('div');
-        if (options.contentNode) {
-          msgnode.appendChild(options.contentNode);
-        } else if (options.content) {
+        if (typeof options.content == 'string') {
           msgnode.textContent = options.content;
+        } else if (options.content) {
+          msgnode.appendChild(options.content);
         }
         if (options.color) {
           msgnode.style.color = options.color;
