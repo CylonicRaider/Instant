@@ -2313,16 +2313,17 @@ this.Instant = function() {
       /* Possibly show a UI message */
       _notify: function(notify) {
         var data = notify.data;
-        var msgid = data.uiMessage;
-        if (! msgid) return;
-        var msgnode = Instant.sidebar.makeMessage(msgid, {
+        if (! data.uiMessage) return;
+        var msgnode = Instant.sidebar.makeMessage({
           content: data.uiMessageNode || notify.text,
           color: data.uiMessageColor || notify.color,
           onclick: notify.onclick});
-        Instant.sidebar.showMessage(msgid, msgnode);
+        Instant.sidebar.showMessage(msgnode, data.uiMessage);
+        if (notify.data.onuimessage)
+          notify.data.onuimessage(msgnode);
       },
       /* Make a UI message */
-      makeMessage: function(id, options) {
+      makeMessage: function(options) {
         var msgnode = document.createElement('div');
         if (typeof options.content == 'string') {
           msgnode.textContent = options.content;
@@ -2339,20 +2340,23 @@ this.Instant = function() {
         return msgnode;
       },
       /* Show a UI message */
-      showMessage: function(id, msgnode) {
+      showMessage: function(msgnode, id) {
         var msgbox = $sel('.ui-message-box', node);
-        if (shownUIMessages[id])
-          msgbox.removeChild(shownUIMessages[id]);
-        shownUIMessages[id] = msgnode;
+        if (id) {
+          if (shownUIMessages[id])
+            msgbox.removeChild(shownUIMessages[id]);
+          shownUIMessages[id] = msgnode;
+          msgnode.setAttribute('data-msgid', id);
+        }
         msgbox.appendChild(msgnode);
         Instant.sidebar.updateWidth();
       },
       /* Hide a UI message */
-      hideMessage: function(id) {
-        if (! shownUIMessages[id]) return;
+      hideMessage: function(msgnode) {
         var msgbox = $sel('.ui-message-box', node);
-        msgbox.removeChild(shownUIMessages[id]);
-        delete shownUIMessages[id];
+        var msgid = msgnode.getAttribute('data-msgid');
+        if (msgid) delete shownUIMessages[msgid];
+        msgbox.removeChild(msgnode);
       },
       /* Room name widget */
       roomName: function() {
