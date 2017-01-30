@@ -2463,8 +2463,9 @@ this.Instant = function() {
           if (! parent) return;
           var nickNode = parent.firstElementChild;
           var uid = nickNode.getAttribute('data-id');
+          var nick = nickNode.getAttribute('data-nick');
           Instant.userList.showMenu(null);
-          Instant.privmsg.write(uid);
+          Instant.privmsg.write(uid, nick);
         });
       },
       /* Scan the list for a place where to insert */
