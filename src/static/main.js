@@ -116,6 +116,25 @@ function $makeNode(tag, className, attrs, children) {
   }
   return ret;
 }
+/* Create a DocumentFragment
+ * Arguments are variadic. */
+function $makeFrag() {
+  var ret = document.createDocumentFragment();
+  for (var i = 0; i < arguments.length; i++) {
+    var e = arguments[i];
+    /* Duplicating handling from above */
+    if (typeof e == 'string') {
+      ret.appendChild(document.createTextNode(e));
+    } else if (typeof e != 'object') {
+      throw new Error('Bad child encountered during DOM node creation');
+    } else if (Array.isArray(e)) {
+      ret.appendChild($makeNode.apply(null, e));
+    } else {
+      ret.appendChild(e);
+    }
+  }
+  return ret;
+}
 
 /* Evaluate some code and return the results
  * This is literally what one should normally not do.
