@@ -731,6 +731,26 @@ body {
   text-align: right;
 }
 
+.popups .popup .popup-header .nick {
+  font-weight: normal;
+}
+
+.pm-editor {
+  margin: 0;
+  border: 0;
+  padding: 0;
+  width: 20em;
+  height: 6em;
+  min-width: 100%;
+  min-height: 3em;
+  line-height: 1.2em;
+  font: inherit;
+  color: inherit;
+  box-shadow: 0 0 5px #808080;
+  outline: none;
+  resize: vertical;
+}
+
 img.turn-right {
   -webkit-transform: rotate(90deg);
   transform: rotate(90deg);

@@ -534,6 +534,9 @@ this.Instant = function() {
               case 'log-done': /* We are done pulling logs? */
                 /* Both for log scraper interaction; not for the JS client */
                 break;
+              case 'privmsg': /* Incoming private message */
+                Instant.privmsg._onmessage(msg);
+                break;
               default:
                 if (! handled) console.warn('Unknown client message:', data);
                 break;
@@ -2375,7 +2378,9 @@ this.Instant = function() {
         var msgbox = $sel('.ui-message-box', node);
         var msgid = msgnode.getAttribute('data-msgid');
         if (msgid) delete shownUIMessages[msgid];
-        msgbox.removeChild(msgnode);
+        try {
+          msgbox.removeChild(msgnode);
+        } catch (e) {}
       },
       /* Room name widget */
       roomName: function() {
@@ -2422,7 +2427,8 @@ this.Instant = function() {
         ]);
         menu = $makeNode('div', 'user-list-menu', [
           ['h2', ['Actions:']], ' ',
-          ['button', 'button action-ping', ['Insert ping']]
+          ['button', 'button action-ping', ['Insert ping']], ' ',
+          ['button', 'button action-pm', ['PM']]
         ]);
         /* Maintain focus state of input bar */
         var inputWasFocused = false;
@@ -2451,6 +2457,14 @@ this.Instant = function() {
           Instant.input.insertText(ping + ' ');
           Instant.userList.showMenu(null);
           Instant.input.focus();
+        });
+        $sel('.action-pm', menu).addEventListener('click', function() {
+          var parent = menu.parentNode;
+          if (! parent) return;
+          var nickNode = parent.firstElementChild;
+          var uid = nickNode.getAttribute('data-id');
+          Instant.userList.showMenu(null);
+          Instant.privmsg.write(uid);
         });
       },
       /* Scan the list for a place where to insert */
@@ -3170,6 +3184,135 @@ this.Instant = function() {
       }()
     };
   }();
+  /* Private messages */
+  Instant.privmsg = function() {
+    /* UI messages (reading/writing) */
+    var msgRead = null, msgEdit = null;
+    /* Popup arrays (reading/writing) */
+    var popupsRead = [], popupsEdit = [];
+    return {
+      /* Initialize submodule */
+      init: function() {
+        msgRead = Instant.sidebar.makeMessage({
+          content: 'Private messages',
+          color: Instant.notifications.COLORS.private,
+          onclick: Instant.privmsg.showRead});
+        msgEdit = Instant.sidebar.makeMessage({
+          content: 'Private message drafts',
+          color: Instant.notifications.COLORS.private,
+          onclick: Instant.privmsg.showWrite});
+      },
+      /* Update notification state */
+      _update: function() {
+        if (! popupsRead.length) {
+          Instant.sidebar.hideMessage(msgRead);
+        } else {
+          var unread = 0;
+          for (var i = 0; i < popupsRead.length; i++) {
+            if (popupsRead[i].getAttribute('data-new')) unread++;
+          }
+          var text;
+          if (unread == 0) {
+            text = 'Private messages';
+          } else {
+            text = 'Private messages (' + unread + ')';
+          }
+          msgRead.textContent = text;
+          Instant.sidebar.showMessage(msgRead);
+        }
+        if (! popupsEdit.length) {
+          Instant.sidebar.hideMessage(msgEdit);
+        } else {
+          var text;
+          if (popupsEdit.length == 1) {
+            text = '1 private message draft';
+          } else {
+            text = popupsEdit.length + ' private message drafts';
+          }
+          msgEdit.textContent = text;
+          Instant.sidebar.showMessage(msgEdit);
+        }
+      },
+      /* Show the reading popups */
+      showRead: function() {
+        var update = false;
+        popupsRead.forEach(function(popup) {
+          if (! Instant.popups.isShown(popup)) {
+            popup.removeAttribute('data-new');
+            Instant.popups.add(popup);
+            update = true;
+          }
+        });
+        if (update) Instant.privmsg._update();
+      },
+      /* Show the writing popups */
+      showWrite: function() {
+        popupsEdit.forEach(function(popup) {
+          if (! Instant.popups.isShown(popup))
+            Instant.popups.add(popup);
+        });
+      },
+      /* Start writing a message to uid */
+      write: function(uid, nick) {
+        if (nick == null) {
+          var entry = Instant.userList.get(uid);
+          if (! entry) return;
+          nick = entry.getAttribute('data-nick');
+        }
+        var popup = Instant.popups.make({title: $makeFrag(
+          'Private message editor: ', Instant.nick.makeNode(nick)),
+          content: $makeNode('textarea', 'pm-editor'),
+          buttons: [['Finish later', function() {
+            Instant.popups.del(popup);
+          }], ['Forget', function() {
+            Instant.privmsg._remove(popup);
+          }], ['Send', function() {
+            Instant.privmsg._send(popup);
+          }]]});
+        popup.setAttribute('data-recipient', uid);
+        popupsEdit.push(popup);
+        Instant.popups.add(popup);
+        Instant.privmsg._update();
+        $sel('.pm-editor', popup).focus();
+      },
+      /* Remove a PM draft or reader */
+      _remove: function(popup) {
+        var idx = popupsRead.indexOf(popup);
+        if (idx != -1) popupsRead.splice(idx, 1);
+        idx = popupsEdit.indexOf(popup);
+        if (idx != -1) popupsEdit.splice(idx, 1);
+        Instant.popups.del(popup);
+        Instant.privmsg._update();
+      },
+      /* Send a PM draft */
+      _send: function(popup) {
+        var recipient = popup.getAttribute('data-recipient');
+        var text = $sel('.pm-editor', popup).value;
+        Instant.connection.sendUnicast(recipient, {type: 'privmsg',
+          nick: Instant.identity.nick, text: text});
+        Instant.privmsg._remove(popup);
+      },
+      /* Incoming remote message */
+      _onmessage: function(msg) {
+        var data = msg.data;
+        if (data.type != 'privmsg') return;
+        var msgnode = Instant.message.parseContent(data.text);
+        var popup = Instant.popups.make({title: $makeFrag(
+          'Private message from ', Instant.nick.makeNode(data.nick)),
+          content: msgnode,
+          buttons: [['Read later', function() {
+            Instant.popups.del(popup);
+          }], ['Forget', function() {
+            Instant.privmsg._remove(popup);
+          }], ['Reply', function() {
+            Instant.privmsg.write(msg.from, data.nick);
+          }]]});
+        popup.setAttribute('data-new', 'yes');
+        popupsRead.push(popup);
+        Instant.privmsg._update();
+      }
+    };
+  }();
   /* Window title and notification manipulation */
   Instant.title = function() {
     /* Unread messages, replies (amongst the formers) to the current user,
@@ -3846,6 +3989,7 @@ this.Instant = function() {
     /* The colors associated to the levels */
     var COLORS = {
       none: '#000000', /* No color in particular */
+      private: '#800080', /* Private messages are purple */
       ping: '#c0c000', /* @-mentions are yellow */
       update: '#008000', /* The update information is green */
       reply: '#0040ff', /* Replies are color-coded with blue */
@@ -4580,6 +4724,7 @@ this.Instant = function() {
     Instant.animation.offscreen.init(
       $sel('.alert-container', Instant.input.getNode()));
     Instant.popups.init();
+    Instant.privmsg.init();
     main.appendChild(Instant.message.getMessagePane());
     main.appendChild(Instant.sidebar.getNode());
     main.appendChild(Instant.popups.getNode());
