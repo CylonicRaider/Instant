@@ -491,71 +491,6 @@ body {
   color: #404040;
 }
 
-.popups {
-  display: -webkit-flex;
-  display: flex;
-  -webkit-flex-direction: column;
-  flex-direction: column;
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  box-sizing: border-box;
-  background: rgba(255, 255, 255, 0.5);
-  z-index: 1000;
-  overflow: auto;
-}
-.popups:empty {
-  display: none;
-}
-
-.popups .popup {
-  margin: auto;
-  border: 1px solid black;
-  background: white;
-}
-.popups .popup:not(:first-child) {
-  margin-top: 0.5em;
-}
-.popups .popup:not(:last-child) {
-  margin-bottom: 0.5em;
-}
-
-.popups .popup .popup-header {
-  display: -webkit-flex;
-  display: flex;
-  border-bottom: 1px solid black;
-}
-.popups .popup .popup-title {
-  font-weight: bold;
-  margin-right: auto;
-  padding: 5px;
-  line-height: 1.2em;
-}
-.popups .popup .popup-title-sep {
-  width: 1px;
-  background: black;
-}
-.popups .popup .popup-close {
-  margin: auto 0;
-  line-height: 0;
-  outline-offset: 1px;
-}
-.popups .popup .popup-close img {
-  width: 1.2em;
-  height: 1.2em;
-  margin: 5px;
-}
-.popups .popup .popup-content {
-  padding: 5px;
-  clear: both;
-}
-.popups .popup .popup-bottom {
-  padding: 0 5px 5px 5px;
-  text-align: right;
-}
-
 .input-bar {
   display: -webkit-flex;
   display: flex;
@@ -729,6 +664,71 @@ body {
 
 .message-pane > .message-box > .message:last-child {
   margin-bottom: 2px;
+}
+
+.popups {
+  display: -webkit-flex;
+  display: flex;
+  -webkit-flex-direction: column;
+  flex-direction: column;
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+  background: rgba(255, 255, 255, 0.5);
+  z-index: 1000;
+  overflow: auto;
+}
+.popups:empty {
+  display: none;
+}
+
+.popups .popup {
+  margin: auto;
+  border: 1px solid black;
+  background: white;
+}
+.popups .popup:not(:first-child) {
+  margin-top: 0.5em;
+}
+.popups .popup:not(:last-child) {
+  margin-bottom: 0.5em;
+}
+
+.popups .popup .popup-header {
+  display: -webkit-flex;
+  display: flex;
+  border-bottom: 1px solid black;
+}
+.popups .popup .popup-title {
+  font-weight: bold;
+  margin-right: auto;
+  padding: 5px;
+  line-height: 1.2em;
+}
+.popups .popup .popup-title-sep {
+  width: 1px;
+  background: black;
+}
+.popups .popup .popup-close {
+  margin: auto 0;
+  line-height: 0;
+  outline-offset: 1px;
+}
+.popups .popup .popup-close img {
+  width: 1.2em;
+  height: 1.2em;
+  margin: 5px;
+}
+.popups .popup .popup-content {
+  padding: 5px;
+  clear: both;
+}
+.popups .popup .popup-bottom {
+  padding: 0 5px 5px 5px;
+  text-align: right;
 }
 
 img.turn-right {
