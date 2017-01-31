@@ -70,15 +70,16 @@
 .dark .user-list .nick-box.selected .nick {
   border-color: white;
 }
-.dark .user-list-menu button {
-  border-color: white;
-}
 .dark .user-list-counter a {
   color: #c0c0c0;
 }
 .dark .user-list-counter img {
   -webkit-filter: invert(1);
   filter: invert(1);
+}
+
+.dark .button {
+  border-color: white;
 }
 
 .dark .nick, .dark .message.emote > .line .content,
