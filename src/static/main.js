@@ -3273,13 +3273,13 @@ this.Instant = function() {
         var popup = Instant.popups.make({title: $makeFrag(
           'Private message editor: ', Instant.nick.makeNode(nick)),
           content: $makeNode('textarea', 'pm-editor'),
-          buttons: [['Finish later', function() {
+          buttons: [{text: 'Finish later', onclick: function() {
             Instant.popups.del(popup);
-          }], ['Delete', function() {
+          }, className: 'first'}, {text: 'Delete', onclick: function() {
             Instant.privmsg._remove(popup);
-          }], ['Send', function() {
+          }}, {text: 'Send', onclick: function() {
             Instant.privmsg._send(popup);
-          }]]});
+          }}]});
         popup.setAttribute('data-recipient', uid);
         popupsEdit.push(popup);
         Instant.popups.add(popup);
@@ -3311,13 +3311,13 @@ this.Instant = function() {
         var popup = Instant.popups.make({title: $makeFrag(
           'Private message from ', Instant.nick.makeNode(data.nick)),
           content: msgnode,
-          buttons: [['Read later', function() {
+          buttons: [{text: 'Read later', onclick: function() {
             Instant.popups.del(popup);
-          }], ['Delete', function() {
+          }, className: 'first'}, {text: 'Delete', onclick: function() {
             Instant.privmsg._remove(popup);
-          }], ['Reply', function() {
+          }}, {text: 'Reply', onclick: function() {
             Instant.privmsg.write(msg.from, data.nick);
-          }]]});
+          }}]});
         popup.setAttribute('data-new', 'yes');
         popupsRead.push(popup);
         Instant.privmsg._update();
@@ -4326,8 +4326,9 @@ this.Instant = function() {
         if (options.buttons) {
           var bottom = $sel('.popup-bottom', ret);
           options.buttons.forEach(function(el) {
-            var btn = $makeNode('button', 'button', [el[0]]);
-            if (el[1]) btn.addEventListener('click', el[1]);
+            var btn = $makeNode('button', 'button', [el.text]);
+            if (el.onclick) btn.addEventListener('click', el.onclick);
+            if (el.className) btn.className += ' ' + el.className;
             if (bottom.childNodes.length)
               bottom.appendChild(document.createTextNode(' '));
             bottom.appendChild(btn);
