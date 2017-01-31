@@ -117,28 +117,28 @@ body {
   padding-right: 0.25em;
 }
 
-.message > .line .mention, .message > .line a {
+.message-text .mention, .message-text a {
   unicode-bidi: embed;
 }
-.message > .line .smiley {
+.message-text .smiley {
   font-weight: bold;
 }
-.message > .line .sigil {
+.message-text .sigil {
   color: #808080;
 }
-.message > .line .false {
+.message-text .false {
   display: inline;
   color: inherit;
 }
-.message > .line .emph-before, .message > .line .emph-after {
+.message-text .emph-before, .message-text .emph-after {
   font-style: normal;
   font-weight: normal;
   font-variant: normal;
 }
-.message > .line .monospace {
+.message-text .monospace {
   background: #f0f0f0;
 }
-.message > .line .monospace-block {
+.message-text .monospace-block {
   display: block;
 }
 
