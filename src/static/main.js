@@ -2347,6 +2347,7 @@ this.Instant = function() {
       /* Make a UI message */
       makeMessage: function(options) {
         var msgnode = document.createElement('div');
+        msgnode.tabIndex = 0;
         if (typeof options.content == 'string') {
           msgnode.textContent = options.content;
         } else if (options.content) {
@@ -2358,6 +2359,11 @@ this.Instant = function() {
         if (options.onclick) {
           msgnode.classList.add('clickable');
           msgnode.addEventListener('click', options.onclick);
+          msgnode.addEventListener('keydown', function(event) {
+            // Return or Space
+            if (event.keyCode == 13 || event.keyCode == 32)
+              options.onclick.call(this, event);
+          });
         }
         return msgnode;
       },
