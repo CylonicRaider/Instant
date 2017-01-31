@@ -3208,15 +3208,18 @@ this.Instant = function() {
         if (! popupsRead.length) {
           Instant.sidebar.hideMessage(msgRead);
         } else {
-          var unread = 0;
-          for (var i = 0; i < popupsRead.length; i++) {
+          var count = popupsRead.length; unread = 0;
+          for (var i = 0; i < count; i++) {
             if (popupsRead[i].getAttribute('data-new')) unread++;
           }
           var text;
           if (unread == 0) {
-            text = 'Private messages';
+            text = 'Private messages (' + count + ')';
+          } else if (count == unread) {
+            text = 'Private messages (' + unread + '!!)';
           } else {
-            text = 'Private messages (' + unread + ')';
+            text = ('Private messages (' + (count - unread) + ' + ' +
+              unread + '!!)');
           }
           msgRead.textContent = text;
           Instant.sidebar.showMessage(msgRead);
@@ -3226,9 +3229,9 @@ this.Instant = function() {
         } else {
           var text;
           if (popupsEdit.length == 1) {
-            text = '1 private message draft';
+            text = 'Private message draft';
           } else {
-            text = popupsEdit.length + ' private message drafts';
+            text = 'Private message drafts (' + popupsEdit.length + ')';
           }
           msgEdit.textContent = text;
           Instant.sidebar.showMessage(msgEdit);
