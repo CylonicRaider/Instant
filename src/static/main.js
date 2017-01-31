@@ -3196,11 +3196,11 @@ this.Instant = function() {
       init: function() {
         msgRead = Instant.sidebar.makeMessage({
           content: 'Private messages',
-          color: Instant.notifications.COLORS.private,
+          color: Instant.notifications.COLORS.privmsg,
           onclick: Instant.privmsg.showRead});
         msgEdit = Instant.sidebar.makeMessage({
           content: 'Private message drafts',
-          color: Instant.notifications.COLORS.private,
+          color: Instant.notifications.COLORS.privmsg,
           onclick: Instant.privmsg.showWrite});
       },
       /* Update notification state */
@@ -3208,7 +3208,7 @@ this.Instant = function() {
         if (! popupsRead.length) {
           Instant.sidebar.hideMessage(msgRead);
         } else {
-          var count = popupsRead.length; unread = 0;
+          var count = popupsRead.length, unread = 0;
           for (var i = 0; i < count; i++) {
             if (popupsRead[i].getAttribute('data-new')) unread++;
           }
@@ -3236,6 +3236,7 @@ this.Instant = function() {
           msgEdit.textContent = text;
           Instant.sidebar.showMessage(msgEdit);
         }
+        Instant.title.update();
       },
       /* Show the reading popups */
       showRead: function() {
@@ -3314,6 +3315,22 @@ this.Instant = function() {
         popup.setAttribute('data-new', 'yes');
         popupsRead.push(popup);
         Instant.privmsg._update();
+        Instant.notifications.submitNew({level: 'privmsg',
+          text: 'You have a new private message.',
+          onclick: function() {
+            popup.removeAttribute('data-new');
+            Instant.popups.add(popup);
+            Instant.privmsg._update();
+          }
+        });
+      },
+      /* Return the amount of unread private messages */
+      countUnread: function() {
+        var count = 0;
+        popupsRead.forEach(function(popup) {
+          if (popup.getAttribute('data-new')) count++;
+        });
+        return count;
       }
     };
   }();
@@ -3349,8 +3366,11 @@ this.Instant = function() {
       },
       /* Update the window title to accord to the internal counters */
       _update: function() {
+        var unreadPMs = Instant.privmsg.countUnread();
         var ext = Instant.titleExtension;
-        if (unreadMessages) {
+        if (unreadPMs) {
+          ext = ' (' + unreadPMs + '!!!)';
+        } if (unreadMessages) {
           if (unreadMentions) {
             ext = ' (' + unreadMessages + '!!)';
           } else if (updateAvailable) {
@@ -3371,6 +3391,11 @@ this.Instant = function() {
         if (notify.data.updateAvailable != null)
           Instant.title.setUpdateAvailable(notify.data.updateAvailable);
       },
+      /* Update the window title and the favicon */
+      update: function() {
+        Instant.title._update();
+        Instant.title.favicon._update();
+      },
       /* Add the given amounts of messages, replies, and pings to the
        * internal counters and update the window title */
       addUnread: function(messages, replies, mentions) {
@@ -3378,22 +3403,19 @@ this.Instant = function() {
         unreadMessages += messages;
         unreadReplies += replies;
         unreadMentions += mentions;
-        Instant.title._update();
-        Instant.title.favicon._update();
+        Instant.title.update();
       },
       /* Clear the internal counters and update the window title to suit */
       clearUnread: function() {
         unreadMessages = 0;
         unreadReplies = 0;
         unreadMentions = 0;
-        Instant.title._update();
-        Instant.title.favicon._update();
+        Instant.title.update();
       },
       /* Set the update available status */
       setUpdateAvailable: function(available) {
         updateAvailable = available;
-        Instant.title._update();
-        Instant.title.favicon._update();
+        Instant.title.update();
       },
       /* Return the amount of unread messages */
       getUnreadMessages: function() {
@@ -3425,12 +3447,15 @@ this.Instant = function() {
           /* Update the favicon to match the current unread message
            * status */
           _update: function() {
+            var unreadPMs = Instant.privmsg.countUnread();
             /* HACK: Avoid displaying the "disconnected" favicon on page
              *       load. */
             var connected = (Instant.connection.isConnected() ||
               ! Instant.connection.wasConnected());
             var level;
-            if (unreadMentions) {
+            if (unreadPMs) {
+              level = 'privmsg';
+            } else if (unreadMentions) {
               level = 'ping';
             } else if (updateAvailable) {
               level = 'update';
@@ -3988,12 +4013,12 @@ this.Instant = function() {
   /* Desktop notifications */
   Instant.notifications = function() {
     /* Notification levels (from most to least severe) */
-    var LEVELS = { none: 0, ping: 1, update: 2, reply: 3, activity: 4,
-                   disconnect: 5, noise: 6 };
+    var LEVELS = { none: 0, privmsg: 1, ping: 2, update: 3, reply: 4,
+                   activity: 5, disconnect: 6, noise: 7 };
     /* The colors associated to the levels */
     var COLORS = {
       none: '#000000', /* No color in particular */
-      private: '#800080', /* Private messages are purple */
+      privmsg: '#800080', /* Private messages are purple */
       ping: '#c0c000', /* @-mentions are yellow */
       update: '#008000', /* The update information is green */
       reply: '#0040ff', /* Replies are color-coded with blue */
