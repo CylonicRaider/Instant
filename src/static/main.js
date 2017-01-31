@@ -3275,7 +3275,7 @@ this.Instant = function() {
           content: $makeNode('textarea', 'pm-editor'),
           buttons: [['Finish later', function() {
             Instant.popups.del(popup);
-          }], ['Forget', function() {
+          }], ['Delete', function() {
             Instant.privmsg._remove(popup);
           }], ['Send', function() {
             Instant.privmsg._send(popup);
@@ -3313,7 +3313,7 @@ this.Instant = function() {
           content: msgnode,
           buttons: [['Read later', function() {
             Instant.popups.del(popup);
-          }], ['Forget', function() {
+          }], ['Delete', function() {
             Instant.privmsg._remove(popup);
           }], ['Reply', function() {
             Instant.privmsg.write(msg.from, data.nick);
