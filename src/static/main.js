@@ -734,6 +734,13 @@ this.Instant = function() {
         node.style.color = Instant.nick.pingColor(realName);
         node.setAttribute('data-nick', realName);
         return node;
+      },
+      /* Make a nickname node for an anonymous user */
+      makeAnonymous: function() {
+        var node = document.createElement('span');
+        node.className = 'nick anonymous';
+        node.textContent = 'Anonymous';
+        return node;
       }
     };
   }();
@@ -3265,13 +3272,14 @@ this.Instant = function() {
       },
       /* Start writing a message to uid */
       write: function(uid, nick) {
+        var nickNode;
         if (nick == null) {
-          var entry = Instant.userList.get(uid);
-          if (! entry) return;
-          nick = entry.getAttribute('data-nick');
+          nickNode = Instant.nick.makeAnonymous();
+        } else {
+          nickNode = Instant.nick.makeNode(nick);
         }
         var popup = Instant.popups.make({title: $makeFrag(
-          'Private message editor: ', Instant.nick.makeNode(nick)),
+          'Private message editor: ', nickNode),
           content: $makeNode('textarea', 'pm-editor'),
           buttons: [{text: 'Finish later', onclick: function() {
             Instant.popups.del(popup);
@@ -3307,9 +3315,15 @@ this.Instant = function() {
       _onmessage: function(msg) {
         var data = msg.data;
         if (data.type != 'privmsg') return;
+        var nickNode;
+        if (data.nick == null) {
+          nickNode = Instant.nick.makeAnonymous();
+        } else {
+          nickNode = Instant.nick.makeNode(data.nick);
+        }
         var msgnode = Instant.message.parseContent(data.text);
         var popup = Instant.popups.make({title: $makeFrag(
-          'Private message from ', Instant.nick.makeNode(data.nick)),
+          'Private message from ', nickNode),
           content: msgnode,
           buttons: [{text: 'Read later', onclick: function() {
             Instant.popups.del(popup);

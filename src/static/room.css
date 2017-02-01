@@ -168,6 +168,9 @@ body {
   white-space: pre-wrap;
   word-break: break-all;
 }
+.nick.anonymous {
+  font-style: italic;
+}
 
 @media (max-width: 400px) {
 
