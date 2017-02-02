@@ -2368,8 +2368,10 @@ this.Instant = function() {
           msgnode.addEventListener('click', options.onclick);
           msgnode.addEventListener('keydown', function(event) {
             // Return or Space
-            if (event.keyCode == 13 || event.keyCode == 32)
+            if (event.keyCode == 13 || event.keyCode == 32) {
               options.onclick.call(this, event);
+              event.preventDefault();
+            }
           });
         }
         return msgnode;
@@ -2547,8 +2549,10 @@ this.Instant = function() {
           newNode.addEventListener('click', toggleMenu);
           newNode.addEventListener('keydown', function(event) {
             // Return or Space
-            if (event.keyCode == 13 || event.keyCode == 32)
+            if (event.keyCode == 13 || event.keyCode == 32) {
               toggleMenu();
+              event.preventDefault();
+            }
           });
         }
         /* Apply new parameters to node */
@@ -3261,7 +3265,7 @@ this.Instant = function() {
             update = true;
           }
         });
-        if (update) Instant.privmsg._update();
+        if (focus) Instant.privmsg._update();
       },
       /* Show the writing popups */
       showWrite: function() {
@@ -3287,7 +3291,8 @@ this.Instant = function() {
             Instant.privmsg._remove(popup);
           }}, {text: 'Send', onclick: function() {
             Instant.privmsg._send(popup);
-          }}]});
+          }}],
+          focusSel: '.pm-editor'});
         popup.setAttribute('data-recipient', uid);
         popupsEdit.push(popup);
         Instant.popups.add(popup);
@@ -3331,7 +3336,8 @@ this.Instant = function() {
             Instant.privmsg._remove(popup);
           }}, {text: 'Reply', onclick: function() {
             Instant.privmsg.write(msg.from, data.nick);
-          }}]});
+          }}],
+          focusSel: '.first'});
         popup.setAttribute('data-new', 'yes');
         popupsRead.push(popup);
         Instant.privmsg._update();
@@ -4290,23 +4296,43 @@ this.Instant = function() {
   }();
   /* Popup nodes */
   Instant.popups = function() {
-    /* The main node */
-    var stack = null;
+    /* The main node wrapper and the main node itself */
+    var wrapper = null, stack = null;
     return {
       /* Initialize submodule */
       init: function() {
         /* Preload image */
         document.createElement('img').src = '/static/close.svg';
-        stack = $makeNode('div', 'popups');
+        wrapper = $makeNode('div', 'popup-wrapper', [
+          ['div', 'popups'],
+          ['a', 'close-all', {href: '#'}, [
+            ['img', {src: '/static/close.svg'}]
+          ]]
+        ]);
+        stack = $sel('.popups', wrapper);
+        $sel('.close-all', wrapper).addEventListener('click', function() {
+          while (stack.firstChild) stack.removeChild(stack.firstChild);
+          wrapper.style.display = '';
+          Instant.input.focus();
+        });
         return stack;
       },
       /* Add a node to the popup stack */
       add: function(node) {
         stack.appendChild(node);
+        wrapper.style.display = 'block';
+        Instant.popups.focus(node);
       },
       /* Remove a node from the popup stack */
       del: function(node) {
+        var next = node.nextElementSibling || node.previousElementSibling;
         stack.removeChild(node);
+        if (! stack.children.length) {
+          wrapper.style.display = '';
+          Instant.input.focus();
+        } else {
+          Instant.popups.focus(next);
+        }
       },
       /* Check whether a popup is already shown */
       isShown: function(node) {
@@ -4348,6 +4374,8 @@ this.Instant = function() {
             bottom.appendChild(btn);
           });
         }
+        if (options.focusSel)
+          ret.setAttribute('data-focus', options.focusSel);
         $sel('.popup-close', ret).addEventListener('click', function(event) {
           if (options.onclose) {
             options.onclose(event);
@@ -4364,8 +4392,22 @@ this.Instant = function() {
         Instant.popups.add(ret);
         return ret;
       },
-      /* Return the internal main node of the submodule */
+      /* Focus a concrete popup or any */
+      focus: function(node) {
+        if (node == null) {
+          $sel('.close-all', wrapper).focus();
+        } else if (node.getAttribute('data-focus')) {
+          $sel(node.getAttribute('data-focus'), node).focus();
+        } else {
+          $sel('.close', node).focus();
+        }
+      },
+      /* Returnt the internal node containing the popups */
       getNode: function() {
+        return wrapper;
+      },
+      /* Return the internal node holding the actual popups */
+      getPopupNode: function() {
         return stack;
       }
     };

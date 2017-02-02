@@ -669,6 +669,26 @@ body {
   margin-bottom: 2px;
 }
 
+.popup-wrapper {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: none;
+}
+.popup-wrapper .close-all {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 2em;
+  height: 2em;
+  border: 1px solid black;
+  background: white;
+  outline-offset: -2px;
+  z-index: 1100;
+}
+
 .popups {
   display: -webkit-flex;
   display: flex;
@@ -683,9 +703,6 @@ body {
   background: rgba(255, 255, 255, 0.5);
   z-index: 1000;
   overflow: auto;
-}
-.popups:empty {
-  display: none;
 }
 
 .popups .popup {
@@ -749,6 +766,7 @@ body {
   line-height: 1.2em;
   font: inherit;
   color: inherit;
+  background: transparent;
   box-shadow: 0 0 5px #808080;
   outline: none;
   resize: vertical;
