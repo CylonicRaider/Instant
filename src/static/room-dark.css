@@ -92,7 +92,8 @@
 .dark .message.ping > .line time {
   color: white;
 }
-.dark .message > .line .monospace {
+
+.dark .message-text .monospace {
   background: #404040;
 }
 
