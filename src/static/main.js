@@ -3287,6 +3287,10 @@ this.Instant = function() {
       /* Start writing a message to uid */
       write: function(uid, nick) {
         var nickNode;
+        if (nick === undefined) {
+          nickNode = Instant.userList.get(uid);
+          nick = nickNode.getAttribute('data-nick');
+        }
         if (nick == null) {
           nickNode = Instant.nick.makeAnonymous();
         } else {
@@ -3358,7 +3362,9 @@ this.Instant = function() {
           }, className: 'first'}, {text: 'Delete', onclick: function() {
             Instant.privmsg._remove(popup);
           }}, {text: 'Reply', onclick: function() {
-            Instant.privmsg.write(msg.from, data.nick);
+            var nick = data.nick;
+            if (nick == undefined) nick = null;
+            Instant.privmsg.write(msg.from, nick);
           }}],
           focusSel: '.first'});
         popup.setAttribute('data-new', 'yes');
