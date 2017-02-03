@@ -441,6 +441,7 @@ body {
   padding: 1px;
   font: inherit;
   color: inherit;
+  border-radius: 0;
   background: none;
   cursor: pointer;
   outline-offset: -2px;
