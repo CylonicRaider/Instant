@@ -4365,7 +4365,7 @@ this.Instant = function() {
         ]);
         stack = $sel('.popups', wrapper);
         $sel('.close-all', wrapper).addEventListener('click',
-          Instant.popups.delAll);
+          Instant.popups.delAll.bind(Instant.popups));
         return stack;
       },
       /* Add a node to the popup stack */
