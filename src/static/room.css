@@ -732,12 +732,12 @@ body {
   width: 1px;
   background: black;
 }
-.popups .popup .popup-close {
+.popups .popup .popup-button {
   margin: auto 0;
   line-height: 0;
   outline-offset: 1px;
 }
-.popups .popup .popup-close img {
+.popups .popup .popup-button img {
   width: 1.2em;
   height: 1.2em;
   margin: 5px;
@@ -756,6 +756,14 @@ body {
 .popups .popup .popup-bottom {
   padding: 0 5px 5px 5px;
   text-align: right;
+}
+
+.popups .popup.collapsed .popup-header {
+  border-bottom: 0;
+}
+.popups .popup.collapsed .popup-content,
+.popups .popup.collapsed .popup-bottom {
+  display: none;
 }
 
 .pm-popup .pm-header {

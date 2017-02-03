@@ -112,7 +112,7 @@
 .dark .popups .popup .popup-content hr {
   background: white;
 }
-.dark .popup-wrapper .close-all img, .dark .popups .popup .popup-close img {
+.dark .popup-wrapper .close-all img, .dark .popups .popup .popup-button img {
   -webkit-filter: invert(1);
   filter: invert(1);
 }

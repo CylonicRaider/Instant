@@ -4326,6 +4326,8 @@ this.Instant = function() {
       init: function() {
         /* Preload image */
         document.createElement('img').src = '/static/close.svg';
+        document.createElement('img').src = '/static/collapse.svg';
+        document.createElement('img').src = '/static/expand.svg';
         wrapper = $makeNode('div', 'popup-wrapper', [
           ['div', 'popups'],
           ['a', 'close-all', {href: '#'}, [
@@ -4374,7 +4376,11 @@ this.Instant = function() {
           ['div', 'popup-header', [
             ['span', 'popup-title'],
             ['span', 'popup-title-sep'],
-            ['a', 'popup-close', {href: '#'}, [
+            ['a', 'popup-button popup-collapse', {href: '#'}, [
+              ['img', {src: '/static/collapse.svg'}]
+            ]],
+            ['span', 'popup-title-sep'],
+            ['a', 'popup-button popup-close', {href: '#'}, [
               ['img', {src: '/static/close.svg'}]
             ]]
           ]],
@@ -4399,7 +4405,18 @@ this.Instant = function() {
         }
         if (options.focusSel)
           ret.setAttribute('data-focus', options.focusSel);
-        $sel('.popup-close', ret).addEventListener('click', function(event) {
+        var collapser = $sel('.popup-collapse', ret);
+        var closer = $sel('.popup-close', ret);
+        collapser.addEventListener('click', function(event) {
+          ret.classList.toggle('collapsed');
+          if (ret.classList.contains('collapsed')) {
+            $sel('img', collapser).src = '/static/expand.svg';
+          } else {
+            $sel('img', collapser).src = '/static/collapse.svg';
+          }
+          event.preventDefault();
+        });
+        closer.addEventListener('click', function(event) {
           if (options.onclose) {
             options.onclose(event);
             if (event.defaultPrevented) return;
