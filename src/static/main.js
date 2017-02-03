@@ -3303,13 +3303,17 @@ this.Instant = function() {
             ['span', [nickNode, ' ', ['i', ['(user ID ',
               ['span', 'monospace', uid], ')']]]],
           ]], ['hr'], ['textarea', 'pm-editor']),
-          buttons: [{text: 'Finish later', onclick: function() {
-            Instant.popups.del(popup);
-          }, className: 'first'}, {text: 'Delete', onclick: function() {
-            Instant.privmsg._remove(popup);
-          }}, {text: 'Send', onclick: function() {
-            Instant.privmsg._send(popup);
-          }}],
+          buttons: [
+            {text: 'Finish later', onclick: function() {
+              Instant.popups.del(popup);
+            }, className: 'first'},
+            {text: 'Delete', color: '#c00000', onclick: function() {
+              Instant.privmsg._remove(popup);
+            }},
+            {text: 'Send', color: '#008000', onclick: function() {
+              Instant.privmsg._send(popup);
+            }}
+          ],
           focusSel: '.pm-editor'});
         popup.setAttribute('data-recipient', uid);
         popupsEdit.push(popup);
@@ -3357,15 +3361,19 @@ this.Instant = function() {
               formatDate(new Date(msg.timestamp))
             ]]
           ]], ['hr'], msgNode),
-          buttons: [{text: 'Read later', onclick: function() {
-            Instant.popups.del(popup);
-          }, className: 'first'}, {text: 'Delete', onclick: function() {
-            Instant.privmsg._remove(popup);
-          }}, {text: 'Reply', onclick: function() {
-            var nick = data.nick;
-            if (nick == undefined) nick = null;
-            Instant.privmsg.write(msg.from, nick);
-          }}],
+          buttons: [
+            {text: 'Read later', onclick: function() {
+              Instant.popups.del(popup);
+            }, className: 'first'},
+            {text: 'Delete', color: '#c00000', onclick: function() {
+              Instant.privmsg._remove(popup);
+            }},
+            {text: 'Reply', color: '#008000', onclick: function() {
+              var nick = data.nick;
+              if (nick == undefined) nick = null;
+              Instant.privmsg.write(msg.from, nick);
+            }}
+          ],
           focusSel: '.first'});
         popup.setAttribute('data-new', 'yes');
         popupsRead.push(popup);
@@ -4420,6 +4428,7 @@ this.Instant = function() {
           var bottom = $sel('.popup-bottom', ret);
           options.buttons.forEach(function(el) {
             var btn = $makeNode('button', 'button', [el.text]);
+            if (el.color) btn.style.color = el.color;
             if (el.onclick) btn.addEventListener('click', el.onclick);
             if (el.className) btn.className += ' ' + el.className;
             if (bottom.childNodes.length)
