@@ -2200,6 +2200,11 @@ this.Instant = function() {
       scrollIntoView: function(node, dist) {
         if (dist === null || dist === undefined) dist = OUTER_DIST;
         var pane = Instant.pane.getPane(node);
+        Instant.pane.scrollIntoViewEx(node, pane, dist);
+      },
+      /* Scroll pane (vertically) such that node is no less than dist pixels
+       * off a margin */
+      scrollIntoViewEx: function(node, pane, dist) {
         var nodeRect = node.getBoundingClientRect();
         var paneRect = pane.getBoundingClientRect();
         if (nodeRect.top < paneRect.top + dist) {
@@ -2334,6 +2339,11 @@ this.Instant = function() {
         var bottom = $sel('.sidebar-bottom', node);
         bottom.appendChild(newNode);
         Instant.sidebar.updateWidth();
+      },
+      /* Scroll the sidebar such that the given node is fully visible */
+      scrollIntoView: function(child) {
+        Instant.pane.scrollIntoViewEx(child, $sel('.sidebar-middle-wrapper',
+                                                  node), 0);
       },
       /* Return the main DOM node */
       getNode: function() {
@@ -2718,7 +2728,7 @@ this.Instant = function() {
         newParent.classList.add('selected');
         newParent.appendChild(menu);
         Instant.userList.update();
-        newParent.scrollIntoView();
+        Instant.sidebar.scrollIntoView(newParent);
       },
       /* Return the ID of the currently selected user */
       getSelectedUser: function() {
