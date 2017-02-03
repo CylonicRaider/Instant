@@ -2460,6 +2460,10 @@ this.Instant = function() {
         collapser.addEventListener('mousedown', function(event) {
           inputWasFocused = Instant.input.isFocused();
         });
+        collapser.addEventListener('keydown', function(event) {
+          if (event.keyCode == 13) // Return
+            inputWasFocused = true;
+        });
         collapser.addEventListener('click', function(event) {
           Instant.userList.collapse(! Instant.userList.isCollapsed());
           if (inputWasFocused) {
