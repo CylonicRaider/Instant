@@ -401,7 +401,7 @@ body {
   text-align: right;
 }
 .user-list .nick-box:last-child {
-  padding-bottom: 0;
+  margin-bottom: 0;
 }
 .user-list .nick-box:empty {
   display: none;
