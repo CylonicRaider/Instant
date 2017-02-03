@@ -4335,11 +4335,8 @@ this.Instant = function() {
           ]]
         ]);
         stack = $sel('.popups', wrapper);
-        $sel('.close-all', wrapper).addEventListener('click', function() {
-          while (stack.firstChild) stack.removeChild(stack.firstChild);
-          wrapper.style.display = '';
-          Instant.input.focus();
-        });
+        $sel('.close-all', wrapper).addEventListener('click',
+          Instant.popups.delAll);
         return stack;
       },
       /* Add a node to the popup stack */
@@ -4359,9 +4356,28 @@ this.Instant = function() {
           Instant.popups.focus(next);
         }
       },
+      /* Collapse or expand a popup */
+      collapse: function(node, force) {
+        if (force == null) {
+          force = (! node.classList.contains('collapsed'));
+        }
+        if (force) {
+          node.classList.add('collapsed');
+          $sel('.popup-collapse img', node).src = '/static/expand.svg';
+        } else {
+          node.classList.remove('collapsed');
+          $sel('.popup-collapse img', node).src = '/static/collapse.svg';
+        }
+      },
       /* Check whether a popup is already shown */
       isShown: function(node) {
         return stack.contains(node);
+      },
+      /* Remove all popups */
+      delAll: function() {
+        while (stack.firstChild) stack.removeChild(stack.firstChild);
+        wrapper.style.display = '';
+        Instant.input.focus();
       },
       /* Create a new popup */
       make: function(options) {
@@ -4408,12 +4424,11 @@ this.Instant = function() {
         var collapser = $sel('.popup-collapse', ret);
         var closer = $sel('.popup-close', ret);
         collapser.addEventListener('click', function(event) {
-          ret.classList.toggle('collapsed');
-          if (ret.classList.contains('collapsed')) {
-            $sel('img', collapser).src = '/static/expand.svg';
-          } else {
-            $sel('img', collapser).src = '/static/collapse.svg';
+          if (options.oncollapse) {
+            options.oncollapse(event);
+            if (event.defaultPrevented) return;
           }
+          Instant.popups.collapse(ret);
           event.preventDefault();
         });
         closer.addEventListener('click', function(event) {
