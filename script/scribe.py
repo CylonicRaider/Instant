@@ -524,6 +524,11 @@ class Scribe(instabot.Bot):
             # Someone is done loading logs.
             if self.dont_stay and self.dont_pull:
                 self.close()
+        elif tp == 'privmsg':
+            # Someone is PM-ing me.
+            # Just log it.
+            log('PRIVMSG id=%r from=%r nick=%r text=%r' % (msg['id'],
+                msg['from'], data.get('nick'), data.get('text')))
     def send_raw(self, rawmsg, verbose=True):
         if verbose:
             log('SEND content=%r' % (rawmsg,))
