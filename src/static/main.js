@@ -4447,14 +4447,16 @@ this.Instant = function() {
         Instant.popups.add(ret);
         return ret;
       },
-      /* Focus a concrete popup or any */
+      /* Focus a concrete popup or anything */
       focus: function(node) {
         if (node == null) {
           $sel('.close-all', wrapper).focus();
+        } else if (node.classList.contains('collapsed')) {
+          $sel('.popup-collapse', node).focus();
         } else if (node.getAttribute('data-focus')) {
           $sel(node.getAttribute('data-focus'), node).focus();
         } else {
-          $sel('.close', node).focus();
+          $sel('.popup-close', node).focus();
         }
       },
       /* Returnt the internal node containing the popups */
