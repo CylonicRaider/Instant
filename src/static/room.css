@@ -478,6 +478,9 @@ body {
   text-decoration: underline;
 }
 
+.notifies-privmsg {
+  color: #800080;
+}
 .notifies-ping {
   color: #808000;
 }

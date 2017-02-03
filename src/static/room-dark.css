@@ -51,6 +51,9 @@
 .dark .settings, .dark .settings-content, .dark .user-list-menu {
   background: black;
 }
+.dark .notifies-privmsg {
+  color: #c000c0;
+}
 .dark .notifies-ping {
   color: #c0c000;
 }

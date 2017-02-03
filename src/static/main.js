@@ -3948,6 +3948,8 @@ this.Instant = function() {
               ['h3', ['Notifications:']],
               ['label', 'notifies-none', [
                 radio('notifies', 'none', true), ' None']],
+              ['label', 'notifies-privmsg', [
+                radio('notifies', 'privmsg'), ' On private message']],
               ['label', 'notifies-ping', [
                 radio('notifies', 'ping'), ' When pinged']],
               ['label', 'notifies-update', [
