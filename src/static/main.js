@@ -3959,20 +3959,22 @@ this.Instant = function() {
             ]],
             ['hr'],
             ['div', 'settings-notifications', [
-              ['h3', ['Notifications:']],
+              ['h3', ['Notifications: ',
+                ['a', 'more-link', {href: '#'}, '(more)']
+              ]],
               ['label', 'notifies-none', [
                 radio('notifies', 'none', true), ' None']],
-              ['label', 'notifies-privmsg', [
-                radio('notifies', 'privmsg'), ' On private message']],
+              ['label', 'notifies-privmsg more-content', [
+                radio('notifies', 'privmsg'), ' On private messages']],
               ['label', 'notifies-ping', [
                 radio('notifies', 'ping'), ' When pinged']],
-              ['label', 'notifies-update', [
+              ['label', 'notifies-update more-content', [
                 radio('notifies', 'update'), ' On updates']],
               ['label', 'notifies-reply', [
                 radio('notifies', 'reply'), ' When replied to']],
               ['label', 'notifies-activity', [
                 radio('notifies', 'activity'), ' On activity']],
-              ['label', 'notifies-disconnect', [
+              ['label', 'notifies-disconnect more-content', [
                 radio('notifies', 'disconnect'), ' On disconnects']]
             ]],
             ['hr'],
@@ -3986,10 +3988,21 @@ this.Instant = function() {
         var cnt = $sel('.settings-content', wrapperNode);
         /* Toggle settings */
         btn.addEventListener('click', Instant.settings.toggle);
-        /* Install event listener */
+        /* Install event listeners */
         var apply = Instant.settings.apply.bind(Instant.settings);
         Array.prototype.forEach.call($selAll('input', cnt), function(el) {
           el.addEventListener('change', apply);
+        });
+        $sel('.more-link', cnt).addEventListener('click', function(event) {
+          var section = $sel('.settings-notifications', cnt);
+          if (section.classList.contains('show-more')) {
+            section.classList.remove('show-more');
+            $sel('.more-link', cnt).textContent = '(more)';
+          } else {
+            section.classList.add('show-more');
+            $sel('.more-link', cnt).textContent = '(less)';
+          }
+          event.preventDefault();
         });
         return wrapperNode;
       },

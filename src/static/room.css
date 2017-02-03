@@ -352,9 +352,19 @@ body {
 .settings-content label {
   display: block;
 }
+.settings-content label.more-content {
+  display: none;
+}
+.settings-content .show-more label.more-content {
+  display: block;
+}
 .settings-content hr {
   border: none;
   height: 5px;
+}
+.settings-content .more-link {
+  color: #808080;
+  font-size: smaller;
 }
 
 .settings-wrapper.visible .settings {
@@ -780,7 +790,7 @@ body {
   white-space: pre;
 }
 .pm-popup .pm-header i {
-  font-size: small;
+  font-size: smaller;
 }
 .pm-popup .pm-editor {
   margin: 0;
