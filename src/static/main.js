@@ -3282,9 +3282,13 @@ this.Instant = function() {
         } else {
           nickNode = Instant.nick.makeNode(nick);
         }
-        var popup = Instant.popups.make({title: $makeFrag(
-          'Private message editor: ', nickNode),
-          content: $makeNode('textarea', 'pm-editor'),
+        var popup = Instant.popups.make({title: 'Private message editor',
+          className: 'pm-popup',
+          content: $makeFrag(['div', 'pm-header', [
+            ['strong', null, 'To: '],
+            ['span', [nickNode, ' ', ['i', ['(user ID ',
+              ['span', 'monospace', uid], ')']]]],
+          ]], ['hr'], ['textarea', 'pm-editor']),
           buttons: [{text: 'Finish later', onclick: function() {
             Instant.popups.del(popup);
           }, className: 'first'}, {text: 'Delete', onclick: function() {
@@ -3326,10 +3330,19 @@ this.Instant = function() {
         } else {
           nickNode = Instant.nick.makeNode(data.nick);
         }
-        var msgnode = Instant.message.parseContent(data.text);
-        var popup = Instant.popups.make({title: $makeFrag(
-          'Private message from ', nickNode),
-          content: msgnode,
+        var msgNode = Instant.message.parseContent(data.text);
+        var popup = Instant.popups.make({title: 'Private message',
+          className: 'pm-popup',
+          content: $makeFrag(['div', 'pm-header', [
+            ['strong', null, 'From: '], ['span', [
+              nickNode, ' ',
+              ['i', ['(user ID ', ['span', 'monospace', msg.from], ')']]
+            ]]
+          ]], ['div', 'pm-header', [
+            ['strong', null, 'Date: '], ['span', [
+              formatDate(new Date(msg.timestamp))
+            ]]
+          ]], ['hr'], msgNode),
           buttons: [{text: 'Read later', onclick: function() {
             Instant.popups.del(popup);
           }, className: 'first'}, {text: 'Delete', onclick: function() {

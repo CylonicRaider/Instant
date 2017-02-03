@@ -108,7 +108,8 @@
 .dark .popups .popup-header {
   border-color: white;
 }
-.dark .popups .popup .popup-title-sep {
+.dark .popups .popup .popup-title-sep,
+.dark .popups .popup .popup-content hr {
   background: white;
 }
 .dark .popup-wrapper .close-all img, .dark .popups .popup .popup-close img {

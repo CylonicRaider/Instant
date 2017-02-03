@@ -746,16 +746,31 @@ body {
   padding: 5px;
   clear: both;
 }
+.popups .popup .popup-content hr {
+  margin: 5px 0;
+  border: 0;
+  padding: 0;
+  height: 1px;
+  background: black;
+}
 .popups .popup .popup-bottom {
   padding: 0 5px 5px 5px;
   text-align: right;
 }
 
-.popups .popup .popup-header .nick {
-  font-weight: normal;
+.pm-popup .pm-header {
+  display: table-row;
 }
-
-.pm-editor {
+.pm-popup .pm-header > * {
+  display: table-cell;
+}
+.pm-popup .pm-header > strong {
+  white-space: pre;
+}
+.pm-popup .pm-header i {
+  font-size: small;
+}
+.pm-popup .pm-editor {
   margin: 0;
   border: 0;
   padding: 0;
