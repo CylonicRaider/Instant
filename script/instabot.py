@@ -6,7 +6,7 @@ import collections, heapq, ast
 import json
 import threading
 
-import websocket
+import websocket_server
 
 try:
     from queue import Queue, Empty as QueueEmpty
@@ -122,9 +122,8 @@ class InstantClient(object):
     def connect(self):
         with self._wslock:
             if self.ws is not None: return
-            self.ws = websocket.create_connection(self.url)
-            if self.timeout is not None:
-                self.ws.settimeout(self.timeout)
+            self.ws = websocket_server.client.connect(self.url,
+                                                      timeout=self.timeout)
     def on_open(self):
         pass
     def on_message(self, rawmsg):
@@ -137,6 +136,8 @@ class InstantClient(object):
             'left': self.handle_left, 'error': self.handle_error
         }.get(msgt, self.on_unknown)
         func(content, rawmsg)
+    def on_frame(self, msgtype, content, final):
+        pass
     def on_timeout(self, exc):
         raise exc
     def on_error(self, exc):
@@ -166,11 +167,17 @@ class InstantClient(object):
     def recv(self):
         ws = self.ws
         if ws is None: return None
-        return ws.recv()
+        while 1:
+            frame = ws.read_frame()
+            if frame is None: return None
+            if frame.msgtype != websocket_server.OP_TEXT:
+                self.on_frame(frame.msgtype, frame.content, frame.final)
+                continue
+            return frame.content
     def send_raw(self, rawmsg):
         ws = self.ws
         if ws is None: raise websocket.WebSocketConnectionClosedException
-        ws.send(rawmsg)
+        ws.write_text_frame(rawmsg)
     def send_seq(self, content, **kwds):
         seq = self.sequence()
         content['seq'] = seq

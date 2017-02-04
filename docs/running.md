@@ -139,8 +139,8 @@ subdirectory of the repository.
 It depends on a recent version of *Python* (Python 2.7 is confirmed to work,
 and Python 3.4 was extensively tested “in the field”); aside from that,
 the `instabot` library found alongside the source file, and a WebSocket
-client library (i.e.,
-[`websocket-client`](https://pypi.python.org/pypi/websocket-client/)) are
+client library (i.e., most aptly called,
+[`websocket_server`](https://github.com/CylonicRaider/websocket-server/)) are
 required.
 
 Scribe supports the following features, each controlled by a command-line
