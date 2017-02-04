@@ -4357,7 +4357,7 @@ this.Instant = function() {
     return {
       /* Initialize submodule */
       init: function() {
-        /* Preload image */
+        /* Preload images */
         document.createElement('img').src = '/static/close.svg';
         document.createElement('img').src = '/static/collapse.svg';
         document.createElement('img').src = '/static/expand.svg';
