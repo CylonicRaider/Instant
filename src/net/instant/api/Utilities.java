@@ -94,4 +94,15 @@ public final class Utilities {
         return (s != null && ! s.isEmpty());
     }
 
+    /**
+     * Return whether the string represents an affirmative value.
+     * Intended to be more lenient than Boolean.parseBoolean(); accepts
+     * inputs such as "y", "yes", "1" (ignoring case).
+     */
+    public static boolean isTrue(String s) {
+        if (s == null) return false;
+        return (Boolean.parseBoolean(s) || s.equalsIgnoreCase("1") ||
+            s.equalsIgnoreCase("y") || s.equalsIgnoreCase("yes"));
+    }
+
 }

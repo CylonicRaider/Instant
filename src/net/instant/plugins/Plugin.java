@@ -205,9 +205,6 @@ public class Plugin implements Comparable<Plugin> {
                 getName() + " is not static");
         PluginData info = new PluginData() {
 
-            private final Attributes attrs =
-                Plugin.this.getManifest().getAttributes("Instant-plugin");
-
             public String getName() {
                 return name;
             }
@@ -218,8 +215,9 @@ public class Plugin implements Comparable<Plugin> {
             }
 
             public String getAttribute(String name) {
-                if (attrs == null) return null;
-                Object ret = attrs.get(name);
+                Attributes rawAttrs = getRawAttributes();
+                if (rawAttrs == null) return null;
+                Object ret = rawAttrs.get(name);
                 if (! (ret instanceof String)) return null;
                 return (String) ret;
             }
