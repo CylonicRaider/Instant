@@ -4664,6 +4664,7 @@ this.Instant = function() {
       this.options = options || {};
       this.data = undefined;
       this._styles = null;
+      this._scripts = null;
       this._libs = null;
       this._synclibs = null;
     }
@@ -4674,22 +4675,39 @@ this.Instant = function() {
         var self = this;
         var styles = this.options.styles || [];
         this._styles = styles.map(Instant.plugins.addStylesheet);
-        var libs = this.options.libs || [];
-        this._libs = libs.map(Instant.plugins.addScript);
+        var scripts = this.options.scripts || [];
+        this._scripts = scripts.map(Instant.plugins.addScript);
         var deps = this.options.deps || [];
         var depsprom = Promise.all(deps.map(Instant.plugins.getPluginAsync));
+        var libs = this.options.libs || [];
+        this._libs = [];
+        var libsprom = Promise.all(libs.map(function(url, idx) {
+          return new Promise(function(resolve, reject) {
+            var node = document.createElement('script');
+            node.type = 'application/javascript';
+            node.onload = function() {
+              resolve(node);
+            };
+            node.onerror = function(event) {
+              reject(event);
+            };
+            node.src = url;
+            self._libs[idx] = node;
+          });
+        }));
+        var preprom = Promise.all([depsprom, libsprom]);
         var synclibs = this.options.synclibs || [];
         this._synclibs = [];
         var pending = synclibs.map(function(url, idx) {
           return Instant.plugins.loadFile(url).then(function(req) {
-            return depsprom.then(function() {
+            return preprom.then(function() {
               return $evalIn.call(self, req.response, false);
             }).then(function(res) {
               self._synclibs[idx] = res;
             });
           });
         });
-        pending.push(depsprom);
+        pending.push(preprom);
         if (this.options.main) this._main = this.options.main;
         return Promise.all(pending).then(function() {
           return self._main();
@@ -4806,9 +4824,11 @@ this.Instant = function() {
        *           initialized.
        * styles  : An array of stylesheet URL-s to be fetched and to added
        *           to the document (asynchronously).
-       * libs    : An array of JavaScript file URL-s to be loaded and run
+       * scripts : An array of JavaScript file URL-s to be loaded and run
        *           (asynchronously). The scripts are run in the global
        *           context.
+       * libs    : An array of JavaScript file URL-s to be loaded and run
+       *           (in the global scope) before the plugin is initialized.
        * synclibs: An array of JavaScript file URL-s to be loaded and
        *           executed (in isolated scopes, with the this object
        *           pointing to the plugin) before the plugin is initialized.
@@ -4818,7 +4838,16 @@ this.Instant = function() {
        * main    : Plugin initializer function. All synclibs have been run,
        *           and their results are available in the this object. The
        *           return value is assigned to the "data" property of the
-       *           plugin object; if it is thenable, it is resolved first. */
+       *           plugin object; if it is thenable, it is resolved first.
+       * Execution order:
+       * - All resources are fetched asynchronously in no particular order
+       *   (and may have been cached).
+       * - styles and scripts are fully asynchronous and do not affect the
+       *   loading of the plugin that requested them.
+       * - synclibs are not run before all deps and libs are initialized and
+       *   loaded, respectively.
+       * - The plugin is not initialized until the preconditions for synclibs
+       *   are met, and they (if any) have been run. */
       loadPlugin: function(name, options) {
         var pl = new Plugin(name, options);
         plugins[name] = null;
