@@ -99,7 +99,9 @@ function $makeNode(tag, className, attrs, children) {
     if (typeof children == 'string') children = [children];
     for (var i = 0; i < children.length; i++) {
       var e = children[i];
-      if (typeof e == 'string') {
+      if (! e) {
+        /* Allow conditional node omission */
+      } else if (typeof e == 'string') {
         /* Strings become text nodes */
         ret.appendChild(document.createTextNode(e));
       } else if (typeof e != 'object') {
@@ -123,7 +125,9 @@ function $makeFrag() {
   for (var i = 0; i < arguments.length; i++) {
     var e = arguments[i];
     /* Duplicating handling from above */
-    if (typeof e == 'string') {
+    if (! e) {
+      /* NOP */
+    } else if (typeof e == 'string') {
       ret.appendChild(document.createTextNode(e));
     } else if (typeof e != 'object') {
       throw new Error('Bad child encountered during DOM node creation');
@@ -4421,15 +4425,16 @@ this.Instant = function() {
             $sel(cls, ret).appendChild(cnt);
           }
         }
+        var co = (! options.noCollapse), cl = (! options.noClose);
         var ret = $makeNode('div', 'popup', [
           ['div', 'popup-header', [
             ['span', 'popup-title'],
-            ['span', 'popup-title-sep'],
-            ['a', 'popup-button popup-collapse', {href: '#'}, [
+            co && ['span', 'popup-title-sep'],
+            co && ['a', 'popup-button popup-collapse', {href: '#'}, [
               ['img', {src: '/static/collapse.svg'}]
             ]],
-            ['span', 'popup-title-sep'],
-            ['a', 'popup-button popup-close', {href: '#'}, [
+            cl && ['span', 'popup-title-sep'],
+            cl && ['a', 'popup-button popup-close', {href: '#'}, [
               ['img', {src: '/static/close.svg'}]
             ]]
           ]],
@@ -4457,22 +4462,24 @@ this.Instant = function() {
           ret.setAttribute('data-focus', options.focusSel);
         var collapser = $sel('.popup-collapse', ret);
         var closer = $sel('.popup-close', ret);
-        collapser.addEventListener('click', function(event) {
-          if (options.oncollapse) {
-            options.oncollapse(event);
-            if (event.defaultPrevented) return;
-          }
-          Instant.popups.collapse(ret);
-          event.preventDefault();
-        });
-        closer.addEventListener('click', function(event) {
-          if (options.onclose) {
-            options.onclose(event);
-            if (event.defaultPrevented) return;
-          }
-          event.preventDefault();
-          Instant.popups.del(ret);
-        });
+        if (collapser)
+          collapser.addEventListener('click', function(event) {
+            if (options.oncollapse) {
+              options.oncollapse(event);
+              if (event.defaultPrevented) return;
+            }
+            Instant.popups.collapse(ret);
+            event.preventDefault();
+          });
+        if (closer)
+          closer.addEventListener('click', function(event) {
+            if (options.onclose) {
+              options.onclose(event);
+              if (event.defaultPrevented) return;
+            }
+            event.preventDefault();
+            Instant.popups.del(ret);
+          });
         return ret;
       },
       /* Create a new popup and show it */
