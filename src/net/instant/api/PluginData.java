@@ -23,4 +23,12 @@ public interface PluginData {
      */
     String getAttribute(String attr);
 
+    /**
+     * Invoke the default plugin initializer.
+     * A plugin may wish to use declarative features, but yet execute own
+     * code upon initialization.
+     * Returns the object returned by the default handler.
+     */
+    Object handleDefault();
+
 }
