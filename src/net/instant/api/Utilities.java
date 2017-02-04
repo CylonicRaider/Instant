@@ -87,4 +87,11 @@ public final class Utilities {
         }
     }
 
+    /**
+     * Return whether the given string is not null and nonempty.
+     */
+    public static boolean nonempty(String s) {
+        return (s != null && ! s.isEmpty());
+    }
+
 }

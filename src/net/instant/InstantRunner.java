@@ -327,7 +327,7 @@ public class InstantRunner implements API1 {
         makeStringProducer().addFile(name, content);
     }
     public void addSiteCode(String c) {
-        makeStringProducer().appendFile(SITE_FILE, c);
+        makeStringProducer().appendFile(SITE_FILE, c + "\n");
     }
 
     public PluginManager getPluginManager() {
