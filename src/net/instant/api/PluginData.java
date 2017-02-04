@@ -1,5 +1,7 @@
 package net.instant.api;
 
+import java.util.Set;
+
 /**
  * Individual per-plugin information which cannot be obtained from the API.
  * An instance of this is passed to plugins' initializer functions.
@@ -9,6 +11,16 @@ public interface PluginData {
     /**
      * The name of the plugin being loaded.
      */
-    public String getName();
+    String getName();
+
+    /**
+     * Names of plugins this one depends on.
+     */
+    Set<String> getDependencies();
+
+    /**
+     * An auxillary attribute of the plugin.
+     */
+    String getAttribute(String attr);
 
 }

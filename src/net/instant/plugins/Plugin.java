@@ -188,8 +188,7 @@ public class Plugin implements Comparable<Plugin> {
         try {
             return Class.forName(mainClass, true, parent.getClassLoader());
         } catch (ClassNotFoundException exc) {
-            throw new BadPluginException("Main class of plugin " +
-                getName() + " not found", exc);
+            return DefaultPlugin.class;
         }
     }
     public Object initialize(Class<?> pluginCls) throws BadPluginException {
@@ -205,9 +204,26 @@ public class Plugin implements Comparable<Plugin> {
             throw new BadPluginException("Initializer method for " +
                 getName() + " is not static");
         PluginData info = new PluginData() {
+
+            private final Attributes attrs =
+                Plugin.this.getManifest().getAttributes("Instant-plugin");
+
             public String getName() {
                 return name;
             }
+
+            public Set<String> getDependencies() {
+                return Collections.unmodifiableSet(
+                    Plugin.this.getDependencies());
+            }
+
+            public String getAttribute(String name) {
+                if (attrs == null) return null;
+                Object ret = attrs.get(name);
+                if (! (ret instanceof String)) return null;
+                return (String) ret;
+            }
+
         };
         Object data;
         try {
