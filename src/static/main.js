@@ -4693,6 +4693,7 @@ this.Instant = function() {
             };
             node.src = url;
             self._libs[idx] = node;
+            document.head.appendChild(node);
           });
         }));
         var preprom = Promise.all([depsprom, libsprom]);
