@@ -27,9 +27,11 @@ public class DefaultPlugin {
 
         public static List<String> splitAttribute(String val) {
             List<String> ret = new ArrayList<String>();
-            for (String item : val.split("\\s*,\\s*")) {
-                if (item.isEmpty()) continue;
-                ret.add(item.trim());
+            if (val != null) {
+                for (String item : val.split("\\s*,\\s*")) {
+                    if (item.isEmpty()) continue;
+                    ret.add(item.trim());
+                }
             }
             return ret;
         }
@@ -56,7 +58,7 @@ public class DefaultPlugin {
             }
         }
         String escname = Utilities.escapeStringJS(data.getName(), true);
-        api.addSiteCode("Instant.plugins.load(" + escname + ", {" + sb + "});");
+        api.addSiteCode("Instant.loadPlugin(" + escname + ", {" + sb + "});");
     }
 
 }

@@ -65,8 +65,6 @@ public class Plugin implements Comparable<Plugin> {
             throw new BadPluginException("Plugin missing manifest");
         this.mainClass = this.manifest.getMainAttributes().getValue(
             Attributes.Name.MAIN_CLASS);
-        if (this.mainClass == null)
-            throw new BadPluginException("Plugin not defining main class");
         this.rawAttrs = manifest.getAttributes("Instant-Plugin");
         this.attrs = new HashMap<PluginAttribute<?>, Object>();
         this.constraints = new HashMap<Plugin, Constraint>();
@@ -186,6 +184,7 @@ public class Plugin implements Comparable<Plugin> {
     }
     public Class<?> fetchClass() throws BadPluginException {
         try {
+            if (mainClass == null) return DefaultPlugin.class;
             return Class.forName(mainClass, true, parent.getClassLoader());
         } catch (ClassNotFoundException exc) {
             return DefaultPlugin.class;
@@ -206,7 +205,7 @@ public class Plugin implements Comparable<Plugin> {
             public String getAttribute(String name) {
                 Attributes rawAttrs = getRawAttributes();
                 if (rawAttrs == null) return null;
-                Object ret = rawAttrs.get(name);
+                Object ret = rawAttrs.getValue(name);
                 if (! (ret instanceof String)) return null;
                 return (String) ret;
             }
