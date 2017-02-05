@@ -1656,9 +1656,15 @@ this.Instant = function() {
             for (var i = 0; i < out.length; i++) {
               var e = out[i];
               /* Handle end-of-line */
-              if (typeof e == 'string' && /\n/.test(e)) {
-                i = doEOL(stack, out, i);
-                continue;
+              if (typeof e == 'string') {
+                var idx = e.indexOf('\n');
+                if (idx != -1 && stack.length &&
+                    stack[stack.length - 1].line) {
+                  out.splice(i++, 1, e.substring(0, idx));
+                  i = doEOL(stack, out, i);
+                  out.splice(i, 0, e.substring(idx));
+                  continue;
+                }
               }
               /* Filter such that only user-made objects remain */
               if (typeof e != 'object' || e.nodeType !== undefined) continue;
@@ -1679,9 +1685,7 @@ this.Instant = function() {
               }
             }
             doEOL(stack, out, i);
-            for (var i = 0; i < stack.length; i++) {
-              declassify(stack[i]);
-            }
+            for (var i = 0; i < stack.length; i++) declassify(stack[i]);
             /* Assign actual emphasis levels (italic -> bold -> small-caps,
              * with combinations in between) */
             stack = [makeNode(null, 'message-text')];
