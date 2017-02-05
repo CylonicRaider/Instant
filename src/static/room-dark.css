@@ -101,16 +101,19 @@
   -webkit-filter: brightness(0.875);
   filter: brightness(0.875);
 }
-.dark .nick, .dark .message.emote > .line .content,
-.dark .message.ping > .line {
+.dark .nick, .dark .message.emote > .line .content {
   color: black;
+}
+.dark .message.ping > .line {
+  background: #202000;
+  color: inherit;
 }
 .dark .message.ping > .line time {
   color: white;
 }
 
 .dark .message-text .monospace {
-  background: #404040;
+  background: #202020;
 }
 
 .dark .sidebar-top > *, .dark .sidebar-middle > *,
