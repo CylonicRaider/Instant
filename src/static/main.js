@@ -4408,8 +4408,10 @@ this.Instant = function() {
         document.createElement('img').src = '/static/close.svg';
         document.createElement('img').src = '/static/collapse.svg';
         document.createElement('img').src = '/static/expand.svg';
-        wrapper = $makeNode('div', 'popup-wrapper', [
-          ['div', 'popups'],
+        wrapper = $makeNode('div', 'popups-wrapper', [
+          ['div', 'popups-content', [
+            ['div', 'popups']
+          ]],
           ['a', 'close-all', {href: '#'}, [
             ['img', {src: '/static/close.svg'}]
           ]]
@@ -4423,6 +4425,8 @@ this.Instant = function() {
       add: function(node) {
         stack.appendChild(node);
         wrapper.style.display = 'block';
+        Instant.util.adjustScrollbar($sel('.close-all', wrapper),
+                                     $sel('.popups-content', wrapper));
         Instant.popups.focus(node);
       },
       /* Remove a node from the popup stack */
@@ -4433,6 +4437,8 @@ this.Instant = function() {
           wrapper.style.display = '';
           Instant.input.focus();
         } else {
+          Instant.util.adjustScrollbar($sel('.close-all', wrapper),
+                                       $sel('.popups-content', wrapper));
           Instant.popups.focus(next);
         }
       },
@@ -4689,9 +4695,7 @@ this.Instant = function() {
       repeat: repeat,
       /* Adjust the right margin of an element to account for scrollbars */
       adjustScrollbar: function(target, measure) {
-        var ch = measure.firstElementChild;
-        if (! ch) return;
-        var margin = (measure.offsetWidth - ch.offsetWidth) + 'px';
+        var margin = (measure.offsetWidth - measure.clientWidth) + 'px';
         if (target.style.marginRight != margin)
           target.style.marginRight = margin;
       }
