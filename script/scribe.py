@@ -367,6 +367,10 @@ def read_posts_ex(src, maxlen=None):
         uuids = dict((k, v) for k, v in uuids.items() if k in kset)
         dels[:] = []
         return (ret, uuids)
+    def prune(ret, uuids):
+        delset = set(dels)
+        ret = [i for i in ret if i['id'] not in delset]
+        return (ret, uuids)
     TAGS = frozenset(('SCRIBE', 'POST', 'LOGPOST', 'MESSAGE', 'DELETE',
                       'UUID'))
     cver, froms, dels, ret, uuids = (), {}, [], [], {}
@@ -421,8 +425,12 @@ def read_posts_ex(src, maxlen=None):
         ret.append(values)
         if maxlen is not None and len(ret) >= 2 * maxlen:
             ret, uuids = truncate(ret, uuids)
+        else:
+            ret, uuids = prune(ret, uuids)
     if maxlen is not None:
         ret, uuids = truncate(ret, uuids)
+    else:
+        ret, uuids = prune(ret, uuids)
     ret.sort(key=lambda x: x['id'])
     for e in ret:
         if 'from' not in e and e['id'] in froms:
