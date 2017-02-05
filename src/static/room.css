@@ -306,7 +306,7 @@ body {
 .settings-wrapper {
   display: inline-block;
   position: relative;
-  z-index: 10;
+  z-index: 20;
 }
 .settings {
   position: relative;
