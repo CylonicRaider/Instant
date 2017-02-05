@@ -130,10 +130,14 @@ body {
   display: inline;
   color: inherit;
 }
-.message-text .emph-before, .message-text .emph-after {
+.message-text .emph-before, .message-text .emph-after,
+.message-text .quote-marker {
   font-style: normal;
   font-weight: normal;
   font-variant: normal;
+}
+.message-text .quote-line {
+  font-style: italic;
 }
 .message-text .monospace {
   background: #f0f0f0;

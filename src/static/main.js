@@ -1386,6 +1386,16 @@ this.Instant = function() {
             nodes[i].classList.add('false');
           }
         }
+        /* Handle end-of-line for line patterns */
+        function doEOL(stack, out, i) {
+          /* Terminate line-level emphasis */
+          while (stack.length && stack[stack.length - 1].line) {
+            var el = stack.pop();
+            el.add = el.line;
+            out.splice(i++, 0, {rem: el.add});
+          }
+          return i;
+        }
         /* Counts of plugin-inserted matchers */
         var earlyMatchers = 0;
         var lateMatchers = 0;
@@ -1535,6 +1545,27 @@ this.Instant = function() {
             add: function() {
               return makeNode(null, 'monospace monospace-block');
             }
+          },
+          { /* Quoted lines */
+            name: 'quote',
+            re: /^(>\s*)+/m,
+            cb: function(m, out, status) {
+              out.push(makeSigil(m[0], 'quote-marker'));
+              out.push({line: 'quote'});
+            },
+            add: function(stack, status) {
+              status.quoteLevel = (status.quoteLevel || 0) + 1;
+              if (status.quoteLevel == 1) {
+                status.emphLevel = (status.emphLevel || 0) + 1;
+                return makeNode(null, 'quote-line');
+              }
+            },
+            rem: function(stack, status) {
+              if (status.quoteLevel-- == 1) {
+                stack.pop();
+                status.emphLevel--;
+              }
+            }
           }
         ];
         return {
@@ -1624,10 +1655,15 @@ this.Instant = function() {
             var stack = [];
             for (var i = 0; i < out.length; i++) {
               var e = out[i];
+              /* Handle end-of-line */
+              if (typeof e == 'string' && /\n/.test(e)) {
+                i = doEOL(stack, out, i);
+                continue;
+              }
               /* Filter such that only user-made objects remain */
               if (typeof e != 'object' || e.nodeType !== undefined) continue;
               /* Add or remove emphasis, respectively */
-              if (e.add) {
+              if (e.add || e.line) {
                 stack.push(e);
               } else if (e.rem) {
                 if (stack.length) {
@@ -1642,6 +1678,7 @@ this.Instant = function() {
                 }
               }
             }
+            doEOL(stack, out, i);
             for (var i = 0; i < stack.length; i++) {
               declassify(stack[i]);
             }
@@ -1654,8 +1691,10 @@ this.Instant = function() {
               /* Drain non-metadata parts into the current node */
               if (typeof e == 'string') {
                 top.appendChild(document.createTextNode(e));
+                continue;
               } else if (e.nodeType !== undefined) {
                 top.appendChild(e);
+                continue;
               }
               /* Disabled emphasis nodes don't do anything */
               if (e.disabled) continue;
