@@ -5046,3 +5046,5 @@ function init() {
   Instant.init(main, wrapper, $sel('.breadcrumbs'));
   Instant.input.focus();
 }
+
+window.addEventListener('load', init);
