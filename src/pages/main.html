@@ -8,17 +8,32 @@
     <style type="text/css">
 .logo a {
   display: inline-block;
+  position: relative;
   color: black;
+}
+.logo a::after {
+  content: '';
+  background: url("/static/logo-static.svg");
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
 }
 .logo img {
   width: 50vw;
   max-width: 50vh;
   vertical-align: top;
-  -webkit-transition: box-shadow 0.25s;
-  transition: box-shadow 0.25s;
+}
+.logo:hover a::after {
+  opacity: 0;
 }
 .logo:not(:hover) img {
   box-shadow: 0 0 0 black;
+}
+.logo a::after, .logo img {
+  -webkit-transition: box-shadow 0.25s, opacity 1s;
+  transition: box-shadow 0.25s, opacity 1s;
 }
     </style>
   </head>
