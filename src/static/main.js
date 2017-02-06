@@ -2016,6 +2016,7 @@ this.Instant = function() {
       },
       /* Update the message bar sizer */
       _updateMessage: function(event) {
+        var sizerNick = $sel('.input-nick-sizer', inputNode);
         var promptNick = $sel('.input-nick-prompt', inputNode);
         var sizerMsg = $sel('.input-message-sizer', inputNode);
         var inputMsg = $sel('.input-message', inputNode);
@@ -2030,9 +2031,15 @@ this.Instant = function() {
          * it from keeping the input box "inflated") and then to
          * the scrollHeight caused two whole-page reflows, which
          * affected performance rather badly. */
-        if (sizerMsg.scrollHeight + 'px' != inputMsg.style.height) {
+        var height = sizerMsg.scrollHeight;
+        /* HACK: Depending on the font and other circumstances, there may be
+         *       an off-by-one (rounding?) error, causing the input box to
+         *       inflate to one pixel more than the rest of the bar.
+         *       Needless to say, it is annoying. */
+        if (height == sizerNick.offsetHeight - 1) height--;
+        if (height + 'px' != inputMsg.style.height) {
           var restore = Instant.input.saveScrollState();
-          inputMsg.style.height = sizerMsg.scrollHeight + 'px';
+          inputMsg.style.height = height + 'px';
           restore();
         }
         Instant._fireListeners('input.edit', {text: inputMsg.value,
