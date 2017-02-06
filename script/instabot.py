@@ -4,6 +4,7 @@ import sys, re, time
 import traceback
 import collections, heapq, ast
 import json
+import socket
 import threading
 
 import websocket_server
@@ -176,7 +177,7 @@ class InstantClient(object):
             return frame.content
     def send_raw(self, rawmsg):
         ws = self.ws
-        if ws is None: raise websocket.WebSocketConnectionClosedException
+        if ws is None: raise websocket_server.ConnectionClosedError
         ws.write_text_frame(rawmsg)
     def send_seq(self, content, **kwds):
         seq = self.sequence()
@@ -199,7 +200,7 @@ class InstantClient(object):
             while 1:
                 try:
                     rawmsg = self.recv()
-                except websocket.WebSocketTimeoutException as exc:
+                except socket.timeout as exc:
                     self.on_timeout(exc)
                     continue
                 if rawmsg is None:
@@ -207,7 +208,7 @@ class InstantClient(object):
                 elif not rawmsg:
                     continue
                 self.on_message(rawmsg)
-        except websocket.WebSocketConnectionClosedException:
+        except websocket_server.ConnectionClosedError:
             # Server-side timeouts cause the connection to be dropped.
             pass
         except Exception as exc:
