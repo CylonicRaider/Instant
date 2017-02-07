@@ -2505,7 +2505,8 @@ this.Instant = function() {
           ]]
         ]);
         menu = $makeNode('div', 'user-list-menu', [
-          ['h2', ['Actions:']], ' ',
+          ['h2', ['Actions:']],
+          ['div', 'clear'],
           ['button', 'button action-ping', ['Insert ping']], ' ',
           ['button', 'button action-pm', ['PM']]
         ]);

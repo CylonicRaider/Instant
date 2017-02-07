@@ -446,8 +446,11 @@ body {
   min-width: 10em;
 }
 .user-list-menu h2 {
-  display: inline-block;
+  display: block;
   font-size: inherit;
+}
+.user-list-menu .clear {
+  clear: both;
 }
 
 .button {
