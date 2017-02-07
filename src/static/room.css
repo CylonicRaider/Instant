@@ -118,6 +118,10 @@ body {
   padding-right: 0.25em;
 }
 
+.message-text {
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
 .message-text .mention, .message-text a {
   unicode-bidi: embed;
 }
