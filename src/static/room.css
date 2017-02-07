@@ -85,9 +85,10 @@ body {
   display: inline-block;
 }
 .message > .line .nick-wrapper .nick::before {
-  content: "";
+  /* HACK: Abusing the un-selectability of pseudoelements */
+  content: " ";
   display: inline-block;
-  min-height: 1em;
+  width: 0;
 }
 .message > .line time {
   display: inline-block;
