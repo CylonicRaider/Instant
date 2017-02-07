@@ -16,6 +16,8 @@ except ImportError:
 
 VERSION = 'v1.4'
 
+_unicode = websocket_server.compat.unicode
+
 class EventScheduler(object):
     class Event:
         def __init__(self, time, seq, callback):
@@ -178,7 +180,7 @@ class InstantClient(object):
     def send_raw(self, rawmsg):
         ws = self.ws
         if ws is None: raise websocket_server.ConnectionClosedError
-        ws.write_text_frame(rawmsg)
+        ws.write_text_frame(_unicode(rawmsg))
     def send_seq(self, content, **kwds):
         seq = self.sequence()
         content['seq'] = seq
@@ -314,8 +316,8 @@ def log_exception(name, exc, trailer=None):
 
 LOGLINE_START = re.compile(r'^\[([0-9 Z:-]+)\]\s+([A-Z_-]+)\s+(.*)$')
 WHITESPACE = re.compile(r'\s+')
-SCALAR = re.compile(r'[^"\'\x28,\s]\S*|"(?:[^"\\]|\\.)*"|'
-    r'\'(?:[^\'\\]|\\.)*\'')
+SCALAR = re.compile(r'[^"\'\x28,\s]\S*|u?"(?:[^"\\]|\\.)*"|'
+    r'u?\'(?:[^\'\\]|\\.)*\'')
 TUPLE = re.compile(r'\(\s*(?:(?:%s)\s*,\s*)*(?:(?:%s)\s*)?\)' %
                    (SCALAR.pattern, SCALAR.pattern))
 EMPTY_TUPLE = re.compile(r'^\(\s*\)$')
@@ -368,6 +370,8 @@ class ArgParser:
         if self.iter is None: self.iter = iter(self.args)
         return self
     def __next__(self):
+        return next(self.iter)
+    def next(self):
         return next(self.iter)
     def close(self):
         try:
@@ -560,7 +564,8 @@ class OptionParser:
             else:
                 # Single-letter options are not supported.
                 parser.unknown()
-    def get(self, *names, force_tuple=False):
+    def get(self, *names, **kwds):
+        force_tuple = kwds.get('force_tuple')
         try:
             if len(names) == 1 and not force_tuple:
                 n = names[0]
