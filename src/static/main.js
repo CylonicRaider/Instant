@@ -843,7 +843,9 @@ this.Instant = function() {
         var msgNode = $makeNode('div', 'message message-fake',
             {id: 'message-' + id, 'data-id': id}, [
           ['div', 'line', {title: 'Message absent or not loaded (yet)'}, [
-            ['time', [['a', 'permalink', {href: '#message-' + id}, 'N/A']]],
+            ['span', 'time-wrapper', [
+              ['time', [['a', 'permalink', {href: '#message-' + id}, 'N/A']]]
+            ]],
             ['span', 'nick-wrapper', [
               ['span', 'hidden', {'data-key': 'indent'}],
               ['span', 'nick', '...']
@@ -877,7 +879,9 @@ this.Instant = function() {
         var msgNode = $makeNode('div', clsname, {id: 'message-' + params.id,
             'data-id': params.id}, [
           ['div', 'line', [
-            ['time', [['a', 'permalink', {href: '#message-' + params.id}]]],
+            ['span', 'time-wrapper', [
+              ['time', [['a', 'permalink', {href: '#message-' + params.id}]]]
+            ]],
             ['span', 'nick-wrapper', [
               ['span', 'hidden', {'data-key': 'indent'}],
               ['span', 'hidden', {'data-key': 'before-nick'}, '<'],

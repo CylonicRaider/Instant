@@ -71,6 +71,8 @@ body {
 .message > .line {
   display: -webkit-flex;
   display: flex;
+  -webkit-align-items: baseline;
+  align-items: baseline;
   white-space: pre-wrap;
   word-wrap: break-word;
 }
@@ -84,7 +86,8 @@ body {
 .message > .line .nick-wrapper .nick {
   display: inline-block;
 }
-.message > .line .nick-wrapper .nick::before {
+.message > .line .nick-wrapper .nick::after,
+.message > .line .time-wrapper::after {
   /* HACK: Abusing the un-selectability of pseudoelements */
   content: " ";
   display: inline-block;
@@ -95,7 +98,6 @@ body {
   position: absolute;
   left: 0;
   width: 3.5em;
-  padding: 1px 0;
   text-align: center;
   user-select: none;
   -moz-user-select: none;
@@ -430,6 +432,11 @@ body {
   z-index: 11;
   cursor: pointer;
   outline-offset: -1px;
+}
+.user-list .nick-box::after {
+  content: "";
+  display: block;
+  clear: both;
 }
 
 .user-list .nick-box.selected .nick {
