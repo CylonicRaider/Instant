@@ -1866,6 +1866,10 @@ this.Instant = function() {
           inputNick.value = nick;
           refreshNick(null, true);
           focusedNode = inputMsg;
+        } else if (inputNick.value) {
+          /* Form auto-fill? */
+          refreshNick(null, true);
+          focusedNode = inputMsg;
         } else {
           focusedNode = inputNick;
         }
