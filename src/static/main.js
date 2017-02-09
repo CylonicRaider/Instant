@@ -2300,7 +2300,7 @@ this.Instant = function() {
       }()
     };
   }();
-  /* Sidebar ahndling */
+  /* Sidebar handling */
   Instant.sidebar = function() {
     /* The main sidebar node */
     var node = null;
