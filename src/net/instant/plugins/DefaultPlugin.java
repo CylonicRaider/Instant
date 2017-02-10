@@ -38,9 +38,10 @@ public class DefaultPlugin {
 
     }
 
-    public static void initInstantPlugin1(API1 api, PluginData data) {
+    public static Object initInstantPlugin1(API1 api, PluginData data) {
         if (Utilities.isTrue(data.getAttribute("Frontend-Plugin")))
             bootstrapFrontendPlugin(api, data);
+        return null;
     }
 
     protected static void bootstrapFrontendPlugin(API1 api, PluginData data) {

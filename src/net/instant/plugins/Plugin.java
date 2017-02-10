@@ -191,6 +191,17 @@ public class Plugin implements Comparable<Plugin> {
         }
     }
     public Object initialize(Class<?> pluginCls) throws BadPluginException {
+        Method init;
+        try {
+            init = pluginCls.getMethod("initInstantPlugin1", API1.class,
+                                       PluginData.class);
+        } catch (NoSuchMethodException exc) {
+            throw new BadPluginException("Cannot find initializer method " +
+                "for plugin " + getName(), exc);
+        }
+        if (! Modifier.isStatic(init.getModifiers()))
+            throw new BadPluginException("Initializer method for " +
+                getName() + " is not static");
         PluginData info = new PluginData() {
 
             public String getName() {
@@ -210,31 +221,7 @@ public class Plugin implements Comparable<Plugin> {
                 return (String) ret;
             }
 
-            public Object handleDefault() {
-                try {
-                    return initialize(DefaultPlugin.class, this);
-                } catch (BadPluginException exc) {
-                    // Should not happen.
-                    throw new RuntimeException(exc);
-                }
-            }
-
         };
-        return initialize(pluginCls, info);
-    }
-    private Object initialize(Class<?> pluginCls, PluginData info)
-            throws BadPluginException {
-        Method init;
-        try {
-            init = pluginCls.getMethod("initInstantPlugin1", API1.class,
-                                       PluginData.class);
-        } catch (NoSuchMethodException exc) {
-            throw new BadPluginException("Cannot find initializer method " +
-                "for plugin " + getName(), exc);
-        }
-        if (! Modifier.isStatic(init.getModifiers()))
-            throw new BadPluginException("Initializer method for " +
-                getName() + " is not static");
         Object data;
         try {
             data = init.invoke(null, parent.getAPI(), info);

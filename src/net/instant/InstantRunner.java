@@ -12,12 +12,14 @@ import net.instant.api.Counter;
 import net.instant.api.FileGenerator;
 import net.instant.api.FileInfo;
 import net.instant.api.MessageHook;
+import net.instant.api.PluginData;
 import net.instant.api.RequestHook;
 import net.instant.api.ServerEvent;
 import net.instant.hooks.StaticFileHook;
 import net.instant.hooks.RedirectHook;
 import net.instant.hooks.RoomWebSocketHook;
 import net.instant.info.RequestInfo;
+import net.instant.plugins.DefaultPlugin;
 import net.instant.plugins.Plugin;
 import net.instant.plugins.PluginManager;
 import net.instant.proto.Message;
@@ -346,6 +348,10 @@ public class InstantRunner implements API1 {
     }
     public void addPlugin(String name) {
         makePluginManager().queue(name);
+    }
+
+    public Object handleDefault(PluginData data) {
+        return DefaultPlugin.initInstantPlugin1(this, data);
     }
 
     public String getConfiguration(String name) {

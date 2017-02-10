@@ -100,6 +100,14 @@ public interface API1 {
     Counter getCounter();
 
     /**
+     * Invoke the default plugin initializer.
+     * A plugin may wish to use declarative features, but yet execute own
+     * code upon initialization.
+     * Returns the object returned by the default handler.
+     */
+    Object handleDefault(PluginData data);
+
+    /**
      * Obtain a configuration value.
      * Configuration values are hierarchical dot-delimited lowercase strings.
      * The code distinguishes between empty values and the absence of such;
