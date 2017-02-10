@@ -47,10 +47,8 @@ public class MessageDistributor implements RoomGroup {
         return get(conn);
     }
 
-    public Set<Room> getActiveRooms() {
-        synchronized (this) {
-            return new HashSet<Room>(rooms.values());
-        }
+    public synchronized Set<Room> getActiveRooms() {
+        return new HashSet<Room>(rooms.values());
     }
 
     public synchronized String add(String name, RequestResponseData conn,

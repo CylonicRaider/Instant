@@ -3,6 +3,7 @@ package net.instant.hooks;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import java.util.regex.Pattern;
 import net.instant.Main;
@@ -177,6 +178,19 @@ public class RoomWebSocketHook extends WebSocketHook {
             conn.send(new Message("reply").seq(seq).makeData("id",
                 msg.id(), "type", "broadcast").makeString());
             distr.get(info).broadcast(msg);
+        } else if ("who".equals(type)) {
+            Message msg = prepare("who").seq(seq);
+            JSONObject rdata = new JSONObject();
+            Set<RequestResponseData> clients;
+            synchronized (distr) {
+                clients = distr.get(info).getClients();
+                for (RequestResponseData client : clients) {
+                    rdata.put(distr.connectionID(client),
+                        Util.createJSONObject("uuid",
+                            (UUID) client.getExtraData().get("uuid")));
+                }
+            }
+            conn.send(msg.data(rdata).makeString());
         } else {
             sendMessage(conn,
                         ProtocolError.INVALID_TYPE.makeMessage().seq(seq));

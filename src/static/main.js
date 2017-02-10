@@ -452,15 +452,16 @@ this.Instant = function() {
           case 'reply': /* Reply to a message sent */
             /* Nothing to do */
             break;
-          case 'joined':
-            /* New user joined (might be ourself) */
+          case 'joined': /* New user joined (might be ourself) */
             Instant.userList.add(msg.data.id, '', msg.data.uuid);
             Instant.logs.addUUID(msg.data.id, msg.data.uuid);
             break;
-          case 'left':
-            /* User left */
+          case 'left': /* User left */
             Instant.userList.remove(msg.data.id);
             Instant.logs.pull._onmessage(msg);
+            break;
+          case 'who': /* Active connection enumeration */
+            /* Nothing to do */
             break;
           case 'unicast': /* Someone sent a message directly to us */
           case 'broadcast': /* Someone sent a message to everyone */
