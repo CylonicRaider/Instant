@@ -8,12 +8,23 @@ backend and/or the bot shipped alongside it.
 A properly working installation of *Java* (Java 7 at least) is assumed.
 
 For running an own instance, you can use the pre-built
-[`Instant.jar`](Instant.jar) file in this repository, which should be always
-up-to-date with the latest backend and frontend (unless someone messed it
-up).
+[`Instant.jar`](../Instant.jar) file in this repository, which should be
+always up-to-date with the latest backend and frontend (unless someone messed
+it up).
 
 The backend accepts the following command-line arguments (the `--help` option
 can be used to report a summary):
+
+- `--plugin-path` *paths* — *Plugin path*: A list of directory or file paths
+  where to search for plugins. Separated by the platform-specific path list
+  separator (i.e. `:` on UNIX-like OS-es, and `;` on Windows).
+
+- `--plugins` *list* — *List of plugins to load*: A comma-separated list of
+  plugin names (or paths) to be fetched (from the aforementioned path) and
+  linked into the backend on startup. Dependencies are fetched automatically.
+  Plugin names including commata cannot be specified (why should you name one
+  like that?). To be interpreted as a path, an entry must contain a slash
+  (`/`) character (regardless of platform).
 
 - `--host` *host* — *Hostname to bind to*: Can be used on machines with
   multiple network interfaces; `localhost` can be used to accept local
@@ -23,11 +34,9 @@ can be used to report a summary):
 - *port* — *Port to bind to*: As a single optional positional argument, this
   specifies the TCP port to listen on. Defaults to `8080`.
 
-(Options may not be listed here if the corresponding features are under
-development.)
-
-**TL;DR**: To run the stock backend on port 8080, run `java -jar Instant.jar
-8080`, and point your browser to [localhost:8080](http://localhost:8080).
+**TL;DR**: To run the stock backend on port 8080, run `java -jar
+Instant.jar`, and point your browser to
+[localhost:8080](http://localhost:8080).
 
 ### UNIX-like OS-es
 
@@ -37,13 +46,14 @@ does (intentionally) not preserve file timestamps, you may have to use
 
 For assembling a backend with correct current commit information, you can use
 `make Instant-run.jar`; to run it, launch `make run`, which takes care of all
-that, and spawns an instance on port 8080. Embedding the commit number is
-not necessary but for debugging code that depends on it or for proper support
-of client updates.
+that — including generating a key for cookie signing —, and spawns an
+instance on the default port. Embedding the commit number is not necessary
+but for debugging code that depends on it or for proper support of client
+updates.
 
-**Note** that `make` also semi-automatically generates bitmap icons from the
-SVG's provided in `src/static/`; it assumes that *ImageMagick* is available
-for that.
+**Note** that `make` also automatically generates bitmap icons from the SVG's
+provided in `src/static/`. It assumes that *ImageMagick* is available for
+that; you may wish to comment the section out or install the latter.
 
 **TL;DR**: Install GNU Make and run `make run` to (re-)compile and run a
 properly configured backend on port 8080.
@@ -173,9 +183,9 @@ option. (Refer to the `--help` message for a listing.)
   message database and reading logfiles (if any). Because of the asynchronous
   nature of the protocol (and the peer-to-peer-based log system), clients
   happily accept any piece of logs offered to them, whether it was requested
-  or not. This option may be repeated (although support might be shaky).
+  or not. This option may be repeated.
 
-- `--dont-stay` — *Do not remain in room*: Lets Scribe exit once it is
+- `--dont-stay` — *Do not remain in room*: Lets Scribe exit once it has
   finished updating its message database. Can be useful to grab a snapshot of
   the logs in one room for, e.g., transferring them somewhere else.
 
