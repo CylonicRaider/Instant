@@ -3357,7 +3357,8 @@ this.Instant = function() {
         var nickNode;
         if (nick === undefined) {
           nickNode = Instant.userList.get(uid);
-          nick = nickNode.getAttribute('data-nick');
+          if (nickNode)
+            nick = nickNode.getAttribute('data-nick');
         }
         if (nick == null) {
           nickNode = Instant.nick.makeAnonymous();
