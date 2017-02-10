@@ -458,6 +458,7 @@ body {
 }
 .user-list-menu h2 {
   display: block;
+  margin-top: -1px;
   font-size: inherit;
 }
 .user-list-menu .clear {
