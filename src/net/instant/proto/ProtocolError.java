@@ -1,24 +1,36 @@
 package net.instant.proto;
 
-public enum ProtocolError {
+public class ProtocolError {
 
-    INVALID_JSON(1, "Invalid JSON"),
-    INVALID_TYPE(2, "Invalid message type"),
-    NO_SUCH_PARTICIPANT(3, "No such participant");
+    public static final ProtocolError INVALID_JSON =
+        new ProtocolError("INVALID_JSON", "Invalid JSON");
+    public static final ProtocolError INVALID_TYPE =
+        new ProtocolError("INVALID_TYPE", "Invalid message type");
+    public static final ProtocolError NO_PARTICIPANT =
+        new ProtocolError("NO_PARTICIPANT", "No such participant");
 
-    private final int code;
+    private final String code;
     private final String message;
 
-    private ProtocolError(int code, String message) {
+    public ProtocolError(String code, String message) {
         this.code = code;
         this.message = message;
     }
 
-    public int getCode() {
+    public String getCode() {
         return code;
     }
     public String getMessage() {
         return message;
+    }
+
+    public Message makeMessage(Object detail) {
+        return new Message("error").makeData("code", code,
+            "message", message, "detail", detail);
+    }
+    public Message makeMessage() {
+        return new Message("error").makeData("code", code,
+            "message", message);
     }
 
 }

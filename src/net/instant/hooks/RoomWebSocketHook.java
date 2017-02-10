@@ -153,9 +153,6 @@ public class RoomWebSocketHook extends WebSocketHook {
         if ("ping".equals(type)) {
             conn.send(new Message("pong").seq(seq).data(d).makeString());
         } else if ("unicast".equals(type)) {
-            /* Flow analysis should show that this will never be
-             * uninitialized, but if statements are exempt from
-             * it... :( */
             String to = null;
             RequestResponseData target;
             try {
@@ -165,9 +162,8 @@ public class RoomWebSocketHook extends WebSocketHook {
                 target = null;
             }
             if (target == null) {
-                sendMessage(conn,
-                    initError(ProtocolError.NO_SUCH_PARTICIPANT,
-                              Util.createJSONObject("id", to)).seq(seq));
+                sendMessage(conn, ProtocolError.NO_PARTICIPANT.makeMessage(
+                    Util.createJSONObject("id", to)).seq(seq));
                 return;
             }
             Message msg = prepare("unicast");
@@ -182,7 +178,8 @@ public class RoomWebSocketHook extends WebSocketHook {
                 msg.id(), "type", "broadcast").makeString());
             distr.get(info).broadcast(msg);
         } else {
-            sendError(conn, ProtocolError.INVALID_TYPE);
+            sendMessage(conn,
+                        ProtocolError.INVALID_TYPE.makeMessage().seq(seq));
         }
     }
 
@@ -203,27 +200,12 @@ public class RoomWebSocketHook extends WebSocketHook {
         return new Message(type).id(MessageDistributor.makeID());
     }
 
+    public static void sendError(WebSocket conn, ProtocolError err,
+                                 Object detail) {
+        sendMessage(conn, err.makeMessage(detail));
+    }
     public static void sendError(WebSocket conn, ProtocolError err) {
-        sendMessage(conn, initError(err));
-    }
-    public static void sendError(WebSocket conn, int code, String message) {
-        sendMessage(conn, initError(code, message));
-    }
-
-    public static Message initError(int code, String message,
-                                    Object detail) {
-        return new Message("error").makeData("code", code,
-            "message", message, "detail", detail);
-    }
-    public static Message initError(int code, String message) {
-        return new Message("error").makeData("code", code,
-            "message", message);
-    }
-    public static Message initError(ProtocolError err, Object detail) {
-        return initError(err.getCode(), err.getMessage(), detail);
-    }
-    public static Message initError(ProtocolError err) {
-        return initError(err.getCode(), err.getMessage());
+        sendMessage(conn, err.makeMessage());
     }
 
     public static void sendMessage(WebSocket conn, Message msg) {
