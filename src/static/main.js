@@ -4419,24 +4419,55 @@ this.Instant = function() {
   Instant.popups = function() {
     /* The main node wrapper and the main node itself */
     var wrapper = null, stack = null;
+    /* URL-s for the icons
+     * Replaced by data URI-s as soon as the images are preloaded. */
+    var closeURL = '/static/close.svg';
+    var collapseURL = '/static/collapse.svg';
+    var expandURL = '/static/expand.svg';
     return {
       /* Initialize submodule */
       init: function() {
-        /* Preload images */
-        document.createElement('img').src = '/static/close.svg';
-        document.createElement('img').src = '/static/collapse.svg';
-        document.createElement('img').src = '/static/expand.svg';
+        function preloadImage(url) {
+          if (! /\.svg$/.test(url)) return Promise.resolve(url);
+          /* HACK: Using <object> elements to avoid devtools noise.
+           *       Blame me for that later. */
+          return new Promise(function(resolve, reject) {
+            var obj = document.createElement('object');
+            obj.addEventListener('load', function() {
+              var doc = obj.contentDocument;
+              var xml = new XMLSerializer().serializeToString(doc);
+              /* Shush! */
+              document.head.removeChild(obj);
+              resolve('data:image/svg+xml;base64,' + btoa(xml));
+            });
+            obj.addEventListener('error', function(event) {
+              reject(event);
+            });
+            obj.data = url;
+            document.head.appendChild(obj);
+          });
+        }
         wrapper = $makeNode('div', 'popups-wrapper', [
           ['div', 'popups-content', [
             ['div', 'popups']
           ]],
           ['a', 'close-all', {href: '#'}, [
-            ['img', {src: '/static/close.svg'}]
+            ['img', {src: closeURL}]
           ]]
         ]);
         stack = $sel('.popups', wrapper);
         $sel('.close-all', wrapper).addEventListener('click',
           Instant.popups.delAll.bind(Instant.popups));
+        /* Preload images */
+        preloadImage(closeURL).then(function(res) {
+          closeURL = res;
+        });
+        preloadImage(expandURL).then(function(res) {
+          expandURL = res;
+        });
+        preloadImage(collapseURL).then(function(res) {
+          collapseURL = res;
+        });
         return stack;
       },
       /* Add a node to the popup stack */
@@ -4467,10 +4498,10 @@ this.Instant = function() {
         }
         if (force) {
           node.classList.add('collapsed');
-          $sel('.popup-collapse img', node).src = '/static/expand.svg';
+          $sel('.popup-collapse img', node).src = expandURL;
         } else {
           node.classList.remove('collapsed');
-          $sel('.popup-collapse img', node).src = '/static/collapse.svg';
+          $sel('.popup-collapse img', node).src = collapseURL;
         }
       },
       /* Check whether a popup is already shown */
@@ -4498,11 +4529,11 @@ this.Instant = function() {
             ['span', 'popup-title'],
             co && ['span', 'popup-title-sep'],
             co && ['a', 'popup-button popup-collapse', {href: '#'}, [
-              ['img', {src: '/static/collapse.svg'}]
+              ['img', {src: collapseURL}]
             ]],
             cl && ['span', 'popup-title-sep'],
             cl && ['a', 'popup-button popup-close', {href: '#'}, [
-              ['img', {src: '/static/close.svg'}]
+              ['img', {src: closeURL}]
             ]]
           ]],
           ['div', 'popup-content'],
