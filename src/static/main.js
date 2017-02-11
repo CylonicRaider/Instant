@@ -3371,7 +3371,7 @@ this.Instant = function() {
         });
       },
       /* Start writing a message to uid */
-      write: function(uid, nick) {
+      write: function(uid, nick, text) {
         var nickNode;
         if (nick === undefined) {
           nickNode = Instant.userList.get(uid);
@@ -3403,10 +3403,13 @@ this.Instant = function() {
           ],
           focusSel: '.pm-editor'});
         popup.setAttribute('data-recipient', uid);
+        var editor = $sel('.pm-editor', popup);
+        if (text) editor.value = text;
         popupsEdit.push(popup);
         Instant.popups.add(popup);
         Instant.privmsg._update();
         $sel('.pm-editor', popup).focus();
+        editor.setSelectionRange(editor.value.length, editor.value.length);
       },
       /* Remove a PM draft or reader */
       _remove: function(popup) {
@@ -3454,6 +3457,14 @@ this.Instant = function() {
             }, className: 'first'},
             {text: 'Delete', color: '#c00000', onclick: function() {
               Instant.privmsg._remove(popup);
+            }},
+            {text: 'Quote & Reply', color: '#008000', onclick: function() {
+              var nick = data.nick;
+              if (nick == undefined) nick = null;
+              var text = data.text.replace(/^(.)?/mg, function(char) {
+                return ((char) ? '> ' + char : '>');
+              }) + '\n';
+              Instant.privmsg.write(msg.from, nick, text);
             }},
             {text: 'Reply', color: '#008000', onclick: function() {
               var nick = data.nick;
