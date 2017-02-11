@@ -5121,7 +5121,7 @@ function init() {
       event.preventDefault();
     }
   });
-  /* HACK; My browser scrolls down randomly at page load if the viewport is
+  /* HACK: My browser scrolls down randomly at page load if the viewport is
    *       too small. */
   setTimeout(function() {
     document.documentElement.scrollTop = 0;
