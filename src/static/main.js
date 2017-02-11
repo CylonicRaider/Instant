@@ -359,7 +359,7 @@ this.Instant = function() {
           overridden = true;
         }
         /* Connect */
-        Instant.connection.reconnect();
+        Instant.connection.connect();
         /* Force update of widget */
         if (ws && ws.readyState == WebSocket.OPEN) {
           Instant.connection._connected();
