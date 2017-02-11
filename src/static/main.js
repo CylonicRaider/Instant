@@ -62,6 +62,24 @@ function $query(str, ret) {
   return ret;
 }
 
+/* Run a callback as soon as document (or window) has loaded
+ * If late is true, cb is bound to the window.onload event, else, to
+ * document.onload. If the corresponding event has already passed, cb is
+ * executed immediately, or, if defer is true, asynchronously. */
+function $onload(cb, late, defer) {
+  var re = (late) ? /complete/ : /complete|interactive/;
+  var subject = (late) ? window : document;
+  if (re.test(document.readyState)) {
+    if (defer) {
+      setTimeout(cb, 0);
+    } else {
+      cb();
+    }
+  } else {
+    subject.addEventListener('load', cb);
+  }
+}
+
 /* Create a DOM element */
 function $makeNode(tag, className, attrs, children) {
   /* Allow omitting parameters */
@@ -5096,4 +5114,7 @@ function init() {
   Instant.input.focus();
 }
 
-window.addEventListener('load', init);
+/* It is quite conceivable this could be run after the document is ready.
+ * Citation: Look at the 5000 lines above.
+ * Second citation: The script is deferred. */
+$onload(init);
