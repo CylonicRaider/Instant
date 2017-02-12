@@ -3532,7 +3532,7 @@ this.Instant = function() {
         var ext = Instant.titleExtension;
         if (unreadPMs) {
           ext = ' (' + unreadPMs + '!!!)';
-        } if (unreadMessages) {
+        } else if (unreadMessages) {
           if (unreadMentions) {
             ext = ' (' + unreadMessages + '!!)';
           } else if (updateAvailable) {
