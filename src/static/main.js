@@ -10,6 +10,12 @@ function $hypot(dx, dy) {
 function $id(id, elem) {
   return (elem || document).getElementById(id);
 }
+function $cls(cls, elem) {
+  return (elem || document).getElementsByClassName(cls)[0];
+}
+function $clsAll(cls, elem) {
+  return (elem || document).getElementsByClassName(cls);
+}
 function $sel(sel, elem) {
   return (elem || document).querySelector(sel);
 }
@@ -819,13 +825,13 @@ this.Instant = function() {
         /* For checking whether it was a click or a drag */
         var clickPos = null;
         /* Pressing a mouse button activates clicking mode */
-        $sel('.line', msgNode).addEventListener('mousedown', function(evt) {
+        $cls('line', msgNode).addEventListener('mousedown', function(evt) {
           if (evt.button != 0) return;
           clickPos = [evt.clientX, evt.clientY];
           inputWasFocused = Instant.input.isFocused();
         });
         /* Clicking to a messages moves to it */
-        $sel('.line', msgNode).addEventListener('click', function(evt) {
+        $cls('line', msgNode).addEventListener('click', function(evt) {
           /* Filter out mouse drags */
           if (clickPos && $hypot(evt.clientX - clickPos[0],
               evt.clientY - clickPos[1]) >= DRAG_THRESHOLD)
@@ -843,7 +849,7 @@ this.Instant = function() {
           Instant.pane.scrollIntoView(msgNode);
           evt.stopPropagation();
         });
-        $sel('.permalink', msgNode).addEventListener('click', function(evt) {
+        $cls('permalink', msgNode).addEventListener('click', function(evt) {
           var msgid = msgNode.getAttribute('data-id');
           var fragment = '#message-' + msgid;
           Instant.animation.goToMessage(msgNode);
@@ -917,7 +923,7 @@ this.Instant = function() {
           msgNode.setAttribute('data-from', params.from);
         /* Fill in timestamp */
         var timeNode = $sel('time', msgNode);
-        var permalink = $sel('.permalink', msgNode);
+        var permalink = $cls('permalink', msgNode);
         if (typeof params.timestamp == 'number') {
           var date = new Date(params.timestamp);
           timeNode.setAttribute('datetime', date.toISOString());
@@ -930,7 +936,7 @@ this.Instant = function() {
         /* Add emote styles */
         if (emote) {
           $sel('[data-key=after-nick]', msgNode).textContent += '/me ';
-          var cnt = $sel('.content', msgNode);
+          var cnt = $cls('content', msgNode);
           cnt.style.background = Instant.nick.emoteColor(params.nick);
         }
         /* Add event handlers */
@@ -1106,7 +1112,7 @@ this.Instant = function() {
       makeReplies: function(message) {
         var lc = message.lastElementChild;
         if (! lc || ! lc.classList.contains('replies')) {
-          var nick = $sel('.nick', message);
+          var nick = $cls('nick', message);
           lc = document.createElement('div');
           lc.className = 'replies';
           if (nick.style.backgroundColor)
@@ -1347,20 +1353,20 @@ this.Instant = function() {
       },
       /* Return the message box node */
       getMessageBox: function() {
-        return $sel('.message-box', msgPane);
+        return $cls('message-box', msgPane);
       },
       /* Create a Notification object for a given message */
       createNotification: function(msg) {
         var text;
         if (msg.classList.contains('emote')) {
-          text = ('* ' + $sel('.nick', msg).textContent + ' ' +
-                  $sel('.content', msg).textContent);
+          text = ('* ' + $cls('nick', msg).textContent + ' ' +
+                  $cls('content', msg).textContent);
         } else {
           /* HACK: Some notification systems seem to interpret the body as
            *       HTML, so the preferred "angled brackets" cannot be used
            *       (unless we want the name to be an HTML tag). */
-          text = ('[' + $sel('.nick', msg).textContent + '] ' +
-                  $sel('.content', msg).textContent);
+          text = ('[' + $cls('nick', msg).textContent + '] ' +
+                  $cls('content', msg).textContent);
         }
         var level = Instant.notifications.getLevel(msg);
         /* For window title et al. */
@@ -1842,11 +1848,11 @@ this.Instant = function() {
           ]]
         ]);
         /* Install event handlers */
-        var inputNick = $sel('.input-nick', inputNode);
-        var sizerNick = $sel('.input-nick-sizer', inputNode);
-        var promptNick = $sel('.input-nick-prompt', inputNode);
-        var sizerMsg = $sel('.input-message-sizer', inputNode);
-        var inputMsg = $sel('.input-message', inputNode);
+        var inputNick = $cls('input-nick', inputNode);
+        var sizerNick = $cls('input-nick-sizer', inputNode);
+        var promptNick = $cls('input-nick-prompt', inputNode);
+        var sizerMsg = $cls('input-message-sizer', inputNode);
+        var inputMsg = $cls('input-message', inputNode);
         /* Update nick background */
         inputNick.addEventListener('input', updateNick);
         /* End nick editing on Return */
@@ -1909,7 +1915,7 @@ this.Instant = function() {
       /* Transfer focus to the input bar */
       focus: function(forceInput) {
         var node = focusedNode;
-        if (! node || forceInput) node = $sel('.input-message', inputNode);
+        if (! node || forceInput) node = $cls('input-message', inputNode);
         node.focus();
       },
       /* Query whether the input bar counts as focused */
@@ -2044,10 +2050,10 @@ this.Instant = function() {
       },
       /* Update the message bar sizer */
       _updateMessage: function(event) {
-        var sizerNick = $sel('.input-nick-sizer', inputNode);
-        var promptNick = $sel('.input-nick-prompt', inputNode);
-        var sizerMsg = $sel('.input-message-sizer', inputNode);
-        var inputMsg = $sel('.input-message', inputNode);
+        var sizerNick = $cls('input-nick-sizer', inputNode);
+        var promptNick = $cls('input-nick-prompt', inputNode);
+        var sizerMsg = $cls('input-message-sizer', inputNode);
+        var inputMsg = $cls('input-message', inputNode);
         sizerMsg.value = inputMsg.value;
         /* Avoid devtools noise */
         if (promptNick.style.display != 'none')
@@ -2087,7 +2093,7 @@ this.Instant = function() {
         }
         Instant._fireListeners('input.keydown', {source: event});
         if (event.defaultPrevented) return;
-        var inputMsg = $sel('.input-message', inputNode);
+        var inputMsg = $cls('input-message', inputNode);
         var text = inputMsg.value;
         if (event.keyCode == 13 && ! event.shiftKey) { // Return
           /* Send message! */
@@ -2177,7 +2183,7 @@ this.Instant = function() {
       },
       /* Insert text at the current editing position (if any) */
       insertText: function(text) {
-        var inputMsg = $sel('.input-message', inputNode);
+        var inputMsg = $cls('input-message', inputNode);
         var from = inputMsg.selectionStart, to = inputMsg.selectionEnd;
         var oldText = inputMsg.value;
         inputMsg.value = (oldText.substring(0, from) + text +
@@ -2203,7 +2209,7 @@ this.Instant = function() {
       /* Check if a message (or any part of its content if it's too large) is
        * visible with respect to its pane */
       isVisible: function(msg) {
-        var line = $sel('.line', msg);
+        var line = $cls('line', msg);
         var pane = Instant.pane.getPane(msg);
         var lrect = line.getBoundingClientRect();
         var prect = pane.getBoundingClientRect();
@@ -2217,7 +2223,7 @@ this.Instant = function() {
       },
       /* Check if a message's content is visible in its entirety. */
       isFullyVisible: function(msg) {
-        var line = $sel('.line', msg);
+        var line = $cls('line', msg);
         var pane = Instant.pane.getPane(msg);
         var lrect = line.getBoundingClientRect();
         var prect = pane.getBoundingClientRect();
@@ -2232,7 +2238,7 @@ this.Instant = function() {
         return Instant.message.walk(node, function(msg) {
           /* Calculate rectangles */
           var mrect = msg.getBoundingClientRect();
-          var lrect = $sel('.line', msg).getBoundingClientRect();
+          var lrect = $cls('line', msg).getBoundingClientRect();
           var mtop = mrect.top, mbot = mrect.bottom;
           var ret = 0;
           /* Determine whether line is visible */
@@ -2354,8 +2360,8 @@ this.Instant = function() {
             ]]
           ]]
         ]);
-        var topLine = $sel('.sidebar-top-line', node);
-        var nameNode = $sel('.room-name', node);
+        var topLine = $cls('sidebar-top-line', node);
+        var nameNode = $cls('room-name', node);
         if (navNode) {
           topLine.insertBefore(navNode, nameNode);
           topLine.insertBefore(document.createTextNode(' '), nameNode);
@@ -2367,7 +2373,7 @@ this.Instant = function() {
           topLine.insertBefore(document.createTextNode(' '),
                                nameNode.nextSibling);
         }
-        var wrapper = $sel('.sidebar-middle-wrapper', node);
+        var wrapper = $cls('sidebar-middle-wrapper', node);
         window.addEventListener('resize', Instant.sidebar.updateWidth);
         if (window.MutationObserver) {
           var obs = new MutationObserver(function(records, observer) {
@@ -2383,8 +2389,8 @@ this.Instant = function() {
       /* Change the width of the content to avoid horizontal scrollbars */
       updateWidth: function() {
         /* Extract nodes */
-        var wrapper = $sel('.sidebar-middle-wrapper', node);
-        var content = $sel('.sidebar-middle', wrapper);
+        var wrapper = $cls('sidebar-middle-wrapper', node);
+        var content = $cls('sidebar-middle', wrapper);
         /* Prevent faults during initialization */
         if (! wrapper) return;
         /* Make measurements accurate */
@@ -2400,31 +2406,31 @@ this.Instant = function() {
       },
       /* Mount the given node into the sidebar top area */
       addTop: function(newNode) {
-        var box = $sel('.ui-message-box', node);
+        var box = $cls('ui-message-box', node);
         box.parentNode.insertBefore(newNode, node);
         Instant.sidebar.updateWidth();
       },
       /* Mount the given node to the top of the middle of the sidebar */
       addMiddleTop: function(newNode) {
-        var userList = $sel('.user-list', node);
+        var userList = $cls('user-list', node);
         userList.parentNode.insertBefore(newNode, userList);
         Instant.sidebar.updateWidth();
       },
       /* Mount the given node to the bottom of the middle of the sidebar */
       addMiddleBottom: function(newNode) {
-        var userList = $sel('.user-list', node);
+        var userList = $cls('user-list', node);
         userList.parentNode.appendChild(newNode);
         Instant.sidebar.updateWidth();
       },
       /* Mount the given node to the bottom of the sidebar */
       addBottom: function(newNode) {
-        var bottom = $sel('.sidebar-bottom', node);
+        var bottom = $cls('sidebar-bottom', node);
         bottom.appendChild(newNode);
         Instant.sidebar.updateWidth();
       },
       /* Scroll the sidebar such that the given node is fully visible */
       scrollIntoView: function(child) {
-        Instant.pane.scrollIntoViewEx(child, $sel('.sidebar-middle-wrapper',
+        Instant.pane.scrollIntoViewEx(child, $cls('sidebar-middle-wrapper',
                                                   node), 0);
       },
       /* Return the main DOM node */
@@ -2470,7 +2476,7 @@ this.Instant = function() {
       },
       /* Show a UI message */
       showMessage: function(msgnode, id) {
-        var msgbox = $sel('.ui-message-box', node);
+        var msgbox = $cls('ui-message-box', node);
         if (id) {
           if (shownUIMessages[id])
             msgbox.removeChild(shownUIMessages[id]);
@@ -2482,7 +2488,7 @@ this.Instant = function() {
       },
       /* Hide a UI message */
       hideMessage: function(msgnode) {
-        var msgbox = $sel('.ui-message-box', node);
+        var msgbox = $cls('ui-message-box', node);
         var msgid = msgnode.getAttribute('data-msgid');
         if (msgid) delete shownUIMessages[msgid];
         try {
@@ -2560,7 +2566,7 @@ this.Instant = function() {
         window.addEventListener('resize', Instant.userList._updateCollapse);
         Instant.userList._updateCollapse();
         /* Context menu actions */
-        $sel('.action-ping', menu).addEventListener('click', function() {
+        $cls('action-ping', menu).addEventListener('click', function() {
           var parent = menu.parentNode;
           if (! parent) return;
           var nickNode = parent.firstElementChild;
@@ -2570,7 +2576,7 @@ this.Instant = function() {
           Instant.userList.showMenu(null);
           Instant.input.focus();
         });
-        $sel('.action-pm', menu).addEventListener('click', function() {
+        $cls('action-pm', menu).addEventListener('click', function() {
           var parent = menu.parentNode;
           if (! parent) return;
           var nickNode = parent.firstElementChild;
@@ -3404,12 +3410,12 @@ this.Instant = function() {
           ],
           focusSel: '.pm-editor'});
         popup.setAttribute('data-recipient', uid);
-        var editor = $sel('.pm-editor', popup);
+        var editor = $cls('pm-editor', popup);
         if (text) editor.value = text;
         popupsEdit.push(popup);
         Instant.popups.add(popup);
         Instant.privmsg._update();
-        $sel('.pm-editor', popup).focus();
+        $cls('pm-editor', popup).focus();
         editor.setSelectionRange(editor.value.length, editor.value.length);
       },
       /* Remove a PM draft or reader */
@@ -3424,7 +3430,7 @@ this.Instant = function() {
       /* Send a PM draft */
       _send: function(popup) {
         var recipient = popup.getAttribute('data-recipient');
-        var text = $sel('.pm-editor', popup).value;
+        var text = $cls('pm-editor', popup).value;
         Instant.connection.sendUnicast(recipient, {type: 'privmsg',
           nick: Instant.identity.nick, text: text});
         Instant.privmsg._remove(popup);
@@ -3704,7 +3710,7 @@ this.Instant = function() {
         if (! messageBox) return;
         var tp = parseInt(getComputedStyle(messageBox).paddingTop);
         var pane = Instant.pane.getPane(messageBox);
-        var msg = $sel('.message', messageBox);
+        var msg = $cls('message', messageBox);
         if (msg && msg.offsetTop >= tp && pane.scrollTop == 0)
           Instant.logs.pull.more();
       },
@@ -3886,8 +3892,8 @@ this.Instant = function() {
               if (event.type == 'keydown') node.focus();
             }
             /* Extract the alerts themself */
-            aboveNode = $sel('.alert-above', container);
-            belowNode = $sel('.alert-below', container);
+            aboveNode = $cls('alert-above', container);
+            belowNode = $cls('alert-below', container);
             aboveNode.addEventListener('click', function(e) {
               handleEvent(e, aboveNode);
             });
@@ -4083,8 +4089,8 @@ this.Instant = function() {
             ]]
           ]]
         ]);
-        var btn = $sel('.settings', wrapperNode);
-        var cnt = $sel('.settings-content', wrapperNode);
+        var btn = $cls('settings', wrapperNode);
+        var cnt = $cls('settings-content', wrapperNode);
         /* Toggle settings */
         btn.addEventListener('click', Instant.settings.toggle);
         /* Install event listeners */
@@ -4092,14 +4098,14 @@ this.Instant = function() {
         Array.prototype.forEach.call($selAll('input', cnt), function(el) {
           el.addEventListener('change', apply);
         });
-        $sel('.more-link', cnt).addEventListener('click', function(event) {
-          var section = $sel('.settings-notifications', cnt);
+        $cls('more-link', cnt).addEventListener('click', function(event) {
+          var section = $cls('settings-notifications', cnt);
           if (section.classList.contains('show-more')) {
             section.classList.remove('show-more');
-            $sel('.more-link', cnt).textContent = '(more)';
+            $cls('more-link', cnt).textContent = '(more)';
           } else {
             section.classList.add('show-more');
-            $sel('.more-link', cnt).textContent = '(less)';
+            $cls('more-link', cnt).textContent = '(less)';
           }
           event.preventDefault();
         });
@@ -4113,7 +4119,7 @@ this.Instant = function() {
       },
       /* Actually apply the settings */
       apply: function(event) {
-        var cnt = $sel('.settings-content', wrapperNode);
+        var cnt = $cls('settings-content', wrapperNode);
         var theme = cnt.elements['theme'].value;
         if (theme == 'bright') {
           document.body.classList.remove('dark');
@@ -4139,7 +4145,7 @@ this.Instant = function() {
       },
       /* Restore the settings from storage */
       restore: function() {
-        var cnt = $sel('.settings-content', wrapperNode);
+        var cnt = $cls('settings-content', wrapperNode);
         var theme = Instant.storage.get('theme');
         if (theme) cnt.elements['theme'].value = theme;
         var level = Instant.storage.get('notification-level');
@@ -4149,7 +4155,7 @@ this.Instant = function() {
       },
       /* Add a node to the settings content */
       addSetting: function(newNode) {
-        $sel('.settings-content', wrapperNode).appendChild(newNode);
+        $cls('settings-content', wrapperNode).appendChild(newNode);
       },
       /* Set the setting popup visibility */
       _setVisible: function(vis, event) {
@@ -4179,7 +4185,7 @@ this.Instant = function() {
       },
       /* Obtain the current setttings node */
       getMainNode: function() {
-        return $sel('.settings-content', wrapperNode);
+        return $cls('settings-content', wrapperNode);
       },
       /* Returns whether the settings area is currently visible */
       isVisible: function() {
@@ -4485,8 +4491,8 @@ this.Instant = function() {
             ['img', {src: closeURL}]
           ]]
         ]);
-        stack = $sel('.popups', wrapper);
-        $sel('.close-all', wrapper).addEventListener('click',
+        stack = $cls('popups', wrapper);
+        $cls('close-all', wrapper).addEventListener('click',
           Instant.popups.delAll.bind(Instant.popups));
         /* Preload images */
         preloadImage(closeURL).then(function(res) {
@@ -4504,8 +4510,8 @@ this.Instant = function() {
       add: function(node) {
         stack.appendChild(node);
         wrapper.style.display = 'block';
-        Instant.util.adjustScrollbar($sel('.close-all', wrapper),
-                                     $sel('.popups-content', wrapper));
+        Instant.util.adjustScrollbar($cls('close-all', wrapper),
+                                     $cls('popups-content', wrapper));
         Instant.popups.focus(node);
       },
       /* Remove a node from the popup stack */
@@ -4516,8 +4522,8 @@ this.Instant = function() {
           wrapper.style.display = '';
           Instant.input.focus();
         } else {
-          Instant.util.adjustScrollbar($sel('.close-all', wrapper),
-                                       $sel('.popups-content', wrapper));
+          Instant.util.adjustScrollbar($cls('close-all', wrapper),
+                                       $cls('popups-content', wrapper));
           Instant.popups.focus(next);
         }
       },
@@ -4575,7 +4581,7 @@ this.Instant = function() {
         addContent('.popup-content', options.content);
         addContent('.popup-bottom', options.bottom);
         if (options.buttons) {
-          var bottom = $sel('.popup-bottom', ret);
+          var bottom = $cls('popup-bottom', ret);
           options.buttons.forEach(function(el) {
             var btn = $makeNode('button', 'button', [el.text]);
             if (el.color) btn.style.color = el.color;
@@ -4588,8 +4594,8 @@ this.Instant = function() {
         }
         if (options.focusSel)
           ret.setAttribute('data-focus', options.focusSel);
-        var collapser = $sel('.popup-collapse', ret);
-        var closer = $sel('.popup-close', ret);
+        var collapser = $cls('popup-collapse', ret);
+        var closer = $cls('popup-close', ret);
         if (collapser)
           collapser.addEventListener('click', function(event) {
             if (options.oncollapse) {
@@ -4619,13 +4625,13 @@ this.Instant = function() {
       /* Focus a concrete popup or anything */
       focus: function(node) {
         if (node == null) {
-          $sel('.close-all', wrapper).focus();
+          $cls('close-all', wrapper).focus();
         } else if (node.classList.contains('collapsed')) {
-          $sel('.popup-collapse', node).focus();
+          $cls('popup-collapse', node).focus();
         } else if (node.getAttribute('data-focus')) {
           $sel(node.getAttribute('data-focus'), node).focus();
         } else {
-          $sel('.popup-close', node).focus();
+          $cls('popup-close', node).focus();
         }
       },
       /* Returnt the internal node containing the popups */
@@ -5068,7 +5074,7 @@ this.Instant = function() {
     Instant.animation.init(Instant.message.getMessageBox());
     Instant.animation.greeter.init(loadWrapper);
     Instant.animation.offscreen.init(
-      $sel('.alert-container', Instant.input.getNode()));
+      $cls('alert-container', Instant.input.getNode()));
     Instant.popups.init();
     Instant.privmsg.init();
     main.appendChild(Instant.message.getMessagePane());
@@ -5079,8 +5085,8 @@ this.Instant = function() {
     Instant.settings.load();
     Instant.connection.init();
     repeat(function() {
-      Instant.util.adjustScrollbar($sel('.sidebar', main),
-                                   $sel('.message-pane', main));
+      Instant.util.adjustScrollbar($cls('sidebar', main),
+                                   $cls('message-pane', main));
     }, 1000);
     Instant.notifications.submitNew({text: 'Ready.'});
     Instant._fireListeners('init.final');
@@ -5127,7 +5133,7 @@ function init() {
     document.documentElement.scrollTop = 0;
   }, 0);
   /* Fire up Instant! */
-  Instant.init(main, wrapper, $sel('.breadcrumbs'));
+  Instant.init(main, wrapper, $cls('breadcrumbs'));
   Instant.input.focus();
 }
 
