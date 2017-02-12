@@ -14,7 +14,7 @@ try:
 except ImportError:
     from Queue import Queue, Empty as QueueEmpty
 
-VERSION = 'v1.4'
+VERSION = 'v1.4.1'
 
 _unicode = websocket_server.compat.unicode
 
