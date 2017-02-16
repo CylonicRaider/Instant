@@ -257,6 +257,12 @@ this.Instant = function() {
         window.console['log'].apply(window.console, arguments);
       }
     },
+    /* Log an information message */
+    info: function() {
+      if (window.console) {
+        window.console.info.apply(window.console, arguments);
+      }
+    },
     /* Log a warning */
     warn: function() {
       if (window.console) {
