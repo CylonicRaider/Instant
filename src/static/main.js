@@ -357,13 +357,13 @@ this.Instant = function() {
       if (Instant && Instant.connection && Instant.connection.isConnected())
         Instant.connection.sendSeq({type: 'ping'});
     }, 30000);
-    /* Debugging hook */
-    if (window.logInstantMessages === undefined)
-      window.logInstantMessages = false;
     return {
       /* Initialize the submodule, by installing the connection status
        * widget */
       init: function() {
+        /* Debugging hook */
+        if (window.logInstantMessages === undefined)
+          window.logInstantMessages = (!! Instant.query.get('verbose'));
         /* Apply URL override */
         var override = Instant.query.get('connect');
         if (override) {
@@ -430,9 +430,9 @@ this.Instant = function() {
       },
       /* Handle a message */
       _message: function(event) {
-        /* Implement debugging hook */
+        /* Debugging hook */
         if (window.logInstantMessages)
-          console.debug('Received:', event, event.data);
+          console.debug('[Received]', event.data);
         /* Raw message handler */
         if (Instant.connection.onRawMessage) {
           Instant.connection.onRawMessage(event);
@@ -3090,6 +3090,9 @@ this.Instant = function() {
         return {
           /* Initialize the pane node */
           init: function(paneNode) {
+            /* Verbosity level */
+            if (window.logInstantLogPulling === undefined)
+              window.logInstantLogPulling = (!! Instant.query.get('verbose'));
             pane = paneNode;
           },
           /* Actually start pulling logs */
@@ -3098,6 +3101,8 @@ this.Instant = function() {
               Instant.connection.sendBroadcast({type: 'log-query'});
               lastUpdate = Date.now();
               timer = setInterval(Instant.logs.pull._check, POLL_TIME);
+              if (window.logInstantLogPulling)
+                console.debug('[LogPull]', 'Started');
             }
             if (pullType.before)
               Instant.animation.spinner.show('logs-before');
@@ -3149,17 +3154,23 @@ this.Instant = function() {
                   {type: 'log-request', key: 'initial'});
                 sentBefore = true;
                 sentAfter = true;
+                if (window.logInstantLogPulling)
+                  console.debug('[LogPull]', 'Initial request to', peer);
               }
             } else {
               if (oldestPeer && pullType.before) {
                 Instant.connection.sendUnicast(oldestPeer.id,
                   {type: 'log-request', to: oldestLog, key: 'before'});
                 sentBefore = true;
+                if (window.logInstantLogPulling)
+                  console.debug('[LogPull]', 'Older request to', oldestPeer);
               }
               if (newestPeer && ! logsLive && pullType.after) {
                 Instant.connection.sendUnicast(newestPeer.id,
                   {type: 'log-request', from: newestLog, key: 'after'});
                 sentAfter = true;
+                if (window.logInstantLogPulling)
+                  console.debug('[LogPull]', 'Newer request to', newestPeer);
               }
             }
             /* Clear spinner */
@@ -3202,6 +3213,8 @@ this.Instant = function() {
                     newestPeer = {id: msg.from, from: from, to: to};
                   lastUpdate = Date.now();
                 }
+                if (window.logInstantLogPulling)
+                  console.debug("[LogPull]", "Got advertisement", data);
                 break;
               case 'log-request': /* Someone requests logs from us */
                 reply = {type: 'log'};
