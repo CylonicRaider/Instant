@@ -3071,16 +3071,18 @@ this.Instant = function() {
       },
       /* Submodule */
       pull: function() {
-        /* Interval to wait before choosing peer */
-        var WAIT_TIME = 3000;
+        /* Interval log fetching may not take longer than */
+        var WAIT_DEADLINE = 10000;
+        /* Maximum interval to wait for another peer */
+        var WAIT_NEXTPEER = 1000;
         /* When to poll whether to choose new peer */
         var POLL_TIME = 100;
         /* The pane to add parent-less messages to */
         var pane = null;
         /* Waiting for replies to arrive */
         var timer = null;
-        /* Last time we got a log-info */
-        var lastUpdate = null;
+        /* Time when the pull started; last time we got a log-info */
+        var pullStarted = null, lastUpdate = null;
         /* Peers for oldest and newest messages */
         var oldestPeer = null, newestPeer = null;
         /* Which logs exactly are pulled */
@@ -3099,7 +3101,7 @@ this.Instant = function() {
           _start: function() {
             if (timer == null) {
               Instant.connection.sendBroadcast({type: 'log-query'});
-              lastUpdate = Date.now();
+              pullStarted = Date.now();
               timer = setInterval(Instant.logs.pull._check, POLL_TIME);
               if (window.logInstantLogPulling)
                 console.debug('[LogPull]', 'Started');
@@ -3138,10 +3140,14 @@ this.Instant = function() {
           },
           /* Collect log information */
           _check: function() {
-            /* Abort if new data arrived while waiting; stop waiting
-             * otherwise */
-            if (Date.now() - lastUpdate < WAIT_TIME) return;
+            /* Abort if new data arrived while waiting (and deadline not
+             * expired); stop waiting otherwise */
+            var now = Date.now();
+            if (now < pullStarted + WAIT_DEADLINE &&
+                (lastUpdate == null || now < lastUpdate + WAIT_NEXTPEER))
+              return;
             clearInterval(timer);
+            pullStarted = null;
             lastUpdate = null;
             timer = null;
             /* Request logs! */
