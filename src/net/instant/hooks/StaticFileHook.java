@@ -26,6 +26,8 @@ import org.java_websocket.handshake.ServerHandshakeBuilder;
 
 public class StaticFileHook extends HookAdapter {
 
+    public static final int MAX_CACHE_AGE = 3600;
+
     private static class Callback implements ProducerJob.Callback {
 
         private final RequestInfo info;
@@ -134,7 +136,8 @@ public class StaticFileHook extends HookAdapter {
             String etag = cell.getETag();
             if (etag != null) {
                 String fullETag = "w/\"" + etag + '"';
-                info.putHeader("Cache-Control", "public, max-age=600");
+                info.putHeader("Cache-Control", "public, max-age=" +
+                    MAX_CACHE_AGE);
                 info.putHeader("ETag", fullETag);
                 String ifNoneMatch =
                     info.getClientData().getFieldValue("If-None-Match");
