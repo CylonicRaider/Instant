@@ -749,7 +749,7 @@ body {
 
 .popups .popup {
   margin: 0.5em auto;
-  border: 1px solid black;
+  border: 2px solid black;
   max-width: 100%;
   background: white;
   word-wrap: break-word;
@@ -781,7 +781,7 @@ body {
 .popups .popup .popup-button {
   margin: auto 0;
   line-height: 0;
-  outline-offset: 1px;
+  outline-offset: -1px;
 }
 .popups .popup .popup-button img {
   width: 1.2em;
