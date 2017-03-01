@@ -3175,6 +3175,10 @@ this.Instant = function() {
             }
             /* Clear spinner */
             Instant.logs.pull._done(! sentBefore, ! sentAfter);
+            /* Debugging */
+            if (window.logInstantLogPulling)
+              console.debug('[LogPull]', 'Sent requests (B/A):', sentBefore,
+                            sentAfter);
           },
           /* Handler for messages */
           _onmessage: function(msg) {
