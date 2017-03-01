@@ -3072,7 +3072,7 @@ this.Instant = function() {
       /* Submodule */
       pull: function() {
         /* Interval to wait before choosing peer */
-        var WAIT_TIME = 1000;
+        var WAIT_TIME = 3000;
         /* When to poll whether to choose new peer */
         var POLL_TIME = 100;
         /* The pane to add parent-less messages to */
