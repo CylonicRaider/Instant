@@ -674,14 +674,18 @@ def main():
         raise SystemExit
     p = instabot.OptionParser(sys.argv[0])
     p.help_action()
-    p.option('maxlen', MAXLEN, type=int)
-    p.option('msgdb', placeholder='<file>')
-    p.option('read-file', [], accum=True, placeholder='<file>')
-    p.option('push-logs', [], accum=True, placeholder='<id>')
-    p.flag('dont-stay')
-    p.flag('dont-pull')
-    p.option('nick', NICKNAME)
-    p.argument('url')
+    p.option('maxlen', MAXLEN, type=int,
+             help='Maximum amount of logs to deliver')
+    p.option('msgdb', placeholder='<file>',
+             help='SQLite database file for messages')
+    p.option('read-file', [], accum=True, placeholder='<file>',
+             help='Parse log file for messages')
+    p.option('push-logs', [], accum=True, placeholder='<id>',
+             help='Send logs to given ID without asking')
+    p.flag('dont-stay', help='Exit after collecting logs')
+    p.flag('dont-pull', help='Do not collect logs')
+    p.option('nick', NICKNAME, help='Nickname to use')
+    p.argument('url', help='URL to connect to')
     p.parse(sys.argv[1:])
     (maxlen, msgdb_file, toread, push_logs, dont_stay, dont_pull, nickname,
      url) = p.get('maxlen', 'msgdb', 'read-file', 'push-logs', 'dont-stay',
