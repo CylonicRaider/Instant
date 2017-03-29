@@ -22,9 +22,6 @@ header {
   z-index: 1000;
   transition: box-shadow 0.15s linear;
 }
-header.shadow {
-  box-shadow: 0 0 6px rgba(0, 0, 0, 0.82);
-}
 h1 {
   font-family: "Georgia", "Roboto Slab", "Times New Roman", serif;
   font-size: 72px;
@@ -126,16 +123,16 @@ main {
       title.style.marginTop = (24 + spacing) + "px";
       title.style.marginLeft = (24 + spacing) + "px";
       if (spacing == 0) {
-        header.classList.add("shadow");
+        header.classList.add("mdl-shadow--8dp");
       } else {
-        header.classList.remove("shadow");
+        header.classList.remove("mdl-shadow--8dp");
       }
     } else {
       title.style = '';
       if (document.documentElement.scrollTop > 0) {
-        header.classList.add("shadow");
+        header.classList.add("mdl-shadow--8dp");
       } else {
-        header.classList.remove("shadow");
+        header.classList.remove("mdl-shadow--8dp");
       }
     }
   }
