@@ -33,3 +33,10 @@ body {
 .small {
   font-size: smaller;
 }
+
+.mdl-card.card-wide {
+  width: 512px;
+}
+.mdl-card__supporting-text p:last-child {
+  margin-bottom: 0;
+}
