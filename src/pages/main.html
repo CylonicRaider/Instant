@@ -54,11 +54,37 @@ main {
 .mdl-card__supporting-text > p:last-child {
   margin-bottom: 0;
 }
-.cell-stretch {
+.card-stretch {
   flex: 1;
 }
-.cell-256 {
+.feature {
+  display: flex;
+  align-items: stretch;
+}
+.feature-info {
+  flex: 1;
+  width: auto;
+}
+.feature-image {
   width: 256px;
+  height: 256px;
+  margin: auto;
+}
+@media (max-width: 479px) {
+  h1 {
+    font-size: 48px;
+    margin: 24px;
+  }
+  main {
+    margin-top: 120px;
+  }
+  .feature {
+    flex-direction: column;
+    margin: 16px;
+  }
+  .feature-info {
+    order: 1;
+  }
 }
     </style>
   </head>
@@ -67,44 +93,56 @@ main {
       <h1><img src="/static/logo-static.svg" alt="logo"/> Instant</h1>
     </header>
     <main>
-      <section class="mdl-grid mdl-grid--no-spacing mdl-shadow--4dp">
-        <div class="cell-stretch mdl-card">
+      <section class="feature mdl-shadow--4dp">
+        <div class="feature-info mdl-card">
           <div class="mdl-card__title mdl-card--border">
             <h2 class="mdl-card__title-text">What is this?</h2>
           </div>
           <div class="mdl-card__supporting-text mdl-color-text--grey-800
-              cell-stretch">
+              card-stretch">
             <p>Instant is novelty online chat site highlighting the feature of
               <em>threaded chat</em>. That is, you can reply to every message
               and start a conversation about it without disrupting everyone
               else.</p>
           </div>
           <div class="mdl-card__actions mdl-card--border">
+            <a href="/about.html" class="mdl-button mdl-button--accent
+              mdl-js-button mdl-js-ripple-effect">About</a>
             <a href="/room/welcome/" class="mdl-button mdl-button--accent
               mdl-js-button mdl-js-ripple-effect">Start chatting</a>
           </div>
         </div>
-        <div class="cell-256">
-          <img src="/static/graphic-main-threading.png"
-            alt="threading"/>
+        <div class="feature-image">
+          <img src="/static/graphic-main-threading.png" alt="threading"/>
         </div>
       </section>
     </main>
     <script>
 /* Scroll animation. :3 */
 (function() {
+  function updateScroll(evt) {
+    if (document.documentElement.offsetWidth >= 480) {
+      var spacing = Math.max(0, 72 - document.documentElement.scrollTop);
+      title.style.marginTop = (24 + spacing) + "px";
+      title.style.marginLeft = (24 + spacing) + "px";
+      if (spacing == 0) {
+        header.classList.add("shadow");
+      } else {
+        header.classList.remove("shadow");
+      }
+    } else {
+      title.style = '';
+      if (document.documentElement.scrollTop > 0) {
+        header.classList.add("shadow");
+      } else {
+        header.classList.remove("shadow");
+      }
+    }
+  }
   var header = document.querySelector("header");
   var title = header.querySelector("h1");
-  document.addEventListener("scroll", function() {
-    var spacing = Math.max(0, 72 - document.documentElement.scrollTop);
-    title.style.marginTop = (24 + spacing) + "px";
-    title.style.marginLeft = (24 + spacing) + "px";
-    if (spacing == 0) {
-      header.classList.add("shadow");
-    } else {
-      header.classList.remove("shadow");
-    }
-  });
+  document.addEventListener("scroll", updateScroll);
+  window.addEventListener("resize", updateScroll);
 })();
     </script>
   </body>
