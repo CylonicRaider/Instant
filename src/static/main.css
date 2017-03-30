@@ -1,0 +1,118 @@
+
+/* Instant landing page stylesheet */
+
+body {
+  min-height: 0;
+}
+header {
+  position: fixed;
+  top: 0;
+  width: 100%;
+  background: #d32f2f;
+  color: #fff;
+  z-index: 1000;
+  transition: box-shadow 0.15s linear;
+}
+h1 {
+  font-family: "Georgia", "Roboto Slab", "Times New Roman", serif;
+  font-size: 72px;
+  letter-spacing: 0;
+  line-height: 1;
+  height: 1em;
+  margin: 96px 24px 24px 96px;
+  white-space: nowrap;
+}
+h1 > img {
+  height: 1em;
+  vertical-align: bottom;
+}
+main {
+  max-width: 768px;
+  margin: 216px auto 0;
+}
+section {
+  margin-bottom: 24px;
+  border-radius: 2px;
+  overflow: hidden;
+}
+.card-stretch {
+  width: auto;
+  min-height: 0;
+}
+.card-inner-title {
+  color: #000;
+  font-size: 1.5em;
+  line-height: inherit;
+}
+.mdl-card__supporting-text > p:last-child {
+  margin-bottom: 0;
+}
+.card-stretch {
+  flex: 1;
+}
+.feature {
+  display: flex;
+  align-items: stretch;
+}
+.feature-info {
+  flex: 1;
+  width: auto;
+}
+.feature-image {
+  position: relative;
+  width: 256px;
+  height: 256px;
+  margin: auto;
+}
+.feature-image--alt {
+  order: -1;
+}
+.feature-image--small {
+  width: 224px;
+  height: 224px;
+  padding: 16px;
+}
+.centered {
+  text-align: center;
+}
+#demo-nick {
+  transition: background-color 0.2s ease;
+}
+#color-wheel.active {
+  transition: transform 0.2s ease;
+}
+#wheel-arrow {
+  position: absolute;
+  top: 64px;
+  left: 128px;
+  margin: 0 0 0 -12px;
+  opacity: 0;
+  transition: opacity 0.2s ease, color 0.2s ease;
+}
+#logo-image {
+  border-radius: 50%;
+  box-shadow: 0 8px 8px rgba(0, 0, 0, 0.5);
+}
+@media (max-width: 479px) {
+  h1 {
+    font-size: 48px;
+    margin: 24px;
+  }
+  main {
+    margin-top: 120px;
+  }
+  .feature {
+    flex-direction: column;
+    margin: 16px;
+  }
+  .feature-info {
+    order: 1;
+  }
+}
+#color-wheel.idle {
+  animation: rotate 60s linear infinite;
+}
+@keyframes rotate {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(-360deg); }
+}
