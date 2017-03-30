@@ -91,6 +91,13 @@ section {
     order: 1;
   }
 }
+#color-wheel {
+  animation: rotate 60s linear infinite;
+}
+@keyframes rotate {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(-360deg); }
+}
     </style>
   </head>
   <body>
@@ -160,7 +167,8 @@ section {
           </div>
         </div>
         <div class="feature-image">
-          <img src="/static/graphic-main-colors.svg" alt="color wheel"/>
+          <img src="/static/graphic-main-colors.svg" alt="color wheel"
+            id="color-wheel"/>
         </div>
       </section>
     </main>
