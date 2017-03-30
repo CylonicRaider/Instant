@@ -8,7 +8,7 @@
             <line x1="56" x2="160" opacity="0.5"/>
         </g>
     </defs>
-    <rect width="256" height="256" fill="#f0f0f0"/>
+    <rect width="256" height="256" fill="#ffffff"/>
     <g stroke-width="16" stroke-linecap="round">
         <use xlink:href="#message" x="32" y="20" stroke="#c0c0c0"/>
         <use xlink:href="#message" x="32" y="44" stroke="#808080"/>
