@@ -68,12 +68,30 @@ section {
   width: auto;
 }
 .feature-image {
+  position: relative;
   width: 256px;
   height: 256px;
   margin: auto;
 }
 .feature-image--alt {
   order: -1;
+}
+.centered {
+  text-align: center;
+}
+#demo-nick {
+  transition: background-color 0.1s ease;
+}
+#color-wheel.active {
+  transition: transform 0.1s ease;
+}
+#wheel-arrow {
+  position: absolute;
+  top: 64px;
+  left: 128px;
+  margin: 0 0 0 -12px;
+  opacity: 0;
+  transition: opacity 0.1s ease, color 0.1s ease;
 }
 @media (max-width: 479px) {
   h1 {
@@ -91,7 +109,7 @@ section {
     order: 1;
   }
 }
-#color-wheel {
+#color-wheel.idle {
   animation: rotate 60s linear infinite;
 }
 @keyframes rotate {
@@ -164,17 +182,27 @@ section {
             <p><em>We're excited as well!</em> To add more, and to easily
               identify yourself and your friends in all those threads,
               we <strong>color-code</strong> every user. Try it yourself!</p>
+            <div class="centered">
+              <div class="mdl-textfield mdl-js-textfield
+                  mdl-textfield--floating-label">
+                <input type="text" class="mdl-textfield__input"
+                  id="demo-nick"/>
+                <label class="mdl-textfield__label"
+                  for="demo-nick">Nickname</label>
+              </div>
+            </div>
           </div>
         </div>
         <div class="feature-image">
           <img src="/static/graphic-main-colors.png" alt="color wheel"
-            id="color-wheel"/>
+            id="color-wheel" class="idle"/>
+          <i class="material-icons" id="wheel-arrow">arrow_upward</i>
         </div>
       </section>
     </main>
     <script>
-/* Scroll animation. :3 */
 (function() {
+  /* Scroll animation. :3 */
   function updateScroll(evt) {
     if (document.documentElement.offsetWidth >= 480) {
       var spacing = Math.max(0, 72 - document.documentElement.scrollTop);
@@ -198,6 +226,46 @@ section {
   var title = header.querySelector("h1");
   document.addEventListener("scroll", updateScroll);
   window.addEventListener("resize", updateScroll);
+  /* Interactive nick coloring. >:3 */
+  function hueHash(name) {
+    name = name.replace(/\s+/g, '').toLowerCase();
+    var hash = 0;
+    for (var i = 0; i < name.length; i++) {
+      hash += name.charCodeAt(i) * 359 + i * 271 + 89;
+      hash = (hash * hash * hash) % 360;
+    }
+    return hash;
+  }
+  function emoteColor(hue) {
+    return 'hsl(' + hue + ', 75%, 90%)';
+  }
+  function pingColor(hue) {
+    return 'hsl(' + hue + ', 75%, 40%)';
+  }
+  function updateWheel() {
+    var name = input.value;
+    if (name || input == document.activeElement) {
+      var hue = hueHash(name);
+      // Using emote color as it is less obtrusive.
+      input.style.backgroundColor = emoteColor(hue);
+      wheel.className = "active";
+      wheel.style = "transform: rotate(" + (-hue) + "deg) !important";
+      arrow.style.opacity = "1";
+      arrow.style.color = pingColor(hue);
+    } else {
+      input.style.backgroundColor = '';
+      wheel.className = "idle";
+      wheel.style = "";
+      arrow.style.opacity = "0";
+    }
+  }
+  var input = document.getElementById("demo-nick");
+  var wheel = document.getElementById("color-wheel");
+  var arrow = document.getElementById("wheel-arrow");
+  input.addEventListener("focus", updateWheel);
+  input.addEventListener("blur", updateWheel);
+  input.addEventListener("change", updateWheel);
+  input.addEventListener("input", updateWheel);
 })();
     </script>
   </body>
