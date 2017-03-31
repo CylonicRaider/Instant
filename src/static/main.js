@@ -5162,7 +5162,7 @@ function init() {
     document.documentElement.scrollTop = 0;
   }, 0);
   /* Fire up Instant! */
-  Instant.init(main, wrapper, $cls('breadcrumbs'));
+  Instant.init(main, wrapper, null);
   Instant.input.focus();
 }
 
