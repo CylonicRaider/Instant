@@ -307,7 +307,7 @@ body {
   font-style: italic;
 }
 
-.online-status, .settings {
+.online-status {
   display: inline-block;
   width: 24px;
   height: 24px;
@@ -332,36 +332,15 @@ body {
 }
 
 .settings-wrapper {
-  display: inline-block;
-  position: relative;
-  z-index: 20;
+  width: 100%;
+  min-height: 0;
 }
 .settings {
-  position: relative;
-  font-size: 100%;
-  line-height: 0;
-  background: white;
-  cursor: pointer;
-}
-.settings::-moz-focus-inner {
-  margin: 0;
-  border: 0;
-  padding: 0;
-}
-.settings img {
-  padding: 1px;
-  width: 100%;
-  height: 100%;
-  box-sizing: border-box;
+  text-transform: none;
+  font-size: 24px;
 }
 .settings-content {
   display: none;
-  position: absolute;
-  top: 0;
-  right: 0;
-  border: 1px solid black;
-  padding: 5px;
-  z-index: -1;
   text-align: left;
   white-space: nowrap;
   color: black;
@@ -399,14 +378,11 @@ body {
   font-size: smaller;
 }
 
-.settings-wrapper.visible .settings {
-  border-radius: 0;
-  border-width: 1px 1px 0 0;
-  padding: 1px 1px 2px 2px;
-  box-shadow: none;
-}
 .settings-wrapper.visible .settings-content {
   display: block;
+}
+.settings-theme {
+  display: none;
 }
 
 .ui-message-box {

@@ -2360,13 +2360,11 @@ this.Instant = function() {
               ['div', 'appbar-icon', [
                 Instant.animation.onlineStatus.init()
               ]],
-              ['div', 'appbar-icon', [
-                Instant.settings.init()
-              ]]
             ]]
           ]],
           ['div', 'mdl-layout__drawer', [
             ['div', 'ui-message-box'],
+            Instant.settings.init(),
             Instant.userList.getNode()
           ]],
           ['main', 'mdl-layout__content']
@@ -4077,53 +4075,61 @@ this.Instant = function() {
     return {
       /* Initialize submodule */
       init: function() {
-        function radio(name, value, checked) {
-          var ret = $makeNode('input', {type: 'radio', name: name,
-            value: value});
-          if (checked) ret.checked = true;
+        function xradio(name, value, desc, ext, checked) {
+          var input = $makeNode('input', 'mdl-radio__button', {type: 'radio',
+            name: name, value: value, id: name + '-' + value + '-input'});
+          if (checked) input.checked = true;
+          var ret = $makeNode('label', 'mdl-radio mdl-js-radio ' +
+              'mdl-js-ripple-effect', {for: input.id}, [
+            input,
+            ['span', 'mdl-radio__label ' + name + '-' + value, desc]
+          ]);
+          if (ext) ret.classList.add('more-content');
           return ret;
         }
-        function checkbox(name, checked) {
-          var ret = $makeNode('input', {type: 'checkbox', name: name});
-          if (checked) ret.checked = true;
-          return ret;
+        function xcheckbox(name, desc, checked, title) {
+          var input = $makeNode('input', 'mdl-switch__input',
+            {type: 'checkbox', name: name, id: name});
+          if (checked) input.checked = true;
+          return $makeNode('label', 'mdl-switch mdl-js-switch ' +
+              'mdl-js-ripple-effect', {for: input.id}, [
+            input,
+            ['span', 'mdl-switch__label', desc]
+          ]);
         }
-        wrapperNode = $makeNode('div', 'settings-wrapper', [
-          ['button', 'settings', [
-            ['img', {src: '/static/gear.svg'}],
+        wrapperNode = $makeNode('div', 'settings-wrapper mdl-card', [
+          ['div', 'mdl-card__title mdl-card--border', [
+            ['h2', 'settings mdl-button mdl-js-button ' +
+                'mdl-js-ripple-effect', [
+              'Settings',
+              ['i', 'icon material-icons', 'expand_more']
+            ]]
           ]],
-          ['form', 'settings-content', [
-            ['h2', ['Settings']],
+          ['form', 'settings-content mdl-card__supporting-text ' +
+              'mdl-card--border', [
             ['div', 'settings-theme', [
               ['h3', ['Theme:']],
-              ['label', [radio('theme', 'bright', true), ' Bright']],
-              ['label', [radio('theme', 'dark'), ' Dark']],
-              ['label', [radio('theme', 'verydark'), ' Very dark']]
+              xradio('theme', 'bright', 'Bright', false, true),
+              xradio('theme', 'dark', 'Dark'),
+              xradio('theme', 'verydark', 'Very dark')
             ]],
             ['hr'],
             ['div', 'settings-notifications', [
               ['h3', ['Notifications: ',
                 ['a', 'more-link', {href: '#'}, '(more)']
               ]],
-              ['label', 'notifies-none', [
-                radio('notifies', 'none', true), ' None']],
-              ['label', 'notifies-privmsg more-content', [
-                radio('notifies', 'privmsg'), ' On private messages']],
-              ['label', 'notifies-ping', [
-                radio('notifies', 'ping'), ' When pinged']],
-              ['label', 'notifies-update more-content', [
-                radio('notifies', 'update'), ' On updates']],
-              ['label', 'notifies-reply', [
-                radio('notifies', 'reply'), ' When replied to']],
-              ['label', 'notifies-activity', [
-                radio('notifies', 'activity'), ' On activity']],
-              ['label', 'notifies-disconnect more-content', [
-                radio('notifies', 'disconnect'), ' On disconnects']]
+              xradio('notifies', 'none', 'None', false, true),
+              xradio('notifies', 'privmsg', 'On private messages', true),
+              xradio('notifies', 'ping', 'When pinged'),
+              xradio('notifies', 'update', 'On updates', true),
+              xradio('notifies', 'reply', 'When replied to'),
+              xradio('notifies', 'activity', 'On activity'),
+              xradio('notifies', 'disconnect', 'On disconnects', true)
             ]],
             ['hr'],
             ['div', 'settings-nodisturb', [
-              ['label', {title: 'Void notifications that are below your ' +
-                'chosen level'}, [checkbox('no-disturb'), ' Do not disturb']]
+              xcheckbox('no-disturb', 'Do not disturb', false, 'Void ' +
+                'notifications that are below your chosen level')
             ]]
           ]]
         ]);
@@ -4198,6 +4204,7 @@ this.Instant = function() {
       /* Set the setting popup visibility */
       _setVisible: function(vis, event) {
         var wasVisible = Instant.settings.isVisible();
+        var icon = $sel('.settings .icon', wrapperNode);
         if (vis == null) {
           wrapperNode.classList.toggle('visible');
         } else if (vis) {
@@ -4206,6 +4213,11 @@ this.Instant = function() {
           wrapperNode.classList.remove('visible');
         }
         var visible = Instant.settings.isVisible();
+        if (visible) {
+          icon.textContent = 'expand_less';
+        } else {
+          icon.textContent = 'expand_more';
+        }
         Instant._fireListeners('settings.visibility', {visible: visible,
           wasVisible: wasVisible, source: event});
       },
