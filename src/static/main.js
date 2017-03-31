@@ -2332,7 +2332,8 @@ this.Instant = function() {
       }()
     };
   }();
-  /* Sidebar handling */
+  /* Sidebar handling
+   * Reinterpreted into app bar (and right-hand-side drawer). */
   Instant.sidebar = function() {
     /* The main sidebar node */
     var node = null;
@@ -2345,25 +2346,27 @@ this.Instant = function() {
           return (el.target == wrapper);
         }
         Instant.userList.init();
-        node = $makeNode('div', 'sidebar', [
-          ['div', 'sidebar-content', [
-            ['div', 'sidebar-top', [
-              ['div', 'sidebar-top-line', [
-                Instant.animation.spinner.init(), ' ',
-                Instant.sidebar.roomName.init(), ' ',
-                Instant.animation.onlineStatus.init(), ' ',
-                Instant.settings.init()
+        node = $makeNode('div',
+            'appbar mdl-layout mdl-js-layout mdl-layout--fixed-header', [
+          ['header', 'mdl-layout__header', [
+            ['div', 'mdl-layout__header-row', [
+              ['div', 'mdl-layout-title', [
+                Instant.sidebar.roomName.init()
               ]],
-              ['div', 'ui-message-box']
-            ]],
-            ['div', 'sidebar-middle-wrapper', [
-              ['div', 'sidebar-middle', [
-                Instant.userList.getNode()
+              ['div', 'mdl-layout-spacer'],
+              ['div', 'appbar-icon', [
+                Instant.animation.spinner.init()
+              ]],
+              ['div', 'appbar-icon', [
+                Instant.animation.onlineStatus.init()
+              ]],
+              ['div', 'appbar-icon', [
+                Instant.settings.init()
               ]]
-            ]],
-            ['div', 'sidebar-bottom', [
-              Instant.userList.getCollapserNode()
             ]]
+          ]],
+          ['div', 'mdl-layout__drawer', [
+            Instant.userList.getNode()
           ]]
         ]);
         var topLine = $cls('sidebar-top-line', node);
@@ -2381,7 +2384,7 @@ this.Instant = function() {
         }
         var wrapper = $cls('sidebar-middle-wrapper', node);
         window.addEventListener('resize', Instant.sidebar.updateWidth);
-        if (window.MutationObserver) {
+        /*if (window.MutationObserver) {
           var obs = new MutationObserver(function(records, observer) {
             if (records.some(mutationInvalid)) return;
             Instant.sidebar.updateWidth();
@@ -2389,7 +2392,7 @@ this.Instant = function() {
           obs.observe(wrapper, {childList: true, attributes: true,
             characterData: true, subtree: true,
             attributeFilter: ['class', 'style']});
-        }
+        }*/
         return node;
       },
       /* Change the width of the content to avoid horizontal scrollbars */
@@ -5113,10 +5116,10 @@ this.Instant = function() {
     Instant._fireListeners('init.late');
     Instant.settings.load();
     Instant.connection.init();
-    repeat(function() {
+    /*repeat(function() {
       Instant.util.adjustScrollbar($cls('sidebar', main),
                                    $cls('message-pane', main));
-    }, 1000);
+    }, 1000);*/
     Instant.notifications.submitNew({text: 'Ready.'});
     Instant._fireListeners('init.final');
   };

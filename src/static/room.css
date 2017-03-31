@@ -260,12 +260,20 @@ body {
   padding-right: 3px;
 }
 
+.mdl-layout__container {
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+.appbar-icon {
+  padding: 24px;
+}
+
 .spinner {
   display: none;
   position: relative;
-  width: 1.2em;
-  height: 1.2em;
-  margin: -2px 0;
+  width: 24px;
+  height: 24px;
   padding: 2px;
   vertical-align: bottom;
 }
@@ -291,9 +299,8 @@ body {
 
 .online-status, .settings {
   display: inline-block;
-  width: 1.2em;
-  height: 1.2em;
-  margin: -2px 0;
+  width: 24px;
+  height: 24px;
   padding: 1px;
   border: 1px solid black;
   border-radius: 50%;
@@ -340,17 +347,20 @@ body {
 .settings-content {
   display: none;
   position: absolute;
-  top: -2px;
+  top: 0;
   right: 0;
   border: 1px solid black;
   padding: 5px;
   z-index: -1;
   text-align: left;
   white-space: nowrap;
+  color: black;
   background: white;
 }
 .settings-content h2, .settings-content h3 {
   font-size: inherit;
+  line-height: 1.2;
+  margin: 0;
 }
 .settings-content h2 {
   margin-top: -4px;
@@ -370,6 +380,7 @@ body {
   display: block;
 }
 .settings-content hr {
+  margin: 0;
   border: none;
   height: 5px;
 }
