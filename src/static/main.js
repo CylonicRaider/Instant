@@ -1806,11 +1806,11 @@ this.Instant = function() {
           var name = inputNick.value;
           sizerNick.textContent = name;
           sizerNick.style.background = Instant.nick.nickColor(name);
-          if (name) {
+          /*if (name) {
             sizerNick.style.minWidth = '';
           } else {
             sizerNick.style.minWidth = '1em';
-          }
+          }*/
           Instant._fireListeners('input.nickEdit', {nick: name,
             source: event});
         }
@@ -1826,7 +1826,7 @@ this.Instant = function() {
         function updateFocus(event) {
           focusedNode = event.target;
         }
-        inputNode = $makeNode('div', 'input-bar', [
+        inputNode = $makeNode('div', 'input-bar mdl-shadow--2dp', [
           ['div', 'input-info-cell', [
             ['span', 'alert-container', [
               ['a', 'offscreen-alert alert-above', {href: '#'}, [
