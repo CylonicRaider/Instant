@@ -268,6 +268,16 @@ body {
 .appbar-icon {
   padding: 24px;
 }
+.mdl-layout__header-row {
+  padding: 0 70px 0 40px;
+}
+.mdl-layout__drawer-button, .mdl-layout__drawer {
+  left: initial;
+  right: 0;
+}
+.mdl-layout__drawer {
+  transform: translateX(250px);
+}
 
 .spinner {
   display: none;
@@ -913,8 +923,3 @@ img.inline {
 }
 @-webkit-keyframes clrfade { to { color: rgba(0, 0, 0, 0.5); } }
 @keyframes clrfade { to { color: rgba(0, 0, 0, 0.5); } }
-
-body, #main, #main * {
-  -webkit-transition: background 0.5s, color 0.5s, opacity 1s;
-  transition: background 0.5s, color 0.5s, opacity 1s;
-}
