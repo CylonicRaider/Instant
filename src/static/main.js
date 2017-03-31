@@ -4564,8 +4564,9 @@ this.Instant = function() {
           ['div', 'popups-content', [
             ['div', 'popups']
           ]],
-          ['a', 'close-all', {href: '#'}, [
-            ['img', {src: closeURL}]
+          ['button', 'close-all mdl-button mdl-js-button mdl-button--fab ' +
+              'mdl-button--accent mdl-js-ripple-effect', [
+            ['i', 'material-icons', 'close']
           ]]
         ]);
         stack = $cls('popups', wrapper);
