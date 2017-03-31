@@ -75,9 +75,13 @@ body {
   align-items: baseline;
   white-space: pre-wrap;
   word-wrap: break-word;
+  font-size: 13px;
 }
 .message.ping > .line {
   background: #ffffc0;
+}
+.message > .line .time-wrapper {
+  line-height: 32px;
 }
 .message > .line .nick-wrapper {
   -webkit-flex-shrink: 0;
@@ -85,6 +89,8 @@ body {
 }
 .message > .line .nick-wrapper .nick {
   display: inline-block;
+  margin: 0;
+  font-weight: bold;
 }
 .message > .line .nick-wrapper .nick::after,
 .message > .line .time-wrapper::after {
@@ -111,13 +117,28 @@ body {
 }
 .message > .line .content {
   min-width: 0;
+  background: #f0f0f0;
+  padding: 6px 16px;
+  border-radius: 16px;
 }
 .message > .line .content .message-text {
   display: block;
-  padding: 1px 0 1px 0.25em;
 }
-.message.emote > .line .content .message-text {
-  padding-right: 0.25em;
+.message > .line .content .message-text::after {
+  content: " ";
+  display: inline-block;
+  width: 0;
+}
+
+.message.emote > .line .nick {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+  padding-right: 4px;
+}
+.message.emote > .line .content {
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+  padding-left: 4px;
 }
 
 .message-text {
@@ -158,8 +179,9 @@ body {
   display: flex;
   -webkit-flex-direction: column;
   flex-direction: column;
-  border-left: 2px solid #c0c0c0;
-  padding: 2px 0 0 8px;
+  margin: 5px 0 0 4px;
+  border-left: 4px solid #c0c0c0;
+  padding: 0 0 0 8px;
 }
 .message > .replies:empty {
   display: none;
@@ -170,17 +192,20 @@ body {
 }
 
 .message + .message {
-  margin-top: 2px;
+  margin-top: 5px;
 }
 
 .nick {
-  padding: 1px 2px;
   background: #c0c0c0;
   white-space: pre-wrap;
   word-break: break-all;
 }
 .nick.anonymous {
   font-style: italic;
+}
+.nick .mdl-chip__text {
+  /* Nicks are baseline-aligned */
+  vertical-align: baseline;
 }
 
 @media (max-width: 400px) {

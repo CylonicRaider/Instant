@@ -749,10 +749,10 @@ this.Instant = function() {
       },
       /* Generate a DOM node carrying the nick */
       makeNode: function(name) {
-        var node = document.createElement('span');
         var hue = Instant.nick.hueHash(name);
-        node.className = 'nick';
-        node.textContent = name;
+        var node = $makeNode('span', 'nick mdl-chip', [
+          ['span', 'mdl-chip__text', name]
+        ]);
         node.style.backgroundColor = Instant.nick.nickColor(name);
         node.setAttribute('data-nick', name);
         return node;
@@ -761,21 +761,20 @@ this.Instant = function() {
        * name is the nickname with an @-sign. */
       makeMention: function(name) {
         if (name[0] != '@') throw new Error('Bad nick for makeMention()');
-        var node = document.createElement('span');
+        var node = $makeNode('span', 'mention mdl-chip' [
+          ['span', 'mdl-chip__text', name]
+        ]);
         var realName = name.substr(1);
         var hue = Instant.nick.hueHash(realName);
-        node.className = 'mention';
-        node.textContent = name;
         node.style.color = Instant.nick.pingColor(realName);
         node.setAttribute('data-nick', realName);
         return node;
       },
       /* Make a nickname node for an anonymous user */
       makeAnonymous: function() {
-        var node = document.createElement('span');
-        node.className = 'nick anonymous';
-        node.textContent = 'Anonymous';
-        return node;
+        return $makeNode('span', 'nick anonymous mdl-chip' [
+          ['span', 'mdl-chip__text', 'Anonymous']
+        ]);
       }
     };
   }();
