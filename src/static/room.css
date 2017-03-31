@@ -208,7 +208,7 @@ body {
   vertical-align: baseline;
 }
 
-@media (max-width: 400px) {
+/*@media (max-width: 400px) {
 
   .message > .line {
     display: block;
@@ -229,7 +229,7 @@ body {
     padding: 0 1px;
   }
 
-}
+}*/
 
 #main {
   position: absolute;
@@ -293,6 +293,18 @@ body {
 .appbar-icon {
   padding: 24px;
 }
+.mdl-layout--fixed-drawer.is-upgraded:not(.is-small-screen) >
+.mdl-layout__header {
+  margin-left: 0;
+  margin-right: 240px;
+}
+.mdl-layout--fixed-drawer:not(.is-small-screen) .mdl-layout__drawer-button {
+  right: 240px;
+}
+.mdl-layout--fixed-drawer:not(.is-small-screen) > .mdl-layout__content {
+  margin-left: 0;
+  margin-right: 240px;
+}
 .mdl-layout__header-row {
   padding: 0 70px 0 40px;
 }
@@ -302,6 +314,12 @@ body {
 }
 .mdl-layout__drawer {
   transform: translateX(250px);
+}
+.pin-drawer {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 100;
 }
 
 .spinner {

@@ -2376,6 +2376,10 @@ this.Instant = function() {
             ]]
           ]],
           ['div', 'mdl-layout__drawer', [
+            ['button', 'pin-drawer mdl-button mdl-button--icon ' +
+                'mdl-js-button mdl-js-ripple-effect', [
+              ['i', 'material-icons', 'lock_open']
+            ]],
             Instant.settings.init(),
             ['div', 'ui-message-box'],
             Instant.userList.getNode()
@@ -2388,16 +2392,16 @@ this.Instant = function() {
           topLine.insertBefore(navNode, nameNode);
           topLine.insertBefore(document.createTextNode(' '), nameNode);
         }
-        if (Instant.stagingLocation) {
+        if (Instant.stagingLocation && topLine) {
           var stagingNode = $makeNode('span', 'staging',
             '(' + Instant.stagingLocation + ')');
           topLine.insertBefore(stagingNode, nameNode.nextSibling);
           topLine.insertBefore(document.createTextNode(' '),
                                nameNode.nextSibling);
         }
-        var wrapper = $cls('sidebar-middle-wrapper', node);
+        /*var wrapper = $cls('sidebar-middle-wrapper', node);
         window.addEventListener('resize', Instant.sidebar.updateWidth);
-        /*if (window.MutationObserver) {
+        if (window.MutationObserver) {
           var obs = new MutationObserver(function(records, observer) {
             if (records.some(mutationInvalid)) return;
             Instant.sidebar.updateWidth();
@@ -2406,6 +2410,18 @@ this.Instant = function() {
             characterData: true, subtree: true,
             attributeFilter: ['class', 'style']});
         }*/
+        var pinbtn = $cls('pin-drawer', node);
+        pinbtn.addEventListener('click', function() {
+          if (node.classList.contains('mdl-layout--fixed-drawer')) {
+            node.classList.remove('mdl-layout--fixed-drawer');
+            $cls('material-icons', pinbtn).textContent = 'lock_open';
+          } else {
+            node.classList.add('mdl-layout--fixed-drawer');
+            if ($sel('.mdl-layout__drawer.is-visible'))
+              node.MaterialLayout.toggleDrawer();
+            $cls('material-icons', pinbtn).textContent = 'lock_outline';
+          }
+        });
         return node;
       },
       /* Change the width of the content to avoid horizontal scrollbars */
@@ -2764,7 +2780,7 @@ this.Instant = function() {
         var parent = node.parentNode;
         if (! parent || ! parent.classList.contains('user-list-wrapper'))
           parent = null;
-        if (invisible) {
+        if (invisible && false) {
           node.classList.add('collapsed');
           collapser.classList.add('collapsed');
           if (parent) parent.classList.add('collapsed');
