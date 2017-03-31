@@ -18,21 +18,6 @@ body {
   line-height: initial;
   text-align: justify;
 }
-.popup.sized {
-  width: 30em;
-}
-
-.box {
-  border: 2px solid black;
-  padding: 5px;
-}
-.popup-footer {
-  text-align: right;
-  font-style: italic;
-}
-.small {
-  font-size: smaller;
-}
 
 .mdl-card.card-wide {
   width: 512px;
