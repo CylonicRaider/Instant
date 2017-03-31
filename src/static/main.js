@@ -178,6 +178,19 @@ function $evalIn() {
   }
 }
 
+/* MDL helper */
+function upgradeTree(node) {
+  /* Hello jQuery! */
+  function $(sel, cb) {
+    Array.prototype.forEach.call(node.querySelectorAll(sel), cb);
+  }
+  if (node.getAttribute('tree-upgraded')) return;
+  node.setAttribute('tree-upgraded', true);
+  $('.mdl-js-button', function(el) {
+    componentHandler.upgradeElement(el);
+  });
+}
+
 /* Early preparation; define most of the functionality */
 this.Instant = function() {
   /* Locale-agnostic abbreviated month name table */
@@ -2565,7 +2578,6 @@ this.Instant = function() {
             ]]
           ]]
         ]);
-        componentHandler.upgradeElement(menu);
         /* Maintain focus state of input bar */
         var inputWasFocused = false;
         collapser.addEventListener('mousedown', function(event) {
@@ -2679,7 +2691,6 @@ this.Instant = function() {
               event.preventDefault();
             }
           });
-          componentHandler.upgradeElement(newNode);
         }
         /* Apply new parameters to node */
         if (uuid) newNode.setAttribute('data-uuid', uuid);
@@ -2701,6 +2712,7 @@ this.Instant = function() {
         /* Insert node into list */
         node.insertBefore(newWrapper, insBefore);
         /* Maintain consistency */
+        upgradeTree(newWrapper);
         Instant.userList.update();
         /* Return something sensible */
         return newNode;
@@ -2843,6 +2855,7 @@ this.Instant = function() {
         var newParent = newChild.parentNode;
         newParent.classList.add('selected');
         newParent.appendChild(menu);
+        upgradeTree(menu);
         Instant.userList.update();
         Instant.sidebar.scrollIntoView(newParent);
       },
