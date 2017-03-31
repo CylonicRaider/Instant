@@ -2366,6 +2366,7 @@ this.Instant = function() {
             ]]
           ]],
           ['div', 'mdl-layout__drawer', [
+            ['div', 'ui-message-box'],
             Instant.userList.getNode()
           ]],
           ['main', 'mdl-layout__content']
@@ -2440,7 +2441,7 @@ this.Instant = function() {
       },
       /* Scroll the sidebar such that the given node is fully visible */
       scrollIntoView: function(child) {
-        Instant.pane.scrollIntoViewEx(child, $cls('sidebar-middle-wrapper',
+        Instant.pane.scrollIntoViewEx(child, $cls('mdl-layout__drawer',
                                                   node), 0);
       },
       /* Return the main DOM node */
