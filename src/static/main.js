@@ -4586,6 +4586,7 @@ this.Instant = function() {
       /* Add a node to the popup stack */
       add: function(node) {
         stack.appendChild(node);
+        upgradeTree(node);
         wrapper.style.display = 'block';
         Instant.util.adjustScrollbar($cls('close-all', wrapper),
                                      $cls('popups-content', wrapper));
@@ -4629,38 +4630,48 @@ this.Instant = function() {
       },
       /* Create a new popup */
       make: function(options) {
-        function addContent(cls, cnt) {
+        function addContent(cls, cnt, hdr) {
           if (typeof cnt == 'string') {
-            $sel(cls, ret).textContent = cnt;
+            if (hdr) {
+              $sel(cls, ret).appendChild($makeNode('span',
+                'mdl-card__title-text', cnt));
+            } else {
+              $sel(cls, ret).textContent = cnt;
+            }
           } else if (cnt) {
             $sel(cls, ret).appendChild(cnt);
           }
         }
         var co = (! options.noCollapse), cl = (! options.noClose);
-        var ret = $makeNode('div', 'popup', [
-          ['div', 'popup-header', [
+        var ret = $makeNode('div', 'popup mdl-card mdl-shadow--4dp', [
+          ['div', 'popup-header mdl-card__title mdl-card--border', [
             ['span', 'popup-title'],
-            co && ['span', 'popup-title-sep'],
-            co && ['a', 'popup-button popup-collapse', {href: '#'}, [
-              ['img', {src: collapseURL}]
-            ]],
-            cl && ['span', 'popup-title-sep'],
-            cl && ['a', 'popup-button popup-close', {href: '#'}, [
-              ['img', {src: closeURL}]
-            ]]
+            ['span', 'popup-placeholder']
           ]],
-          ['div', 'popup-content'],
-          ['div', 'popup-bottom']
+          ['div', 'popup-content mdl-card__supporting-text ' +
+            'mdl-color-text--grey-800'],
+          ['div', 'popup-bottom mdl-card__actions mdl-card--border'],
+          ['div', 'mdl-card__menu', [
+          co && ['button', 'popup-collapse mdl-button mdl-button--icon ' +
+                'mdl-js-button mdl-js-ripple-effect', [
+              ['i', 'material-icons', 'expand_less']
+            ]],
+            cl && ['button', 'popup-close mdl-button mdl-button--icon ' +
+                'mdl-js-button mdl-js-ripple-effect', [
+              ['i', 'material-icons', 'close']
+            ]]
+          ]]
         ]);
         if (options.id) ret.id = options.id;
         if (options.className) ret.className += ' ' + options.className;
-        addContent('.popup-title', options.title);
+        addContent('.popup-title', options.title, true);
         addContent('.popup-content', options.content);
         addContent('.popup-bottom', options.bottom);
         if (options.buttons) {
           var bottom = $cls('popup-bottom', ret);
           options.buttons.forEach(function(el) {
-            var btn = $makeNode('button', 'button', [el.text]);
+            var btn = $makeNode('button', 'mdl-button mdl-js-button ' +
+              'mdl-js-ripple-effect', [el.text]);
             if (el.color) btn.style.color = el.color;
             if (el.onclick) btn.addEventListener('click', el.onclick);
             if (el.className) btn.className += ' ' + el.className;

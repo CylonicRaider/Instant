@@ -771,9 +771,9 @@ body {
 
 .popups .popup {
   margin: 0.5em auto;
-  border: 2px solid black;
+  width: auto;
   max-width: 100%;
-  background: white;
+  min-height: 0;
   word-wrap: break-word;
 }
 .popups .popup:first-child {
@@ -786,48 +786,11 @@ body {
 .popups .popup .popup-header {
   display: -webkit-flex;
   display: flex;
-  border-bottom: 1px solid black;
 }
-.popups .popup .popup-title {
-  font-weight: bold;
-  margin-right: auto;
-  padding: 5px;
-  line-height: 1.2em;
-}
-.popups .popup .popup-title-sep {
-  width: 1px;
-  -webkit-flex-shrink: 0;
-  flex-shrink: 0;
-  background: black;
-}
-.popups .popup .popup-button {
-  margin: auto 0;
-  line-height: 0;
-  outline-offset: -1px;
-}
-.popups .popup .popup-button img {
-  width: 1.2em;
-  height: 1.2em;
-  margin: 5px;
-}
-.popups .popup .popup-content {
-  padding: 5px;
-}
-.popups .popup .popup-content hr {
-  margin: 5px 0;
-  border: 0;
-  padding: 0;
-  height: 1px;
-  background: black;
-}
-.popups .popup .popup-bottom {
-  padding: 0 5px 5px 5px;
-  text-align: right;
+.popups .popup .popup-placeholder {
+  width: 72px;
 }
 
-.popups .popup.collapsed .popup-header {
-  border-bottom: 0;
-}
 .popups .popup.collapsed .popup-content,
 .popups .popup.collapsed .popup-bottom {
   display: none;
