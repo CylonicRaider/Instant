@@ -429,9 +429,10 @@ body {
   display: -webkit-flex;
   display: flex;
   -webkit-flex-direction: column;
-  -webkit-align-items: flex-end;
+  -webkit-align-items: stretch;
   flex-direction: column;
-  align-items: flex-end;
+  align-items: stretch;
+  padding: 16px;
   background: none;
 }
 .user-list.collapsed {
@@ -439,52 +440,31 @@ body {
 }
 
 .user-list .nick-box {
-  margin-bottom: 2px;
-  box-shadow: 0 0 5px white;
-  text-align: right;
+  position: relative;
+  background: white;
+  margin-bottom: 5px;
 }
 .user-list .nick-box:last-child {
   margin-bottom: 0;
 }
-.user-list .nick-box:empty {
-  display: none;
-}
 .user-list .nick-box > .nick {
-  float: right;
   z-index: 11;
   cursor: pointer;
-  outline-offset: -1px;
+  margin: 0;
 }
-.user-list .nick-box::after {
-  content: "";
-  display: block;
-  clear: both;
-}
-
-.user-list .nick-box.selected .nick {
-  margin-bottom: 1px;
-  margin-left: 1px;
-  border-width: 1px 1px 0 0;
-  border-style: solid;
-  border-color: black;
-  padding-top: 0;
-  padding-right: 1px;
+.user-list .nick-box.selected > .nick {
+  position: absolute;
+  top: 16px;
+  left: 16px;
 }
 
 .user-list-menu {
-  border: 1px solid black;
-  padding: 1px;
-  background: white;
-  text-align: left;
-  min-width: 10em;
+  width: 100%;
+  min-height: 0;
 }
-.user-list-menu h2 {
-  display: block;
-  margin-top: -1px;
-  font-size: inherit;
-}
-.user-list-menu .clear {
-  clear: both;
+.user-list-menu .mdl-card__title {
+  /* 32px chip + 2*16px padding */
+  min-height: 64px;
 }
 
 .button {

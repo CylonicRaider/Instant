@@ -2550,12 +2550,22 @@ this.Instant = function() {
             ['span', ['...']]
           ]]
         ]);
-        menu = $makeNode('div', 'user-list-menu', [
-          ['h2', ['Actions:']],
-          ['div', 'clear'],
-          ['button', 'button action-ping', ['Insert ping']], ' ',
-          ['button', 'button action-pm', ['PM']]
+        menu = $makeNode('div', 'user-list-menu mdl-card mdl-shadow--2dp', [
+          ['div', 'mdl-card__title'],
+          ['div', 'mdl-card__actions', [
+            ['button', 'action-ping mdl-button mdl-js-button ' +
+              'mdl-js-ripple-effect', ['Insert ping']], ' ',
+            ['button', 'action-pm mdl-button mdl-js-button ' +
+              'mdl-js-ripple-effect', ['PM']]
+          ]],
+          ['div', 'mdl-card__menu', [
+            ['button', 'action-close mdl-button mdl-button--icon ' +
+                'mdl-js-button mdl-js-ripple-effect', [
+              ['i', 'material-icons', 'close']
+            ]]
+          ]]
         ]);
+        componentHandler.upgradeElement(menu);
         /* Maintain focus state of input bar */
         var inputWasFocused = false;
         collapser.addEventListener('mousedown', function(event) {
@@ -2596,6 +2606,9 @@ this.Instant = function() {
           var nick = nickNode.getAttribute('data-nick');
           Instant.userList.showMenu(null);
           Instant.privmsg.write(uid, nick);
+        });
+        $cls('action-close', menu).addEventListener('click', function() {
+          Instant.userList.showMenu(null);
         });
       },
       /* Scan the list for a place where to insert */
@@ -2653,14 +2666,11 @@ this.Instant = function() {
           newWrapper = newNode.parentNode;
           node.removeChild(newWrapper);
         } else {
-          newNode = document.createElement('span');
-          newNode.className = 'nick';
-          newNode.setAttribute('data-id', id);
-          newNode.id = 'user-' + id;
-          newNode.tabIndex = 0;
-          newWrapper = document.createElement('div');
-          newWrapper.className = 'nick-box';
-          newWrapper.appendChild(newNode);
+          newNode = $makeNode('button', 'nick mdl-chip ', {id: 'user-' + id,
+              'data-id': id}, [
+            ['span', 'mdl-chip__text']
+          ]);
+          newWrapper = $makeNode('div', 'nick-box', [newNode]);
           newNode.addEventListener('click', toggleMenu);
           newNode.addEventListener('keydown', function(event) {
             // Return or Space
@@ -2669,12 +2679,13 @@ this.Instant = function() {
               event.preventDefault();
             }
           });
+          componentHandler.upgradeElement(newNode);
         }
         /* Apply new parameters to node */
         if (uuid) newNode.setAttribute('data-uuid', uuid);
         newNode.setAttribute('data-last-active', Date.now());
         newNode.setAttribute('data-nick', name);
-        newNode.textContent = name;
+        $sel('span', newNode).textContent = name;
         newNode.style.background = Instant.nick.nickColor(name);
         newWrapper.style.display = ((name) ? '' : 'none');
         /* Update animation */
