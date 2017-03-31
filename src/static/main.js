@@ -2367,7 +2367,8 @@ this.Instant = function() {
           ]],
           ['div', 'mdl-layout__drawer', [
             Instant.userList.getNode()
-          ]]
+          ]],
+          ['main', 'mdl-layout__content']
         ]);
         var topLine = $cls('sidebar-top-line', node);
         var nameNode = $cls('room-name', node);
@@ -2445,6 +2446,10 @@ this.Instant = function() {
       /* Return the main DOM node */
       getNode: function() {
         return node;
+      },
+      /* Return the node for layout content */
+      getContentNode: function() {
+        return $cls('mdl-layout__content', node);
       },
       /* Possibly show a UI message */
       _notify: function(notify) {
@@ -5109,7 +5114,8 @@ this.Instant = function() {
       $cls('alert-container', Instant.input.getNode()));
     Instant.popups.init();
     Instant.privmsg.init();
-    main.appendChild(Instant.message.getMessagePane());
+    Instant.sidebar.getContentNode().appendChild(
+      Instant.message.getMessagePane());
     main.appendChild(Instant.sidebar.getNode());
     main.appendChild(Instant.popups.getNode());
     Instant.pane.main.init(main);
