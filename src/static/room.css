@@ -411,12 +411,18 @@ body {
 }
 
 .ui-message-box {
-  text-align: right;
+  margin: 16px 16px 0;
   font-weight: bold;
   white-space: pre-line;
 }
 .ui-message-box:empty {
   display: none;
+}
+.ui-message-box > .mdl-button {
+  padding: 8px 16px;
+  line-height: 20px;
+  min-height: 36px;
+  height: unset;
 }
 .ui-message-box > .clickable {
   cursor: pointer;
@@ -432,7 +438,7 @@ body {
   -webkit-align-items: stretch;
   flex-direction: column;
   align-items: stretch;
-  padding: 16px;
+  margin: 16px;
   background: none;
 }
 .user-list.collapsed {
@@ -441,7 +447,6 @@ body {
 
 .user-list .nick-box {
   position: relative;
-  background: white;
   margin-bottom: 5px;
 }
 .user-list .nick-box:last-child {
@@ -451,6 +456,9 @@ body {
   z-index: 11;
   cursor: pointer;
   margin: 0;
+}
+.user-list .nick-box.selected {
+  background: white;
 }
 .user-list .nick-box.selected > .nick {
   position: absolute;
@@ -723,6 +731,7 @@ body {
   width: 100%;
   height: 100%;
   display: none;
+  z-index: 1000;
 }
 .popups-wrapper .close-all {
   position: absolute;

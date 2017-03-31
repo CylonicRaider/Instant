@@ -182,6 +182,7 @@ function $evalIn() {
 function upgradeTree(node) {
   /* Hello jQuery! */
   function $(sel, cb) {
+    if (node.matches(sel)) cb(node);
     Array.prototype.forEach.call(node.querySelectorAll(sel), cb);
   }
   if (node.getAttribute('tree-upgraded')) return;
@@ -2375,8 +2376,8 @@ this.Instant = function() {
             ]]
           ]],
           ['div', 'mdl-layout__drawer', [
-            ['div', 'ui-message-box'],
             Instant.settings.init(),
+            ['div', 'ui-message-box'],
             Instant.userList.getNode()
           ]],
           ['main', 'mdl-layout__content']
@@ -2476,8 +2477,8 @@ this.Instant = function() {
       },
       /* Make a UI message */
       makeMessage: function(options) {
-        var msgnode = document.createElement('div');
-        msgnode.tabIndex = 0;
+        var msgnode = $makeNode('button', 'mdl-button mdl-js-button ' +
+          'mdl-js-ripple-effect');
         if (typeof options.content == 'string') {
           msgnode.textContent = options.content;
         } else if (options.content) {
@@ -2496,6 +2497,8 @@ this.Instant = function() {
               event.preventDefault();
             }
           });
+        } else {
+          msgnode.disabled = true;
         }
         return msgnode;
       },
@@ -2509,6 +2512,7 @@ this.Instant = function() {
           msgnode.setAttribute('data-msgid', id);
         }
         msgbox.appendChild(msgnode);
+        upgradeTree(msgnode);
         Instant.sidebar.updateWidth();
       },
       /* Hide a UI message */
@@ -5193,10 +5197,10 @@ function init() {
   /* Focus input bar if Escape pressed and not focused */
   document.documentElement.addEventListener('keydown', function(event) {
     if (event.keyCode == 27) { // Escape
-      if (Instant.settings.isVisible())
-        Instant.settings.hide();
       if (Instant.userList.getSelectedUser() != null)
         Instant.userList.showMenu(null);
+      if ($sel('.mdl-layout__drawer.is-visible'))
+        $cls('mdl-layout').MaterialLayout.toggleDrawer();
       Instant.input.focus();
       event.preventDefault();
     }
