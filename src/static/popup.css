@@ -12,24 +12,17 @@ body {
   text-align: center;
   vertical-align: middle;
   line-height: 0;
+  font-family: "Roboto", "Helvetica", "Arial", sans-serif;
 }
 .popup {
   display: inline-block;
   line-height: initial;
   text-align: justify;
 }
-.popup.sized {
-  width: 30em;
-}
 
-.box {
-  border: 2px solid black;
-  padding: 5px;
+.mdl-card.card-wide {
+  width: 512px;
 }
-.popup-footer {
-  text-align: right;
-  font-style: italic;
-}
-.small {
-  font-size: smaller;
+.mdl-card__supporting-text p:last-child {
+  margin-bottom: 0;
 }
