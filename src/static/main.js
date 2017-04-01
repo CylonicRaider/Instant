@@ -1957,7 +1957,9 @@ this.Instant = function() {
       },
       /* Check whether we are allowed to reply to msg */
       _parentValid: function(msg) {
-        return (msg.getAttribute('data-depth') < 3);
+        var md = (Instant.roomName == 'threads') ? 5 : 3;
+        // The input bar is one deeper than the message.
+        return (msg.getAttribute('data-depth') < md - 1);
       },
       /* Move the input bar into the given message/container */
       jumpTo: function(parent, force) {
