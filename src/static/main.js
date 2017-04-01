@@ -2411,8 +2411,14 @@ this.Instant = function() {
                 'mdl-js-button mdl-js-ripple-effect', [
               ['i', 'material-icons', 'lock_open']
             ]],
+            ['h2', 'main-link mdl-layout-title', [
+              ['img', {'src': '/static/logo-static.svg'}], ' ',
+              ['a', {'href': '/'}, 'Instant']
+            ]],
             Instant.settings.init(),
+            ['h2', 'msgbox-header hidden', 'Messages'],
             ['div', 'ui-message-box'],
+            ['h2', 'users-header', 'Users'],
             Instant.userList.getNode()
           ]],
           ['main', 'mdl-layout__content'],
@@ -2582,6 +2588,7 @@ this.Instant = function() {
         }
         msgbox.appendChild(msgnode);
         upgradeTree(msgnode);
+        Instant.sidebar._updateMessageHeader();
         Instant.sidebar.updateWidth();
       },
       /* Hide a UI message */
@@ -2592,6 +2599,17 @@ this.Instant = function() {
         try {
           msgbox.removeChild(msgnode);
         } catch (e) {}
+        Instant.sidebar._updateMessageHeader();
+      },
+      /* Show/hide UI message box heading */
+      _updateMessageHeader: function() {
+        var hdr = $cls('msgbox-header', node);
+        var msgbox = $cls('ui-message-box', node);
+        if (msgbox.children.length) {
+          hdr.classList.remove('hidden');
+        } else {
+          hdr.classList.add('hidden');
+        }
       },
       /* Room name widget */
       roomName: function() {

@@ -349,6 +349,28 @@ body {
   right: 8px;
   z-index: 100;
 }
+.main-link {
+  margin: 0;
+  font: 30px/40px "Georgia", "Roboto Slab", "Times New Roman", serif;
+  letter-spacing: 0;
+}
+.mdl-layout__drawer > .mdl-layout-title.main-link {
+  padding-left: 16px;
+}
+.main-link img {
+  width: 30px;
+  height: 30px;
+}
+.main-link a {
+  color: black;
+}
+.mdl-layout__drawer > h2 {
+  margin: 0;
+  padding: 16px 0 0 16px;
+  color: black;
+  font-size: 24px;
+  line-height: 32px;
+}
 
 .spinner {
   display: none;
@@ -410,6 +432,7 @@ body {
 .settings {
   text-transform: none;
   font-size: 24px;
+  padding: 0;
 }
 .settings-content {
   display: none;
@@ -428,6 +451,7 @@ body {
   margin-right: 1.2em;
 }
 .settings-content h3 {
+  font-size: 16px;
   font-weight: normal;
   font-style: italic;
 }
@@ -457,8 +481,13 @@ body {
   display: none;
 }
 
+h2.msgbox-header {
+  background: white;
+}
 .ui-message-box {
-  margin: 16px 16px 0;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+  padding: 16px 16px 8px;
+  background: white;
   font-weight: bold;
   white-space: pre-line;
 }
