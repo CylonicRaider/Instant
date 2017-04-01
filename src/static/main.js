@@ -4230,7 +4230,7 @@ this.Instant = function() {
       apply: function(event) {
         var cnt = $cls('settings-content', wrapperNode);
         var theme = cnt.elements['theme'].value;
-        if (theme == 'bright') {
+        /*if (theme == 'bright') {
           document.body.classList.remove('dark');
           document.body.classList.remove('very-dark');
         } else if (theme == 'dark') {
@@ -4241,7 +4241,7 @@ this.Instant = function() {
           document.body.classList.add('very-dark');
         } else {
           console.warn('Unknown theme:', theme);
-        }
+        }*/
         var level = cnt.elements['notifies'].value;
         Instant.notifications.level = level;
         if (level != 'none') Instant.notifications.desktop.request();
