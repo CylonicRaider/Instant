@@ -142,6 +142,7 @@ public class Main implements Runnable {
 
     public void run() {
         parseArguments();
+        LOGGER.info("Preparing");
         try {
             runner.makePluginManager().load();
         } catch (IOException exc) {
@@ -199,6 +200,7 @@ public class Main implements Runnable {
         runner.getStringProducer().addFile("/static/version.js",
                                            VERSION_FILE);
         srv.addInternalHook(new Error404Hook());
+        LOGGER.info("Running");
         srv.run();
     }
 
