@@ -2411,17 +2411,22 @@ this.Instant = function() {
             attributeFilter: ['class', 'style']});
         }*/
         var pinbtn = $cls('pin-drawer', node);
-        pinbtn.addEventListener('click', function() {
-          if (node.classList.contains('mdl-layout--fixed-drawer')) {
-            node.classList.remove('mdl-layout--fixed-drawer');
-            $cls('material-icons', pinbtn).textContent = 'lock_open';
-          } else {
+        function pinDrawer(doPin) {
+          if (doPin) {
             node.classList.add('mdl-layout--fixed-drawer');
             if ($sel('.mdl-layout__drawer.is-visible'))
               node.MaterialLayout.toggleDrawer();
             $cls('material-icons', pinbtn).textContent = 'lock_outline';
+          } else {
+            node.classList.remove('mdl-layout--fixed-drawer');
+            $cls('material-icons', pinbtn).textContent = 'lock_open';
           }
+          Instant.storage.set('drawer-pinned', doPin);
+        }
+        pinbtn.addEventListener('click', function() {
+          pinDrawer(! node.classList.contains('mdl-layout--fixed-drawer'));
         });
+        pinDrawer(Instant.storage.get('drawer-pinned'));
         return node;
       },
       /* Change the width of the content to avoid horizontal scrollbars */
