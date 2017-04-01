@@ -543,7 +543,7 @@ this.Instant = function() {
                 var inp = Instant.input.getNode();
                 if (inp) {
                   /* Prepare for scrolling */
-                  var restore = Instant.input.saveScrollState();
+                  var restore = Instant.input.saveScrollState(true);
                   /* Prepare data for display
                    * Inlining the clone process appears to be the fastest
                    * way to do it. :S */
@@ -1256,6 +1256,10 @@ this.Instant = function() {
         Instant.message.addReply(message, parent);
         /* Update indents */
         Instant.message.updateIndents(message);
+        /* Auto-thread */
+        var msgFrom = message.getAttribute('data-from');
+        if (! parID && msgFrom == Instant.identity.id)
+          Instant.input.jumpTo(message);
         /* Done */
         return message;
       },
