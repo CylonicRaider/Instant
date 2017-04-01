@@ -16,6 +16,29 @@ body {
   outline: 1px dotted black;
 }
 
+.logo img {
+  display: block;
+  min-width: 32px;
+  border-radius: 50%;
+  box-shadow: 0 10px 30px black;
+  background: #000000;
+}
+.logo h1 {
+  margin: 0;
+  text-align: center;
+  font-family: Georgia, serif;
+  font-size: 100px;
+  font-weight: normal;
+  line-height: 75%;
+  text-shadow: 0 0 10px white;
+}
+@media (max-width: 600px) {
+  .logo h1 { font-size: 75px; }
+}
+@media (max-width: 400px) {
+  .logo h1 { font-size: 50px; }
+}
+
 #load-wrapper {
   display: inline-block;
   position: relative;
@@ -23,6 +46,7 @@ body {
   background: white;
   padding: 30px;
   margin: 30px auto;
+  border-radius: 2px;
   -webkit-transition: background 0.5s, color 0.5s,
                       opacity 1s, box-shadow 0.1s;
   transition: background 0.5s, color 0.5s,
