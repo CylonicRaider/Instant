@@ -861,13 +861,13 @@ this.Instant = function() {
           /* Filter out clicks on links */
           if (evt.target.nodeName == 'A') return;
           /* Navigate to message */
-          Instant.input.moveTo(msgNode);
+          var doScroll = Instant.input.moveTo(msgNode);
           if (inputWasFocused) {
             Instant.input.focus();
           } else {
             document.activeElement.blur();
           }
-          Instant.pane.scrollIntoView(msgNode);
+          if (doScroll) Instant.pane.scrollIntoView(msgNode);
           evt.stopPropagation();
         });
         $cls('permalink', msgNode).addEventListener('click', function(evt) {
@@ -1965,7 +1965,10 @@ this.Instant = function() {
       },
       /* Move the input bar into the given message/container */
       jumpTo: function(parent, force) {
-        if (! force && ! Instant.input._parentValid(parent)) return;
+        if (! force && ! Instant.input._parentValid(parent)) return false;
+        /* Disallow replying to loading messages
+         * Seriously, kids, do you not have anything better to do? */
+        if (parent.matches('#load-wrapper *')) return false;
         /* Remove marker class from old parent */
         var oldParent = Instant.message.getParentMessage(inputNode);
         if (oldParent) oldParent.classList.remove('input-host');
@@ -1977,6 +1980,8 @@ this.Instant = function() {
         }
         /* Actually relocate the input */
         parent.appendChild(inputNode);
+        /* Successful */
+        return true;
       },
       /* Move the input bar to the given message, or to its parent if the
        * bar is already there. */
@@ -1987,11 +1992,10 @@ this.Instant = function() {
               Instant.message.getPrecedessor(inputNode) != message &&
               ! Instant.message.hasReplies(message) &&
               ! Instant.message.getSuccessor(message)) {
-            Instant.input.jumpTo(Instant.message.getParent(message));
-            return;
+            return Instant.input.jumpTo(Instant.message.getParent(message));
           }
         }
-        Instant.input.jumpTo(message);
+        return Instant.input.jumpTo(message);
       },
       /* Ensure the input is still valid after a re-parenting */
       update: function() {
