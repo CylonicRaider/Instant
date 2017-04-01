@@ -1265,20 +1265,24 @@ this.Instant = function() {
       },
       /* Update the indent string of the given message and all of its
        * children (if any; recursively) */
-      updateIndents: function(message, indent) {
+      updateIndents: function(message, indent, depth) {
         if (! indent) {
           var par = Instant.message.getParentMessage(message);
           if (par) {
             indent = $sel('[data-key=indent]', par).textContent + '| ';
+            depth = +(par.getAttribute('data-depth') || 0) + 1;
           } else {
             indent = '';
+            depth = 0;
           }
         }
         $sel('[data-key=indent]', message).textContent = indent;
+        message.setAttribute('data-depth', depth);
         indent += '| ';
+        depth += 1;
         var children = Instant.message.getReplies(message);
         for (var i = 0; i < children.length; i++) {
-          Instant.message.updateIndents(children[i], indent);
+          Instant.message.updateIndents(children[i], indent, depth);
         }
       },
       /* Traverse a message tree and return the nodes that match the given
