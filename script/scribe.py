@@ -9,6 +9,7 @@ import signal
 import json
 import sqlite3
 
+import websocket_server
 import instabot
 
 NICKNAME = 'Scribe'
@@ -736,7 +737,10 @@ def main():
                 continue
             reconnect = 0
             thr = bot.start()
-            sched.main()
+            try:
+                sched.main()
+            except websocket_server.ConnectionClosedError:
+                pass
             time.sleep(1)
     except (KeyboardInterrupt, SystemExit) as e:
         bot.close()
