@@ -628,10 +628,15 @@ class Scribe(instabot.Bot):
             else:
                 self._logs_finish()
     def _delete(self, ids):
+        handled = set()
         for msg in self.db.delete(ids):
+            handled.add(msg['id'])
             log('DELETE id=%r parent=%r from=%r nick=%r text=%r' %
                 (msg['id'], msg['parent'], msg['from'], msg['nick'],
                  msg['text']))
+        for i in ids:
+            if i in handled: continue
+            log('DELETE id=%r' % (i,))
     def _push_logs(self, peer=None):
         if peer is None:
             if not self.push_logs: return
