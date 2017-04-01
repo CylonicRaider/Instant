@@ -320,15 +320,16 @@ body {
 .mdl-layout--fixed-drawer.is-upgraded:not(.is-small-screen) >
 .mdl-layout__header {
   margin-left: 0;
-  margin-right: 240px;
+  margin-right: 300px;
+  width: calc(100% - 300px);
 }
 .mdl-layout--fixed-drawer:not(.is-small-screen) .mdl-layout__drawer-button {
-  right: 240px;
+  right: 300px;
   display: none;
 }
 .mdl-layout--fixed-drawer:not(.is-small-screen) > .mdl-layout__content {
   margin-left: 0;
-  margin-right: 240px;
+  margin-right: 300px;
 }
 .mdl-layout__header-row {
   padding: 0 70px 0 40px;
@@ -341,7 +342,8 @@ body {
   right: 0;
 }
 .mdl-layout__drawer {
-  transform: translateX(250px);
+  width: 300px;
+  transform: translateX(310px);
 }
 .pin-drawer {
   position: absolute;
@@ -355,7 +357,7 @@ body {
   letter-spacing: 0;
 }
 .mdl-layout__drawer > .mdl-layout-title.main-link {
-  padding-left: 16px;
+  padding: 0 0 0 16px;
 }
 .main-link img {
   width: 30px;
@@ -514,7 +516,7 @@ h2.msgbox-header {
   -webkit-align-items: stretch;
   flex-direction: column;
   align-items: stretch;
-  margin: 16px;
+  padding: 16px;
   background: none;
 }
 .user-list.collapsed {
