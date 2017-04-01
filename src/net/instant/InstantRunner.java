@@ -2,6 +2,7 @@ package net.instant;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.PrintStream;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
@@ -198,6 +199,13 @@ public class InstantRunner implements API1 {
     }
     public void setPort(int p) {
         port = p;
+    }
+
+    public PrintStream getHTTPLog() {
+        return makeServer().getHTTPLog();
+    }
+    public void setHTTPLog(PrintStream s) {
+        makeServer().setHTTPLog(s);
     }
 
     public Counter getCounter() {

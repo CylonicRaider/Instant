@@ -1,11 +1,15 @@
 package net.instant;
 
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.PrintStream;
 import java.net.InetSocketAddress;
 import java.net.URL;
 import java.util.jar.Manifest;
+import java.util.logging.Logger;
 import java.util.regex.Pattern;
 import net.instant.hooks.Error404Hook;
 import net.instant.hooks.RoomWebSocketHook;
@@ -13,6 +17,7 @@ import net.instant.hooks.RedirectHook;
 import net.instant.hooks.StaticFileHook;
 import net.instant.plugins.PluginException;
 import net.instant.proto.MessageDistributor;
+import net.instant.util.Logging;
 import net.instant.util.StringSigner;
 import net.instant.util.Util;
 import net.instant.util.argparse.ActionOption;
@@ -40,11 +45,11 @@ public class Main implements Runnable {
     public static final String FINE_VERSION;
 
     private static final String VERSION_FILE;
+    private static final Logger LOGGER;
 
     static {
-        System.setProperty("java.util.logging.SimpleFormatter.format",
-                           "[%1$tY-%1$tm-%1$td %1$tH:%1$tM:%1$tS.%1$tL " +
-                           "%4$-7s %3$-20s] %5$s %6$s%n");
+        Logging.initFormat();
+        LOGGER = Logger.getLogger("Main");
         String v;
         InputStream stream = null;
         try {
@@ -107,6 +112,10 @@ public class Main implements Runnable {
             "Host to bind to");
         IntegerOption port = p.add(new IntegerOption("port", true, 8080),
             "Port number to use");
+        StringOption httplog = p.add(new StringOption("http-log", false,
+            "-"), "Log file for HTTP requests");
+        StringOption dbglog = p.add(new StringOption("debug-log", false,
+            "-"), "Log file for debugging");
         PathListOption pluginPath = p.add(new PathListOption(
             "plugin-path", false), "Path to search for plugins in");
         StringListOption plugins = p.add(new StringListOption(
@@ -123,6 +132,8 @@ public class Main implements Runnable {
         if (hostName.equals("*")) hostName = null;
         runner.setHost(hostName);
         runner.setPort(port.get(r));
+        runner.setHTTPLog(resolveOutputStream(httplog.get(r)));
+        Logging.redirectToStream(resolveOutputStream(dbglog.get(r)));
         for (File path : pluginPath.get(r))
             runner.addPluginPath(path);
         for (String plugin : plugins.get(r))
@@ -189,6 +200,20 @@ public class Main implements Runnable {
                                            VERSION_FILE);
         srv.addInternalHook(new Error404Hook());
         srv.run();
+    }
+
+    private static PrintStream resolveOutputStream(String path) {
+        if (path == null || path.equals("-")) {
+            return System.err;
+        } else {
+            try {
+                return new PrintStream(new FileOutputStream(path, true),
+                                       true);
+            } catch (FileNotFoundException exc) {
+                // Should not happen.
+                throw new RuntimeException(exc);
+            }
+        }
     }
 
 }

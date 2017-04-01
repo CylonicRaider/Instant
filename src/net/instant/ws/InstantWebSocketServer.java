@@ -1,5 +1,6 @@
 package net.instant.ws;
 
+import java.io.PrintStream;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketException;
@@ -98,6 +99,7 @@ public class InstantWebSocketServer extends WebSocketServer
     private final Map<Datum, RequestInfo> infos;
     private final Map<RequestInfo, Hook> assignments;
     private InformationCollector collector;
+    private PrintStream httpLog;
     private CookieHandler cookies;
 
     public InstantWebSocketServer(InetSocketAddress addr) {
@@ -117,6 +119,7 @@ public class InstantWebSocketServer extends WebSocketServer
             }
         }
         setWebSocketFactory(new InstantWebSocketServerFactory());
+        setHTTPLog(System.err);
     }
     public InstantWebSocketServer(int port) {
         this(new InetSocketAddress(port));
@@ -176,6 +179,13 @@ public class InstantWebSocketServer extends WebSocketServer
     }
     public void setCookieHandler(CookieHandler h) {
         cookies = h;
+    }
+
+    public PrintStream getHTTPLog() {
+        return httpLog;
+    }
+    public void setHTTPLog(PrintStream output) {
+        httpLog = output;
     }
 
     /* Who on the world would give methods such long names? */
