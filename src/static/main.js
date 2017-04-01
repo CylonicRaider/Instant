@@ -185,11 +185,13 @@ function upgradeTree(node) {
     if (node.matches(sel)) cb(node);
     Array.prototype.forEach.call(node.querySelectorAll(sel), cb);
   }
+  function upgrade(el) {
+    componentHandler.upgradeElement(el);
+  }
   if (node.getAttribute('tree-upgraded')) return;
   node.setAttribute('tree-upgraded', true);
-  $('.mdl-js-button', function(el) {
-    componentHandler.upgradeElement(el);
-  });
+  $('.mdl-js-button', upgrade);
+  $('.mdl-js-textfield', upgrade);
 }
 
 /* Early preparation; define most of the functionality */
@@ -3461,6 +3463,8 @@ this.Instant = function() {
     var msgRead = null, msgEdit = null;
     /* Popup arrays (reading/writing) */
     var popupsRead = [], popupsEdit = [];
+    /* Element ID counter */
+    var elid = 0;
     return {
       /* Initialize submodule */
       init: function() {
@@ -3540,13 +3544,23 @@ this.Instant = function() {
         } else {
           nickNode = Instant.nick.makeNode(nick);
         }
+        var fieldID = 'pm-editor-' + (elid++);
         var popup = Instant.popups.make({title: 'Private message editor',
           className: 'pm-popup',
-          content: $makeFrag(['div', 'pm-header', [
-            ['strong', null, 'To: '],
-            ['span', [nickNode, ' ', ['i', ['(user ID ',
-              ['span', 'monospace', uid], ')']]]],
-          ]], ['hr'], ['textarea', 'pm-editor']),
+          content: $makeFrag(
+            ['div', 'pm-header', [
+              ['strong', null, 'To: '],
+              ['span', [nickNode, ' ', ['i', ['(user ID ',
+                ['span', 'monospace', uid], ')']]]],
+            ]],
+            ['hr'],
+            ['div', 'mdl-textfield mdl-js-textfield', [
+              ['textarea', 'pm-editor mdl-textfield__input', {id: fieldID}],
+              ['label', 'mdl-textfield__label', {for: fieldID},
+                'Type your message here...'
+              ]
+            ]]
+          ),
           buttons: [
             {text: 'Finish later', onclick: function() {
               Instant.popups.del(popup);

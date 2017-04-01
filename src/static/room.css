@@ -863,6 +863,9 @@ h2.msgbox-header {
 .popups .popup .popup-placeholder {
   width: 72px;
 }
+.popups .popup .popup-content {
+  width: unset;
+}
 
 .popups .popup.collapsed .popup-content,
 .popups .popup.collapsed .popup-bottom {
@@ -881,9 +884,20 @@ h2.msgbox-header {
 .pm-popup .pm-header i {
   font-size: smaller;
 }
-.pm-popup .pm-editor {
+.pm-popup .mdl-textfield {
   margin: 0;
   border: 0;
+  padding: 0;
+  width: unset;
+}
+.pm-popup .mdl-textfield label {
+  top: 0;
+}
+.pm-popup .mdl-textfield label::after {
+  bottom: 0;
+}
+.pm-popup .pm-editor {
+  margin: 0;
   padding: 0;
   width: 30em;
   max-width: 100%;
@@ -894,7 +908,6 @@ h2.msgbox-header {
   font: inherit;
   color: inherit;
   background: transparent;
-  box-shadow: 0 0 5px #808080;
   outline: none;
   resize: vertical;
 }
