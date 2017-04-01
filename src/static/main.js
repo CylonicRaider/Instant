@@ -1959,7 +1959,7 @@ this.Instant = function() {
       },
       /* Check whether we are allowed to reply to msg */
       _parentValid: function(msg) {
-        var md = (Instant.roomName == 'threads') ? 5 : 3;
+        var md = (Instant.roomName == 'threads') ? 10 : 5;
         // The input bar is one deeper than the message.
         return (msg.getAttribute('data-depth') < md - 1);
       },

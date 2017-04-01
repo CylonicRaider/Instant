@@ -48,10 +48,10 @@
           <div class="mdl-card__supporting-text mdl-color-text--grey-800
               card-stretch">
             <p><em>Yes!</em> Since threading is new and overwhelming, we've
-              limited the maximum amount of nesting levels to three. If you
+              limited the maximum amount of nesting levels to five. If you
               have the courage, we've loosened this restriction in the
               <a href="/room/threads/">&amp;threads</a> room; go there to
-              enjoy the uncomparable experience of <strong>five</strong>
+              enjoy the uncomparable experience of <strong>ten</strong>
               levels!</p>
           </div>
           <div class="mdl-card__actions mdl-card--border">
@@ -125,7 +125,9 @@
   /* Scroll animation. :3 */
   function updateScroll(evt) {
     if (document.documentElement.offsetWidth >= 480) {
-      var spacing = Math.max(0, 72 - document.documentElement.scrollTop);
+      var scrollPos = (document.documentElement.scrollTop ||
+                       document.body.scrollTop);
+      var spacing = Math.max(0, 72 - scrollPos);
       title.style.marginTop = (24 + spacing) + "px";
       title.style.marginLeft = (24 + spacing) + "px";
       if (spacing == 0) {

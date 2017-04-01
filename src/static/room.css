@@ -776,12 +776,21 @@ h2.msgbox-header {
   display: none;
 }
 
+/* HACK HACK HACK: Using fixed positioning to work around Chrome (and the
+ * flexbox specification) apparently not allowing to forcefully constrain
+ * the message pane to its allocated slot.
+ * TODO: Research this problem properly. */
 .message-pane {
-  width: 100%;
-  height: 100%;
-  box-sizing: border-box;
+  position: fixed;
+  top: 64px;
+  left: 0;
+  right: 0;
+  bottom: 0;
   overflow-y: scroll;
   overflow-x: auto;
+}
+.mdl-layout--fixed-drawer .message-pane {
+  right: 300px;
 }
 .message-pane > .message-box {
   display: -webkit-flex;
