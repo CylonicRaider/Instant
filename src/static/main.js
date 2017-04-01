@@ -2384,7 +2384,11 @@ this.Instant = function() {
             ['div', 'ui-message-box'],
             Instant.userList.getNode()
           ]],
-          ['main', 'mdl-layout__content']
+          ['main', 'mdl-layout__content'],
+          ['div', 'mdl-snackbar mdl-js-snackbar', {id: 'snackbar'}, [
+            ['div', 'mdl-snackbar__text'],
+            ['button', 'mdl-snackbar__action']
+          ]]
         ]);
         var topLine = $cls('sidebar-top-line', node);
         var nameNode = $cls('room-name', node);
@@ -2486,7 +2490,20 @@ this.Instant = function() {
       },
       /* Possibly show a UI message */
       _notify: function(notify) {
-        var data = notify.data;
+        var data = notify.data, LEVELS = Instant.notifications.LEVELS;
+        /* Show snackbar! */
+        var sb = $id('snackbar').MaterialSnackbar;
+        if (sb && LEVELS[notify.level] <= LEVELS.privmsg) {
+          var params = {
+            message: notify.text,
+            timeout: 2000
+          }
+          if (notify.onclick) {
+            params.actionText = 'Activate';
+            params.actionHandler = notify.onclick;
+          }
+          sb.showSnackbar(params);
+        }
         if (! data.uiMessage) return;
         var msgnode = Instant.sidebar.makeMessage({
           content: data.uiMessageNode || notify.text,
