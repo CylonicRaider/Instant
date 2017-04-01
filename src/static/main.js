@@ -1955,8 +1955,13 @@ this.Instant = function() {
         if (! parent) return null;
         return parent.getAttribute('data-id');
       },
+      /* Check whether we are allowed to reply to msg */
+      _parentValid: function(msg) {
+        return (msg.getAttribute('data-depth') < 3);
+      },
       /* Move the input bar into the given message/container */
-      jumpTo: function(parent) {
+      jumpTo: function(parent, force) {
+        if (! force && ! Instant.input._parentValid(parent)) return;
         /* Remove marker class from old parent */
         var oldParent = Instant.message.getParentMessage(inputNode);
         if (oldParent) oldParent.classList.remove('input-host');
@@ -1991,7 +1996,7 @@ this.Instant = function() {
           parent.classList.add('input-host');
       },
       /* Move the input bar relative to its current position */
-      navigate: function(direction) {
+      _navigate: function(direction) {
         /* Find root */
         var root = Instant.message.getRoot(inputNode);
         switch (direction) {
@@ -2014,7 +2019,7 @@ this.Instant = function() {
               par = ch;
             }
             /* End up here */
-            Instant.input.jumpTo(par);
+            Instant.input.jumpTo(par, true);
             return true;
           case 'down':
             /* Special case: message without replies or successor */
@@ -2023,7 +2028,7 @@ this.Instant = function() {
               return false;
             } else if (! Instant.message.hasReplies(par) &&
                 ! Instant.message.getSuccessor(par)) {
-              Instant.input.jumpTo(Instant.message.getParent(par));
+              Instant.input.jumpTo(Instant.message.getParent(par), true);
               return true;
             }
             /* Traverse parents until we have a successor */
@@ -2035,7 +2040,7 @@ this.Instant = function() {
             }
             /* Moved all the way up -> main thread */
             if (! next) {
-              Instant.input.jumpTo(root);
+              Instant.input.jumpTo(root, true);
               return true;
             }
             /* Descend into the current message as far as possible */
@@ -2044,31 +2049,47 @@ this.Instant = function() {
               par = Instant.message.getReply(par);
             }
             /* Settle here */
-            Instant.input.jumpTo(par);
+            Instant.input.jumpTo(par, true);
             return true;
           case 'left':
             /* Switch to the parent of the current host (or to the root) */
             var par = Instant.message.getParentMessage(inputNode);
             if (! par) return false;
             Instant.input.jumpTo(
-              Instant.message.getParentMessage(par) || root);
+              Instant.message.getParentMessage(par) || root, true);
             return true;
           case 'right':
             /* Switch to the last child to the current host (if any) */
             var child = Instant.message.getLastReply(
               Instant.message.getParent(inputNode));
             if (child) {
-              Instant.input.jumpTo(child);
+              Instant.input.jumpTo(child, true);
               return true;
             }
             return false;
           case 'root':
             /* Just return to the root */
-            Instant.input.jumpTo(root);
+            Instant.input.jumpTo(root, true);
             return true;
           default:
             throw new Error('Invalid direction for input.navigate(): ' +
               direction);
+        }
+      },
+      /* Move the input bar in the given direction, respecting depth limits */
+      navigate: function(direction) {
+        var oldParent = Instant.message.getParentMessage(inputNode);
+        var parent = oldParent;
+        for (;;) {
+          Instant.input._navigate(direction);
+          var newParent = Instant.message.getParent(inputNode);
+          if (newParent == parent) {
+            Instant.input.jumpTo(oldParent);
+            return false;
+          } else if (Instant.input._parentValid(newParent)) {
+            return true;
+          }
+          parent = newParent;
         }
       },
       /* Convenience wrapper for Instant.pane.saveScrollState() */
