@@ -4712,12 +4712,13 @@ this.Instant = function() {
         if (force == null) {
           force = (! node.classList.contains('collapsed'));
         }
+        var icon = $sel('.popup-collapse .material-icons', node);
         if (force) {
           node.classList.add('collapsed');
-          $sel('.popup-collapse img', node).src = expandURL;
+          icon.textContent = 'expand_more';
         } else {
           node.classList.remove('collapsed');
-          $sel('.popup-collapse img', node).src = collapseURL;
+          icon.textContent = 'expand_less';
         }
       },
       /* Check whether a popup is already shown */
