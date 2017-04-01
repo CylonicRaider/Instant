@@ -125,7 +125,9 @@
   /* Scroll animation. :3 */
   function updateScroll(evt) {
     if (document.documentElement.offsetWidth >= 480) {
-      var spacing = Math.max(0, 72 - document.documentElement.scrollTop);
+      var scrollPos = (document.documentElement.scrollTop ||
+                       document.body.scrollTop);
+      var spacing = Math.max(0, 72 - scrollPos);
       title.style.marginTop = (24 + spacing) + "px";
       title.style.marginLeft = (24 + spacing) + "px";
       if (spacing == 0) {
