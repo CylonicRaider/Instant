@@ -157,12 +157,12 @@ body {
 .message.emote > .line .nick {
   border-top-right-radius: 0;
   border-bottom-right-radius: 0;
-  padding-right: 4px;
+  padding-right: 6px;
 }
 .message.emote > .line .content {
   border-top-left-radius: 0;
   border-bottom-left-radius: 0;
-  padding-left: 4px;
+  padding-left: 6px;
 }
 
 .message-text {
