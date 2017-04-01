@@ -777,11 +777,11 @@ this.Instant = function() {
        * name is the nickname with an @-sign. */
       makeMention: function(name) {
         if (name[0] != '@') throw new Error('Bad nick for makeMention()');
-        var node = $makeNode('span', 'mention mdl-chip' [
-          ['span', 'mdl-chip__text', name]
-        ]);
+        var node = document.createElement('span');
         var realName = name.substr(1);
         var hue = Instant.nick.hueHash(realName);
+        node.className = 'mention';
+        node.textContent = name;
         node.style.color = Instant.nick.pingColor(realName);
         node.setAttribute('data-nick', realName);
         return node;
