@@ -166,6 +166,7 @@ public class InstantRunner implements API1 {
     private final List<MessageHook> messageHooks;
     private String host;
     private int port;
+    private PrintStream httpLog;
     private Counter counter;
     private InstantWebSocketServer server;
     private RoomWebSocketHook roomHook;
@@ -202,10 +203,10 @@ public class InstantRunner implements API1 {
     }
 
     public PrintStream getHTTPLog() {
-        return makeServer().getHTTPLog();
+        return httpLog;
     }
     public void setHTTPLog(PrintStream s) {
-        makeServer().setHTTPLog(s);
+        httpLog = s;
     }
 
     public Counter getCounter() {
@@ -230,6 +231,7 @@ public class InstantRunner implements API1 {
                 addr = new InetSocketAddress(host, port);
             }
             server = new InstantWebSocketServer(addr);
+            server.setHTTPLog(httpLog);
             server.addInternalHook(makeRedirectHook());
             server.addInternalHook(makeFileHook());
             server.addInternalHook(makeRoomHook());
