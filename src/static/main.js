@@ -894,7 +894,9 @@ this.Instant = function() {
             ]],
             ['span', 'nick-wrapper', [
               ['span', 'hidden', {'data-key': 'indent'}],
-              ['span', 'nick', '...']
+              ['span', 'nick mdl-chip', [
+                ['span', 'mdl-chip__text', '...']
+              ]]
             ]]
           ]]
         ]);
