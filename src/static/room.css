@@ -87,7 +87,8 @@ body {
   display: inline-block;
 }
 .message > .line .nick-wrapper .nick::after,
-.message > .line .time-wrapper::after {
+.message > .line .time-wrapper::after,
+.message > .line .content .message-text::after {
   /* HACK: Abusing the un-selectability of pseudoelements */
   content: " ";
   display: inline-block;
