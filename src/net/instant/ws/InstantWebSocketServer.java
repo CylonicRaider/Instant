@@ -211,7 +211,7 @@ public class InstantWebSocketServer extends WebSocketServer
                 hook.onOpen(info, handshake);
             }
         }
-        System.err.println(info.getBase().formatLogEntry());
+        httpLog.println(info.getBase().formatLogEntry());
     }
 
     public void onClose(WebSocket conn, int code,
