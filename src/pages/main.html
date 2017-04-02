@@ -3,192 +3,50 @@
   <head>
     <meta charset="utf-8"/>
     <title>Instant</title>
-    <!-- Material stuff -->
-    <link rel="stylesheet" href="/static/material.min.css"/>
-    <script src="/static/material.min.js"></script>
-    <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons"/>
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto+Slab:400,700&amp;subset=latin-ext"/>
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:400,400i,700,700i&amp;subset=latin-ext"/>
-    <link rel="stylesheet" type="text/css" href="/static/main.css"></style>
+    <link rel="stylesheet" type="text/css" href="/static/base.css"></style>
+    <link rel="stylesheet" type="text/css" href="/static/popup.css"></style>
+    <style type="text/css">
+.logo a {
+  display: inline-block;
+  position: relative;
+  color: black;
+}
+.logo a::after {
+  content: '';
+  background: url("/static/logo-static.svg");
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
+}
+.logo img {
+  width: 50vw;
+  max-width: 50vh;
+  vertical-align: top;
+}
+.logo:hover a::after {
+  opacity: 0;
+}
+.logo:not(:hover) img {
+  box-shadow: 0 0 0 black;
+}
+.logo a::after, .logo img {
+  -webkit-transition: box-shadow 0.25s, opacity 0.25s;
+  transition: box-shadow 0.25s, opacity 0.25s;
+}
+    </style>
   </head>
   <body>
-    <header>
-      <h1><img src="/static/logo-static.svg" alt="logo"/> Instant</h1>
-    </header>
-    <main>
-      <section class="feature mdl-shadow--4dp" id="card-threading">
-        <div class="feature-info mdl-card">
-          <div class="mdl-card__title mdl-card--border">
-            <h2 class="mdl-card__title-text">What is this?</h2>
-          </div>
-          <div class="mdl-card__supporting-text mdl-color-text--grey-800
-              card-stretch">
-            <p>We at Instant are building an online chat that features
-              <em>threading</em>. That is, you can start a conversation about
-              any message without disrupting everyone else. To encourage you
-              to try it, we <strong>automatically</strong> create a new thread
-              just for you when you post outside of any other.</p>
-          </div>
-          <div class="mdl-card__actions mdl-card--border">
-            <a href="/room/welcome/" class="mdl-button mdl-button--accent
-              mdl-js-button mdl-js-ripple-effect">Start chatting</a>
-            <a href="/about.html" class="mdl-button mdl-button--accent
-              mdl-js-button mdl-js-ripple-effect">About</a>
-          </div>
-        </div>
-        <div class="feature-image">
-          <img src="/static/graphic-main-threading.svg" alt="threading"/>
-        </div>
-      </section>
-      <section class="feature mdl-shadow--4dp" id="card-nesting">
-        <div class="feature-info mdl-card">
-          <div class="mdl-card__title mdl-card--border">
-            <h2 class="mdl-card__title-text">Wait, really?</h2>
-          </div>
-          <div class="mdl-card__supporting-text mdl-color-text--grey-800
-              card-stretch">
-            <p><em>Yes!</em> Since threading is new and overwhelming, we've
-              limited the maximum amount of nesting levels to five. If you
-              have the courage, we've loosened this restriction in the
-              <a href="/room/threads/">&amp;threads</a> room; go there to
-              enjoy the uncomparable experience of <strong>ten</strong>
-              levels!</p>
-          </div>
-          <div class="mdl-card__actions mdl-card--border">
-            <a href="/room/welcome/" class="mdl-button mdl-button--accent
-              mdl-js-button mdl-js-ripple-effect">Start chatting</a>
-            <a href="/room/threads/" class="mdl-button mdl-button--accent
-              mdl-js-button mdl-js-ripple-effect">Check &amp;threads</a>
-          </div>
-        </div>
-        <div class="feature-image feature-image--alt">
-          <img src="/static/graphic-main-nesting.svg" alt="nesting"/>
-        </div>
-      </section>
-      <section class="feature mdl-shadow--4dp" id="card-colors">
-        <div class="feature-info mdl-card">
-          <div class="mdl-card__title mdl-card--border">
-            <h2 class="mdl-card__title-text">Wow! Cool!</h2>
-          </div>
-          <div class="mdl-card__supporting-text mdl-color-text--grey-800
-              card-stretch">
-            <p><em>We're excited as well!</em> To add more, and to easily
-              identify yourself and your friends in all those threads,
-              we <strong>color-code</strong> every user. Try it yourself!</p>
-            <div class="centered">
-              <div class="mdl-textfield mdl-js-textfield
-                  mdl-textfield--floating-label">
-                <input type="text" class="mdl-textfield__input"
-                  id="demo-nick"/>
-                <label class="mdl-textfield__label"
-                  for="demo-nick">Nickname</label>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div class="feature-image">
-          <img src="/static/graphic-main-colors.png" alt="color wheel"
-            id="color-wheel" class="idle"/>
-          <i class="material-icons" id="wheel-arrow">arrow_upward</i>
-        </div>
-      </section>
-      <section class="feature mdl-shadow--4dp" id="card-collab">
-        <div class="feature-info mdl-card">
-          <div class="mdl-card__title mdl-card--border">
-            <h2 class="mdl-card__title-text">Awesome!</h2>
-          </div>
-          <div class="mdl-card__supporting-text mdl-color-text--grey-800
-              card-stretch">
-            <p><em>We know!</em> If you want to ask us something, you can
-              visit the developer in the <a href="/room/welcome/"
-              >&amp;welcome</a> room, or, if you are eager to contribute
-              something, you can <strong>star</strong> us on
-              <a href="https://github.com/CylonicRaider/Instant/"
-              >GitHub</a>.</p>
-          </div>
-          <div class="mdl-card__actions mdl-card--border">
-            <a href="/room/welcome/" class="mdl-button mdl-button--accent
-              mdl-js-button mdl-js-ripple-effect">Start chatting</a>
-            <a href="https://github.com/CylonicRaider/Instant/"
-              class="mdl-button mdl-button--accent mdl-js-button
-              mdl-js-ripple-effect">Instant on GitHub</a>
-          </div>
-        </div>
-        <div class="feature-image feature-image--alt feature-image--small">
-          <img src="/static/logo.svg" alt="animated logo"
-            id="logo-image"/>
-        </div>
-      </section>
-    </main>
-    <script>
-(function() {
-  /* Scroll animation. :3 */
-  function updateScroll(evt) {
-    if (document.documentElement.offsetWidth >= 480) {
-      var scrollPos = (document.documentElement.scrollTop ||
-                       document.body.scrollTop);
-      var spacing = Math.max(0, 72 - scrollPos);
-      title.style.marginTop = (24 + spacing) + "px";
-      title.style.marginLeft = (24 + spacing) + "px";
-      if (spacing == 0) {
-        header.classList.add("mdl-shadow--8dp");
-      } else {
-        header.classList.remove("mdl-shadow--8dp");
-      }
-    } else {
-      title.style = '';
-      if (document.documentElement.scrollTop > 0) {
-        header.classList.add("mdl-shadow--8dp");
-      } else {
-        header.classList.remove("mdl-shadow--8dp");
-      }
-    }
-  }
-  var header = document.querySelector("header");
-  var title = header.querySelector("h1");
-  document.addEventListener("scroll", updateScroll);
-  window.addEventListener("resize", updateScroll);
-  /* Interactive nick coloring. >:3 */
-  function hueHash(name) {
-    name = name.replace(/\s+/g, '').toLowerCase();
-    var hash = 0;
-    for (var i = 0; i < name.length; i++) {
-      hash += name.charCodeAt(i) * 359 + i * 271 + 89;
-      hash = (hash * hash * hash) % 360;
-    }
-    return hash;
-  }
-  function emoteColor(hue) {
-    return 'hsl(' + hue + ', 75%, 90%)';
-  }
-  function pingColor(hue) {
-    return 'hsl(' + hue + ', 75%, 40%)';
-  }
-  function updateWheel() {
-    var name = input.value;
-    if (name || input == document.activeElement) {
-      var hue = hueHash(name);
-      // Using emote color as it is less obtrusive.
-      input.style.backgroundColor = emoteColor(hue);
-      wheel.className = "active";
-      wheel.style = "transform: rotate(" + (-hue) + "deg) !important";
-      arrow.style.opacity = "1";
-      arrow.style.color = pingColor(hue);
-    } else {
-      input.style.backgroundColor = '';
-      wheel.className = "idle";
-      wheel.style = "";
-      arrow.style.opacity = "0";
-    }
-  }
-  var input = document.getElementById("demo-nick");
-  var wheel = document.getElementById("color-wheel");
-  var arrow = document.getElementById("wheel-arrow");
-  input.addEventListener("focus", updateWheel);
-  input.addEventListener("blur", updateWheel);
-  input.addEventListener("change", updateWheel);
-  input.addEventListener("input", updateWheel);
-})();
-    </script>
+    <div class="breadcrumbs standalone"><a href="/" class="logo-small"><img
+      src="/static/logo-static.svg"/><strong>Instant</strong></a> &raquo;
+      <a href="/about.html">About</a></div>
+    <div class="popup">
+      <div class="logo">
+        <a href="/room/welcome/">
+          <img src="/static/logo.svg"/>
+        </a>
+      </div>
+    </div>
   </body>
 </html>

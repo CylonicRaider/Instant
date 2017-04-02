@@ -1,0 +1,161 @@
+
+/* Dark theme. */
+
+.dark {
+  color: #e0e0e0;
+  background: black;
+}
+
+.dark :focus {
+  outline-color: white;
+}
+
+.dark a {
+  color: #0080ff;
+}
+.dark a:visited {
+  color: #c000c0;
+}
+
+.dark #load-wrapper {
+  color: white;
+}
+.dark #load-wrapper, .dark .breadcrumbs {
+  background: black;
+}
+.dark .breadcrumbs a {
+  color: inherit;
+}
+.dark #load-wrapper hr {
+  border-color: white;
+}
+
+.dark .logo img {
+  box-shadow: 0 0 30px white;
+}
+
+.dark .logo-small img {
+  box-shadow: 0 0 2px white;
+}
+
+.dark .spinner {
+  -webkit-filter: invert(1);
+  filter: invert(1);
+}
+.dark .online-status, .dark .settings, .dark .settings-content,
+.dark .user-list-menu {
+  border-color: #e0e0e0;
+  box-shadow: 0 0 5px white;
+}
+.dark .room-name, .dark a.room-name {
+  color: white;
+}
+
+.dark .settings, .dark .settings-content, .dark .user-list-menu {
+  background: black;
+}
+.dark .settings-content h2, .dark .settings-content h3 {
+  color: white;
+}
+.dark .settings-content .more-link, .dark .settings-content a.more-link {
+  color: #808080;
+}
+.dark .notifies-privmsg {
+  color: #c000c0;
+}
+.dark .notifies-ping {
+  color: #c0c000;
+}
+.dark .notifies-update {
+  color: #00c000;
+}
+.dark .notifies-reply {
+  color: #0080ff;
+}
+.dark .notifies-disconnect {
+  color: #ff0000;
+}
+.dark .notifies-activity {
+  color: #c0c0c0;
+}
+
+.dark .user-list .nick-box.selected .nick {
+  border-color: #e0e0e0;
+}
+.dark .user-list-menu h2 {
+  color: white;
+}
+.dark .user-list-counter a {
+  color: #c0c0c0;
+}
+.dark .user-list-counter img {
+  -webkit-filter: invert(1);
+  filter: invert(1);
+}
+
+.dark .button {
+  border-color: #e0e0e0;
+}
+
+.dark .nick, .dark .message.emote > .line .content {
+  -webkit-filter: brightness(0.875);
+  filter: brightness(0.875);
+}
+.dark .nick, .dark .message.emote > .line .content {
+  color: black;
+}
+.dark .message.ping > .line {
+  background: #202000;
+  color: inherit;
+}
+.dark .message.ping > .line time {
+  color: white;
+}
+
+.dark .message-text .monospace {
+  background: #202020;
+}
+
+.dark .sidebar-top > *, .dark .sidebar-middle > *,
+.dark .sidebar-bottom > * {
+  background: rgba(0, 0, 0, 0.85);
+}
+
+.dark .popups {
+  background: rgba(0, 0, 0, 0.5);
+}
+.dark .popup-wrapper .close-all, .dark .popups .popup {
+  background: black;
+}
+.dark .popup-wrapper .close-all, .dark .popups .popup,
+.dark .popups .popup-header {
+  border-color: #e0e0e0;
+}
+.dark .popups .popup .popup-title {
+  color: white;
+}
+.dark .popups .popup .popup-title-sep,
+.dark .popups .popup .popup-content hr {
+  background: #e0e0e0;
+}
+.dark .popup-wrapper .close-all img, .dark .popups .popup .popup-button img {
+  -webkit-filter: invert(1);
+  filter: invert(1);
+}
+
+.dark .input-bar, .dark .input-bar .input-nick-prompt {
+  background: black;
+}
+.dark .input-bar .input-nick {
+  color: black;
+}
+
+.dark .input-bar .input-info-cell .alert-container,
+.dark .input-bar .input-message-cell .input-nick-prompt img {
+  -webkit-filter: invert(1);
+  filter: invert(1);
+}
+
+.very-dark #main {
+  opacity: 0.5 !important;
+}

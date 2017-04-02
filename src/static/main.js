@@ -178,22 +178,6 @@ function $evalIn() {
   }
 }
 
-/* MDL helper */
-function upgradeTree(node) {
-  /* Hello jQuery! */
-  function $(sel, cb) {
-    if (node.matches(sel)) cb(node);
-    Array.prototype.forEach.call(node.querySelectorAll(sel), cb);
-  }
-  function upgrade(el) {
-    componentHandler.upgradeElement(el);
-  }
-  if (node.getAttribute('tree-upgraded')) return;
-  node.setAttribute('tree-upgraded', true);
-  $('.mdl-js-button', upgrade);
-  $('.mdl-js-textfield', upgrade);
-}
-
 /* Early preparation; define most of the functionality */
 this.Instant = function() {
   /* Locale-agnostic abbreviated month name table */
@@ -545,7 +529,7 @@ this.Instant = function() {
                 var inp = Instant.input.getNode();
                 if (inp) {
                   /* Prepare for scrolling */
-                  var restore = Instant.input.saveScrollState(true);
+                  var restore = Instant.input.saveScrollState();
                   /* Prepare data for display
                    * Inlining the clone process appears to be the fastest
                    * way to do it. :S */
@@ -765,10 +749,10 @@ this.Instant = function() {
       },
       /* Generate a DOM node carrying the nick */
       makeNode: function(name) {
+        var node = document.createElement('span');
         var hue = Instant.nick.hueHash(name);
-        var node = $makeNode('span', 'nick mdl-chip', [
-          ['span', 'mdl-chip__text', name]
-        ]);
+        node.className = 'nick';
+        node.textContent = name;
         node.style.backgroundColor = Instant.nick.nickColor(name);
         node.setAttribute('data-nick', name);
         return node;
@@ -788,9 +772,10 @@ this.Instant = function() {
       },
       /* Make a nickname node for an anonymous user */
       makeAnonymous: function() {
-        return $makeNode('span', 'nick anonymous mdl-chip' [
-          ['span', 'mdl-chip__text', 'Anonymous']
-        ]);
+        var node = document.createElement('span');
+        node.className = 'nick anonymous';
+        node.textContent = 'Anonymous';
+        return node;
       }
     };
   }();
@@ -1258,33 +1243,25 @@ this.Instant = function() {
         Instant.message.addReply(message, parent);
         /* Update indents */
         Instant.message.updateIndents(message);
-        /* Auto-thread */
-        var msgFrom = message.getAttribute('data-from');
-        if (! parID && msgFrom == Instant.identity.id)
-          Instant.input.jumpTo(message);
         /* Done */
         return message;
       },
       /* Update the indent string of the given message and all of its
        * children (if any; recursively) */
-      updateIndents: function(message, indent, depth) {
+      updateIndents: function(message, indent) {
         if (! indent) {
           var par = Instant.message.getParentMessage(message);
           if (par) {
             indent = $sel('[data-key=indent]', par).textContent + '| ';
-            depth = +(par.getAttribute('data-depth') || 0) + 1;
           } else {
             indent = '';
-            depth = 0;
           }
         }
         $sel('[data-key=indent]', message).textContent = indent;
-        message.setAttribute('data-depth', depth);
         indent += '| ';
-        depth += 1;
         var children = Instant.message.getReplies(message);
         for (var i = 0; i < children.length; i++) {
-          Instant.message.updateIndents(children[i], indent, depth);
+          Instant.message.updateIndents(children[i], indent);
         }
       },
       /* Traverse a message tree and return the nodes that match the given
@@ -1830,11 +1807,11 @@ this.Instant = function() {
           var name = inputNick.value;
           sizerNick.textContent = name;
           sizerNick.style.background = Instant.nick.nickColor(name);
-          /*if (name) {
+          if (name) {
             sizerNick.style.minWidth = '';
           } else {
             sizerNick.style.minWidth = '1em';
-          }*/
+          }
           Instant._fireListeners('input.nickEdit', {nick: name,
             source: event});
         }
@@ -1850,7 +1827,7 @@ this.Instant = function() {
         function updateFocus(event) {
           focusedNode = event.target;
         }
-        inputNode = $makeNode('div', 'input-bar mdl-shadow--2dp', [
+        inputNode = $makeNode('div', 'input-bar', [
           ['div', 'input-info-cell', [
             ['span', 'alert-container', [
               ['a', 'offscreen-alert alert-above', {href: '#'}, [
@@ -1957,15 +1934,8 @@ this.Instant = function() {
         if (! parent) return null;
         return parent.getAttribute('data-id');
       },
-      /* Check whether we are allowed to reply to msg */
-      _parentValid: function(msg) {
-        var md = (Instant.roomName == 'threads') ? 10 : 5;
-        // The input bar is one deeper than the message.
-        return (msg.getAttribute('data-depth') < md - 1);
-      },
       /* Move the input bar into the given message/container */
       jumpTo: function(parent, force) {
-        if (! force && ! Instant.input._parentValid(parent)) return false;
         /* Disallow replying to loading messages
          * Seriously, kids, do you not have anything better to do? */
         if (parent.matches('#load-wrapper *')) return false;
@@ -2004,7 +1974,7 @@ this.Instant = function() {
           parent.classList.add('input-host');
       },
       /* Move the input bar relative to its current position */
-      _navigate: function(direction) {
+      navigate: function(direction) {
         /* Find root */
         var root = Instant.message.getRoot(inputNode);
         switch (direction) {
@@ -2027,7 +1997,7 @@ this.Instant = function() {
               par = ch;
             }
             /* End up here */
-            Instant.input.jumpTo(par, true);
+            Instant.input.jumpTo(par);
             return true;
           case 'down':
             /* Special case: message without replies or successor */
@@ -2036,7 +2006,7 @@ this.Instant = function() {
               return false;
             } else if (! Instant.message.hasReplies(par) &&
                 ! Instant.message.getSuccessor(par)) {
-              Instant.input.jumpTo(Instant.message.getParent(par), true);
+              Instant.input.jumpTo(Instant.message.getParent(par));
               return true;
             }
             /* Traverse parents until we have a successor */
@@ -2048,7 +2018,7 @@ this.Instant = function() {
             }
             /* Moved all the way up -> main thread */
             if (! next) {
-              Instant.input.jumpTo(root, true);
+              Instant.input.jumpTo(root);
               return true;
             }
             /* Descend into the current message as far as possible */
@@ -2057,47 +2027,31 @@ this.Instant = function() {
               par = Instant.message.getReply(par);
             }
             /* Settle here */
-            Instant.input.jumpTo(par, true);
+            Instant.input.jumpTo(par);
             return true;
           case 'left':
             /* Switch to the parent of the current host (or to the root) */
             var par = Instant.message.getParentMessage(inputNode);
             if (! par) return false;
             Instant.input.jumpTo(
-              Instant.message.getParentMessage(par) || root, true);
+              Instant.message.getParentMessage(par) || root);
             return true;
           case 'right':
             /* Switch to the last child to the current host (if any) */
             var child = Instant.message.getLastReply(
               Instant.message.getParent(inputNode));
             if (child) {
-              Instant.input.jumpTo(child, true);
+              Instant.input.jumpTo(child);
               return true;
             }
             return false;
           case 'root':
             /* Just return to the root */
-            Instant.input.jumpTo(root, true);
+            Instant.input.jumpTo(root);
             return true;
           default:
             throw new Error('Invalid direction for input.navigate(): ' +
               direction);
-        }
-      },
-      /* Move the input bar in the given direction, respecting depth limits */
-      navigate: function(direction) {
-        var oldParent = Instant.message.getParentMessage(inputNode);
-        var parent = oldParent;
-        for (;;) {
-          Instant.input._navigate(direction);
-          var newParent = Instant.message.getParent(inputNode);
-          if (newParent == parent) {
-            Instant.input.jumpTo(oldParent);
-            return false;
-          } else if (Instant.input._parentValid(newParent)) {
-            return true;
-          }
-          parent = newParent;
         }
       },
       /* Convenience wrapper for Instant.pane.saveScrollState() */
@@ -2382,8 +2336,7 @@ this.Instant = function() {
       }()
     };
   }();
-  /* Sidebar handling
-   * Reinterpreted into app bar (and right-hand-side drawer). */
+  /* Sidebar handling */
   Instant.sidebar = function() {
     /* The main sidebar node */
     var node = null;
@@ -2396,41 +2349,25 @@ this.Instant = function() {
           return (el.target == wrapper);
         }
         Instant.userList.init();
-        node = $makeNode('div',
-            'appbar mdl-layout mdl-js-layout mdl-layout--fixed-header', [
-          ['header', 'mdl-layout__header', [
-            ['div', 'mdl-layout__header-row', [
-              ['div', 'mdl-layout-title', [
-                Instant.sidebar.roomName.init()
+        node = $makeNode('div', 'sidebar', [
+          ['div', 'sidebar-content', [
+            ['div', 'sidebar-top', [
+              ['div', 'sidebar-top-line', [
+                Instant.animation.spinner.init(), ' ',
+                Instant.sidebar.roomName.init(), ' ',
+                Instant.animation.onlineStatus.init(), ' ',
+                Instant.settings.init()
               ]],
-              ['div', 'mdl-layout-spacer'],
-              ['div', 'appbar-icon', [
-                Instant.animation.spinner.init()
-              ]],
-              ['div', 'appbar-icon', [
-                Instant.animation.onlineStatus.init()
-              ]],
+              ['div', 'ui-message-box']
+            ]],
+            ['div', 'sidebar-middle-wrapper', [
+              ['div', 'sidebar-middle', [
+                Instant.userList.getNode()
+              ]]
+            ]],
+            ['div', 'sidebar-bottom', [
+              Instant.userList.getCollapserNode()
             ]]
-          ]],
-          ['div', 'mdl-layout__drawer', [
-            ['button', 'pin-drawer mdl-button mdl-button--icon ' +
-                'mdl-js-button mdl-js-ripple-effect', [
-              ['i', 'material-icons', 'lock_open']
-            ]],
-            ['h2', 'main-link mdl-layout-title', [
-              ['img', {'src': '/static/logo-static.svg'}], ' ',
-              ['a', {'href': '/'}, 'Instant']
-            ]],
-            Instant.settings.init(),
-            ['h2', 'msgbox-header hidden', 'Messages'],
-            ['div', 'ui-message-box'],
-            ['h2', 'users-header', 'Users'],
-            Instant.userList.getNode()
-          ]],
-          ['main', 'mdl-layout__content'],
-          ['div', 'mdl-snackbar mdl-js-snackbar', {id: 'snackbar'}, [
-            ['div', 'mdl-snackbar__text'],
-            ['button', 'mdl-snackbar__action']
           ]]
         ]);
         var topLine = $cls('sidebar-top-line', node);
@@ -2439,14 +2376,14 @@ this.Instant = function() {
           topLine.insertBefore(navNode, nameNode);
           topLine.insertBefore(document.createTextNode(' '), nameNode);
         }
-        if (Instant.stagingLocation && topLine) {
+        if (Instant.stagingLocation) {
           var stagingNode = $makeNode('span', 'staging',
             '(' + Instant.stagingLocation + ')');
           topLine.insertBefore(stagingNode, nameNode.nextSibling);
           topLine.insertBefore(document.createTextNode(' '),
                                nameNode.nextSibling);
         }
-        /*var wrapper = $cls('sidebar-middle-wrapper', node);
+        var wrapper = $cls('sidebar-middle-wrapper', node);
         window.addEventListener('resize', Instant.sidebar.updateWidth);
         if (window.MutationObserver) {
           var obs = new MutationObserver(function(records, observer) {
@@ -2456,24 +2393,7 @@ this.Instant = function() {
           obs.observe(wrapper, {childList: true, attributes: true,
             characterData: true, subtree: true,
             attributeFilter: ['class', 'style']});
-        }*/
-        var pinbtn = $cls('pin-drawer', node);
-        function pinDrawer(doPin) {
-          if (doPin) {
-            node.classList.add('mdl-layout--fixed-drawer');
-            if ($sel('.mdl-layout__drawer.is-visible'))
-              node.MaterialLayout.toggleDrawer();
-            $cls('material-icons', pinbtn).textContent = 'lock_outline';
-          } else {
-            node.classList.remove('mdl-layout--fixed-drawer');
-            $cls('material-icons', pinbtn).textContent = 'lock_open';
-          }
-          Instant.storage.set('drawer-pinned', doPin);
         }
-        pinbtn.addEventListener('click', function() {
-          pinDrawer(! node.classList.contains('mdl-layout--fixed-drawer'));
-        });
-        pinDrawer(Instant.storage.get('drawer-pinned'));
         return node;
       },
       /* Change the width of the content to avoid horizontal scrollbars */
@@ -2520,33 +2440,16 @@ this.Instant = function() {
       },
       /* Scroll the sidebar such that the given node is fully visible */
       scrollIntoView: function(child) {
-        Instant.pane.scrollIntoViewEx(child, $cls('mdl-layout__drawer',
+        Instant.pane.scrollIntoViewEx(child, $cls('sidebar-middle-wrapper',
                                                   node), 0);
       },
       /* Return the main DOM node */
       getNode: function() {
         return node;
       },
-      /* Return the node for layout content */
-      getContentNode: function() {
-        return $cls('mdl-layout__content', node);
-      },
       /* Possibly show a UI message */
       _notify: function(notify) {
-        var data = notify.data, LEVELS = Instant.notifications.LEVELS;
-        /* Show snackbar! */
-        var sb = $id('snackbar').MaterialSnackbar;
-        if (sb && LEVELS[notify.level] <= LEVELS.privmsg) {
-          var params = {
-            message: notify.text,
-            timeout: 2000
-          }
-          if (notify.onclick) {
-            params.actionText = 'Activate';
-            params.actionHandler = notify.onclick;
-          }
-          sb.showSnackbar(params);
-        }
+        var data = notify.data;
         if (! data.uiMessage) return;
         var msgnode = Instant.sidebar.makeMessage({
           content: data.uiMessageNode || notify.text,
@@ -2558,8 +2461,8 @@ this.Instant = function() {
       },
       /* Make a UI message */
       makeMessage: function(options) {
-        var msgnode = $makeNode('button', 'mdl-button mdl-js-button ' +
-          'mdl-js-ripple-effect');
+        var msgnode = document.createElement('div');
+        msgnode.tabIndex = 0;
         if (typeof options.content == 'string') {
           msgnode.textContent = options.content;
         } else if (options.content) {
@@ -2578,8 +2481,6 @@ this.Instant = function() {
               event.preventDefault();
             }
           });
-        } else {
-          msgnode.disabled = true;
         }
         return msgnode;
       },
@@ -2593,8 +2494,6 @@ this.Instant = function() {
           msgnode.setAttribute('data-msgid', id);
         }
         msgbox.appendChild(msgnode);
-        upgradeTree(msgnode);
-        Instant.sidebar._updateMessageHeader();
         Instant.sidebar.updateWidth();
       },
       /* Hide a UI message */
@@ -2605,17 +2504,6 @@ this.Instant = function() {
         try {
           msgbox.removeChild(msgnode);
         } catch (e) {}
-        Instant.sidebar._updateMessageHeader();
-      },
-      /* Show/hide UI message box heading */
-      _updateMessageHeader: function() {
-        var hdr = $cls('msgbox-header', node);
-        var msgbox = $cls('ui-message-box', node);
-        if (msgbox.children.length) {
-          hdr.classList.remove('hidden');
-        } else {
-          hdr.classList.add('hidden');
-        }
       },
       /* Room name widget */
       roomName: function() {
@@ -2660,20 +2548,11 @@ this.Instant = function() {
             ['span', ['...']]
           ]]
         ]);
-        menu = $makeNode('div', 'user-list-menu mdl-card mdl-shadow--2dp', [
-          ['div', 'mdl-card__title'],
-          ['div', 'mdl-card__actions', [
-            ['button', 'action-ping mdl-button mdl-js-button ' +
-              'mdl-js-ripple-effect', ['Insert ping']], ' ',
-            ['button', 'action-pm mdl-button mdl-js-button ' +
-              'mdl-js-ripple-effect', ['PM']]
-          ]],
-          ['div', 'mdl-card__menu', [
-            ['button', 'action-close mdl-button mdl-button--icon ' +
-                'mdl-js-button mdl-js-ripple-effect', [
-              ['i', 'material-icons', 'close']
-            ]]
-          ]]
+        menu = $makeNode('div', 'user-list-menu', [
+          ['h2', ['Actions:']],
+          ['div', 'clear'],
+          ['button', 'button action-ping', ['Insert ping']], ' ',
+          ['button', 'button action-pm', ['PM']]
         ]);
         /* Maintain focus state of input bar */
         var inputWasFocused = false;
@@ -2715,9 +2594,6 @@ this.Instant = function() {
           var nick = nickNode.getAttribute('data-nick');
           Instant.userList.showMenu(null);
           Instant.privmsg.write(uid, nick);
-        });
-        $cls('action-close', menu).addEventListener('click', function() {
-          Instant.userList.showMenu(null);
         });
       },
       /* Scan the list for a place where to insert */
@@ -2775,11 +2651,14 @@ this.Instant = function() {
           newWrapper = newNode.parentNode;
           node.removeChild(newWrapper);
         } else {
-          newNode = $makeNode('button', 'nick mdl-chip ', {id: 'user-' + id,
-              'data-id': id}, [
-            ['span', 'mdl-chip__text']
-          ]);
-          newWrapper = $makeNode('div', 'nick-box', [newNode]);
+          newNode = document.createElement('span');
+          newNode.className = 'nick';
+          newNode.setAttribute('data-id', id);
+          newNode.id = 'user-' + id;
+          newNode.tabIndex = 0;
+          newWrapper = document.createElement('div');
+          newWrapper.className = 'nick-box';
+          newWrapper.appendChild(newNode);
           newNode.addEventListener('click', toggleMenu);
           newNode.addEventListener('keydown', function(event) {
             // Return or Space
@@ -2793,7 +2672,7 @@ this.Instant = function() {
         if (uuid) newNode.setAttribute('data-uuid', uuid);
         newNode.setAttribute('data-last-active', Date.now());
         newNode.setAttribute('data-nick', name);
-        $sel('span', newNode).textContent = name;
+        newNode.textContent = name;
         newNode.style.background = Instant.nick.nickColor(name);
         newWrapper.style.display = ((name) ? '' : 'none');
         /* Update animation */
@@ -2809,7 +2688,6 @@ this.Instant = function() {
         /* Insert node into list */
         node.insertBefore(newWrapper, insBefore);
         /* Maintain consistency */
-        upgradeTree(newWrapper);
         Instant.userList.update();
         /* Return something sensible */
         return newNode;
@@ -2857,7 +2735,7 @@ this.Instant = function() {
         var parent = node.parentNode;
         if (! parent || ! parent.classList.contains('user-list-wrapper'))
           parent = null;
-        if (invisible && false) {
+        if (invisible) {
           node.classList.add('collapsed');
           collapser.classList.add('collapsed');
           if (parent) parent.classList.add('collapsed');
@@ -2952,7 +2830,6 @@ this.Instant = function() {
         var newParent = newChild.parentNode;
         newParent.classList.add('selected');
         newParent.appendChild(menu);
-        upgradeTree(menu);
         Instant.userList.update();
         Instant.sidebar.scrollIntoView(newParent);
       },
@@ -3467,8 +3344,6 @@ this.Instant = function() {
     var msgRead = null, msgEdit = null;
     /* Popup arrays (reading/writing) */
     var popupsRead = [], popupsEdit = [];
-    /* Element ID counter */
-    var elid = 0;
     return {
       /* Initialize submodule */
       init: function() {
@@ -3548,23 +3423,13 @@ this.Instant = function() {
         } else {
           nickNode = Instant.nick.makeNode(nick);
         }
-        var fieldID = 'pm-editor-' + (elid++);
         var popup = Instant.popups.make({title: 'Private message editor',
           className: 'pm-popup',
-          content: $makeFrag(
-            ['div', 'pm-header', [
-              ['strong', null, 'To: '],
-              ['span', [nickNode, ' ', ['i', ['(user ID ',
-                ['span', 'monospace', uid], ')']]]],
-            ]],
-            ['hr'],
-            ['div', 'mdl-textfield mdl-js-textfield', [
-              ['textarea', 'pm-editor mdl-textfield__input', {id: fieldID}],
-              ['label', 'mdl-textfield__label', {for: fieldID},
-                'Type your message here...'
-              ]
-            ]]
-          ),
+          content: $makeFrag(['div', 'pm-header', [
+            ['strong', null, 'To: '],
+            ['span', [nickNode, ' ', ['i', ['(user ID ',
+              ['span', 'monospace', uid], ')']]]],
+          ]], ['hr'], ['textarea', 'pm-editor']),
           buttons: [
             {text: 'Finish later', onclick: function() {
               Instant.popups.del(popup);
@@ -4207,61 +4072,53 @@ this.Instant = function() {
     return {
       /* Initialize submodule */
       init: function() {
-        function xradio(name, value, desc, ext, checked) {
-          var input = $makeNode('input', 'mdl-radio__button', {type: 'radio',
-            name: name, value: value, id: name + '-' + value + '-input'});
-          if (checked) input.checked = true;
-          var ret = $makeNode('label', 'mdl-radio mdl-js-radio ' +
-              'mdl-js-ripple-effect', {for: input.id}, [
-            input,
-            ['span', 'mdl-radio__label ' + name + '-' + value, desc]
-          ]);
-          if (ext) ret.classList.add('more-content');
+        function radio(name, value, checked) {
+          var ret = $makeNode('input', {type: 'radio', name: name,
+            value: value});
+          if (checked) ret.checked = true;
           return ret;
         }
-        function xcheckbox(name, desc, checked, title) {
-          var input = $makeNode('input', 'mdl-switch__input',
-            {type: 'checkbox', name: name, id: name});
-          if (checked) input.checked = true;
-          return $makeNode('label', 'mdl-switch mdl-js-switch ' +
-              'mdl-js-ripple-effect', {for: input.id}, [
-            input,
-            ['span', 'mdl-switch__label', desc]
-          ]);
+        function checkbox(name, checked) {
+          var ret = $makeNode('input', {type: 'checkbox', name: name});
+          if (checked) ret.checked = true;
+          return ret;
         }
-        wrapperNode = $makeNode('div', 'settings-wrapper mdl-card', [
-          ['div', 'mdl-card__title mdl-card--border', [
-            ['h2', 'settings mdl-button mdl-js-button ' +
-                'mdl-js-ripple-effect', [
-              'Settings',
-              ['i', 'icon material-icons', 'expand_more']
-            ]]
+        wrapperNode = $makeNode('div', 'settings-wrapper', [
+          ['button', 'settings', [
+            ['img', {src: '/static/gear.svg'}],
           ]],
-          ['form', 'settings-content mdl-card__supporting-text ' +
-              'mdl-card--border', [
+          ['form', 'settings-content', [
+            ['h2', ['Settings']],
             ['div', 'settings-theme', [
               ['h3', ['Theme:']],
-              xradio('theme', 'bright', 'Bright', false, true),
-              xradio('theme', 'dark', 'Dark'),
-              xradio('theme', 'verydark', 'Very dark')
+              ['label', [radio('theme', 'bright', true), ' Bright']],
+              ['label', [radio('theme', 'dark'), ' Dark']],
+              ['label', [radio('theme', 'verydark'), ' Very dark']]
             ]],
             ['hr'],
             ['div', 'settings-notifications', [
               ['h3', ['Notifications: ',
                 ['a', 'more-link', {href: '#'}, '(more)']
               ]],
-              xradio('notifies', 'none', 'None', false, true),
-              xradio('notifies', 'privmsg', 'On private messages', true),
-              xradio('notifies', 'ping', 'When pinged'),
-              xradio('notifies', 'update', 'On updates', true),
-              xradio('notifies', 'reply', 'When replied to'),
-              xradio('notifies', 'activity', 'On activity'),
-              xradio('notifies', 'disconnect', 'On disconnects', true)
+              ['label', 'notifies-none', [
+                radio('notifies', 'none', true), ' None']],
+              ['label', 'notifies-privmsg more-content', [
+                radio('notifies', 'privmsg'), ' On private messages']],
+              ['label', 'notifies-ping', [
+                radio('notifies', 'ping'), ' When pinged']],
+              ['label', 'notifies-update more-content', [
+                radio('notifies', 'update'), ' On updates']],
+              ['label', 'notifies-reply', [
+                radio('notifies', 'reply'), ' When replied to']],
+              ['label', 'notifies-activity', [
+                radio('notifies', 'activity'), ' On activity']],
+              ['label', 'notifies-disconnect more-content', [
+                radio('notifies', 'disconnect'), ' On disconnects']]
             ]],
             ['hr'],
             ['div', 'settings-nodisturb', [
-              xcheckbox('no-disturb', 'Do not disturb', false, 'Void ' +
-                'notifications that are below your chosen level')
+              ['label', {title: 'Void notifications that are below your ' +
+                'chosen level'}, [checkbox('no-disturb'), ' Do not disturb']]
             ]]
           ]]
         ]);
@@ -4297,7 +4154,7 @@ this.Instant = function() {
       apply: function(event) {
         var cnt = $cls('settings-content', wrapperNode);
         var theme = cnt.elements['theme'].value;
-        /*if (theme == 'bright') {
+        if (theme == 'bright') {
           document.body.classList.remove('dark');
           document.body.classList.remove('very-dark');
         } else if (theme == 'dark') {
@@ -4308,7 +4165,7 @@ this.Instant = function() {
           document.body.classList.add('very-dark');
         } else {
           console.warn('Unknown theme:', theme);
-        }*/
+        }
         var level = cnt.elements['notifies'].value;
         Instant.notifications.level = level;
         if (level != 'none') Instant.notifications.desktop.request();
@@ -4336,7 +4193,6 @@ this.Instant = function() {
       /* Set the setting popup visibility */
       _setVisible: function(vis, event) {
         var wasVisible = Instant.settings.isVisible();
-        var icon = $sel('.settings .icon', wrapperNode);
         if (vis == null) {
           wrapperNode.classList.toggle('visible');
         } else if (vis) {
@@ -4345,11 +4201,6 @@ this.Instant = function() {
           wrapperNode.classList.remove('visible');
         }
         var visible = Instant.settings.isVisible();
-        if (visible) {
-          icon.textContent = 'expand_less';
-        } else {
-          icon.textContent = 'expand_more';
-        }
         Instant._fireListeners('settings.visibility', {visible: visible,
           wasVisible: wasVisible, source: event});
       },
@@ -4669,9 +4520,8 @@ this.Instant = function() {
           ['div', 'popups-content', [
             ['div', 'popups']
           ]],
-          ['button', 'close-all mdl-button mdl-js-button mdl-button--fab ' +
-              'mdl-button--accent mdl-js-ripple-effect', [
-            ['i', 'material-icons', 'close']
+          ['a', 'close-all', {href: '#'}, [
+            ['img', {src: closeURL}]
           ]]
         ]);
         stack = $cls('popups', wrapper);
@@ -4692,7 +4542,6 @@ this.Instant = function() {
       /* Add a node to the popup stack */
       add: function(node) {
         stack.appendChild(node);
-        upgradeTree(node);
         wrapper.style.display = 'block';
         Instant.util.adjustScrollbar($cls('close-all', wrapper),
                                      $cls('popups-content', wrapper));
@@ -4716,13 +4565,12 @@ this.Instant = function() {
         if (force == null) {
           force = (! node.classList.contains('collapsed'));
         }
-        var icon = $sel('.popup-collapse .material-icons', node);
         if (force) {
           node.classList.add('collapsed');
-          icon.textContent = 'expand_more';
+          $sel('.popup-collapse img', node).src = expandURL;
         } else {
           node.classList.remove('collapsed');
-          icon.textContent = 'expand_less';
+          $sel('.popup-collapse img', node).src = collapseURL;
         }
       },
       /* Check whether a popup is already shown */
@@ -4737,48 +4585,38 @@ this.Instant = function() {
       },
       /* Create a new popup */
       make: function(options) {
-        function addContent(cls, cnt, hdr) {
+        function addContent(cls, cnt) {
           if (typeof cnt == 'string') {
-            if (hdr) {
-              $sel(cls, ret).appendChild($makeNode('span',
-                'mdl-card__title-text', cnt));
-            } else {
-              $sel(cls, ret).textContent = cnt;
-            }
+            $sel(cls, ret).textContent = cnt;
           } else if (cnt) {
             $sel(cls, ret).appendChild(cnt);
           }
         }
         var co = (! options.noCollapse), cl = (! options.noClose);
-        var ret = $makeNode('div', 'popup mdl-card mdl-shadow--4dp', [
-          ['div', 'popup-header mdl-card__title mdl-card--border', [
+        var ret = $makeNode('div', 'popup', [
+          ['div', 'popup-header', [
             ['span', 'popup-title'],
-            ['span', 'popup-placeholder']
-          ]],
-          ['div', 'popup-content mdl-card__supporting-text ' +
-            'mdl-color-text--grey-800'],
-          ['div', 'popup-bottom mdl-card__actions mdl-card--border'],
-          ['div', 'mdl-card__menu', [
-          co && ['button', 'popup-collapse mdl-button mdl-button--icon ' +
-                'mdl-js-button mdl-js-ripple-effect', [
-              ['i', 'material-icons', 'expand_less']
+            co && ['span', 'popup-title-sep'],
+            co && ['a', 'popup-button popup-collapse', {href: '#'}, [
+              ['img', {src: collapseURL}]
             ]],
-            cl && ['button', 'popup-close mdl-button mdl-button--icon ' +
-                'mdl-js-button mdl-js-ripple-effect', [
-              ['i', 'material-icons', 'close']
+            cl && ['span', 'popup-title-sep'],
+            cl && ['a', 'popup-button popup-close', {href: '#'}, [
+              ['img', {src: closeURL}]
             ]]
-          ]]
+          ]],
+          ['div', 'popup-content'],
+          ['div', 'popup-bottom']
         ]);
         if (options.id) ret.id = options.id;
         if (options.className) ret.className += ' ' + options.className;
-        addContent('.popup-title', options.title, true);
+        addContent('.popup-title', options.title);
         addContent('.popup-content', options.content);
         addContent('.popup-bottom', options.bottom);
         if (options.buttons) {
           var bottom = $cls('popup-bottom', ret);
           options.buttons.forEach(function(el) {
-            var btn = $makeNode('button', 'mdl-button mdl-js-button ' +
-              'mdl-js-ripple-effect', [el.text]);
+            var btn = $makeNode('button', 'button', [el.text]);
             if (el.color) btn.style.color = el.color;
             if (el.onclick) btn.addEventListener('click', el.onclick);
             if (el.className) btn.className += ' ' + el.className;
@@ -5272,18 +5110,17 @@ this.Instant = function() {
       $cls('alert-container', Instant.input.getNode()));
     Instant.popups.init();
     Instant.privmsg.init();
-    Instant.sidebar.getContentNode().appendChild(
-      Instant.message.getMessagePane());
+    main.appendChild(Instant.message.getMessagePane());
     main.appendChild(Instant.sidebar.getNode());
     main.appendChild(Instant.popups.getNode());
     Instant.pane.main.init(main);
     Instant._fireListeners('init.late');
     Instant.settings.load();
     Instant.connection.init();
-    /*repeat(function() {
+    repeat(function() {
       Instant.util.adjustScrollbar($cls('sidebar', main),
                                    $cls('message-pane', main));
-    }, 1000);*/
+    }, 1000);
     Instant.notifications.submitNew({text: 'Ready.'});
     Instant._fireListeners('init.final');
   };
@@ -5315,10 +5152,10 @@ function init() {
   /* Focus input bar if Escape pressed and not focused */
   document.documentElement.addEventListener('keydown', function(event) {
     if (event.keyCode == 27) { // Escape
+      if (Instant.settings.isVisible())
+        Instant.settings.hide();
       if (Instant.userList.getSelectedUser() != null)
         Instant.userList.showMenu(null);
-      if ($sel('.mdl-layout__drawer.is-visible'))
-        $cls('mdl-layout').MaterialLayout.toggleDrawer();
       Instant.input.focus();
       event.preventDefault();
     }
@@ -5329,7 +5166,7 @@ function init() {
     document.documentElement.scrollTop = 0;
   }, 0);
   /* Fire up Instant! */
-  Instant.init(main, wrapper, null);
+  Instant.init(main, wrapper, $cls('breadcrumbs'));
   Instant.input.focus();
 }
 

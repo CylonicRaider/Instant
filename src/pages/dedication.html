@@ -3,45 +3,44 @@
   <head>
     <meta charset="utf-8"/>
     <title>Dedication &mdash; Instant</title>
+    <link rel="stylesheet" type="text/css" href="/static/base.css"></style>
     <link rel="stylesheet" type="text/css" href="/static/popup.css"></style>
-    <!-- Material stuff -->
-    <link rel="stylesheet" href="/static/material.min.css"/>
-    <script src="/static/material.min.js"></script>
-    <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons"/>
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto+Slab:400,700&amp;subset=latin-ext"/>
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:400,400i,700,700i&amp;subset=latin-ext"/>
     <style type="text/css">
-#title {
-  height: 256px;
-  background: url("/static/graphic-dedication.png");
+.box {
+  position: relative;
 }
-#title, #back {
-  color: #fff;
+.box::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 100%;
+  height: 100%;
+  background: url("/static/chromakode.svg") no-repeat right top;
+  opacity: 0.125;
+  z-index: -10;
 }
 .ch {
   color: hsl(22, 50%, 42%);
 }
+.right {
+  text-align: right;
+}
     </style>
   </head>
   <body>
-    <div class="popup">
-      <div class="mdl-card card-wide mdl-shadow--4dp">
-        <div class="mdl-card__title" id="title">
-          <h1 class="mdl-card__title-text">Dedication</h1>
-        </div>
-        <div class="mdl-card__supporting-text mdl-color-text--grey-800">
-          <p>I devote this work to <em>Max &ldquo;<span class="ch"
-            >@chromakode</span>&rdquo; Goodman</em>, who through incredible
-            effort created and wonderfully shaped the front-end of my
-            inspiration, <a href="https://euphoria.io/">euphoria.io</a>.</p>
-          <p class="popup-footer">Thanks, Max!</p>
-        </div>
-        <div class="mdl-card__menu" id="back">
-          <a class="mdl-button mdl-button--icon mdl-js-button mdl-js-ripple-effect"
-              href="/">
-            <i class="material-icons">close</i>
-          </a>
-        </div>
+    <div class="popup sized">
+      <div class="breadcrumbs"><a href="/" class="logo-small"><img
+        src="/static/logo-static.svg"/><strong>Instant</strong></a> &raquo;
+        <a href="/about.html">About</a> &bull;
+        <strong>Dedication</strong></div>
+      <div class="box">
+        <h1>Dedication</h1>
+        <p>I devote this work to <em>Max &ldquo;<span class="ch"
+          >@chromakode</span>&rdquo; Goodman</em>, who through incredible
+          effort created and wonderfully shaped the front-end of my
+          inspiration, <a href="https://euphoria.io/">euphoria.io</a>.</p>
+        <p class="popup-footer">Thanks, Max!</p>
       </div>
     </div>
   </body>

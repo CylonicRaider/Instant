@@ -10,34 +10,10 @@ body {
   background: white;
   /* Prevent Chrome pull-to-refresh */
   overflow: hidden;
-  font-family: "Roboto", "Helvetica", "Arial", sans-serif;
 }
 
 :focus {
   outline: 1px dotted black;
-}
-
-.logo img {
-  display: block;
-  min-width: 32px;
-  border-radius: 50%;
-  box-shadow: 0 10px 30px black;
-  background: #000000;
-}
-.logo h1 {
-  margin: 0;
-  text-align: center;
-  font-family: Georgia, serif;
-  font-size: 100px;
-  font-weight: normal;
-  line-height: 75%;
-  text-shadow: 0 0 10px white;
-}
-@media (max-width: 600px) {
-  .logo h1 { font-size: 75px; }
-}
-@media (max-width: 400px) {
-  .logo h1 { font-size: 50px; }
 }
 
 #load-wrapper {
@@ -47,7 +23,6 @@ body {
   background: white;
   padding: 30px;
   margin: 30px auto;
-  border-radius: 2px;
   -webkit-transition: background 0.5s, color 0.5s,
                       opacity 1s, box-shadow 0.1s;
   transition: background 0.5s, color 0.5s,
@@ -100,13 +75,9 @@ body {
   align-items: baseline;
   white-space: pre-wrap;
   word-wrap: break-word;
-  font-size: 13px;
 }
 .message.ping > .line {
   background: #ffffc0;
-}
-.message > .line .time-wrapper {
-  line-height: 32px;
 }
 .message > .line .nick-wrapper {
   -webkit-flex-shrink: 0;
@@ -114,7 +85,6 @@ body {
 }
 .message > .line .nick-wrapper .nick {
   display: inline-block;
-  margin: 0;
 }
 .message > .line .nick-wrapper .nick::after,
 .message > .line .time-wrapper::after {
@@ -141,28 +111,13 @@ body {
 }
 .message > .line .content {
   min-width: 0;
-  background: #f0f0f0;
-  padding: 6px 16px;
-  border-radius: 16px;
 }
 .message > .line .content .message-text {
   display: block;
+  padding: 1px 0 1px 0.25em;
 }
-.message > .line .content .message-text::after {
-  content: " ";
-  display: inline-block;
-  width: 0;
-}
-
-.message.emote > .line .nick {
-  border-top-right-radius: 0;
-  border-bottom-right-radius: 0;
-  padding-right: 6px;
-}
-.message.emote > .line .content {
-  border-top-left-radius: 0;
-  border-bottom-left-radius: 0;
-  padding-left: 6px;
+.message.emote > .line .content .message-text {
+  padding-right: 0.25em;
 }
 
 .message-text {
@@ -203,9 +158,8 @@ body {
   display: flex;
   -webkit-flex-direction: column;
   flex-direction: column;
-  margin: 5px 0 0 4px;
-  border-left: 4px solid #c0c0c0;
-  padding: 0 0 0 8px;
+  border-left: 2px solid #c0c0c0;
+  padding: 2px 0 0 8px;
 }
 .message > .replies:empty {
   display: none;
@@ -216,10 +170,11 @@ body {
 }
 
 .message + .message {
-  margin-top: 5px;
+  margin-top: 2px;
 }
 
 .nick {
+  padding: 1px 2px;
   background: #c0c0c0;
   white-space: pre-wrap;
   word-break: break-all;
@@ -227,12 +182,8 @@ body {
 .nick.anonymous {
   font-style: italic;
 }
-.nick .mdl-chip__text {
-  /* Nicks are baseline-aligned */
-  vertical-align: baseline;
-}
 
-/*@media (max-width: 400px) {
+@media (max-width: 400px) {
 
   .message > .line {
     display: block;
@@ -253,7 +204,7 @@ body {
     padding: 0 1px;
   }
 
-}*/
+}
 
 #main {
   position: absolute;
@@ -309,76 +260,12 @@ body {
   padding-right: 3px;
 }
 
-.mdl-layout__container {
-  position: absolute;
-  top: 0;
-  left: 0;
-}
-.appbar-icon {
-  padding: 24px;
-}
-.mdl-layout--fixed-drawer.is-upgraded:not(.is-small-screen) >
-.mdl-layout__header {
-  margin-left: 0;
-  margin-right: 300px;
-  width: calc(100% - 300px);
-}
-.mdl-layout--fixed-drawer:not(.is-small-screen) .mdl-layout__drawer-button {
-  right: 300px;
-  display: none;
-}
-.mdl-layout--fixed-drawer:not(.is-small-screen) > .mdl-layout__content {
-  margin-left: 0;
-  margin-right: 300px;
-}
-.mdl-layout__header-row {
-  padding: 0 70px 0 40px;
-}
-.mdl-layout--fixed-drawer:not(.is-small-screen) .mdl-layout__header-row {
-  padding-right: 20px;
-}
-.mdl-layout__drawer-button, .mdl-layout__drawer {
-  left: initial;
-  right: 0;
-}
-.mdl-layout__drawer {
-  width: 300px;
-  transform: translateX(310px);
-}
-.pin-drawer {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  z-index: 100;
-}
-.main-link {
-  margin: 0;
-  font: 30px/40px "Georgia", "Roboto Slab", "Times New Roman", serif;
-  letter-spacing: 0;
-}
-.mdl-layout__drawer > .mdl-layout-title.main-link {
-  padding: 0 0 0 16px;
-}
-.main-link img {
-  width: 30px;
-  height: 30px;
-}
-.main-link a {
-  color: black;
-}
-.mdl-layout__drawer > h2 {
-  margin: 0;
-  padding: 16px 0 0 16px;
-  color: black;
-  font-size: 24px;
-  line-height: 32px;
-}
-
 .spinner {
   display: none;
   position: relative;
-  width: 24px;
-  height: 24px;
+  width: 1.2em;
+  height: 1.2em;
+  margin: -2px 0;
   padding: 2px;
   vertical-align: bottom;
 }
@@ -402,16 +289,16 @@ body {
   font-style: italic;
 }
 
-.online-status {
+.online-status, .settings {
   display: inline-block;
-  width: 24px;
-  height: 24px;
+  width: 1.2em;
+  height: 1.2em;
+  margin: -2px 0;
   padding: 1px;
   border: 1px solid black;
   border-radius: 50%;
   vertical-align: bottom;
   box-sizing: content-box;
-  transition: background 0.5s;
 }
 
 .online-status {
@@ -428,32 +315,48 @@ body {
 }
 
 .settings-wrapper {
-  width: 100%;
-  min-height: 0;
+  display: inline-block;
+  position: relative;
+  z-index: 20;
 }
 .settings {
-  text-transform: none;
-  font-size: 24px;
+  position: relative;
+  font-size: 100%;
+  line-height: 0;
+  background: white;
+  cursor: pointer;
+}
+.settings::-moz-focus-inner {
+  margin: 0;
+  border: 0;
   padding: 0;
+}
+.settings img {
+  padding: 1px;
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
 }
 .settings-content {
   display: none;
+  position: absolute;
+  top: -2px;
+  right: 0;
+  border: 1px solid black;
+  padding: 5px;
+  z-index: -1;
   text-align: left;
   white-space: nowrap;
-  color: black;
   background: white;
 }
 .settings-content h2, .settings-content h3 {
   font-size: inherit;
-  line-height: 1.2;
-  margin: 0;
 }
 .settings-content h2 {
   margin-top: -4px;
   margin-right: 1.2em;
 }
 .settings-content h3 {
-  font-size: 16px;
   font-weight: normal;
   font-style: italic;
 }
@@ -467,7 +370,6 @@ body {
   display: block;
 }
 .settings-content hr {
-  margin: 0;
   border: none;
   height: 5px;
 }
@@ -476,31 +378,23 @@ body {
   font-size: smaller;
 }
 
+.settings-wrapper.visible .settings {
+  border-radius: 0;
+  border-width: 1px 1px 0 0;
+  padding: 1px 1px 2px 2px;
+  box-shadow: none;
+}
 .settings-wrapper.visible .settings-content {
   display: block;
 }
-.settings-theme {
-  display: none;
-}
 
-h2.msgbox-header {
-  background: white;
-}
 .ui-message-box {
-  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
-  padding: 16px 16px 8px;
-  background: white;
+  text-align: right;
   font-weight: bold;
   white-space: pre-line;
 }
 .ui-message-box:empty {
   display: none;
-}
-.ui-message-box > .mdl-button {
-  padding: 8px 16px;
-  line-height: 20px;
-  min-height: 36px;
-  height: unset;
 }
 .ui-message-box > .clickable {
   cursor: pointer;
@@ -513,10 +407,9 @@ h2.msgbox-header {
   display: -webkit-flex;
   display: flex;
   -webkit-flex-direction: column;
-  -webkit-align-items: stretch;
+  -webkit-align-items: flex-end;
   flex-direction: column;
-  align-items: stretch;
-  padding: 16px;
+  align-items: flex-end;
   background: none;
 }
 .user-list.collapsed {
@@ -524,33 +417,52 @@ h2.msgbox-header {
 }
 
 .user-list .nick-box {
-  position: relative;
-  margin-bottom: 5px;
+  margin-bottom: 2px;
+  box-shadow: 0 0 5px white;
+  text-align: right;
 }
 .user-list .nick-box:last-child {
   margin-bottom: 0;
 }
+.user-list .nick-box:empty {
+  display: none;
+}
 .user-list .nick-box > .nick {
+  float: right;
   z-index: 11;
   cursor: pointer;
-  margin: 0;
+  outline-offset: -1px;
 }
-.user-list .nick-box.selected {
-  background: white;
+.user-list .nick-box::after {
+  content: "";
+  display: block;
+  clear: both;
 }
-.user-list .nick-box.selected > .nick {
-  position: absolute;
-  top: 16px;
-  left: 16px;
+
+.user-list .nick-box.selected .nick {
+  margin-bottom: 1px;
+  margin-left: 1px;
+  border-width: 1px 1px 0 0;
+  border-style: solid;
+  border-color: black;
+  padding-top: 0;
+  padding-right: 1px;
 }
 
 .user-list-menu {
-  width: 100%;
-  min-height: 0;
+  border: 1px solid black;
+  padding: 1px;
+  background: white;
+  text-align: left;
+  min-width: 10em;
 }
-.user-list-menu .mdl-card__title {
-  /* 32px chip + 2*16px padding */
-  min-height: 64px;
+.user-list-menu h2 {
+  display: block;
+  margin-top: -1px;
+  font-size: inherit;
+}
+.user-list-menu .clear {
+  clear: both;
 }
 
 .button {
@@ -622,20 +534,18 @@ h2.msgbox-header {
   -webkit-align-content: stretch;
   align-content: stretch;
   width: 100%;
-  margin: 10px 0;
-  border-radius: 16px;
+  margin: 5px 0;
   overflow: hidden;
   background: white;
-  font-size: 13px;
-  line-height: 20px;
+  box-shadow: 0 0 5px #808080;
+  line-height: 1.2;
 }
 .input-bar .input-nick-sizer, .input-bar .input-nick,
 .input-bar .input-message, .input-bar .input-message-sizer {
   display: block;
   margin: 0;
   border: 0;
-  padding: 6px 12px;
-  border-radius: 16px;
+  padding: 0;
   font: inherit;
 }
 .input-bar .input-info-cell {
@@ -643,19 +553,18 @@ h2.msgbox-header {
   position: absolute;
   left: 0;
   width: 3.5em;
-  height: 24px;
-  padding: 4px 0;
 }
 .input-bar .alert-container {
   display: table;
   margin: auto;
-  min-height: 24px;
+  padding: 1px 0;
+  min-height: 1.2em;
   line-height: 0;
 }
 .input-bar .alert-container a {
   display: table-cell;
-  width: 24px;
-  height: 24px;
+  width: 1.2em;
+  height: 1.2em;
 }
 .input-bar .alert-container img {
   display: block;
@@ -667,16 +576,12 @@ h2.msgbox-header {
 }
 .input-bar .input-nick-sizer {
   display: inline-block;
-  min-width: 8px;
+  padding: 1px 2px;
   white-space: pre;
+  min-height: 1.2em;
   vertical-align: bottom;
   color: transparent;
   background: #c0c0c0;
-}
-.input-bar .input-nick-sizer::after {
-  content: " ";
-  display: inline-block;
-  width: 0;
 }
 /* Need to be more specific than catch-all below */
 .input-bar .input-nick-sizer, #main .input-bar .input-nick-sizer {
@@ -685,8 +590,8 @@ h2.msgbox-header {
 }
 .input-bar .input-nick {
   position: absolute;
-  top: 0;
-  left: 0;
+  top: 1px;
+  left: 2px;
   min-width: 100%;
   color: inherit;
   background: transparent;
@@ -695,6 +600,7 @@ h2.msgbox-header {
   position: relative;
   -webkit-flex-grow: 1;
   flex-grow: 1;
+  padding: 1px 0 1px 0.25em;
 }
 .input-bar .input-nick-prompt {
   display: inline-block;
@@ -704,9 +610,8 @@ h2.msgbox-header {
   max-width: 100%;
   height: 100%;
   border: 1px solid #808080;
-  padding: 4px 12px;
+  padding-right: 0.25em;
   background: white;
-  border-radius: 14px;
   box-sizing: border-box;
   white-space: nowrap;
   overflow: hidden;
@@ -717,7 +622,7 @@ h2.msgbox-header {
 .input-bar .input-nick-prompt img {
   width: 1.2em;
   height: 1.2em;
-  vertical-align: middle;
+  vertical-align: bottom;
 }
 .input-bar .input-group {
   position: relative;
@@ -726,12 +631,8 @@ h2.msgbox-header {
   width: 100%;
   color: inherit;
   background: transparent;
-  box-sizing: border-box;
   overflow: hidden;
   resize: none;
-}
-.input-bar .input-message {
-  background: #f0f0f0;
 }
 .input-bar .input-message-sizer {
   position: absolute;
@@ -755,10 +656,10 @@ h2.msgbox-header {
 }
 
 .message > .replies > .input-bar:first-child {
-  margin-top: 5px;
+  margin-top: 3px;
 }
 .message > .replies > .input-bar:last-child {
-  margin-bottom: 5px;
+  margin-bottom: 3px;
 }
 
 .message-box {
@@ -776,21 +677,12 @@ h2.msgbox-header {
   display: none;
 }
 
-/* HACK HACK HACK: Using fixed positioning to work around Chrome (and the
- * flexbox specification) apparently not allowing to forcefully constrain
- * the message pane to its allocated slot.
- * TODO: Research this problem properly. */
 .message-pane {
-  position: fixed;
-  top: 64px;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
   overflow-y: scroll;
   overflow-x: auto;
-}
-.mdl-layout--fixed-drawer .message-pane {
-  right: 300px;
 }
 .message-pane > .message-box {
   display: -webkit-flex;
@@ -808,7 +700,7 @@ h2.msgbox-header {
 }
 
 .message-pane > .message-box > .message:last-child {
-  margin-bottom: 5px;
+  margin-bottom: 2px;
 }
 
 .popups-wrapper {
@@ -818,12 +710,16 @@ h2.msgbox-header {
   width: 100%;
   height: 100%;
   display: none;
-  z-index: 1000;
 }
 .popups-wrapper .close-all {
   position: absolute;
-  top: 16px;
-  right: 16px;
+  top: 0;
+  right: 0;
+  width: 2em;
+  height: 2em;
+  border: 1px solid black;
+  background: white;
+  outline-offset: -2px;
   z-index: 1100;
 }
 .popups-content {
@@ -853,9 +749,9 @@ h2.msgbox-header {
 
 .popups .popup {
   margin: 0.5em auto;
-  width: auto;
+  border: 2px solid black;
   max-width: 100%;
-  min-height: 0;
+  background: white;
   word-wrap: break-word;
 }
 .popups .popup:first-child {
@@ -868,14 +764,48 @@ h2.msgbox-header {
 .popups .popup .popup-header {
   display: -webkit-flex;
   display: flex;
+  border-bottom: 1px solid black;
 }
-.popups .popup .popup-placeholder {
-  width: 72px;
+.popups .popup .popup-title {
+  font-weight: bold;
+  margin-right: auto;
+  padding: 5px;
+  line-height: 1.2em;
+}
+.popups .popup .popup-title-sep {
+  width: 1px;
+  -webkit-flex-shrink: 0;
+  flex-shrink: 0;
+  background: black;
+}
+.popups .popup .popup-button {
+  margin: auto 0;
+  line-height: 0;
+  outline-offset: -1px;
+}
+.popups .popup .popup-button img {
+  width: 1.2em;
+  height: 1.2em;
+  margin: 5px;
 }
 .popups .popup .popup-content {
-  width: unset;
+  padding: 5px;
+}
+.popups .popup .popup-content hr {
+  margin: 5px 0;
+  border: 0;
+  padding: 0;
+  height: 1px;
+  background: black;
+}
+.popups .popup .popup-bottom {
+  padding: 0 5px 5px 5px;
+  text-align: right;
 }
 
+.popups .popup.collapsed .popup-header {
+  border-bottom: 0;
+}
 .popups .popup.collapsed .popup-content,
 .popups .popup.collapsed .popup-bottom {
   display: none;
@@ -893,20 +823,9 @@ h2.msgbox-header {
 .pm-popup .pm-header i {
   font-size: smaller;
 }
-.pm-popup .mdl-textfield {
-  margin: 0;
-  border: 0;
-  padding: 0;
-  width: unset;
-}
-.pm-popup .mdl-textfield label {
-  top: 0;
-}
-.pm-popup .mdl-textfield label::after {
-  bottom: 0;
-}
 .pm-popup .pm-editor {
   margin: 0;
+  border: 0;
   padding: 0;
   width: 30em;
   max-width: 100%;
@@ -917,6 +836,7 @@ h2.msgbox-header {
   font: inherit;
   color: inherit;
   background: transparent;
+  box-shadow: 0 0 5px #808080;
   outline: none;
   resize: vertical;
 }
@@ -982,3 +902,8 @@ img.inline {
 }
 @-webkit-keyframes clrfade { to { color: rgba(0, 0, 0, 0.5); } }
 @keyframes clrfade { to { color: rgba(0, 0, 0, 0.5); } }
+
+body, #main, #main * {
+  -webkit-transition: background 0.5s, color 0.5s, opacity 1s;
+  transition: background 0.5s, color 0.5s, opacity 1s;
+}
