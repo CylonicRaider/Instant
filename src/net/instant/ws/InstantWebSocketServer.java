@@ -11,6 +11,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 import net.instant.Main;
 import net.instant.info.Datum;
@@ -88,6 +89,8 @@ public class InstantWebSocketServer extends WebSocketServer
     }
 
     public static final boolean INSECURE_COOKIES;
+
+    private static final Logger LOGGER = Logger.getLogger("IWSServer");
 
     static {
         String cfg = Util.getConfiguration("instant.cookies.insecure");
@@ -254,6 +257,9 @@ public class InstantWebSocketServer extends WebSocketServer
     }
 
     public void onError(WebSocket conn, Exception ex) {
+        /* Errors should not happen; log */
+        LOGGER.log(Level.WARNING, "Exception while handling connection", ex);
+        /* Normal processing */
         RequestInfo info;
         if (conn == null) {
             info = null;
