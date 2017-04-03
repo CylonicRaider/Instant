@@ -26,6 +26,14 @@ can be used to report a summary):
   like that?). To be interpreted as a path, an entry must contain a slash
   (`/`) character (regardless of platform).
 
+- `--http-log` *str* — *HTTP log location*: Either a file name where to
+  append the HTTP log to, or the `-` character to write to standard error.
+  Output is entry-buffered (i.e. flushed after every entry). Defaults to `-`.
+
+- `--debug-log` *str* — *Debugging log location*: Similarly to `--http-log`,
+  this is either a file name or a `-`. This is used for logging anything that
+  does not belong into the HTTP log. The default is, again, `-`.
+
 - `--host` *host* — *Hostname to bind to*: Can be used on machines with
   multiple network interfaces; `localhost` can be used to accept local
   connections only. Defaults to `*` (the asterisk), which is translated
