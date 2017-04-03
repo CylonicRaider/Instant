@@ -439,7 +439,8 @@ this.Instant = function() {
           if (event.defaultPrevented) return;
         }
         /* Send event */
-        Instant._fireListeners('connection.message', {source: event});
+        Instant._fireListeners('connection.message', {source: event,
+          _cancel: event.preventDefault.bind(event)});
         if (event.defaultPrevented) return;
         /* Extract message data */
         var msg;
@@ -2086,7 +2087,7 @@ this.Instant = function() {
           inputMsg.style.height = height + 'px';
           restore();
         }
-        Instant._fireListeners('input.edit', {text: inputMsg.value,
+        Instant._fireListeners('input.update', {text: inputMsg.value,
           source: event});
       },
       /* Respond to key presses in the input box */
@@ -2101,7 +2102,8 @@ this.Instant = function() {
           inputMsg.focus();
           return ret;
         }
-        Instant._fireListeners('input.keydown', {source: event});
+        Instant._fireListeners('input.keydown', {source: event,
+          _cancel: event.preventDefault.bind(event)});
         if (event.defaultPrevented) return;
         var inputMsg = $cls('input-message', inputNode);
         var text = inputMsg.value;
@@ -2110,7 +2112,8 @@ this.Instant = function() {
           /* Whether to clear the input bar */
           var clear = false;
           /* Allow event handlers to have a word */
-          var evdata = {text: text, source: event};
+          var evdata = {text: text, source: event,
+            _cancel: event.preventDefault.bind(event)};
           Instant._fireListeners('input.send', evdata);
           if (event.defaultPrevented) return;
           text = evdata.text;
@@ -5060,11 +5063,22 @@ this.Instant = function() {
       return new InstantEvent(type, data);
     this.instant = Instant;
     this.type = type;
+    this.cancelable = (!! data._cancel);
+    this.canceled = false;
     for (var key in data) {
       if (! data.hasOwnProperty(key)) continue;
       this[key] = data[key];
     }
   }
+  InstantEvent.prototype = {
+    /* Cancel the event, if that did not already happen */
+    cancel: function() {
+      if (! this._cancel || this.canceled) return false;
+      this.canceled = true;
+      this._cancel();
+      return true;
+    }
+  };
   Instant.InstantEvent = InstantEvent;
   /* Stop listening for an event
    * Returns where the listener had been installed at all. */
