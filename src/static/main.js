@@ -1002,7 +1002,7 @@ this.Instant = function() {
           if (! message) break;
           ret.push(message);
         }
-                return ret;
+        return ret;
       },
       /* Get the message immediately preceding the given one */
       getPrecedessor: function(message) {
@@ -1039,8 +1039,8 @@ this.Instant = function() {
           if (! message) return null;
         }
       },
-      /* Get the message this is a comment to, i.e. the precedessor, or the
-       * parent if none, or null if none at all */
+      /* Get the message this is a comment to, i.e., the precedessor, or the
+       * parent if none, or null if neither exists */
       getCommentParent: function(message) {
         var prec = Instant.message.getPrecedessor(message);
         if (prec) return prec;
@@ -1054,7 +1054,7 @@ this.Instant = function() {
           (res & Node.DOCUMENT_POSITION_PRECEDING) ? 1 : 0;
       },
       /* Get the node hosting the replies to the given message, or the
-       * message itself if it's actually none at all */
+       * message itself if it's actually not a message at all */
       _getReplyNode: function(message) {
         if (Instant.message.isMessage(message)) {
           var lc = message.lastElementChild;
@@ -1128,9 +1128,10 @@ this.Instant = function() {
         }
         return lc;
       },
-      /* Scan an array of messages where to insert
-       * If a matching node is (already) found and remove is true, it is
-       * removed. */
+      /* Scan an array of messages for where to insert the given ID
+       * The return value is suitable for use in the insertBefore() DOM API
+       * method. If a matching node is (already) found and remove is true, it
+       * is removed. */
       bisect: function(array, id, remove) {
         if (! array || ! array.length) return null;
         var f = 0, t = array.length - 1;
@@ -1146,7 +1147,7 @@ this.Instant = function() {
         for (;;) {
           /* >>1 to cast to integer
            * When we get into ranges where f + t would overflow, we
-           * have problems more grave than that. */
+           * have problems more grave than this. */
           var c = (f + t) >> 1;
           /* Element ID-s should sort identially to message ID-s */
           if (id < array[c].id) {
@@ -1188,7 +1189,7 @@ this.Instant = function() {
         if (typeof parent == 'string') {
           parent = messages[parent];
           if (! parent)
-            throw new Error('Adding message with nonexistant parent');
+            throw new Error('Adding message with nonexistent parent');
         }
         /* Validate parent is a DOM node */
         if (! parent || typeof parent != 'object' ||
@@ -1266,7 +1267,7 @@ this.Instant = function() {
         }
       },
       /* Traverse a message tree and return the nodes that match the given
-       * predicate.
+       * predicate
        * Processing of messages (and, subseqently, descendants) starts with
        * the first reply (if any); it can be skipped if a message is outside
        * the "current interval"; processing happens in no particular order
@@ -1283,7 +1284,8 @@ this.Instant = function() {
        */
       walk: function(node, cb) {
         /* search entries: [node, replies, fromIdx, curIdx, toIdx] (where
-         * toIdx is inclusive). */
+         * toIdx is inclusive). If the second entry is undefined, others
+         * are filled in. */
         var ret = [], search = [[node]];
         /* Repeat until explicit pseudo-recursion stack empty */
         while (search.length) {
@@ -1328,12 +1330,12 @@ this.Instant = function() {
         }
         return ret;
       },
-      /* Check if the given fragment idenfitier is a valid message
+      /* Check if the given fragment identifier is a valid message
        * identifier */
       checkFragment: function(url) {
         return (/^#message-.+$/.test(url));
       },
-      /* Extract a message out of a fragment identifier or return it
+      /* Extract a message ID out of a fragment identifier or return it
        * unchanged */
       parseFragment: function(url) {
         if (Instant.message.checkFragment(url))
@@ -1345,7 +1347,9 @@ this.Instant = function() {
         if (! Instant.message.checkFragment(url)) return null;
         return Instant.message.get(url.substring(9));
       },
-      /* Return the message identified by this is, or undefined if none */
+      /* Return the message identified by this ID, or undefined if none
+       * Fake messages for the purpose of showing replies without known
+       * parent count as nonexistent. */
       get: function(id) {
         return messages[id];
       },
@@ -1376,7 +1380,7 @@ this.Instant = function() {
                   $cls('content', msg).textContent);
         }
         var level = Instant.notifications.getLevel(msg);
-        /* For window title et al. */
+        /* For window title etc. */
         var par = Instant.message.getCommentParent(msg);
         var isReply = (par && par.classList.contains('mine'));
         var isPing = (msg.classList.contains('ping'));
