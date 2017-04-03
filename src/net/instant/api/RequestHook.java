@@ -24,7 +24,7 @@ public interface RequestHook {
     /**
      * Handle a ready output channel.
      * For plain HTTP requests, this is the place where the response body
-     * is sent; for WebSockets, this corresponds to a fully estabilished
+     * is sent; for WebSockets, this corresponds to a fully established
      * connection.
      * In spice of the class name, the WebSocket instance can be used to
      * send raw data, depending on the request type.
@@ -61,7 +61,7 @@ public interface RequestHook {
      * The exception object passed contains details.
      * The method is called in two cases, once when an error happens during
      * connection (so that onOpen() or onClose() are never called), or when
-     * a connection is already estabilished. In the latter case, an onClose()
+     * a connection is already established. In the latter case, an onClose()
      * call may follow shortly if the error was fatal to the connection, or
      * not if it was not (most likely an application error).
      * To clarify, after an onOpen(), an onClose() will always be called, or

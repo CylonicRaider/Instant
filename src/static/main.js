@@ -327,7 +327,7 @@ this.Instant = function() {
         Instant.identity.uuid = data.uuid;
         Instant.identity.serverVersion = data.version;
         Instant.identity.serverRevision = data.revision;
-        Instant._fireListeners('identity.estabilished');
+        Instant._fireListeners('identity.established');
       },
       /* Broadcast or send the current nickname */
       sendNick: function(to) {
