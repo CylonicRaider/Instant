@@ -87,7 +87,7 @@ public class DraftWrapper extends Draft {
 
     @Override
     public Draft copyInstance() {
-        return new DraftWrapper(getWrapped(), getCollector());
+        return new DraftWrapper(getWrapped().copyInstance(), getCollector());
     }
 
     @Override
