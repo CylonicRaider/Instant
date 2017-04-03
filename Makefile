@@ -21,6 +21,7 @@ Instant.jar: .build.jar $(LIBRARIES) $(ASSETS) $(AUTOASSETS)
 .INTERMEDIATE: .build.jar
 .SECONDARY: .build.jar
 .build.jar: $(SOURCES)
+	find src/net/ -name '*.class' -exec rm {} +
 	cd src && javac $(JAVACFLAGS) $(_JAVA_SOURCES)
 	cd src && jar cfe ../.build.jar Main $(_JAVA_SOURCES) \
 	$(patsubst %.java,%.class,$(_JAVA_SOURCES))
