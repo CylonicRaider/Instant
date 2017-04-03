@@ -1568,13 +1568,14 @@ this.Instant = function() {
                 status.grabbing = status.id;
               } else if (m[1] != null && status.grabbing != null) {
                 /* Sigil terminating block */
-                var st = '```' + (m[2] || '');
+                var st = '```';
                 var node = makeSigil(st, 'mono-block-after');
                 var nl = makeNode('\n', 'hidden');
                 out.push({rem: 'monoBlock', nodes: [node, nl]});
                 out.push(nl);
                 out.push(node);
                 status.grabbing = null;
+                return -(m[2] || '').length;
               } else {
                 out.push(m[0]);
               }
@@ -1683,8 +1684,9 @@ this.Instant = function() {
                 out.push(text.substring(idx, matches[minIdx].index));
               /* Process match */
               status.id = minIdx;
-              matchers[minIdx].cb(matches[minIdx], out, status);
-              idx = matches[minIdx].index + matches[minIdx][0].length;
+              var adv = matchers[minIdx].cb(matches[minIdx], out,
+                                            status) || 0;
+              idx = matches[minIdx].index + matches[minIdx][0].length + adv;
             }
             /* Disable stray emphasis marks
              * Those nested highlights actually form a context-free
