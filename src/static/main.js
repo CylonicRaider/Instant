@@ -867,6 +867,7 @@ this.Instant = function() {
           if (covered.hasOwnProperty(k))
             messages.push(covered[k]);
         }
+        if (! messages.length) return;
         /* Try to make sense of it */
         var resNode = Instant.message.prepareExport(messages);
         resNode.className = 'instant-messages';
@@ -1196,9 +1197,16 @@ this.Instant = function() {
        * range
        * If reverseEmpty is true and b is a precedessor of a, returns an
        * empty array. If a and b are equal, returns (in any case) that
-       * message as the only element. */
-      resolveMessageRange: function(a, b, reverseEmpty) {
-        if (a == b) return [a];
+       * message as the only element. If includeFakes is true, fake messages
+       * are included, otherwise not. */
+      resolveMessageRange: function(a, b, reverseEmpty, includeFakes) {
+        if (a == b) {
+          if (includeFakes || ! a.classList.contains('message-fake')) {
+            return [a];
+          } else {
+            return [];
+          }
+        }
         if (Instant.message.documentCmp(a, b) > 0) {
           if (reverseEmpty) return [];
           var x = a;
@@ -1208,7 +1216,9 @@ this.Instant = function() {
         var ret = [a], cur = a;
         while (cur != b) {
           cur = Instant.message.getDocumentSuccessor(cur);
-          ret.push(cur);
+          if (Instant.message.isMessage(cur) && (includeFakes ||
+              ! cur.classList.contains('message-fake')))
+            ret.push(cur);
         }
         return ret;
       },
