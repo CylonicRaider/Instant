@@ -5185,11 +5185,6 @@ function init() {
       event.preventDefault();
     }
   });
-  /* HACK: My browser scrolls down randomly at page load if the viewport is
-   *       too small. */
-  setTimeout(function() {
-    document.documentElement.scrollTop = 0;
-  }, 0);
   /* Fire up Instant! */
   Instant.init(main, wrapper, $cls('breadcrumbs'));
   Instant.input.focus();

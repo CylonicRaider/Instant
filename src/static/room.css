@@ -216,6 +216,9 @@ body {
   opacity: 0;
   text-align: left;
 }
+#main.fixed {
+  position: fixed;
+}
 
 .sidebar {
   display: -webkit-flex;
