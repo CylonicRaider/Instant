@@ -905,6 +905,7 @@ this.Instant = function() {
           if (prev && prev != Instant.message.getDocumentPrecedessor(m)) {
             var d = top[2] + 1;
             top[1].appendChild($makeNode('p', {'data-depth': d}, '...'));
+            if (d < minDepth) minDepth = d;
           }
           /* Create the in-copy representation of the message */
           var copy = $makeNode('div', {'data-depth': depth,
