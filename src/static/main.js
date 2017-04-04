@@ -798,7 +798,118 @@ this.Instant = function() {
       /* Initialize submodule; return DOM node */
       init: function() {
         msgPane = $makeNode('div', 'message-pane', [['div', 'message-box']]);
+        msgPane.addEventListener('copy',
+          Instant.message._oncopy.bind(Instant.message));
         return msgPane;
+      },
+      /* Handle copy events */
+      _oncopy: function(event) {
+        function traverse(node) {
+          if (node.getAttribute('data-message-id')) {
+            var nick = node.children[0];
+            var textnode = node.children[1];
+            var depth = +node.getAttribute('data-depth');
+            var indent = new Array(depth + 1).join('| ');
+            textarr.push(indent);
+            textarr.push('<' + nick.textContent.replace(/\s/g, ' ') + '> ');
+            textarr.push(textnode.textContent.replace('\n', '\n' + indent +
+                                                      '  '));
+            textarr.push('\n');
+            var parent = node.parentNode;
+            if (! parent.getAttribute('data-message-id'))
+              parent = null;
+            if (parent)
+              depth -= parent.getAttribute('data-depth');
+            node.style.marginLeft = depth + 'em';
+            var clr = Instant.nick.nickColor(nick.textContent);
+            nick.style.display = 'inline-block';
+            nick.style.backgroundColor = clr;
+            nick.style.padding = '0 1px';
+          }
+          var ch = node.children;
+          for (var i = 0; i < ch.length; i++) {
+            if (ch[i].nodeName == 'DIV') {
+              traverse(ch[i]);
+            } else if (ch[i].nodeName == 'P') {
+              ch[i].style.margin = '0';
+            }
+          }
+        }
+        var selection = document.getSelection();
+        /* Collect all messages the selection covers */
+        var covered = {};
+        for (var i = 0; i < selection.rangeCount; i++) {
+          var range = selection.getRangeAt(i);
+          var msgs = Instant.message.getMessageNode(range.startContainer);
+          if (! msgs) continue;
+          var msge = Instant.message.getMessageNode(range.endContainer);
+          if (! msge) continue;
+          var range = Instant.message.resolveMessageRange(msgs, msge);
+          for (var j = 0; j < range.length; j++) {
+            var m = range[j];
+            covered[m.id] = m;
+          }
+        }
+        /* Create deduplicated array */
+        var messages = [];
+        for (var k in covered) {
+          if (covered.hasOwnProperty(k))
+            messages.push(covered[k]);
+        }
+        /* Try to make sense of it */
+        var resNode = Instant.message.prepareExport(messages);
+        resNode.className = 'instant-messages';
+        /* Fiddle plain text and HTML from each other */
+        var textarr = [];
+        traverse(resNode);
+        var text = textarr.join('');
+        /* Poke them into the clipboard */
+        event.clipboardData.setData('text/html', resNode.outerHTML);
+        event.clipboardData.setData('text/plain', text.trim());
+        /* Prevent browser from overwriting our data */
+        event.preventDefault();
+      },
+      /* Prepare the given array of message node for export
+       * Creates a DOM node containing new nodes representing the given
+       * messages as descendants, with basic information stored in data
+       * attributes. */
+      prepareExport: function(messages) {
+        /* Sort them by document order */
+        messages.sort(Instant.message.documentCmp.bind(Instant.message));
+        /* Build a tree */
+        var stack = [document.createElement('div')];
+        var prev = null, minDepth = Infinity;
+        messages.forEach(function(m) {
+          var parid = m.getAttribute('data-parent');
+          while (stack.length > 1 && stack[stack.length - 1].getAttribute(
+              'data-id') != parid) stack.pop();
+          if (prev && prev != Instant.message.getDocumentPrecedessor(m)) {
+            stack[stack.length - 1].appendChild($makeNode('p', ['...']));
+          }
+          var indnode = $sel('[data-key=indent]', m);
+          var depth = +indnode.getAttribute('data-depth');
+          var copy = $makeNode('div', {'data-depth': depth,
+              'data-message-id': m.getAttribute('data-id')}, [
+            ['span', {'data-user-id': m.getAttribute('data-from')},
+              $cls('nick', m).textContent],
+            ' ',
+            ['span', [$cls('message-text', m).textContent]]
+          ]);
+          stack[stack.length - 1].appendChild(copy);
+          prev = m;
+          stack.push(copy);
+          if (depth < minDepth) minDepth = depth;
+        });
+        /* Decrease depths */
+        if (isFinite(minDepth)) {
+          var nodes = $selAll('[data-message-id]', stack[0]);
+          Array.prototype.forEach.call(nodes, function(el) {
+            el.setAttribute('data-depth', el.getAttribute('data-depth') -
+              minDepth);
+          });
+        }
+        /* Done */
+        return stack[0];
       },
       /* Detect links, emphasis, and smileys out of a flat string and render
        * those into a DOM node */
@@ -961,6 +1072,10 @@ this.Instant = function() {
         return (node && node.classList &&
                 node.classList.contains('message'));
       },
+      /* Get the message node containing the given node */
+      getMessageNode: function(node) {
+        return $parentWithClass(node, 'message');
+      },
       /* Get the parent of the message */
       getParent: function(message) {
         if (! message.parentNode ||
@@ -1057,6 +1172,26 @@ this.Instant = function() {
         var res = a.compareDocumentPosition(b);
         return (res & Node.DOCUMENT_POSITION_FOLLOWING) ? -1 :
           (res & Node.DOCUMENT_POSITION_PRECEDING) ? 1 : 0;
+      },
+      /* Obtain a document-ordered array of the messages covered by the given
+       * range
+       * If reverseEmpty is true and b is a precedessor of a, returns an
+       * empty array. If a and b are equal, returns (in any case) that
+       * message as the only element. */
+      resolveMessageRange: function(a, b, reverseEmpty) {
+        if (a == b) return [a];
+        if (Instant.message.documentCmp(a, b) > 0) {
+          if (reverseEmpty) return [];
+          var x = a;
+          a = b;
+          b = x;
+        }
+        var ret = [a], cur = a;
+        while (cur != b) {
+          cur = Instant.message.getDocumentSuccessor(cur);
+          ret.push(cur);
+        }
+        return ret;
       },
       /* Get the node hosting the replies to the given message, or the
        * message itself if it's actually not a message at all */
