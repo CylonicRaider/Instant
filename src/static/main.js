@@ -847,18 +847,27 @@ this.Instant = function() {
           }
         }
         var selection = document.getSelection();
-        /* Collect all messages the selection covers */
-        var covered = {};
+        /* Collect all messages the selection covers
+         * Firefox splits the selection up rather finely, possibly because of
+         * the user-select:none timestamps. */
+        var covered = {}, singleMessage = true;
         for (var i = 0; i < selection.rangeCount; i++) {
           var range = selection.getRangeAt(i);
           var msgs = Instant.message.getMessageNode(range.startContainer);
           if (! msgs) continue;
           var msge = Instant.message.getMessageNode(range.endContainer);
           if (! msge) continue;
-          var range = Instant.message.resolveMessageRange(msgs, msge);
-          for (var j = 0; j < range.length; j++) {
-            var m = range[j];
+          var msgrange = Instant.message.resolveMessageRange(msgs, msge);
+          msgrange.forEach(function(m) {
             covered[m.id] = m;
+          });
+          if (msgs == msge) {
+            var content = $cls('content', msgs);
+            if (! content.contains(range.startContainer) ||
+                ! content.contains(range.endContainer))
+              singleMessage = false;
+          } else {
+            singleMessage = false;
           }
         }
         /* Create deduplicated array */
@@ -867,7 +876,12 @@ this.Instant = function() {
           if (covered.hasOwnProperty(k))
             messages.push(covered[k]);
         }
+        /* Special cases
+         * If the entire selection is inside the content of a single message
+         * (as determined per range above and per message count here), do not
+         * pretty-print the clipboard to allow quoting parts of messages. */
         if (! messages.length) return;
+        if (singleMessage && messages.length == 1) return;
         /* Try to make sense of it */
         var resNode = Instant.message.prepareExport(messages);
         resNode.className = 'instant-messages';
