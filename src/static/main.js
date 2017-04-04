@@ -804,34 +804,45 @@ this.Instant = function() {
       },
       /* Handle copy events */
       _oncopy: function(event) {
+        function indentFor(depth) {
+          return new Array(depth + 1).join('| ')
+        }
         function traverse(node) {
+          var depth = +node.getAttribute('data-depth');
+          var pdepth = ((! node.parentNode) ? 0 :
+            +node.parentNode.getAttribute('data-depth'));
           if (node.getAttribute('data-message-id')) {
             var nick = node.children[0];
             var textnode = node.children[1];
-            var depth = +node.getAttribute('data-depth');
-            var indent = new Array(depth + 1).join('| ');
+            var clr = Instant.nick.nickColor(nick.textContent);
+            node.style.marginLeft = (depth - pdepth) + 'em';
+            nick.style.display = 'inline-block';
+            nick.style.backgroundColor = clr;
+            nick.style.padding = '0 1px';
+            var indent = indentFor(depth);
             textarr.push(indent);
             textarr.push('<' + nick.textContent.replace(/\s/g, ' ') + '> ');
             textarr.push(textnode.textContent.replace('\n', '\n' + indent +
                                                       '  '));
             textarr.push('\n');
-            var parent = node.parentNode;
-            if (! parent.getAttribute('data-message-id'))
-              parent = null;
-            if (parent)
-              depth -= parent.getAttribute('data-depth');
-            node.style.marginLeft = depth + 'em';
-            var clr = Instant.nick.nickColor(nick.textContent);
-            nick.style.display = 'inline-block';
-            nick.style.backgroundColor = clr;
-            nick.style.padding = '0 1px';
+          } else {
+            depth = pdepth;
           }
           var ch = node.children;
           for (var i = 0; i < ch.length; i++) {
             if (ch[i].nodeName == 'DIV') {
               traverse(ch[i]);
             } else if (ch[i].nodeName == 'P') {
-              ch[i].style.margin = '0';
+              var cdepth = +ch[i].getAttribute('data-depth');
+              var cindent = indentFor(cdepth);
+              if (cdepth != depth) {
+                ch[i].style.margin = '0 0 0 ' + (cdepth - depth) + 'em';
+              } else {
+                ch[i].style.margin = '0';
+              }
+              textarr.push(cindent + ch[i].textContent.replace('\n',
+                '\n' + cindent));
+              textarr.push('\n');
             }
           }
         }
@@ -877,17 +888,24 @@ this.Instant = function() {
         /* Sort them by document order */
         messages.sort(Instant.message.documentCmp.bind(Instant.message));
         /* Build a tree */
-        var stack = [document.createElement('div')];
+        var stack = [[null, document.createElement('div'), -1]];
         var prev = null, minDepth = Infinity;
         messages.forEach(function(m) {
-          var parid = m.getAttribute('data-parent');
-          while (stack.length > 1 && stack[stack.length - 1].getAttribute(
-              'data-id') != parid) stack.pop();
-          if (prev && prev != Instant.message.getDocumentPrecedessor(m)) {
-            stack[stack.length - 1].appendChild($makeNode('p', ['...']));
-          }
+          /* Determine message depth */
           var indnode = $sel('[data-key=indent]', m);
           var depth = +indnode.getAttribute('data-depth');
+          /* Drop stack entries up to a "common" parent */
+          var top = stack[stack.length - 1];
+          while (top[0] && ! top[0].contains(m)) {
+            stack.pop();
+            top = stack[stack.length - 1];
+          }
+          /* Insert an omission mark if necessary */
+          if (prev && prev != Instant.message.getDocumentPrecedessor(m)) {
+            var d = top[2] + 1;
+            top[1].appendChild($makeNode('p', {'data-depth': d}, '...'));
+          }
+          /* Create the in-copy representation of the message */
           var copy = $makeNode('div', {'data-depth': depth,
               'data-message-id': m.getAttribute('data-id')}, [
             ['span', {'data-user-id': m.getAttribute('data-from')},
@@ -895,21 +913,22 @@ this.Instant = function() {
             ' ',
             ['span', [$cls('message-text', m).textContent]]
           ]);
-          stack[stack.length - 1].appendChild(copy);
+          /* Settle state */
+          top[1].appendChild(copy);
+          stack.push([m, copy, depth]);
           prev = m;
-          stack.push(copy);
           if (depth < minDepth) minDepth = depth;
         });
         /* Decrease depths */
         if (isFinite(minDepth)) {
-          var nodes = $selAll('[data-message-id]', stack[0]);
+          var nodes = $selAll('[data-depth]', stack[0][1]);
           Array.prototype.forEach.call(nodes, function(el) {
             el.setAttribute('data-depth', el.getAttribute('data-depth') -
               minDepth);
           });
         }
         /* Done */
-        return stack[0];
+        return stack[0][1];
       },
       /* Detect links, emphasis, and smileys out of a flat string and render
        * those into a DOM node */
