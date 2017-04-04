@@ -1253,22 +1253,34 @@ this.Instant = function() {
         /* Done */
         return message;
       },
+      /* Return the depth of the given message in the tree
+       * NOTE that this may change if some (perhaps non-direct) parent of the
+       *      message is a fake. */
+      getDepth: function(message) {
+        var ind = $sel('[data-key=indent]', message);
+        if (! ind) return 0;
+        return +ind.getAttribute('data-depth') || 0;
+      },
       /* Update the indent string of the given message and all of its
        * children (if any; recursively) */
-      updateIndents: function(message, indent) {
-        if (! indent) {
+      updateIndents: function(message, depth) {
+        if (depth == null) {
           var par = Instant.message.getParentMessage(message);
           if (par) {
-            indent = $sel('[data-key=indent]', par).textContent + '| ';
+            depth = Instant.message.getDepth(par) + 1;
           } else {
-            indent = '';
+            depth = 0;
           }
         }
-        $sel('[data-key=indent]', message).textContent = indent;
+        var indent = new Array(depth + 1).join('| ');
+        var ind = $sel('[data-key=indent]', message);
+        ind.setAttribute('data-depth', depth);
+        ind.textContent = indent;
+        depth++;
         indent += '| ';
         var children = Instant.message.getReplies(message);
         for (var i = 0; i < children.length; i++) {
-          Instant.message.updateIndents(children[i], indent);
+          Instant.message.updateIndents(children[i], depth);
         }
       },
       /* Traverse a message tree and return the nodes that match the given
