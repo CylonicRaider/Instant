@@ -819,9 +819,15 @@ this.Instant = function() {
             nick.style.display = 'inline-block';
             nick.style.backgroundColor = clr;
             nick.style.padding = '0 1px';
+            if (node.getAttribute('data-emote')) {
+              var eclr = Instant.nick.emoteColor(nick.textContent);
+              textnode.style.backgroundColor = eclr;
+            }
             var indent = indentFor(depth);
             textarr.push(indent);
-            textarr.push('<' + nick.textContent.replace(/\s/g, ' ') + '> ');
+            textarr.push('<' + nick.textContent.replace(/\s/g, ' ') + '>');
+            if (node.getAttribute('data-emote'))
+              textarr.push(' /me');
             textarr.push(textnode.textContent.replace('\n', '\n' + indent +
                                                       '  '));
             textarr.push('\n');
@@ -926,9 +932,10 @@ this.Instant = function() {
               'data-message-id': m.getAttribute('data-id')}, [
             ['span', {'data-user-id': m.getAttribute('data-from')},
               $cls('nick', m).textContent],
-            ' ',
-            ['span', [$cls('message-text', m).textContent]]
+            ['span', [' ' + $cls('message-text', m).textContent]]
           ]);
+          if (m.classList.contains('emote'))
+            copy.setAttribute('data-emote', 'true');
           /* Settle state */
           top[1].appendChild(copy);
           stack.push([m, copy, depth]);
