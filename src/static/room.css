@@ -121,6 +121,7 @@ body {
   padding-right: 0.25em;
 }
 
+/* Keep in sync with copy formatting in main.js */
 .message-text {
   white-space: pre-wrap;
   word-wrap: break-word;

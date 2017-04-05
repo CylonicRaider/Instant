@@ -828,8 +828,8 @@ this.Instant = function() {
             textarr.push('<' + nick.textContent.replace(/\s/g, ' ') + '>');
             if (node.getAttribute('data-emote'))
               textarr.push(' /me');
-            textarr.push(textnode.textContent.replace('\n', '\n' + indent +
-                                                      '  '));
+            textarr.push(textnode.textContent.replace(/\n/g,
+              '\n' + indent + '  '));
             textarr.push('\n');
           } else {
             depth = pdepth;
@@ -846,7 +846,7 @@ this.Instant = function() {
               } else {
                 ch[i].style.margin = '0';
               }
-              textarr.push(cindent + ch[i].textContent.replace('\n',
+              textarr.push(cindent + ch[i].textContent.replace(/\n/g,
                 '\n' + cindent));
               textarr.push('\n');
             }
@@ -917,9 +917,15 @@ this.Instant = function() {
               target.appendChild(document.createTextNode(c.nodeValue));
             } else if (c.nodeType == Node.ELEMENT_NODE) {
               var t, hc = c.classList.contains.bind(c.classList);
+              /* Keep in sync with stylesheet. */
               if (c.nodeName == 'A') {
                 t = document.createElement('a');
                 t.href = c.href;
+                t.style.unicodeBidi = 'embed';
+              } else if (hc('mention')) {
+                t = document.createElement('span');
+                t.style.color = c.style.color;
+                t.style.unicodeBidi = 'embed';
               } else if (hc('sigil')) {
                 t = document.createElement('span');
                 t.style.fontStyle = 'normal';
@@ -988,7 +994,7 @@ this.Instant = function() {
               'data-message-id': m.getAttribute('data-id')}, [
             ['span', {'data-user-id': m.getAttribute('data-from')},
               $cls('nick', m).textContent],
-            ['span', [' ']]
+            ['span', {style: 'white-space:pre;word-wrap:break-word'}, ' ']
           ]);
           if (m.classList.contains('emote'))
             copy.setAttribute('data-emote', 'true');
