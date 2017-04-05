@@ -1748,6 +1748,7 @@ this.Instant = function() {
               var level = (status.emphLevel || 0) + 1;
               status.emphLevel = level;
               var node = makeNode(null, 'emph');
+              node.setAttribute('data-level', level);
               var log = 0;
               for (var log = 1; level; log++) {
                 if (level & 1) node.classList.add('emph-' + log);
