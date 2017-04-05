@@ -134,15 +134,28 @@ body {
 .message-text .sigil {
   color: #808080;
 }
-.message-text .false {
+.message-text .sigil.false {
   display: inline;
   color: inherit;
 }
-.message-text .emph-before, .message-text .emph-after,
-.message-text .quote-marker {
+.message-text .emph, .message-text .emph-before,
+.message-text .emph-after, .message-text .quote-marker {
   font-style: normal;
   font-weight: normal;
   font-variant: normal;
+  letter-spacing: normal;
+}
+.message-text .emph.emph-1 {
+  font-style: italic;
+}
+.message-text .emph.emph-2 {
+  font-weight: bold;
+}
+.message-text .emph.emph-3 {
+  font-variant: small-caps;
+}
+.message-text .emph.emph-4 {
+  letter-spacing: 0.15em;
 }
 .message-text .quote-line {
   font-style: italic;
@@ -150,7 +163,7 @@ body {
 .message-text .monospace {
   background: #f0f0f0;
 }
-.message-text .monospace-block {
+.message-text .monospace.monospace-block {
   display: block;
 }
 

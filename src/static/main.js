@@ -1748,10 +1748,11 @@ this.Instant = function() {
               var level = (status.emphLevel || 0) + 1;
               status.emphLevel = level;
               var node = makeNode(null, 'emph');
-              var style = node.style;
-              style.fontStyle = (level & 1) ? 'italic' : 'normal';
-              style.fontWeight = (level & 2) ? 'bold' : 'normal';
-              style.fontVariant = (level & 4) ? 'small-caps' : 'normal';
+              var log = 0;
+              for (var log = 1; level; log++) {
+                if (level & 1) node.classList.add('emph-' + log);
+                level >>= 1;
+              }
               return node;
             },
             rem: function(stack, status) {
