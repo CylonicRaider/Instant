@@ -836,8 +836,8 @@ this.Instant = function() {
           }
           var ch = node.children;
           for (var i = 0; i < ch.length; i++) {
-            if (ch[i].nodeName == 'DIV') {
-              traverse(ch[i]);
+            if (ch[i].nodeName == 'PRE') {
+              ch[i].style.margin = '0';
             } else if (ch[i].nodeName == 'P') {
               var cdepth = +ch[i].getAttribute('data-depth');
               var cindent = indentFor(cdepth);
@@ -850,6 +850,7 @@ this.Instant = function() {
                 '\n' + cindent));
               textarr.push('\n');
             }
+            traverse(ch[i]);
           }
         }
         var selection = document.getSelection();
@@ -906,6 +907,61 @@ this.Instant = function() {
        * messages as descendants, with basic information stored in data
        * attributes. */
       prepareExport: function(messages) {
+        /* Export the given node recursively. */
+        function copyText(node, target) {
+          var children = node.childNodes;
+          for (var i = 0; i < children.length; i++) {
+            var c = children[i];
+            if (c.nodeType == Node.TEXT_NODE) {
+              /* Copy text over */
+              target.appendChild(document.createTextNode(c.nodeValue));
+            } else if (c.nodeType == Node.ELEMENT_NODE) {
+              var t, hc = c.classList.contains.bind(c.classList);
+              if (c.nodeName == 'A') {
+                t = document.createElement('a');
+                t.href = c.href;
+              } else if (hc('sigil')) {
+                t = document.createElement('span');
+                t.style.fontStyle = 'normal';
+                t.style.fontWeight = 'normal';
+                t.style.fontVariant = 'normal';
+                t.style.letterSpacing = 'normal';
+              } else if (hc('emph')) {
+                /* Create (more-or-less) semantic element and override
+                 * styles */
+                if (hc('emph-4')) {
+                  t = document.createElement('strong');
+                } else if (hc('emph-3')) {
+                  t = document.createElement('em');
+                } else if (hc('emph-2')) {
+                  t = document.createElement('b');
+                } else if (hc('emph-1')) {
+                  t = document.createElement('i');
+                } else {
+                  t = document.createElement('span');
+                }
+                var s = t.style;
+                s.fontStyle = (hc('emph-1')) ? 'italic' : 'normal';
+                s.fontWeight = (hc('emph-2')) ? 'bold' : 'normal';
+                s.fontVariant = (hc('emph-3')) ? 'small-caps' : 'normal';
+                s.letterSpacing = (hc('emph-4')) ? '0.15em' : 'normal';
+              } else if (hc('monospace')) {
+                if (hc('monospace-block')) {
+                  t = document.createElement('pre');
+                } else {
+                  t = document.createElement('code');
+                }
+              } else if (hc('smiley')) {
+                t = target;
+              }
+              /* Recurse */
+              if (t) {
+                if (t != target) target.appendChild(t);
+                copyText(c, t);
+              }
+            }
+          }
+        }
         /* Sort them by document order */
         messages.sort(Instant.message.documentCmp.bind(Instant.message));
         /* Build a tree */
@@ -932,10 +988,11 @@ this.Instant = function() {
               'data-message-id': m.getAttribute('data-id')}, [
             ['span', {'data-user-id': m.getAttribute('data-from')},
               $cls('nick', m).textContent],
-            ['span', [' ' + $cls('message-text', m).textContent]]
+            ['span', [' ']]
           ]);
           if (m.classList.contains('emote'))
             copy.setAttribute('data-emote', 'true');
+          copyText($sel('.message-text', m), copy.children[1]);
           /* Settle state */
           top[1].appendChild(copy);
           stack.push([m, copy, depth]);
