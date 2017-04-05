@@ -349,6 +349,12 @@ body {
   border: 0;
   padding: 0;
 }
+.settings:hover {
+  background: #e0e0e0;
+}
+.settings:active {
+  background: #c0c0c0;
+}
 .settings img {
   padding: 1px;
   width: 100%;
@@ -496,11 +502,20 @@ body {
 }
 .button:hover {
   text-decoration: underline;
+  background: rgba(128, 128, 128, 0.25);
+}
+.button:active {
+  background: rgba(128, 128, 128, 0.5);
 }
 .button::-moz-focus-inner {
   margin: 0;
   border: 0;
   padding: 0;
+}
+.button, #main .button, .settings, #main .settings, .close-all,
+#main .close-all {
+  -webkit-transition: none;
+  transition: none;
 }
 
 .user-list-counter {
@@ -740,6 +755,12 @@ body {
   outline-offset: -2px;
   z-index: 1100;
 }
+.popups-wrapper .close-all:hover {
+  background: #c0c0c0;
+}
+.popups-wrapper .close-all:active {
+  background: #808080;
+}
 .popups-content {
   position: absolute;
   top: 0;
@@ -798,6 +819,8 @@ body {
 }
 .popups .popup .popup-button {
   margin: auto 0;
+  border: 0;
+  padding: 0;
   line-height: 0;
   outline-offset: -1px;
 }
@@ -922,6 +945,10 @@ img.inline {
 @keyframes clrfade { to { color: rgba(0, 0, 0, 0.5); } }
 
 body, #main, #main * {
+  -webkit-transition: background 0.5s, color 0.5s;
+  transition: background 0.5s, color 0.5s;
+}
+#main {
   -webkit-transition: background 0.5s, color 0.5s, opacity 1s;
   transition: background 0.5s, color 0.5s, opacity 1s;
 }
