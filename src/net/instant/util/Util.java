@@ -3,6 +3,7 @@ package net.instant.util;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
+import java.net.URLDecoder;
 import java.nio.ByteBuffer;
 import java.security.SecureRandom;
 import java.text.SimpleDateFormat;
@@ -197,6 +198,27 @@ public final class Util {
         return ret;
     }
 
+    public static Map<String, String> parseQueryString(String query) {
+        Map<String, String> ret = new LinkedHashMap<String, String>();
+        for (String entry : query.split("&")) {
+            String[] parts = entry.split("=", 2);
+            String key, value;
+            try {
+                key = URLDecoder.decode(parts[0], "utf-8");
+                if (parts.length == 1) {
+                    value = null;
+                } else {
+                    value = URLDecoder.decode(parts[1], "utf-8");
+                }
+            } catch (UnsupportedEncodingException exc) {
+                // Should not happen.
+                throw new RuntimeException(exc);
+            }
+            ret.put(key, value);
+        }
+        return ret;
+    }
+
     public static JSONObject createJSONObject(Object... params) {
         return Utilities.createJSONObject(params);
     }
@@ -234,6 +256,14 @@ public final class Util {
         byte[] ret = new byte[buf.limit()];
         buf.get(ret);
         return ret;
+    }
+
+    public static boolean nonempty(String input) {
+        return Utilities.nonempty(input);
+    }
+
+    public static boolean isTrue(String input) {
+        return Utilities.isTrue(input);
     }
 
     public static String getConfiguration(String propName, boolean ex) {
