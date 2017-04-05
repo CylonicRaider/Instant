@@ -5046,50 +5046,86 @@ this.Instant = function() {
       this.data = undefined;
       this._styles = null;
       this._scripts = null;
+      this._code = null;
       this._libs = null;
-      this._synclibs = null;
     }
     Plugin.prototype = {
       /* Commence loading the plugin in question, and return a Promise of the
        * loading result */
       _load: function() {
+        function assignExpr(e, v) {
+          if (e._scriptsIdx != null) {
+            self._scripts[e._scriptsIdx] = v;
+          } else if (e._libsIdx != null) {
+            self._libs[e._libsIdx] = v;
+          } else if (e._codeIdx != null) {
+            self._code[e._codeIdx] = v;
+          }
+        }
         var self = this;
+        /* Fetch stylesheets */
         var styles = this.options.styles || [];
         this._styles = styles.map(Instant.plugins.addStylesheet);
-        var scripts = this.options.scripts || [];
-        this._scripts = scripts.map(Instant.plugins.addScript);
+        /* Fetch dependencies */
         var deps = this.options.deps || [];
         var depsprom = Promise.all(deps.map(Instant.plugins.getPluginAsync));
+        /* Resolve scripts */
+        var descriptors = [];
+        var scripts = this.options.scripts || [];
         var libs = this.options.libs || [];
+        var code = this.options.code || [];
+        this._scripts = [];
         this._libs = [];
-        var libsprom = Promise.all(libs.map(function(url, idx) {
-          return new Promise(function(resolve, reject) {
-            var node = document.createElement('script');
-            node.type = 'application/javascript';
-            node.onload = function() {
-              resolve(node);
-            };
-            node.onerror = function(event) {
-              reject(event);
-            };
-            node.src = url;
-            self._libs[idx] = node;
-            document.head.appendChild(node);
-          });
-        }));
-        var preprom = Promise.all([depsprom, libsprom]);
-        var synclibs = this.options.synclibs || [];
-        this._synclibs = [];
-        var pending = synclibs.map(function(url, idx) {
-          return Instant.plugins.loadFile(url).then(function(req) {
-            return preprom.then(function() {
-              return $evalIn.call(self, req.response, false);
-            }).then(function(res) {
-              self._synclibs[idx] = res;
+        this._code = [];
+        for (var i = 0; i < scripts.length; i++) {
+          var el = scripts[i];
+          descriptors.push({url: el.url, before: el.before, after: el.after,
+            isolate: el.isolate, _scriptsIdx: i});
+        }
+        for (var i = 0; i < libs.length; i++)
+          descriptors.push({url: libs[i], _libsIdx: i})
+        for (var i = 0; i < code.length; i++)
+          descriptors.push({url: code[i], isolate: true, _codeIdx: i});
+        /* Fetch scripts */
+        var pending = [depsprom];
+        for (var i = 0; i < descriptors.length; i++) {
+          var ent = descriptors[i];
+          /* Isolated scripts gets their content XHR-ed in and eval()-ed
+           * with the plugin as context. */
+          if (ent.isolate) {
+            var prom = Instant.plugins.loadFile(ent.url).then(function(req) {
+              var code = req.response;
+              var header = code.substring(0, 4096);
+              /* Insert source reference. */
+              if (! /\/\/#\s*source(Mapping)?URL\s*=/.test(header)) {
+                code = '//# sourceURL=' + ent.url + '\n' + code;
+              }
+              /* Run code */
+              return depsprom.then(function() {
+                $evalIn.call(self, code, false);
+              }).then(function(res) {
+                return assignExpr(ent, res);
+              });
             });
+            pending.push(prom);
+            continue;
+          }
+          /* Otherwise, using a regular script tag */
+          var prefix = (ent.before) ? Promise.resolve() : depsprom;
+          var prom = prefix.then(function() {
+            var p;
+            /* HACK: Creating promise "before" the src attribute is
+             *       assigned. Might be useless. */
+            assignExpr(ent, Instant.plugins.addScript(ent.url, null,
+              function(node) {
+                p = Instant.plugins._eventPromise(node);
+              }
+            ));
+            return p;
           });
-        });
-        pending.push(preprom);
+          if (! ent.after) pending.push(prom);
+        }
+        /* Run main function */
         if (this.options.main) this._main = this.options.main;
         return Promise.all(pending).then(function() {
           return self._main();
@@ -5130,6 +5166,25 @@ this.Instant = function() {
           req.send();
         });
       },
+      /* Return a Promise based on the load/error events of the given node
+       * The Promise resolves if the load event fires, or rejects if the
+       * error event fires, in both cases to the event. */
+      _eventPromise: function(node) {
+        return new Promise(function(resolve, reject) {
+          node.onload = function(event) {
+            resolve(event);
+          };
+          node.onerror = function(event) {
+            reject(event);
+          };
+        });
+      },
+      /* Return a Promise of the contents of the file at url */
+      loadContents: function(url, init) {
+        return Instant.plugins.loadFile(url, init).then(function(x) {
+          return x.response;
+        });
+      },
       /* Return a Promise of an <img> element with data from url
        * init is handled similarly to loadFile; also similarly to loadFile,
        * on error, the promise is rejected to an Error object containing the
@@ -5137,43 +5192,29 @@ this.Instant = function() {
        * the "event" property of the rejection value holds the error event
        * that led the promise to rejection. */
       loadImage: function(url, init) {
-        return new Promise(function(resolve, reject) {
-          var img = document.createElement('img');
-          img.onload = function() {
-            resolve(img);
-          }
-          img.onerror = function(event) {
-            var err = new Error('Image download failed');
-            err.image = img;
-            err.event = event;
-            reject(err);
-          }
-          if (init) init(img);
-          img.src = url;
-        });
-      },
-      /* Return a Promise of the contents of the file at url */
-      loadContents: function(url) {
-        return Instant.plugins.loadFile(url).then(function(x) {
-          return x.response;
-        });
+        var img = document.createElement('img');
+        if (init) init(img);
+        var ret = Instant.plugins._eventPromise(img);
+        img.src = url;
+        return ret;
       },
       /* Add a stylesheet <link> referencing the given URL to the <head>
        * If type is false, "text/css" is assigned to the link's "type"
        * property. */
-      addStylesheet: function(url, type) {
+      addStylesheet: function(url, type, init) {
         var style = document.createElement('link');
         style.rel = 'stylesheet';
         style.type = type || 'text/css';
         style.href = url;
+        if (init) init(style);
         document.head.appendChild(style);
         return style;
       },
       /* Return a Promise of a <style> element with content from url
        * type is handled exactly like the corresponding parameter of
        * addStylesheet. */
-      loadStylesheet: function(url, type) {
-        return Instant.plugins.loadFile(url).then(function(req) {
+      loadStylesheet: function(url, type, init) {
+        return Instant.plugins.loadFile(url, init).then(function(req) {
           var el = document.createElement('style');
           el.type = type || 'text/css';
           el.innerHTML = req.response;
@@ -5183,16 +5224,17 @@ this.Instant = function() {
       /* Add a <script> element to the <head>
        * type is handled analogously to addStylesheet, but the default is
        * application/javascript. */
-      addScript: function(url, type) {
+      addScript: function(url, type, init) {
         var script = document.createElement('script');
         script.type = type || 'application/javascript';
         script.src = url;
+        if (init) init(script);
         document.head.appendChild(script);
         return script;
       },
       /* Return a Promise of a <script> element with content from url */
-      loadScript: function(url, type) {
-        return Instant.plugins.loadFile(url).then(function(req) {
+      loadScript: function(url, type, init) {
+        return Instant.plugins.loadFile(url, init).then(function(req) {
           var el = document.createElement('script');
           el.type = type || 'application/javascript';
           el.innerHTML = req.response;
@@ -5201,35 +5243,53 @@ this.Instant = function() {
       },
       /* Load the given plugin asynchronously and return a Promise of it
        * options contains the following properties (all optional):
-       * deps    : An array of names of plugins this plugin is dependent on.
-       *           All dependencies must be loaded before this plugin is
-       *           initialized.
-       * styles  : An array of stylesheet URL-s to be fetched and to added
-       *           to the document (asynchronously).
-       * scripts : An array of JavaScript file URL-s to be loaded and run
-       *           (asynchronously). The scripts are run in the global
-       *           context.
-       * libs    : An array of JavaScript file URL-s to be loaded and run
-       *           (in the global scope) before the plugin is initialized.
-       * synclibs: An array of JavaScript file URL-s to be loaded and
-       *           executed (in isolated scopes, with the this object
-       *           pointing to the plugin) before the plugin is initialized.
-       *           References to objects that should persist must be assigned
-       *           to the this object explicitly.
-       *           Dependencies are already initialized when these are run.
-       * main    : Plugin initializer function. All synclibs have been run,
-       *           and their results are available in the this object. The
-       *           return value is assigned to the "data" property of the
-       *           plugin object; if it is thenable, it is resolved first.
+       * deps       : An array of names of plugins this plugin is dependent
+       *              on. All dependencies are loaded before this plugin is
+       *              initialized.
+       * styles     : An array of stylesheet URL-s to be fetched and to be
+       *              added to the document (asynchronously).
+       * scripts    : An array of objects describing code to be run in
+       *              association with the plugin:
+       *              url    : The URL of the script to be run. Required.
+       *              before : Whether the script may be run before the
+       *                       dependencies of the plugin are loaded.
+       *              after  : Whether the script may finish after the plugin
+       *                       has loaded, i.e., whether the plugin's
+       *                       initialization should *not* depend on it.
+       *              isolate: Whether the script should be run in an
+       *                       isolated function scope. If so, false values
+       *                       for before and after are implied, and the
+       *                       this object for the script points to the
+       *                       plugin object; references that have to
+       *                       persist must be explicitly assigned to it.
+       *              The non-required parameters (i.e. everything except
+       *              url) are off as default.
+       *              If isolate is true, the code of the plugin is
+       *              eval()-uated; to preserve the file name for debugging,
+       *              a sourceURL annotation is programmatically inserted at
+       *              the beginning of the code if there is none (and no
+       *              sourceMappingURL one) within the first 4096 bytes.
+       * libs       : An array of JavaScript file URL-s for external
+       *              libraries to load. They are equivalent to scripts (as
+       *              above) with all additional parameters set to false.
+       * code       : An array of JavaScript file URL-s for (additional) code
+       *              for the plugin. Each entry is equivalent to a scripts
+       *              entry with isolate set to true.
+       * main       : Plugin initializer function. All synclibs have been
+       *              run, and their results are available in the this
+       *              object. The return value is assigned to the "data"
+       *              property of the plugin object; if it is thenable, it is
+       *              resolved first.
        * Execution order:
        * - All resources are fetched asynchronously in no particular order
-       *   (and may have been cached).
-       * - styles and scripts are fully asynchronous and do not affect the
-       *   loading of the plugin that requested them.
-       * - synclibs are not run before all deps and libs are initialized and
-       *   loaded, respectively.
-       * - The plugin is not initialized until the preconditions for synclibs
-       *   are met, and they (if any) have been run. */
+       *   (and may have been cached). Execution of scripts is, except for the
+       *   constraints noted, concurrent.
+       * - styles are fully asynchronous and do not affect the loading of the
+       *   plugin that requested them.
+       * - Scripts with the before parameter set to false are not run until
+       *   all dependencies of the plugin are loaded.
+       * - The current plugin loads after (all dependencies have loaded and)
+       *   all scripts with the after parameter set to false have run. */
       loadPlugin: function(name, options) {
         var pl = new Plugin(name, options);
         plugins[name] = null;
@@ -5243,14 +5303,17 @@ this.Instant = function() {
       /* Return the object corresponding to the named plugin */
       getPlugin: function(name) {
         var ret = plugins[name];
-        if (ret == null) throw new Error('Plugin ' +  name + ' not loaded yet!');
-        if (! ret) throw new Error('No such plugin: ' + name);
+        if (ret === null)
+          throw new Error('Plugin ' +  name + ' not loaded yet!');
+        if (! ret)
+          throw new Error('No such plugin: ' + name);
         return ret;
       },
       /* Return a Promise of the object of the named plugin */
       getPluginAsync: function(name) {
         var ret = pendingPlugins[name];
-        if (! ret) throw new Error('No such plugin: ' + name);
+        if (! ret)
+          throw new Error('No such plugin: ' + name);
         return ret;
       },
       /* Return a Promise of the data of the given plugin */
