@@ -816,7 +816,6 @@ this.Instant = function() {
             var textnode = node.children[1];
             var clr = Instant.nick.nickColor(nick.textContent);
             node.style.marginLeft = (depth - pdepth) + 'em';
-            nick.style.display = 'inline-block';
             nick.style.backgroundColor = clr;
             nick.style.padding = '0 1px';
             textnode.style.whiteSpace = 'pre-wrap';
