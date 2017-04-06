@@ -1797,6 +1797,27 @@ this.Instant = function() {
               return makeNode(null, 'monospace monospace-block');
             }
           },
+          { /* Subheadings */
+            name: 'heading',
+            re: /^(#\s*)+/m,
+            cb: function(m, out, status) {
+              out.push(makeSigil(m[0], 'heading-marker'));
+              out.push({line: 'heading'});
+            },
+            add: function(stack, status) {
+              status.headingLevel = (status.headingLevel || 0) + 1;
+              if (status.headingLevel == 1) {
+                status.emphLevel = (status.emphLevel || 0) + 2;
+                return makeNode(null, 'heading-line');
+              }
+            },
+            rem: function(stack, status) {
+              if (status.headingLevel-- == 1) {
+                stack.pop();
+                status.emphLevel -= 2;
+              }
+            }
+          },
           { /* Quoted lines */
             name: 'quote',
             re: /^(>\s*)+/m,
@@ -1816,6 +1837,17 @@ this.Instant = function() {
                 stack.pop();
                 status.emphLevel--;
               }
+            }
+          },
+          { /* Monospace line */
+            name: 'term',
+            re: /^\$\s*/m,
+            cb: function(m, out, status) {
+              out.push(makeSigil(m[0], 'term-marker'));
+              out.push({line: 'term'});
+            },
+            add: function(stack, status) {
+              return makeNode(null, 'term-line monospace');
             }
           }
         ];

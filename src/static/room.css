@@ -140,7 +140,7 @@ body {
   color: inherit;
 }
 .message-text .emph, .message-text .emph-before,
-.message-text .emph-after, .message-text .quote-marker {
+.message-text .emph-after {
   font-style: normal;
   font-weight: normal;
   font-variant: normal;
@@ -157,6 +157,9 @@ body {
 }
 .message-text .emph.emph-4 {
   letter-spacing: 0.15em;
+}
+.message-text .heading-line {
+  font-weight: bold;
 }
 .message-text .quote-line {
   font-style: italic;
