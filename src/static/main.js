@@ -22,6 +22,9 @@ function $sel(sel, elem) {
 function $selAll(sel, elem) {
   return (elem || document).querySelectorAll(sel);
 }
+function $str(x) {
+  return x.toString();
+}
 function $esc(text) {
   return text.replace(/&/g, '&amp;').replace(/</g, '&lt;');
 }
@@ -3643,12 +3646,12 @@ this.Instant = function() {
           content: $makeFrag(
             parent && ['div', 'pm-header', [
               ['strong', null, 'Reply-to: '],
-              ['span', 'monospace', parent]
+              ['span', 'monospace', $str(parent)]
             ]],
             ['div', 'pm-header', [
               ['strong', null, 'To: '],
               ['span', [nickNode, ' ', ['i', ['(user ID ',
-                ['span', 'monospace', uid], ')']]]],
+                ['span', 'monospace', $str(uid)], ')']]]],
             ]], ['hr'], ['textarea', 'pm-editor']
           ),
           buttons: [
@@ -3709,17 +3712,21 @@ this.Instant = function() {
           content: $makeFrag(['div', 'pm-header', [
             ['strong', null, 'ID: '],
             ['span', [
-              ['span', 'monospace', msg.id],
+              ['span', 'monospace', $str(msg.id)],
               data.parent && ' ',
               data.parent && ['i', [
-                '(reply to ', ['span', 'monospace', data.parent], ')'
+                '(reply to ', ['span', 'monospace', $str(data.parent)], ')'
               ]]
             ]]
           ]], ['div', 'pm-header', [
             ['strong', null, 'From: '],
             ['span', [
               nickNode, ' ',
-              ['i', ['(user ID ', ['span', 'monospace', msg.from], ')']]
+              ['i', [
+                '(user ID ',
+                ['span', 'monospace', $str(msg.from)],
+                ')'
+              ]]
             ]]
           ]], ['div', 'pm-header', [
             ['strong', null, 'Date: '],
