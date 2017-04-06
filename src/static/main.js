@@ -3627,7 +3627,7 @@ this.Instant = function() {
         });
       },
       /* Start writing a message to uid */
-      write: function(uid, nick, text) {
+      write: function(uid, nick, text, parent) {
         var nickNode;
         if (nick === undefined) {
           nickNode = Instant.userList.get(uid);
@@ -3641,11 +3641,17 @@ this.Instant = function() {
         }
         var popup = Instant.popups.make({title: 'Private message editor',
           className: 'pm-popup',
-          content: $makeFrag(['div', 'pm-header', [
-            ['strong', null, 'To: '],
-            ['span', [nickNode, ' ', ['i', ['(user ID ',
-              ['span', 'monospace', uid], ')']]]],
-          ]], ['hr'], ['textarea', 'pm-editor']),
+          content: $makeFrag(
+            parent && ['div', 'pm-header', [
+              ['strong', null, 'Reply-to: '],
+              ['span', 'monospace', parent]
+            ]],
+            ['div', 'pm-header', [
+              ['strong', null, 'To: '],
+              ['span', [nickNode, ' ', ['i', ['(user ID ',
+                ['span', 'monospace', uid], ')']]]],
+            ]], ['hr'], ['textarea', 'pm-editor']
+          ),
           buttons: [
             {text: 'Finish later', onclick: function() {
               Instant.popups.del(popup);
@@ -3659,6 +3665,7 @@ this.Instant = function() {
           ],
           focusSel: '.pm-editor'});
         popup.setAttribute('data-recipient', uid);
+        if (parent) popup.setAttribute('data-parent', parent);
         var editor = $cls('pm-editor', popup);
         if (text) editor.value = text;
         popupsEdit.push(popup);
@@ -3680,8 +3687,11 @@ this.Instant = function() {
       _send: function(popup) {
         var recipient = popup.getAttribute('data-recipient');
         var text = $cls('pm-editor', popup).value;
-        Instant.connection.sendUnicast(recipient, {type: 'privmsg',
-          nick: Instant.identity.nick, text: text});
+        var data = {type: 'privmsg', nick: Instant.identity.nick,
+          text: text}
+        if (popup.getAttribute('data-parent'))
+          data.parent = popup.getAttribute('data-parent');
+        Instant.connection.sendUnicast(recipient, data);
         Instant.privmsg._remove(popup);
       },
       /* Incoming remote message */
@@ -3698,14 +3708,23 @@ this.Instant = function() {
         var popup = Instant.popups.make({title: 'Private message',
           className: 'pm-popup',
           content: $makeFrag(['div', 'pm-header', [
-            ['strong', null, 'From: '], ['span', [
+            ['strong', null, 'ID: '],
+            ['span', [
+              ['span', 'monospace', msg.id],
+              data.parent && ' ',
+              data.parent && ['i', [
+                '(reply to ', ['span', 'monospace', data.parent], ')'
+              ]]
+            ]]
+          ]], ['div', 'pm-header', [
+            ['strong', null, 'From: '],
+            ['span', [
               nickNode, ' ',
               ['i', ['(user ID ', ['span', 'monospace', msg.from], ')']]
             ]]
           ]], ['div', 'pm-header', [
-            ['strong', null, 'Date: '], ['span', [
-              formatDate(new Date(msg.timestamp))
-            ]]
+            ['strong', null, 'Date: '],
+            ['span', [formatDate(new Date(msg.timestamp))]]
           ]], ['hr'], msgNode),
           buttons: [
             {text: 'Read later', onclick: function() {
@@ -3720,12 +3739,12 @@ this.Instant = function() {
               var text = data.text.replace(/^(.)?/mg, function(char) {
                 return ((char) ? '> ' + char : '>');
               }) + '\n';
-              Instant.privmsg.write(msg.from, nick, text);
+              Instant.privmsg.write(msg.from, nick, text, msg.id);
             }},
             {text: 'Reply', color: '#008000', onclick: function() {
               var nick = data.nick;
               if (nick == undefined) nick = null;
-              Instant.privmsg.write(msg.from, nick);
+              Instant.privmsg.write(msg.from, nick, null, msg.id);
             }}
           ],
           focusSel: '.first'});
