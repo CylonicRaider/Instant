@@ -3594,50 +3594,75 @@ this.Instant = function() {
     var msgRead = null, msgEdit = null;
     /* Popup arrays (reading/writing) */
     var popupsRead = [], popupsEdit = [];
+    /* Message opening popup */
+    var accessPopup = null;
     return {
       /* Initialize submodule */
       init: function() {
+        var sr = Instant.privmsg.showRead.bind(Instant.privmsg);
+        var sw = Instant.privmsg.showWrite.bind(Instant.privmsg);
         msgRead = Instant.sidebar.makeMessage({
           content: 'Private messages',
           color: Instant.notifications.COLORS.privmsg,
-          onclick: Instant.privmsg.showRead});
+          onclick: sr});
         msgEdit = Instant.sidebar.makeMessage({
           content: 'Private message drafts',
           color: Instant.notifications.COLORS.privmsg,
-          onclick: Instant.privmsg.showWrite});
+          onclick: sw});
+        accessPopup = Instant.popups.make({
+          title: 'Private messages',
+          buttons: [
+            {text: 'Inbox', onclick: sr, className: 'show-inbox'},
+            {text: 'Drafts', onclick: sw, className: 'show-drafts'}
+          ],
+          className: 'popup-weak'
+        });
       },
       /* Update notification state */
       _update: function() {
         if (! popupsRead.length) {
           Instant.sidebar.hideMessage(msgRead);
+          $cls('show-inbox', accessPopup).style.display = 'none';
         } else {
           var count = popupsRead.length, unread = 0;
           for (var i = 0; i < count; i++) {
             if (popupsRead[i].getAttribute('data-new')) unread++;
           }
-          var text;
+          var pls = (count == 1) ? '' : 's', text;
           if (unread == 0) {
-            text = 'Private messages (' + count + ')';
+            text = '(' + count + ')';
           } else if (count == unread) {
-            text = 'Private messages (' + unread + '!!)';
+            text = '(' + unread + '!!)';
           } else {
-            text = ('Private messages (' + (count - unread) + ' + ' +
-              unread + '!!)');
+            text = '(' + (count - unread) + ' + ' + unread + '!!)';
           }
-          msgRead.textContent = text;
+          msgRead.textContent = 'Private message' + pls + ' ' + text;
           Instant.sidebar.showMessage(msgRead);
+          var btn = $cls('show-inbox', accessPopup);
+          btn.style.display = '';
+          btn.textContent = 'Inbox ' + text;
         }
         if (! popupsEdit.length) {
           Instant.sidebar.hideMessage(msgEdit);
+          $cls('show-drafts', accessPopup).style.display = 'none';
         } else {
-          var text;
+          var pls = 's', text;
           if (popupsEdit.length == 1) {
-            text = 'Private message draft';
+            pls = '';
+            text = '(1)';
           } else {
-            text = 'Private message drafts (' + popupsEdit.length + ')';
+            text = '(' + popupsEdit.length + ')';
           }
-          msgEdit.textContent = text;
+          msgEdit.textContent = 'Private message draft' + pls + ' ' + text;
           Instant.sidebar.showMessage(msgEdit);
+          var btn = $cls('show-drafts', accessPopup);
+          btn.style.display = '';
+          btn.textContent = 'Draft' + pls + ' ' + text;
+        }
+        if (popupsRead.length || popupsEdit.length) {
+          Instant.popups.add(accessPopup);
+        } else {
+          Instant.popups.del(accessPopup);
         }
         Instant.title.update();
       },
@@ -4815,16 +4840,18 @@ this.Instant = function() {
       /* Add a node to the popup stack */
       add: function(node) {
         stack.appendChild(node);
-        wrapper.style.display = 'block';
-        Instant.util.adjustScrollbar($cls('close-all', wrapper),
-                                     $cls('popups-content', wrapper));
-        Instant.popups.focus(node);
+        if ($sel('.popup:not(.popup-weak)', stack)) {
+          wrapper.style.display = 'block';
+          Instant.util.adjustScrollbar($cls('close-all', wrapper),
+                                       $cls('popups-content', wrapper));
+          Instant.popups.focus(node);
+        }
       },
       /* Remove a node from the popup stack */
       del: function(node) {
         var next = node.nextElementSibling || node.previousElementSibling;
         stack.removeChild(node);
-        if (! stack.children.length) {
+        if (! $sel('.popup:not(.popup-weak)', stack)) {
           wrapper.style.display = '';
           Instant.input.focus();
         } else {
