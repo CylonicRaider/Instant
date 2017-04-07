@@ -73,10 +73,12 @@ public class Main implements Runnable {
 
     private final String[] args;
     private InstantRunner runner;
+    private String startupCmd;
 
     public Main(String[] args) {
         this.args = args;
         this.runner = new InstantRunner();
+        this.startupCmd = null;
     }
 
     public int getArguments() {
@@ -120,6 +122,9 @@ public class Main implements Runnable {
             "plugin-path", false), "Path to search for plugins in");
         StringListOption plugins = p.add(new StringListOption(
             "plugins", false), "List of plugins to load");
+        StringOption cmdOpt = p.add(new StringOption("startup-cmd", false,
+            null), "A shell command to run just before entering the " +
+            "main loop");
         ParseResult r;
         try {
             r = p.parse(args);
@@ -138,6 +143,7 @@ public class Main implements Runnable {
             runner.addPluginPath(path);
         for (String plugin : plugins.get(r))
             runner.addPlugin(plugin);
+        startupCmd = cmdOpt.get(r);
     }
 
     public void run() {
@@ -200,6 +206,7 @@ public class Main implements Runnable {
         runner.getStringProducer().addFile("/static/version.js",
                                            VERSION_FILE);
         srv.addInternalHook(new Error404Hook());
+        if (startupCmd != null) runCommand(startupCmd);
         LOGGER.info("Running");
         srv.run();
     }
@@ -215,6 +222,22 @@ public class Main implements Runnable {
                 // Should not happen.
                 throw new RuntimeException(exc);
             }
+        }
+    }
+
+    private static int runCommand(String cmdline) {
+        ProcessBuilder pb = new ProcessBuilder(cmdline.trim().split("\\s"));
+        pb.redirectInput(ProcessBuilder.Redirect.INHERIT);
+        pb.redirectOutput(ProcessBuilder.Redirect.INHERIT);
+        pb.redirectError(ProcessBuilder.Redirect.INHERIT);
+        try {
+            Process p = pb.start();
+            return p.waitFor();
+        } catch (IOException exc) {
+            return Integer.MIN_VALUE;
+        } catch (InterruptedException exc) {
+            Thread.currentThread().interrupt();
+            return Integer.MIN_VALUE + 1;
         }
     }
 
