@@ -48,15 +48,16 @@ function $suffLength(text, char) {
   return ret;
 }
 
-function $query(str, ret) {
+function $query(str, ret, noStrip) {
   if (! ret) ret = {};
-  var regex = /[#?&]?([^&=]+)=([^&]*)(?=&|$)|($)/g;
+  if (! noStrip) str = str.replace(/^[?#]/, '');
+  var regex = /&?([^&=]+)(?:=([^&]*))?(?=&|$)|($)/g;
   for (;;) {
     var m = regex.exec(str);
     if (! m) return null;
     if (m[3] != null) break;
     var n = decodeURIComponent(m[1]);
-    var v = decodeURIComponent(m[2]);
+    var v = (m[2] == null) ? true : decodeURIComponent(m[2]);
     if (ret[n] == null) {
       ret[n] = v;
     } else if (typeof ret[n] == 'string') {
@@ -4997,7 +4998,7 @@ this.Instant = function() {
     };
   }();
   /* Query string parameters
-   * The backend does not parse them (as of now), and even if it did not,
+   * The backend does not parse them (as of now), and even if it did,
    * some of those are only relevant to the frontend. */
   Instant.query = function() {
     /* The actual data */
