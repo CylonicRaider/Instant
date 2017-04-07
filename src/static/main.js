@@ -22,9 +22,6 @@ function $sel(sel, elem) {
 function $selAll(sel, elem) {
   return (elem || document).querySelectorAll(sel);
 }
-function $str(x) {
-  return x.toString();
-}
 function $esc(text) {
   return text.replace(/&/g, '&amp;').replace(/</g, '&lt;');
 }
@@ -3700,19 +3697,25 @@ this.Instant = function() {
         } else {
           nickNode = Instant.nick.makeNode(nick);
         }
+        var popupContent = $makeFrag(
+          parent && ['div', 'pm-header', [
+            ['strong', null, 'Reply-to: '],
+            ['span', 'monospace pm-reply-to']
+          ]],
+          ['div', 'pm-header', [
+            ['strong', null, 'To: '],
+            ['span', [nickNode, ' ', ['i', ['(user ID ',
+               ['span', 'monospace pm-to-uid'], ')']]]],
+          ]], ['hr'], ['textarea', 'pm-editor']
+        );
+        /* NOTE: DocumentFragment does not implement
+         *       getElementsByClassName() */
+        if (parent)
+          $sel('.pm-reply-to', popupContent).textContent = parent;
+        $sel('.pm-to-uid', popupContent).textContent = uid;
         var popup = Instant.popups.make({title: 'Private message editor',
           className: 'pm-popup',
-          content: $makeFrag(
-            parent && ['div', 'pm-header', [
-              ['strong', null, 'Reply-to: '],
-              ['span', 'monospace', $str(parent)]
-            ]],
-            ['div', 'pm-header', [
-              ['strong', null, 'To: '],
-              ['span', [nickNode, ' ', ['i', ['(user ID ',
-                ['span', 'monospace', $str(uid)], ')']]]],
-            ]], ['hr'], ['textarea', 'pm-editor']
-          ),
+          content: popupContent,
           buttons: [
             {text: 'Finish later', onclick: function() {
               Instant.popups.del(popup);
@@ -3766,31 +3769,36 @@ this.Instant = function() {
           nickNode = Instant.nick.makeNode(data.nick);
         }
         var msgNode = Instant.message.parseContent(data.text);
-        var popup = Instant.popups.make({title: 'Private message',
-          className: 'pm-popup',
-          content: $makeFrag(['div', 'pm-header', [
+        var popupContent = $makeFrag(
+          ['div', 'pm-header', [
             ['strong', null, 'ID: '],
             ['span', [
-              ['span', 'monospace', $str(msg.id)],
+              ['span', 'monospace pm-message-id'],
               data.parent && ' ',
               data.parent && ['i', [
-                '(reply to ', ['span', 'monospace', $str(data.parent)], ')'
+                '(reply to ', ['span', 'monospace pm-parent-id'], ')'
               ]]
             ]]
           ]], ['div', 'pm-header', [
             ['strong', null, 'From: '],
             ['span', [
               nickNode, ' ',
-              ['i', [
-                '(user ID ',
-                ['span', 'monospace', $str(msg.from)],
-                ')'
-              ]]
+              ['i', ['(user ID ', ['span', 'monospace pm-from-uid'], ')']]
             ]]
           ]], ['div', 'pm-header', [
             ['strong', null, 'Date: '],
             ['span', [formatDate(new Date(msg.timestamp))]]
-          ]], ['hr'], msgNode),
+          ]],
+          ['hr'],
+          msgNode
+        );
+        $sel('.pm-message-id', popupContent).textContent = msg.id;
+        if (data.parent)
+          $sel('.pm-parent-id', popupContent).textContent = data.parent;
+        $sel('.pm-from-uid', popupContent).textContent = msg.from;
+        var popup = Instant.popups.make({title: 'Private message',
+          className: 'pm-popup',
+          content: popupContent,
           buttons: [
             {text: 'Read later', onclick: function() {
               Instant.popups.del(popup);
@@ -4970,7 +4978,12 @@ this.Instant = function() {
         } else if (node.getAttribute('data-focus')) {
           $sel(node.getAttribute('data-focus'), node).focus();
         } else {
-          $cls('popup-close', node).focus();
+          var close = $cls('popup-close', node);
+          if (close) {
+            close.focus();
+          } else {
+            node.focus();
+          }
         }
       },
       /* Returnt the internal node containing the popups */
