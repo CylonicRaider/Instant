@@ -5,6 +5,7 @@ import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import net.instant.util.Encodings;
 import net.instant.util.Util;
 
 public class FileCell {
@@ -47,14 +48,14 @@ public class FileCell {
                 // SRSLY?
                 return null;
             }
-            d.update(Util.toBytes(created));
+            d.update(Encodings.toBytes(created));
             if (content == null) {
                 d.update((byte) 0);
             } else {
                 d.update((byte) 1);
                 d.update(getData());
             }
-            etag = Util.toHex(d.digest());
+            etag = Encodings.toHex(d.digest());
         }
         return etag;
     }

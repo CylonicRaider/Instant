@@ -18,7 +18,6 @@ import java.util.Map;
 import java.util.TimeZone;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import javax.xml.bind.DatatypeConverter;
 import net.instant.api.Utilities;
 import org.json.JSONObject;
 
@@ -83,23 +82,6 @@ public final class Util {
 
     private Util() {}
 
-    public static ByteBuffer toBytes(long l) {
-        ByteBuffer ret = ByteBuffer.allocate(8);
-        ret.putLong(l);
-        ret.flip();
-        return ret;
-    }
-    public static ByteBuffer toBytes(String s) {
-        byte[] ret;
-        try {
-            ret = s.getBytes("utf-8");
-        } catch (UnsupportedEncodingException exc) {
-            // Why must *this* be a checked one?
-            throw new RuntimeException(exc);
-        }
-        return ByteBuffer.wrap(ret);
-    }
-
     public static byte[] getRandomness(int len) {
         byte[] buf = new byte[len];
         RNG.nextBytes(buf);
@@ -107,20 +89,6 @@ public final class Util {
     }
     public static void clear(byte[] arr) {
         for (int i = 0; i < arr.length; i++) arr[i] = 0;
-    }
-
-    public static String toHex(byte[] buf) {
-        return DatatypeConverter.printHexBinary(buf);
-    }
-    public static byte[] fromHex(String data) {
-        return DatatypeConverter.parseHexBinary(data);
-    }
-
-    public static String toBase64(byte[] buf) {
-        return DatatypeConverter.printBase64Binary(buf);
-    }
-    public static byte[] fromBase64(String data) {
-        return DatatypeConverter.parseBase64Binary(data);
     }
 
     public static String escapeJSString(String s, boolean full) {

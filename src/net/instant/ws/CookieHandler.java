@@ -6,6 +6,7 @@ import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import net.instant.util.Encodings;
 import net.instant.util.StringSigner;
 import net.instant.util.Util;
 import org.java_websocket.handshake.ClientHandshake;
@@ -131,8 +132,8 @@ public class CookieHandler {
         if (parts.length != 2) return null;
         byte[] data, signature;
         try {
-            data = Util.fromBase64(parts[0]);
-            signature = Util.fromBase64(parts[1]);
+            data = Encodings.fromBase64(parts[0]);
+            signature = Encodings.fromBase64(parts[1]);
         } catch (IllegalArgumentException exc) {
             return null;
         }
@@ -158,7 +159,7 @@ public class CookieHandler {
             sig = signer.sign(enc);
             if (sig == null) return null;
         }
-        return Util.toBase64(enc) + "|" + Util.toBase64(sig);
+        return Encodings.toBase64(enc) + "|" + Encodings.toBase64(sig);
     }
 
 }

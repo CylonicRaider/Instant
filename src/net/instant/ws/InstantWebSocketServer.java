@@ -17,6 +17,7 @@ import net.instant.Main;
 import net.instant.info.Datum;
 import net.instant.info.InformationCollector;
 import net.instant.info.RequestInfo;
+import net.instant.util.Encodings;
 import net.instant.util.Util;
 import org.java_websocket.WebSocket;
 import org.java_websocket.WebSocketAdapter;
@@ -285,7 +286,7 @@ public class InstantWebSocketServer extends WebSocketServer
                                     response);
         response.put("Server", "Instant/" + Main.VERSION);
         byte[] rand = Util.getRandomness(16);
-        response.put("X-Magic-Cookie", '"' + Util.toBase64(rand) + '"');
+        response.put("X-Magic-Cookie", '"' + Encodings.toBase64(rand) + '"');
         Util.clear(rand);
         response.put("X-Instant-Version", Main.VERSION);
         if (Main.FINE_VERSION != null)

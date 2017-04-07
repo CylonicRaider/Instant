@@ -5,7 +5,7 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import net.instant.util.Util;
+import net.instant.util.Encodings;
 
 public class StringProducer implements Producer {
 
@@ -43,7 +43,7 @@ public class StringProducer implements Producer {
         lastUpdates.put(name, System.currentTimeMillis());
     }
     public void addFile(String name, String content) {
-        addFile(name, Util.toBytes(content));
+        addFile(name, Encodings.toBytes(content));
     }
     public synchronized void appendFile(String name, ByteBuffer content) {
         ByteBuffer oldContent = getCachedFile(name);
@@ -60,7 +60,7 @@ public class StringProducer implements Producer {
         lastUpdates.put(name, System.currentTimeMillis());
     }
     public void appendFile(String name, String content) {
-        appendFile(name, Util.toBytes(content));
+        appendFile(name, Encodings.toBytes(content));
     }
     public synchronized void removeFile(String name) {
         files.remove(name);

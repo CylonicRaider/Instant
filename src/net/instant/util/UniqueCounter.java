@@ -55,7 +55,7 @@ public class UniqueCounter implements Counter {
         temp[5] = (byte) (v >> 16);
         temp[6] = (byte) (v >>  8);
         temp[7] = (byte) (v >>  0);
-        return Util.toHex(temp);
+        return Encodings.toHex(temp);
     }
     public String getString() {
         return getString(get());
