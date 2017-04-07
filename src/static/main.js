@@ -3611,10 +3611,12 @@ this.Instant = function() {
           onclick: sw});
         accessPopup = Instant.popups.make({
           title: 'Private messages',
+          content: 'Click here to open your inbox / all drafts.',
           buttons: [
             {text: 'Inbox', onclick: sr, className: 'show-inbox'},
             {text: 'Drafts', onclick: sw, className: 'show-drafts'}
           ],
+          noClose: true,
           className: 'popup-weak'
         });
       },
@@ -3660,7 +3662,7 @@ this.Instant = function() {
           btn.textContent = 'Draft' + pls + ' ' + text;
         }
         if (popupsRead.length || popupsEdit.length) {
-          Instant.popups.add(accessPopup);
+          Instant.popups.add(accessPopup, true);
         } else {
           Instant.popups.del(accessPopup);
         }
@@ -4838,8 +4840,12 @@ this.Instant = function() {
         return stack;
       },
       /* Add a node to the popup stack */
-      add: function(node) {
-        stack.appendChild(node);
+      add: function(node, onTop) {
+        if (onTop) {
+          stack.insertBefore(node, stack.firstElementChild);
+        } else {
+          stack.appendChild(node);
+        }
         if ($sel('.popup:not(.popup-weak)', stack)) {
           wrapper.style.display = 'block';
           Instant.util.adjustScrollbar($cls('close-all', wrapper),

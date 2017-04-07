@@ -835,6 +835,9 @@ body {
 .popups .popup .popup-content {
   padding: 5px;
 }
+.popups .popup .popup-content:empty {
+  padding-top: 0;
+}
 .popups .popup .popup-content hr {
   margin: 5px 0;
   border: 0;
