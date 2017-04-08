@@ -204,6 +204,7 @@ public class InstantWebSocketServer extends WebSocketServer
     }
 
     public void onOpen(WebSocket conn, ClientHandshake handshake) {
+        LOGGER.fine("Connection opened (" + conn + ")");
         RequestInfo info = getInfo(collector.move(handshake, conn));
         Hook h = getAssignment(info);
         if (h != null) {
@@ -220,6 +221,7 @@ public class InstantWebSocketServer extends WebSocketServer
 
     public void onClose(WebSocket conn, int code,
                         String reason, boolean remote) {
+        LOGGER.fine("Connection closed (" + conn + ")");
         RequestInfo info = popInfo(conn);
         Hook h = clearAssignment(info);
         if (h != null) {
@@ -259,7 +261,8 @@ public class InstantWebSocketServer extends WebSocketServer
 
     public void onError(WebSocket conn, Exception ex) {
         /* Errors should not happen; log */
-        LOGGER.log(Level.WARNING, "Exception while handling connection", ex);
+        LOGGER.log(Level.WARNING, "Exception while handling connection (" +
+                   conn + ")", ex);
         /* Normal processing */
         RequestInfo info;
         if (conn == null) {
