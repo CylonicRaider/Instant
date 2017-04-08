@@ -5,6 +5,7 @@ import java.util.Calendar;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
+import java.util.logging.Logger;
 import java.util.regex.Pattern;
 import net.instant.Main;
 import net.instant.api.Cookie;
@@ -31,6 +32,8 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 public class RoomWebSocketHook extends WebSocketHook {
+
+    private static final Logger LOGGER = Logger.getLogger("RoomWSHook");
 
     public interface Hook {
 
@@ -207,7 +210,11 @@ public class RoomWebSocketHook extends WebSocketHook {
         if (hook != null)
             hook.processLeave(new PresenceChangeInfo(false, info,
                                                      rd, left));
-        room.sendBroadcast(left);
+        if (room == null) {
+            LOGGER.warning("Closing without a room");
+        } else {
+            room.sendBroadcast(left);
+        }
     }
 
     public Message prepare(String type) {
