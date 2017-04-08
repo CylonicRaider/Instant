@@ -18,6 +18,7 @@ import net.instant.hooks.RedirectHook;
 import net.instant.hooks.StaticFileHook;
 import net.instant.plugins.PluginException;
 import net.instant.proto.MessageDistributor;
+import net.instant.util.Formats;
 import net.instant.util.Logging;
 import net.instant.util.StringSigner;
 import net.instant.util.Util;
@@ -68,8 +69,8 @@ public class Main implements Runnable {
         FINE_VERSION = v;
         VERSION_FILE = String.format("this._instantVersion_ = " +
             "{version: %s, revision: %s};\n",
-            Util.escapeJSString(VERSION, true),
-            Util.escapeJSString(FINE_VERSION, true));
+            Formats.escapeJSString(VERSION, true),
+            Formats.escapeJSString(FINE_VERSION, true));
     }
 
     private final String[] args;

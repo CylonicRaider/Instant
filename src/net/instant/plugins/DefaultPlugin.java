@@ -7,6 +7,7 @@ import java.util.Map;
 import net.instant.api.API1;
 import net.instant.api.PluginData;
 import net.instant.api.Utilities;
+import net.instant.util.Formats;
 import net.instant.util.Util;
 
 public class DefaultPlugin {
@@ -75,11 +76,11 @@ public class DefaultPlugin {
                             if (parts.length == 1) {
                                 params = Collections.emptyMap();
                             } else {
-                                params = Util.parseQueryString(parts[1]);
+                                params = Formats.parseQueryString(parts[1]);
                             }
                             if (ssb.length() != 0) ssb.append(", ");
                             ssb.append("{url: ");
-                            ssb.append(Util.escapeJSString(url, true));
+                            ssb.append(Formats.escapeJSString(url, true));
                             if (Util.isTrue(params.get("before")))
                                 ssb.append(", before: true");
                             if (Util.isTrue(params.get("after")))

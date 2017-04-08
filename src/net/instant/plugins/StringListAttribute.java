@@ -1,7 +1,7 @@
 package net.instant.plugins;
 
 import java.util.List;
-import net.instant.util.Util;
+import net.instant.util.Formats;
 
 public class StringListAttribute extends PluginAttribute<List<String>> {
 
@@ -10,7 +10,7 @@ public class StringListAttribute extends PluginAttribute<List<String>> {
     }
 
     public List<String> parse(String rawValue) {
-        return Util.parseCommaList(rawValue);
+        return Formats.parseCommaList(rawValue);
     }
 
 }

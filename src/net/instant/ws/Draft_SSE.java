@@ -1,7 +1,7 @@
 package net.instant.ws;
 
 import java.util.List;
-import net.instant.util.Util;
+import net.instant.util.Formats;
 import org.java_websocket.drafts.Draft;
 import org.java_websocket.handshake.ClientHandshake;
 import org.java_websocket.handshake.HandshakeBuilder;
@@ -18,10 +18,10 @@ public class Draft_SSE extends Draft_Raw {
         if (super.acceptHandshakeAsServer(handshakedata) != HandshakeState.MATCHED)
             return HandshakeState.NOT_MATCHED;
         // Just force an appropriate Accept header.
-        List<Util.HeaderEntry> values = Util.parseHTTPHeader(handshakedata.getFieldValue("Accept"));
+        List<Formats.HeaderEntry> values = Formats.parseHTTPHeader(handshakedata.getFieldValue("Accept"));
         if (values == null)
             return HandshakeState.NOT_MATCHED;
-        for (Util.HeaderEntry ent : values) {
+        for (Formats.HeaderEntry ent : values) {
             String val = ent.getValue();
             // Cannot know if the browser requests text/plain or something like that.
             if (val.equals("text/event-stream")) return HandshakeState.MATCHED;

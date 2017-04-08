@@ -20,6 +20,7 @@ import net.instant.proto.MessageInfo;
 import net.instant.proto.PresenceChangeInfo;
 import net.instant.proto.ProtocolError;
 import net.instant.proto.RoomDistributor;
+import net.instant.util.Formats;
 import net.instant.util.UniqueCounter;
 import net.instant.util.Util;
 import net.instant.ws.InstantWebSocketServer;
@@ -105,7 +106,7 @@ public class RoomWebSocketHook extends WebSocketHook {
         cookie.put("HttpOnly", null);
         Calendar expiry = Calendar.getInstance();
         expiry.add(Calendar.YEAR, 2);
-        cookie.put("Expires", Util.formatHttpTime(expiry));
+        cookie.put("Expires", Formats.formatHttpTime(expiry));
         if (! InstantWebSocketServer.INSECURE_COOKIES)
             cookie.put("Secure", null);
         info.putCookie(cookie);

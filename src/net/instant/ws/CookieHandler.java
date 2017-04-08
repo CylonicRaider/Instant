@@ -7,6 +7,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import net.instant.util.Encodings;
+import net.instant.util.Formats;
 import net.instant.util.StringSigner;
 import net.instant.util.Util;
 import org.java_websocket.handshake.ClientHandshake;
@@ -23,7 +24,7 @@ public class CookieHandler {
         private transient JSONObject data;
 
         public Cookie(String name, String value) {
-            if (! Util.HTTP_TOKEN.matcher(name).matches())
+            if (! Formats.HTTP_TOKEN.matcher(name).matches())
                 throw new IllegalArgumentException("Bad cookie name");
             this.name = name;
             this.value = value;
@@ -62,7 +63,7 @@ public class CookieHandler {
             StringBuilder sb = new StringBuilder();
             sb.append(name);
             sb.append('=');
-            sb.append(Util.escapeHttpString(value));
+            sb.append(Formats.escapeHttpString(value));
             for (Map.Entry<String, String> ent : entrySet()) {
                 sb.append("; ");
                 sb.append(ent.getKey());
@@ -100,7 +101,7 @@ public class CookieHandler {
             if (! name.equals("Cookie")) continue;
             String value = request.getFieldValue(name);
             if (value.isEmpty()) continue;
-            Map<String, String> values = Util.parseTokenMap(value);
+            Map<String, String> values = Formats.parseTokenMap(value);
             if (values == null) continue;
             for (Map.Entry<String, String> ent : values.entrySet()) {
                 try {
