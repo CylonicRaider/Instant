@@ -2,6 +2,7 @@ package net.instant.util;
 
 import java.io.OutputStream;
 import java.util.logging.Handler;
+import java.util.logging.Level;
 import java.util.logging.LogRecord;
 import java.util.logging.Logger;
 import java.util.logging.SimpleFormatter;
@@ -30,6 +31,15 @@ public final class Logging {
             rootLogger.removeHandler(hnd);
         }
         rootLogger.addHandler(newhnd);
+    }
+
+    public static void setLevel(Level level) {
+        // That API is impressive.
+        Logger rootLogger = Logger.getLogger("");
+        rootLogger.setLevel(level);
+        for (Handler hnd : rootLogger.getHandlers()) {
+            hnd.setLevel(level);
+        }
     }
 
 }

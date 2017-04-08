@@ -9,6 +9,7 @@ import java.io.PrintStream;
 import java.net.InetSocketAddress;
 import java.net.URL;
 import java.util.jar.Manifest;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
 import net.instant.hooks.Error404Hook;
@@ -118,6 +119,8 @@ public class Main implements Runnable {
             "-"), "Log file for HTTP requests");
         StringOption dbglog = p.add(new StringOption("debug-log", false,
             "-"), "Log file for debugging");
+        StringOption loglevel = p.add(new StringOption("log-level", false,
+           "INFO"), "Logging level");
         PathListOption pluginPath = p.add(new PathListOption(
             "plugin-path", false), "Path to search for plugins in");
         StringListOption plugins = p.add(new StringListOption(
@@ -139,6 +142,7 @@ public class Main implements Runnable {
         runner.setPort(port.get(r));
         runner.setHTTPLog(resolveOutputStream(httplog.get(r)));
         Logging.redirectToStream(resolveOutputStream(dbglog.get(r)));
+        Logging.setLevel(Level.parse(loglevel.get(r)));
         for (File path : pluginPath.get(r))
             runner.addPluginPath(path);
         for (String plugin : plugins.get(r))
