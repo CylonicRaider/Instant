@@ -703,6 +703,495 @@ this.Instant = function() {
       onRawMessage: null
     };
   }();
+  /* Logs! */
+  Instant.logs = function() {
+    /* Sorted key list */
+    var keys = [];
+    /* ID -> object; Session ID -> User ID (UUID) */
+    var messages = {}, uuids = {};
+    /* Earliest and newest log message, respectively */
+    var oldestLog = null, newestLog = null;
+    /* Earliest live message */
+    var oldestLive = null;
+    /* Our logs are up-to-date */
+    var logsLive = true;
+    return {
+      /* Get the bounds (amount of messages, earliest message, latest
+       * message) of the logs */
+      bounds: function() {
+        if (keys.length) {
+          return {from: keys[0], to: keys[keys.length - 1],
+            length: keys.length};
+        } else {
+          return {from: null, to: null, length: 0};
+        }
+      },
+      /* Find where to insert the given key and return the index
+       * If the key is already present, returns the index of it. */
+      bisect: function(key) {
+        var f = 0, t = keys.length - 1;
+        /* The actual algorithm fails with no keys to compare to */
+        if (! keys) return 0;
+        /* Actual bisecting */
+        for (;;) {
+          /* Compare with bounds */
+          if (key <= keys[f]) {
+            return f;
+          } else if (key > keys[t]) {
+            return t + 1;
+          } else if (t - f == 1) {
+            return t;
+          } else if (t - f < 1) {
+            return f;
+          }
+          /* Shift bounds */
+          var c = (f + t) >> 1;
+          if (key < keys[c]) {
+            t = c - 1;
+          } else if (key > keys[c]) {
+            f = c + 1;
+          } else {
+            return c;
+          }
+        }
+      },
+      /* Add the given message, replacing an old one if present */
+      add: function(message) {
+        var pos = Instant.logs.bisect(message.id);
+        if (keys[pos] != message.id) {
+          keys.splice(pos, 0, message.id);
+        }
+        messages[message.id] = message;
+        if (logsLive && oldestLive == null)
+          oldestLive = message.id;
+      },
+      /* Remove the message with the given ID */
+      remove: function(id) {
+        var pos = Instant.logs.bisect(id);
+        if (keys[pos] == id) keys.splice(pos, 1);
+        delete messages[id];
+      },
+      /* Purge everything from the logs */
+      clear: function() {
+        keys = [];
+        messages = {};
+        oldestLog = null;
+        newestLog = null;
+        oldestLive = null;
+        logsLive = false;
+      },
+      /* Add multiple log entries (preferably a large amount)
+       * If updateIndices is true, the oldest and the newest "log" message
+       * ID-s are updated. */
+      merge: function(logs, updateIndices) {
+        /* No logs, no action */
+        if (! logs) return;
+        /* Copy keys into array; embed messages into storage */
+        var lkeys = logs.map(function(m) {
+          messages[m.id] = m;
+          return m.id;
+        });
+        /* Update oldest and newest log */
+        lkeys.sort();
+        if ((updateIndices || logsLive) && lkeys) {
+          if (oldestLog == null || oldestLog > lkeys[0])
+            oldestLog = lkeys[0];
+          if (newestLog == null || newestLog < lkeys[lkeys.length - 1])
+            newestLog = lkeys[lkeys.length - 1];
+        }
+        /* Actually flush keys into key array */
+        Array.prototype.push.apply(keys, lkeys);
+        /* Sort */
+        keys.sort();
+        /* Deduplicate (it's better than nothing) */
+        var last = null, taken = [];
+        keys = keys.filter(function(k) {
+          if (last && k == last) {
+            if (! taken.length || k != taken[taken.length - 1])
+              taken.push(k);
+            return false;
+          } else {
+            last = k;
+            return true;
+          }
+        });
+        /* Calculate the messages actually added */
+        var tkidx = 0;
+        var added = lkeys.filter(function(k) {
+          if (tkidx < taken.length && k == taken[tkidx]) {
+            return false;
+          } else {
+            tkidx++;
+            return true;
+          }
+        });
+        /* Return messages actually added */
+        return added;
+      },
+      /* Fetch some portion of the logs */
+      get: function(from, to, length) {
+        var retkeys = [];
+        /* Calculate the keys' indices */
+        var fromidx = (from != null) ? Instant.logs.bisect(from) : null;
+        var toidx = (to != null) ? Instant.logs.bisect(to) : null;
+        if (toidx != null && keys[toidx] == to) toidx++;
+        /* Patch missing indices */
+        if (fromidx != null && toidx != null) {
+          /* Exact range -- nothing to do */
+        } else if (fromidx != null) {
+          /* From a given key, ... */
+          if (length == null) {
+            /* ...until end -- nothing to do. */
+          } else {
+            /* ...until maximum length. */
+            toidx = fromidx + length;
+          }
+        } else if (toidx != null) {
+          /* Up to a given key, ... */
+          if (length == null) {
+            /* ...from the beginning. */
+            fromidx = 0;
+          } else {
+            /* ...from a maximum length. */
+            fromidx = toidx - length;
+            if (fromidx < 0) fromidx = 0;
+          }
+        } else if (length != null) {
+          /* N most recent entries */
+          toidx = keys.length;
+          fromidx = toidx - length;
+          if (fromidx < 0) fromidx = 0;
+        } else {
+          /* Everything! */
+          fromidx = 0;
+        }
+        /* Just leaving it at null seemed not to work */
+        if (toidx == null) toidx = keys.length;
+        /* Extract keys; map them to messages; return those. */
+        return keys.slice(fromidx, toidx).map(function(k) {
+          return messages[k];
+        });
+      },
+      /* Add the given UID-UUID pair to the registry */
+      addUUID: function(uid, uuid) {
+        uuids[uid] = uuid;
+      },
+      /* Add the given pairs to the UUID cache */
+      mergeUUID: function(mapping) {
+        for (var k in mapping) {
+          if (! mapping.hasOwnProperty(k)) continue;
+          uuids[k] = mapping[k];
+        }
+      },
+      /* Return the UUID corresponding to the given UID, or nothing */
+      getUUID: function(uid) {
+        return uuids[uid];
+      },
+      /* Return either the whole UUID mapping, or the subset of it having
+       * the items of keys as keys */
+      queryUUID: function(keys) {
+        var ret = {};
+        if (keys) {
+          keys.forEach(function(k) {
+            if (uuids[k]) ret[k] = uuids[k];
+          });
+        } else {
+          for (var k in uuids) {
+            if (! uuids.hasOwnProperty(k)) continue;
+            ret[k] = uuids[k];
+          }
+        }
+        return ret;
+      },
+      /* Obtain the current key array. Do not modify. */
+      getKeys: function() {
+        return keys;
+      },
+      /* Obtain the current message mapping. Do not modify. */
+      getMessages: function() {
+        return messages;
+      },
+      /* Obtain the current user ID to UUID mapping. Do not modify. */
+      getUUIDs: function() {
+        return uuids;
+      },
+      /* Return the oldest "log" message ID */
+      getOldestLog: function() {
+        return oldestLog;
+      },
+      /* Return the newest "log" message ID */
+      getNewestLog: function() {
+        return newestLog;
+      },
+      /* Return the oldest "live" message ID */
+      getOldestLive: function() {
+        return oldestLive;
+      },
+      /* Submodule */
+      pull: function() {
+        /* Interval log fetching may not take longer than */
+        var WAIT_DEADLINE = 10000;
+        /* Maximum interval to wait for another peer */
+        var WAIT_NEXTPEER = 1000;
+        /* When to poll whether to choose new peer */
+        var POLL_TIME = 100;
+        /* The pane to add parent-less messages to */
+        var pane = null;
+        /* Waiting for replies to arrive */
+        var timer = null;
+        /* Time when the pull started; last time we got a log-info */
+        var pullStarted = null, lastUpdate = null;
+        /* Peers for oldest and newest messages */
+        var oldestPeer = null, newestPeer = null;
+        /* Which logs exactly are pulled */
+        var pullType = {before: null, after: null};
+        /* Message we want to fetch */
+        var goal = null;
+        return {
+          /* Initialize the pane node */
+          init: function(paneNode) {
+            /* Verbosity level */
+            if (window.logInstantLogPulling === undefined)
+              window.logInstantLogPulling = (!! Instant.query.get('verbose'));
+            pane = paneNode;
+          },
+          /* Actually start pulling logs */
+          _start: function() {
+            if (timer == null) {
+              Instant.connection.sendBroadcast({type: 'log-query'});
+              pullStarted = Date.now();
+              timer = setInterval(Instant.logs.pull._check, POLL_TIME);
+              if (window.logInstantLogPulling)
+                console.debug('[LogPull]', 'Started');
+            }
+            if (pullType.before)
+              Instant.animation.spinner.show('logs-before');
+            if (pullType.after)
+              Instant.animation.spinner.show('logs-after');
+          },
+          /* Start a round of log pulling */
+          start: function() {
+            pullType.before = true;
+            pullType.after = true;
+            Instant.logs.pull._start();
+          },
+          /* Load logs before the current ones */
+          more: function() {
+            pullType.before = true;
+            Instant.logs.pull._start();
+          },
+          /* Pull logs until the given message is fetched; then go to it
+           * This is asynchronous, and can potentially take *much* time.
+           */
+          upto: function(msgid) {
+            /* Check if goal already reached; otherwise set it */
+            if (keys.length && keys[0] < msgid) {
+              goal = null;
+              var msg = Instant.message.get(msgid);
+              if (msg) Instant.animation.goToMessage(msg);
+            } else {
+              goal = msgid;
+              /* Initiate new pull */
+              if (Instant.connection.isConnected())
+                Instant.logs.pull.more();
+            }
+          },
+          /* Collect log information */
+          _check: function() {
+            /* Abort if new data arrived while waiting (and deadline not
+             * expired); stop waiting otherwise */
+            var now = Date.now();
+            if (now < pullStarted + WAIT_DEADLINE &&
+                (lastUpdate == null || now < lastUpdate + WAIT_NEXTPEER))
+              return;
+            clearInterval(timer);
+            pullStarted = null;
+            lastUpdate = null;
+            timer = null;
+            /* Request logs! */
+            var sentBefore = false, sentAfter = false;
+            if (! keys.length) {
+              /* Prevent pulling the same logs twice upon initial request */
+              var peer = oldestPeer || newestPeer;
+              if (peer) {
+                Instant.connection.sendUnicast(peer.id,
+                  {type: 'log-request', key: 'initial'});
+                sentBefore = true;
+                sentAfter = true;
+                if (window.logInstantLogPulling)
+                  console.debug('[LogPull]', 'Initial request to', peer);
+              }
+            } else {
+              if (oldestPeer && pullType.before) {
+                Instant.connection.sendUnicast(oldestPeer.id,
+                  {type: 'log-request', to: oldestLog, key: 'before'});
+                sentBefore = true;
+                if (window.logInstantLogPulling)
+                  console.debug('[LogPull]', 'Older request to', oldestPeer);
+              }
+              if (newestPeer && ! logsLive && pullType.after) {
+                Instant.connection.sendUnicast(newestPeer.id,
+                  {type: 'log-request', from: newestLog, key: 'after'});
+                sentAfter = true;
+                if (window.logInstantLogPulling)
+                  console.debug('[LogPull]', 'Newer request to', newestPeer);
+              }
+            }
+            /* Clear spinner */
+            Instant.logs.pull._done(! sentBefore, ! sentAfter);
+            /* Debugging */
+            if (window.logInstantLogPulling)
+              console.debug('[LogPull]', 'Sent requests (B/A):', sentBefore,
+                            sentAfter);
+          },
+          /* Handler for messages */
+          _onmessage: function(msg) {
+            if (msg.type == 'left') {
+              /* Someone left */
+              var upd = false;
+              if (oldestPeer && oldestPeer.id == msg.data.id) {
+                oldestPeer = null;
+                upd = true;
+              }
+              if (newestPeer && newestPeer.id == msg.data.id) {
+                newestPeer = null;
+                upd = true;
+              }
+              if (upd) {
+                Instant.connection.sendBroadcast({type: 'log-query'});
+                lastUpdate = Date.now();
+              }
+              return;
+            }
+            var reply = null, replyTo = msg.from;
+            /* Check message */
+            var data = msg.data;
+            switch (data.type) {
+              case 'log-query': /* Someone asks about our logs */
+                /* FIXME: Does include "live" messages as logs. */
+                reply = Instant.logs.bounds();
+                reply.type = 'log-info';
+                break;
+              case 'log-info': /* Someone informs us about their logs */
+                var from = data.from, to = data.to;
+                if (msg.from != Instant.identity.id) {
+                  if (from && (! oldestPeer || from < oldestPeer.from))
+                    oldestPeer = {id: msg.from, from: from, to: to};
+                  if (to && (! newestPeer || to > newestPeer.to))
+                    newestPeer = {id: msg.from, from: from, to: to};
+                  lastUpdate = Date.now();
+                }
+                if (window.logInstantLogPulling)
+                  console.debug("[LogPull]", "Got advertisement", data);
+                break;
+              case 'log-request': /* Someone requests logs from us */
+                reply = {type: 'log'};
+                if (data.from != null) reply.from = data.from;
+                if (data.to != null) reply.to = data.to;
+                if (data.length != null) reply.length = data.length;
+                if (data.key != null) reply.key = data.key;
+                reply.data = Instant.logs.get(data.from, data.to,
+                                              data.length);
+                reply.uuids = Instant.logs.queryUUID(
+                  reply.data.map(function(e) {
+                    return e.from;
+                  }));
+                break;
+              case 'log': /* Someone delivers logs to us */
+                var before = null, after = null;
+                if (data.data) {
+                  /* Actually merge logs */
+                  var added = Instant.logs.merge(data.data, true);
+                  /* Merge UUID-s */
+                  Instant.logs.mergeUUID(data.uuids);
+                  /* Prepare for scrolling */
+                  var restore = Instant.input.saveScrollState(true);
+                  /* Import messages */
+                  added.forEach(function(key) {
+                    /* Sanitize input */
+                    var msg = messages[key];
+                    if (typeof msg.nick != 'string')
+                      msg.nick = '';
+                    if (typeof msg.text != 'string')
+                      msg.text = JSON.stringify(msg.text);
+                    /* Import message */
+                    Instant.message.importMessage(msg, pane);
+                  });
+                  /* Scroll back */
+                  restore();
+                  /* Check for offscreen messages */
+                  Instant.animation.offscreen.update(added.map(
+                    function(key) {
+                      return Instant.message.get(key);
+                    }
+                  ));
+                  /* Avoid stale node references */
+                  Instant.animation.offscreen._updateMessages();
+                  /* Detect earliest and latest message */
+                  data.data.forEach(function(el) {
+                    if (! before || el.id < before) before = el.id;
+                    if (! after || el.id > after) after = el.id;
+                  });
+                }
+                /* Call finishing handler */
+                var key = data.key;
+                before = (key == 'initial' || key == 'before') ?
+                  before || true : null;
+                after = (key == 'initial' || key == 'after') ?
+                  after || true : null;
+                Instant.logs.pull._done(before, after);
+                Instant._fireListeners('logs.new', {message: msg,
+                  data: data});
+                break;
+              case 'delete':
+                /* Nuh! */
+                break;
+              default:
+                throw new Error('Bad message supplied to _onmessage().');
+            }
+            /* Send reply */
+            if (reply != null) Instant.connection.send(replyTo, reply);
+          },
+          /* Done with loading logs for whatever reasons */
+          _done: function(before, after) {
+            /* Reset things */
+            if (before) {
+              pullType.before = false;
+              Instant.animation.spinner.hide('logs-before');
+            }
+            if (after) {
+              pullType.after = false;
+              Instant.animation.spinner.hide('logs-after');
+            }
+            /* Check for more logs above */
+            Instant.animation._updateLogs();
+            /* Reset peers
+             * A copy of newestPeer is kept for the next step. */
+            var nPeer = newestPeer;
+            if (before) oldestPeer = null;
+            if (after) newestPeer = null;
+            /* Check for more logs below */
+            if (after) {
+              if ((after === true || ! oldestLive || oldestLive > after) &&
+                  nPeer && ! after == nPeer.to) {
+                pullType.after = true;
+                Instant.logs.pull._start();
+              } else {
+                logsLive = true;
+              }
+            }
+            /* Restart pull if necessary */
+            if (goal) Instant.logs.pull.upto(goal);
+          },
+          /* Handler for disconnects */
+          _disconnected: function() {
+            /* Logs are not up-to-date from now on */
+            logsLive = false;
+          }
+        };
+      }()
+    };
+  }();
   /* Nick-name handling */
   Instant.nick = function() {
     /* Nick -> Hue hash */
@@ -3095,495 +3584,6 @@ this.Instant = function() {
       getCollapserNode: function() {
         return collapser;
       }
-    };
-  }();
-  /* Logs! */
-  Instant.logs = function() {
-    /* Sorted key list */
-    var keys = [];
-    /* ID -> object; Session ID -> User ID (UUID) */
-    var messages = {}, uuids = {};
-    /* Earliest and newest log message, respectively */
-    var oldestLog = null, newestLog = null;
-    /* Earliest live message */
-    var oldestLive = null;
-    /* Our logs are up-to-date */
-    var logsLive = true;
-    return {
-      /* Get the bounds (amount of messages, earliest message, latest
-       * message) of the logs */
-      bounds: function() {
-        if (keys.length) {
-          return {from: keys[0], to: keys[keys.length - 1],
-            length: keys.length};
-        } else {
-          return {from: null, to: null, length: 0};
-        }
-      },
-      /* Find where to insert the given key and return the index
-       * If the key is already present, returns the index of it. */
-      bisect: function(key) {
-        var f = 0, t = keys.length - 1;
-        /* The actual algorithm fails with no keys to compare to */
-        if (! keys) return 0;
-        /* Actual bisecting */
-        for (;;) {
-          /* Compare with bounds */
-          if (key <= keys[f]) {
-            return f;
-          } else if (key > keys[t]) {
-            return t + 1;
-          } else if (t - f == 1) {
-            return t;
-          } else if (t - f < 1) {
-            return f;
-          }
-          /* Shift bounds */
-          var c = (f + t) >> 1;
-          if (key < keys[c]) {
-            t = c - 1;
-          } else if (key > keys[c]) {
-            f = c + 1;
-          } else {
-            return c;
-          }
-        }
-      },
-      /* Add the given message, replacing an old one if present */
-      add: function(message) {
-        var pos = Instant.logs.bisect(message.id);
-        if (keys[pos] != message.id) {
-          keys.splice(pos, 0, message.id);
-        }
-        messages[message.id] = message;
-        if (logsLive && oldestLive == null)
-          oldestLive = message.id;
-      },
-      /* Remove the message with the given ID */
-      remove: function(id) {
-        var pos = Instant.logs.bisect(id);
-        if (keys[pos] == id) keys.splice(pos, 1);
-        delete messages[id];
-      },
-      /* Purge everything from the logs */
-      clear: function() {
-        keys = [];
-        messages = {};
-        oldestLog = null;
-        newestLog = null;
-        oldestLive = null;
-        logsLive = false;
-      },
-      /* Add multiple log entries (preferably a large amount)
-       * If updateIndices is true, the oldest and the newest "log" message
-       * ID-s are updated. */
-      merge: function(logs, updateIndices) {
-        /* No logs, no action */
-        if (! logs) return;
-        /* Copy keys into array; embed messages into storage */
-        var lkeys = logs.map(function(m) {
-          messages[m.id] = m;
-          return m.id;
-        });
-        /* Update oldest and newest log */
-        lkeys.sort();
-        if ((updateIndices || logsLive) && lkeys) {
-          if (oldestLog == null || oldestLog > lkeys[0])
-            oldestLog = lkeys[0];
-          if (newestLog == null || newestLog < lkeys[lkeys.length - 1])
-            newestLog = lkeys[lkeys.length - 1];
-        }
-        /* Actually flush keys into key array */
-        Array.prototype.push.apply(keys, lkeys);
-        /* Sort */
-        keys.sort();
-        /* Deduplicate (it's better than nothing) */
-        var last = null, taken = [];
-        keys = keys.filter(function(k) {
-          if (last && k == last) {
-            if (! taken.length || k != taken[taken.length - 1])
-              taken.push(k);
-            return false;
-          } else {
-            last = k;
-            return true;
-          }
-        });
-        /* Calculate the messages actually added */
-        var tkidx = 0;
-        var added = lkeys.filter(function(k) {
-          if (tkidx < taken.length && k == taken[tkidx]) {
-            return false;
-          } else {
-            tkidx++;
-            return true;
-          }
-        });
-        /* Return messages actually added */
-        return added;
-      },
-      /* Fetch some portion of the logs */
-      get: function(from, to, length) {
-        var retkeys = [];
-        /* Calculate the keys' indices */
-        var fromidx = (from != null) ? Instant.logs.bisect(from) : null;
-        var toidx = (to != null) ? Instant.logs.bisect(to) : null;
-        if (toidx != null && keys[toidx] == to) toidx++;
-        /* Patch missing indices */
-        if (fromidx != null && toidx != null) {
-          /* Exact range -- nothing to do */
-        } else if (fromidx != null) {
-          /* From a given key, ... */
-          if (length == null) {
-            /* ...until end -- nothing to do. */
-          } else {
-            /* ...until maximum length. */
-            toidx = fromidx + length;
-          }
-        } else if (toidx != null) {
-          /* Up to a given key, ... */
-          if (length == null) {
-            /* ...from the beginning. */
-            fromidx = 0;
-          } else {
-            /* ...from a maximum length. */
-            fromidx = toidx - length;
-            if (fromidx < 0) fromidx = 0;
-          }
-        } else if (length != null) {
-          /* N most recent entries */
-          toidx = keys.length;
-          fromidx = toidx - length;
-          if (fromidx < 0) fromidx = 0;
-        } else {
-          /* Everything! */
-          fromidx = 0;
-        }
-        /* Just leaving it at null seemed not to work */
-        if (toidx == null) toidx = keys.length;
-        /* Extract keys; map them to messages; return those. */
-        return keys.slice(fromidx, toidx).map(function(k) {
-          return messages[k];
-        });
-      },
-      /* Add the given UID-UUID pair to the registry */
-      addUUID: function(uid, uuid) {
-        uuids[uid] = uuid;
-      },
-      /* Add the given pairs to the UUID cache */
-      mergeUUID: function(mapping) {
-        for (var k in mapping) {
-          if (! mapping.hasOwnProperty(k)) continue;
-          uuids[k] = mapping[k];
-        }
-      },
-      /* Return the UUID corresponding to the given UID, or nothing */
-      getUUID: function(uid) {
-        return uuids[uid];
-      },
-      /* Return either the whole UUID mapping, or the subset of it having
-       * the items of keys as keys */
-      queryUUID: function(keys) {
-        var ret = {};
-        if (keys) {
-          keys.forEach(function(k) {
-            if (uuids[k]) ret[k] = uuids[k];
-          });
-        } else {
-          for (var k in uuids) {
-            if (! uuids.hasOwnProperty(k)) continue;
-            ret[k] = uuids[k];
-          }
-        }
-        return ret;
-      },
-      /* Obtain the current key array. Do not modify. */
-      getKeys: function() {
-        return keys;
-      },
-      /* Obtain the current message mapping. Do not modify. */
-      getMessages: function() {
-        return messages;
-      },
-      /* Obtain the current user ID to UUID mapping. Do not modify. */
-      getUUIDs: function() {
-        return uuids;
-      },
-      /* Return the oldest "log" message ID */
-      getOldestLog: function() {
-        return oldestLog;
-      },
-      /* Return the newest "log" message ID */
-      getNewestLog: function() {
-        return newestLog;
-      },
-      /* Return the oldest "live" message ID */
-      getOldestLive: function() {
-        return oldestLive;
-      },
-      /* Submodule */
-      pull: function() {
-        /* Interval log fetching may not take longer than */
-        var WAIT_DEADLINE = 10000;
-        /* Maximum interval to wait for another peer */
-        var WAIT_NEXTPEER = 1000;
-        /* When to poll whether to choose new peer */
-        var POLL_TIME = 100;
-        /* The pane to add parent-less messages to */
-        var pane = null;
-        /* Waiting for replies to arrive */
-        var timer = null;
-        /* Time when the pull started; last time we got a log-info */
-        var pullStarted = null, lastUpdate = null;
-        /* Peers for oldest and newest messages */
-        var oldestPeer = null, newestPeer = null;
-        /* Which logs exactly are pulled */
-        var pullType = {before: null, after: null};
-        /* Message we want to fetch */
-        var goal = null;
-        return {
-          /* Initialize the pane node */
-          init: function(paneNode) {
-            /* Verbosity level */
-            if (window.logInstantLogPulling === undefined)
-              window.logInstantLogPulling = (!! Instant.query.get('verbose'));
-            pane = paneNode;
-          },
-          /* Actually start pulling logs */
-          _start: function() {
-            if (timer == null) {
-              Instant.connection.sendBroadcast({type: 'log-query'});
-              pullStarted = Date.now();
-              timer = setInterval(Instant.logs.pull._check, POLL_TIME);
-              if (window.logInstantLogPulling)
-                console.debug('[LogPull]', 'Started');
-            }
-            if (pullType.before)
-              Instant.animation.spinner.show('logs-before');
-            if (pullType.after)
-              Instant.animation.spinner.show('logs-after');
-          },
-          /* Start a round of log pulling */
-          start: function() {
-            pullType.before = true;
-            pullType.after = true;
-            Instant.logs.pull._start();
-          },
-          /* Load logs before the current ones */
-          more: function() {
-            pullType.before = true;
-            Instant.logs.pull._start();
-          },
-          /* Pull logs until the given message is fetched; then go to it
-           * This is asynchronous, and can potentially take *much* time.
-           */
-          upto: function(msgid) {
-            /* Check if goal already reached; otherwise set it */
-            if (keys.length && keys[0] < msgid) {
-              goal = null;
-              var msg = Instant.message.get(msgid);
-              if (msg) Instant.animation.goToMessage(msg);
-            } else {
-              goal = msgid;
-              /* Initiate new pull */
-              if (Instant.connection.isConnected())
-                Instant.logs.pull.more();
-            }
-          },
-          /* Collect log information */
-          _check: function() {
-            /* Abort if new data arrived while waiting (and deadline not
-             * expired); stop waiting otherwise */
-            var now = Date.now();
-            if (now < pullStarted + WAIT_DEADLINE &&
-                (lastUpdate == null || now < lastUpdate + WAIT_NEXTPEER))
-              return;
-            clearInterval(timer);
-            pullStarted = null;
-            lastUpdate = null;
-            timer = null;
-            /* Request logs! */
-            var sentBefore = false, sentAfter = false;
-            if (! keys.length) {
-              /* Prevent pulling the same logs twice upon initial request */
-              var peer = oldestPeer || newestPeer;
-              if (peer) {
-                Instant.connection.sendUnicast(peer.id,
-                  {type: 'log-request', key: 'initial'});
-                sentBefore = true;
-                sentAfter = true;
-                if (window.logInstantLogPulling)
-                  console.debug('[LogPull]', 'Initial request to', peer);
-              }
-            } else {
-              if (oldestPeer && pullType.before) {
-                Instant.connection.sendUnicast(oldestPeer.id,
-                  {type: 'log-request', to: oldestLog, key: 'before'});
-                sentBefore = true;
-                if (window.logInstantLogPulling)
-                  console.debug('[LogPull]', 'Older request to', oldestPeer);
-              }
-              if (newestPeer && ! logsLive && pullType.after) {
-                Instant.connection.sendUnicast(newestPeer.id,
-                  {type: 'log-request', from: newestLog, key: 'after'});
-                sentAfter = true;
-                if (window.logInstantLogPulling)
-                  console.debug('[LogPull]', 'Newer request to', newestPeer);
-              }
-            }
-            /* Clear spinner */
-            Instant.logs.pull._done(! sentBefore, ! sentAfter);
-            /* Debugging */
-            if (window.logInstantLogPulling)
-              console.debug('[LogPull]', 'Sent requests (B/A):', sentBefore,
-                            sentAfter);
-          },
-          /* Handler for messages */
-          _onmessage: function(msg) {
-            if (msg.type == 'left') {
-              /* Someone left */
-              var upd = false;
-              if (oldestPeer && oldestPeer.id == msg.data.id) {
-                oldestPeer = null;
-                upd = true;
-              }
-              if (newestPeer && newestPeer.id == msg.data.id) {
-                newestPeer = null;
-                upd = true;
-              }
-              if (upd) {
-                Instant.connection.sendBroadcast({type: 'log-query'});
-                lastUpdate = Date.now();
-              }
-              return;
-            }
-            var reply = null, replyTo = msg.from;
-            /* Check message */
-            var data = msg.data;
-            switch (data.type) {
-              case 'log-query': /* Someone asks about our logs */
-                /* FIXME: Does include "live" messages as logs. */
-                reply = Instant.logs.bounds();
-                reply.type = 'log-info';
-                break;
-              case 'log-info': /* Someone informs us about their logs */
-                var from = data.from, to = data.to;
-                if (msg.from != Instant.identity.id) {
-                  if (from && (! oldestPeer || from < oldestPeer.from))
-                    oldestPeer = {id: msg.from, from: from, to: to};
-                  if (to && (! newestPeer || to > newestPeer.to))
-                    newestPeer = {id: msg.from, from: from, to: to};
-                  lastUpdate = Date.now();
-                }
-                if (window.logInstantLogPulling)
-                  console.debug("[LogPull]", "Got advertisement", data);
-                break;
-              case 'log-request': /* Someone requests logs from us */
-                reply = {type: 'log'};
-                if (data.from != null) reply.from = data.from;
-                if (data.to != null) reply.to = data.to;
-                if (data.length != null) reply.length = data.length;
-                if (data.key != null) reply.key = data.key;
-                reply.data = Instant.logs.get(data.from, data.to,
-                                              data.length);
-                reply.uuids = Instant.logs.queryUUID(
-                  reply.data.map(function(e) {
-                    return e.from;
-                  }));
-                break;
-              case 'log': /* Someone delivers logs to us */
-                var before = null, after = null;
-                if (data.data) {
-                  /* Actually merge logs */
-                  var added = Instant.logs.merge(data.data, true);
-                  /* Merge UUID-s */
-                  Instant.logs.mergeUUID(data.uuids);
-                  /* Prepare for scrolling */
-                  var restore = Instant.input.saveScrollState(true);
-                  /* Import messages */
-                  added.forEach(function(key) {
-                    /* Sanitize input */
-                    var msg = messages[key];
-                    if (typeof msg.nick != 'string')
-                      msg.nick = '';
-                    if (typeof msg.text != 'string')
-                      msg.text = JSON.stringify(msg.text);
-                    /* Import message */
-                    Instant.message.importMessage(msg, pane);
-                  });
-                  /* Scroll back */
-                  restore();
-                  /* Check for offscreen messages */
-                  Instant.animation.offscreen.update(added.map(
-                    function(key) {
-                      return Instant.message.get(key);
-                    }
-                  ));
-                  /* Avoid stale node references */
-                  Instant.animation.offscreen._updateMessages();
-                  /* Detect earliest and latest message */
-                  data.data.forEach(function(el) {
-                    if (! before || el.id < before) before = el.id;
-                    if (! after || el.id > after) after = el.id;
-                  });
-                }
-                /* Call finishing handler */
-                var key = data.key;
-                before = (key == 'initial' || key == 'before') ?
-                  before || true : null;
-                after = (key == 'initial' || key == 'after') ?
-                  after || true : null;
-                Instant.logs.pull._done(before, after);
-                Instant._fireListeners('logs.new', {message: msg,
-                  data: data});
-                break;
-              case 'delete':
-                /* Nuh! */
-                break;
-              default:
-                throw new Error('Bad message supplied to _onmessage().');
-            }
-            /* Send reply */
-            if (reply != null) Instant.connection.send(replyTo, reply);
-          },
-          /* Done with loading logs for whatever reasons */
-          _done: function(before, after) {
-            /* Reset things */
-            if (before) {
-              pullType.before = false;
-              Instant.animation.spinner.hide('logs-before');
-            }
-            if (after) {
-              pullType.after = false;
-              Instant.animation.spinner.hide('logs-after');
-            }
-            /* Check for more logs above */
-            Instant.animation._updateLogs();
-            /* Reset peers
-             * A copy of newestPeer is kept for the next step. */
-            var nPeer = newestPeer;
-            if (before) oldestPeer = null;
-            if (after) newestPeer = null;
-            /* Check for more logs below */
-            if (after) {
-              if ((after === true || ! oldestLive || oldestLive > after) &&
-                  nPeer && ! after == nPeer.to) {
-                pullType.after = true;
-                Instant.logs.pull._start();
-              } else {
-                logsLive = true;
-              }
-            }
-            /* Restart pull if necessary */
-            if (goal) Instant.logs.pull.upto(goal);
-          },
-          /* Handler for disconnects */
-          _disconnected: function() {
-            /* Logs are not up-to-date from now on */
-            logsLive = false;
-          }
-        };
-      }()
     };
   }();
   /* Private messages */
