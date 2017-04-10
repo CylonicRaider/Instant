@@ -7,18 +7,21 @@ html {
   width: 100%;
   height: 100%;
 }
+
 body {
   display: table-cell;
   text-align: center;
   vertical-align: middle;
   line-height: 0;
 }
-.popup {
+
+main {
   display: inline-block;
   line-height: initial;
   text-align: justify;
 }
-.popup.sized {
+
+main.sized {
   width: 30em;
 }
 
@@ -26,10 +29,12 @@ body {
   border: 2px solid black;
   padding: 5px;
 }
-.popup-footer {
+
+footer {
   text-align: right;
   font-style: italic;
 }
+
 .small {
   font-size: smaller;
 }
