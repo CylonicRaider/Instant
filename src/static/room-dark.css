@@ -130,7 +130,7 @@
 .dark .popups {
   background: rgba(0, 0, 0, 0.5);
 }
-.dark .popups-wrapper .close-all, .dark .popup {
+.dark .popups-wrapper .close-all, .dark .popup, .dark .popup .popup-header {
   background: black;
 }
 .dark .popups-wrapper .close-all:hover {
@@ -139,7 +139,8 @@
 .dark .popups-wrapper .close-all:active {
   background: #808080;
 }
-.dark .popups-wrapper .close-all, .dark .popup, .dark .popup-header {
+.dark .popups-wrapper .close-all, .dark .popup, .dark .popup-header,
+.dark .popup.popup-hidetitle .popup-title {
   border-color: #e0e0e0;
 }
 .dark .popup .popup-title {
