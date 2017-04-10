@@ -739,7 +739,7 @@ body {
   margin-bottom: 2px;
 }
 
-.popups-wrapper {
+.popups-wrapper, .windows-wrapper {
   position: absolute;
   top: 0;
   left: 0;
@@ -747,6 +747,13 @@ body {
   height: 100%;
   display: none;
 }
+.windows-wrapper {
+  pointer-events: none;
+}
+.windows-wrapper > * {
+  pointer-events: auto;
+}
+
 .popups-wrapper .close-all {
   position: absolute;
   top: 0;
@@ -764,6 +771,7 @@ body {
 .popups-wrapper .close-all:active {
   background: #808080;
 }
+
 .popups-content {
   position: absolute;
   top: 0;
@@ -772,7 +780,6 @@ body {
   height: 100%;
   overflow: auto;
 }
-
 .popups {
   display: -webkit-flex;
   display: flex;

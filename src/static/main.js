@@ -4994,7 +4994,23 @@ this.Instant = function() {
       /* Return the internal node holding the actual popups */
       getPopupNode: function() {
         return stack;
-      }
+      },
+      /* Nonmodal windows hovering over the chat */
+      windows: function() {
+        /* The main node */
+        var node = null;
+        return {
+          /* Initialize submodule */
+          init: function() {
+            node = $makeNode('div', 'windows-wrapper');
+            return node;
+          },
+          /* Return the DOM node hosting the windows */
+          getNode: function() {
+            return node;
+          }
+        };
+      }()
     };
   }();
   /* Query string parameters
@@ -5503,9 +5519,11 @@ this.Instant = function() {
     Instant.animation.offscreen.init(
       $cls('alert-container', Instant.input.getNode()));
     Instant.popups.init();
+    Instant.popups.windows.init();
     Instant.privmsg.init();
     main.appendChild(Instant.message.getMessagePane());
     main.appendChild(Instant.sidebar.getNode());
+    main.appendChild(Instant.popups.windows.getNode());
     main.appendChild(Instant.popups.getNode());
     Instant.pane.main.init(main);
     Instant._fireListeners('init.late');
