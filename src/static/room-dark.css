@@ -29,6 +29,10 @@
 .dark #load-wrapper hr {
   border-color: white;
 }
+.dark #load-wrapper #load-wrapper-close img {
+  -webkit-filter: invert(1);
+  filter: invert(1);
+}
 
 .dark .logo img {
   box-shadow: 0 0 30px white;

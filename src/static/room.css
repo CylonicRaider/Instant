@@ -35,7 +35,7 @@ body {
   border: 1px solid black;
 }
 
-.content-box {
+#load-wrapper .content-box {
   display: block;
   text-align: justify;
 }
@@ -43,6 +43,25 @@ body {
 #load-wrapper .wait {
   font-weight: bold;
   margin: 10px 0;
+}
+
+#load-wrapper #load-wrapper-close {
+  display: none;
+  position: absolute;
+  top: 0;
+  right: 0;
+  border: none;
+  padding: 0;
+  outline-offset: -1px;
+  visibility: hidden;
+}
+#load-wrapper #load-wrapper-close img {
+  display: block;
+  width: 1.2em;
+  height: 1.2em;
+}
+#load-wrapper:hover #load-wrapper-close {
+  visibility: visible;
 }
 
 .note {

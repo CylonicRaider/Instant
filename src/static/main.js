@@ -5614,6 +5614,13 @@ function init() {
   /* Fire up Instant! */
   Instant.init(main, wrapper, $cls('breadcrumbs'));
   Instant.input.focus();
+  /* Allow dismissing wrapper */
+  var wrapperClose = $id('load-wrapper-close');
+  wrapperClose.style.display = 'block';
+  wrapperClose.addEventListener('click', function() {
+    Instant.animation.greeter.hide();
+    Instant.input.focus();
+  });
 }
 
 /* It is quite conceivable this could be run after the document is ready.
