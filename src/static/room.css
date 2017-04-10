@@ -795,74 +795,97 @@ body {
   background: rgba(255, 255, 255, 0.5);
   z-index: 1000;
 }
-
-.popups .popup {
+.popups > .popup {
   margin: 0.5em auto;
-  border: 2px solid black;
   max-width: 100%;
+}
+.popups > .popup:first-child {
+  margin-top: auto;
+}
+.popups > .popup:last-child {
+  margin-bottom: auto;
+}
+.windows {
+  z-index: 900;
+  display: -webkit-flex;
+  display: flex;
+  -webkit-flex-direction: column;
+  -webkit-flex-wrap: wrap;
+  flex-direction: column;
+  flex-wrap: wrap;
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 50%;
+  padding: 1em;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.popup {
+  margin: auto;
+  border: 2px solid black;
   background: white;
   word-wrap: break-word;
 }
-.popups .popup:first-child {
-  margin-top: auto;
-}
-.popups .popup:last-child {
-  margin-bottom: auto;
-}
-
-.popups .popup .popup-header {
+.popup .popup-header {
   display: -webkit-flex;
   display: flex;
   border-bottom: 1px solid black;
 }
-.popups .popup .popup-title {
+.popup .popup-title {
   font-weight: bold;
   margin-right: auto;
   padding: 5px;
   line-height: 1.2em;
 }
-.popups .popup .popup-title-sep {
+.popup .popup-title-sep {
   width: 1px;
   -webkit-flex-shrink: 0;
   flex-shrink: 0;
   background: black;
 }
-.popups .popup .popup-button {
+.popup .popup-button {
   margin: auto 0;
   border: 0;
   padding: 0;
   line-height: 0;
   outline-offset: -1px;
 }
-.popups .popup .popup-button img {
+.popup .popup-button img {
   width: 1.2em;
   height: 1.2em;
   margin: 5px;
 }
-.popups .popup .popup-content {
+.popup .popup-content {
   padding: 5px;
 }
-.popups .popup .popup-content:empty {
+.popup .popup-content:empty {
   padding-top: 0;
 }
-.popups .popup .popup-content hr {
+.popup .popup-content hr {
   margin: 5px 0;
   border: 0;
   padding: 0;
   height: 1px;
   background: black;
 }
-.popups .popup .popup-bottom {
+.popup .popup-bottom {
   padding: 0 5px 5px 5px;
   text-align: right;
 }
 
-.popups .popup.collapsed .popup-header {
+.popup.collapsed .popup-header {
   border-bottom: 0;
 }
-.popups .popup.collapsed .popup-content,
-.popups .popup.collapsed .popup-bottom {
+.popup.collapsed .popup-content,
+.popup.collapsed .popup-bottom {
   display: none;
+}
+
+.windows .popup {
+  box-shadow: 0 0 5px black;
 }
 
 .pm-popup .pm-header {

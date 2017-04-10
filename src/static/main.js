@@ -4960,7 +4960,11 @@ this.Instant = function() {
               if (event.defaultPrevented) return;
             }
             event.preventDefault();
-            Instant.popups.del(ret);
+            if (options._del) {
+              options._del(ret);
+            } else {
+              Instant.popups.del(ret);
+            }
           });
         return ret;
       },
@@ -4987,7 +4991,7 @@ this.Instant = function() {
           }
         }
       },
-      /* Returnt the internal node containing the popups */
+      /* Returns the internal node containing the popups */
       getNode: function() {
         return wrapper;
       },
@@ -4998,16 +5002,51 @@ this.Instant = function() {
       /* Nonmodal windows hovering over the chat */
       windows: function() {
         /* The main node */
-        var node = null;
+        var winnode = null;
         return {
           /* Initialize submodule */
           init: function() {
-            node = $makeNode('div', 'windows-wrapper');
-            return node;
+            winnode = $makeNode('div', 'windows-wrapper', [
+              ['div', 'windows']
+            ]);
+            return winnode;
+          },
+          /* Show the given window */
+          add: function(wnd) {
+            var cont = $cls('windows', winnode);
+            cont.appendChild(wnd);
+            winnode.style.display = 'block';
+          },
+          /* Hide the given window */
+          del: function(wnd) {
+            var cont = $cls('windows', winnode);;
+            try {
+              cont.removeChild(wnd);
+            } catch (e) {}
+            if (cont.children.length == 0)
+              winnode.style.display = '';
+          },
+          /* Collapse (iconify) the given window */
+          collapse: function(wnd, force) {
+            Instant.popups.collapse(wnd, force);
+          },
+          /* Check whether the given window is visible as such */
+          isShown: function(wnd) {
+            return winnode.contains(wnd);
+          },
+          /* Create a new window with the given options */
+          make: function(options) {
+            var po = {};
+            for (var key in options) {
+              if (options.hasOwnProperty(key)) po[key] = options[key];
+            }
+            var self = Instant.popups.windows;
+            po._del = self.del.bind(self);
+            return Instant.popups.make(po);
           },
           /* Return the DOM node hosting the windows */
           getNode: function() {
-            return node;
+            return winnode;
           }
         };
       }()
