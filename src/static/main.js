@@ -2910,21 +2910,26 @@ this.Instant = function() {
           inputMsg.setSelectionRange(newpos, newpos);
           /* Update bar size */
           Instant.input._updateMessage(event);
-        }
-        if (text.indexOf('\n') == -1) {
-          if (event.keyCode == 38) { // Up
-            /* Special case: Get more logs */
-            if (! navigate('up'))
-              Instant.logs.pull.more();
-          } else if (event.keyCode == 40) { // Down
-            navigate('down');
+        } else if (event.keyCode >= 37 && event.keyCode <= 40) {
+          var curs;
+          if (inputMsg.selectionDirection == 'backward') {
+            curs = inputMsg.selectionEnd;
+          } else {
+            curs = inputMsg.selectionStart;
           }
-          if (! text) {
-            if (event.keyCode == 37) { // Left
+          if (event.keyCode == 37) { // Left
+            if (! text || curs == 0)
               navigate('left');
-            } else if (event.keyCode == 39) { // Right
+          } else if (event.keyCode == 38) { // Up
+            /* Special case: Get more logs */
+            if (text.indexOf('\n') == -1 || curs == 0)
+              if (! navigate('up')) Instant.logs.pull.more();
+          } else if (event.keyCode == 39) { // Right
+            if (! text || curs == inputMsg.value.length)
               navigate('right');
-            }
+          } else if (event.keyCode == 40) { // Down
+            if (text.indexOf('\n') == -1 || curs == inputMsg.value.length)
+              navigate('down');
           }
         }
       },
