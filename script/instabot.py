@@ -470,8 +470,9 @@ class OptionParser:
             placeholder = kwds['placeholder']
         except KeyError:
             placeholder = '<%s>' % type.__name__
-        opt = {'option': name, 'argument': True, 'varname': name,
-            'convert': type, 'default': default, 'help': kwds.get('help')}
+        opt = {'option': name, 'argument': True, 'convert': type,
+            'varname': kwds.get('varname', name), 'default': default,
+            'help': kwds.get('help')}
         self._set_accum(opt, kwds)
         self._make_desc(opt, name, placeholder)
         self.options[name] = opt
@@ -577,3 +578,34 @@ class OptionParser:
         except KeyError:
             if n in self.options: n = '--' + n
             raise SystemExit('ERROR: Missing value for %r' % n)
+
+class CmdlineBotBuilder:
+    def __init__(self, botcls=None, defnick=None):
+        if botcls is None: botcls = HookBot
+        self.botcls = botcls
+        self.defnick = defnick
+        self.args = []
+        self.kwds = {}
+        self.parser = None
+    def make_parser(self, *args, **kwds):
+        self.parser = OptionParser(*args, **kwds)
+        self.parser.help_action()
+        self.parser.option('nick', self.defnick,
+                           help='The nickname to use')
+        self.parser.argument('url', help='The URL to connect to')
+        return self.parser
+    def parse(self, argv):
+        self.parser.parse(argv)
+    def add(self, *args, **kwds):
+        self.args.extend(args)
+        self.kwds.update(kwds)
+    def add_args(self, *names):
+        for n in names:
+            self.kwds[n] = self.parser.get(n)
+    def get_args(self, *names, **kwds):
+        return self.parser.get(*names, **kwds)
+    def __call__(self, *args, **kwds):
+        self.add(*args, **kwds)
+        a = [self.parser.get('url'), self.parser.get('nick')] + self.args
+        k = self.kwds
+        return self.botcls(*a, **k)

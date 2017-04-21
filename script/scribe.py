@@ -679,24 +679,22 @@ def main():
                 yield f
     def interrupt(signum, frame):
         raise SystemExit
-    p = instabot.OptionParser(sys.argv[0])
-    p.help_action()
+    b = instabot.CmdlineBotBuilder(Scribe, NICKNAME)
+    p = b.make_parser(sys.argv[0])
     p.option('maxlen', MAXLEN, type=int,
              help='Maximum amount of logs to deliver')
     p.option('msgdb', placeholder='<file>',
              help='SQLite database file for messages')
     p.option('read-file', [], accum=True, placeholder='<file>',
              help='Parse log file for messages')
-    p.option('push-logs', [], accum=True, placeholder='<id>',
-             help='Send logs to given ID without asking')
-    p.flag('dont-stay', help='Exit after collecting logs')
-    p.flag('dont-pull', help='Do not collect logs')
-    p.option('nick', NICKNAME, help='Nickname to use')
-    p.argument('url', help='URL to connect to')
-    p.parse(sys.argv[1:])
-    (maxlen, msgdb_file, toread, push_logs, dont_stay, dont_pull, nickname,
-     url) = p.get('maxlen', 'msgdb', 'read-file', 'push-logs', 'dont-stay',
-                  'dont-pull', 'nick', 'url')
+    p.option('push-logs', [], accum=True, varname='push_logs',
+             placeholder='<id>', help='Send logs to given ID without asking')
+    p.flag('dont-stay', varname='dont_stay',
+           help='Exit after collecting logs')
+    p.flag('dont-pull', varname='dont_pull', help='Do not collect logs')
+    b.parse(sys.argv[1:])
+    b.add_args('push_logs', 'dont_stay', 'dont_pull')
+    maxlen, msgdb_file, toread = b.get_args('maxlen', 'msgdb', 'read-file')
     try:
         signal.signal(signal.SIGINT, interrupt)
     except Exception:
@@ -724,8 +722,7 @@ def main():
             log('ERROR reason=%r' % repr(e))
     log('LOGBOUNDS from=%r to=%r amount=%r' % msgdb.bounds())
     sched = instabot.EventScheduler()
-    bot = Scribe(url, nickname, scheduler=sched, db=msgdb,
-        push_logs=push_logs, dont_stay=dont_stay, dont_pull=dont_pull)
+    bot = b(scheduler=sched, db=msgdb)
     reconnect, thr = 0, None
     try:
         while 1:
