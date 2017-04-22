@@ -589,6 +589,7 @@ class CmdlineBotBuilder:
         if botcls is None: botcls = HookBot
         self.botcls = botcls
         self.defnick = defnick
+        self.cookies = None
         self.args = []
         self.kwds = {}
         self.parser = None
@@ -603,6 +604,17 @@ class CmdlineBotBuilder:
         return self.parser
     def parse(self, argv):
         self.parser.parse(argv)
+        c = self.parser.get('cookies')
+        if c is None:
+            self.cookies = None
+            self.kwds.pop('cookies', None)
+        elif not c:
+            self.cookies = websocket_server.cookies.CookieJar()
+            self.kwds['cookies'] = self.cookies
+        else:
+            self.cookies = websocket_server.cookies.LWPCookieJar(c)
+            self.cookies.load()
+            self.kwds['cookies'] = self.cookies
     def add(self, *args, **kwds):
         self.args.extend(args)
         self.kwds.update(kwds)
@@ -616,12 +628,4 @@ class CmdlineBotBuilder:
         a.extend(self.args)
         a.extend(args)
         k = dict(self.kwds, **kwds)
-        c = self.get_args('cookies')
-        if c is None:
-            pass
-        elif not c:
-            k['cookies'] = websocket_server.cookies.CookieJar()
-        elif c:
-            k['cookies'] = websocket_server.cookies.LWPCookieJar(c)
-            k['cookies'].load()
         return self.botcls(*a, **k)
