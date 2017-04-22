@@ -619,7 +619,7 @@ class CmdlineBotBuilder:
             self.cookies = websocket_server.cookies.LWPCookieJar(c)
             self.cookies.load()
             self.kwds['cookies'] = self.cookies
-        if self.cookies and self.relaxed_cookies:
+        if self.cookies is not None and self.relaxed_cookies:
             self.cookies.relaxed = True
     def add(self, *args, **kwds):
         self.args.extend(args)
