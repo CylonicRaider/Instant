@@ -116,17 +116,22 @@ class AtomicSequence(object):
 
 class InstantClient(object):
     TIMEOUT = None
+    COOKIES = None
     def __init__(self, url, **kwds):
         self.url = url
         self.timeout = kwds.get('timeout', self.TIMEOUT)
+        self.cookies = kwds.get('cookies', self.COOKIES)
         self.ws = None
         self.sequence = AtomicSequence()
         self._wslock = threading.RLock()
     def connect(self):
         with self._wslock:
             if self.ws is not None: return
+            jar = self.cookies
             self.ws = websocket_server.client.connect(self.url,
-                                                      timeout=self.timeout)
+                cookies=jar, timeout=self.timeout)
+            if isinstance(jar, websocket_server.cookies.FileCookieJar):
+                jar.save()
     def on_open(self):
         pass
     def on_message(self, rawmsg):
@@ -592,6 +597,8 @@ class CmdlineBotBuilder:
         self.parser.help_action()
         self.parser.option('nick', self.defnick,
                            help='The nickname to use')
+        self.parser.option('cookies',
+                           help='Cookie file (empty string -> memory)')
         self.parser.argument('url', help='The URL to connect to')
         return self.parser
     def parse(self, argv):
@@ -608,4 +615,12 @@ class CmdlineBotBuilder:
         self.add(*args, **kwds)
         a = [self.parser.get('url'), self.parser.get('nick')] + self.args
         k = self.kwds
+        c = self.get_args('cookies')
+        if c is None:
+            pass
+        elif not c:
+            k['cookies'] = websocket_server.cookies.CookieJar()
+        elif c:
+            k['cookies'] = websocket_server.cookies.LWPCookieJar(c)
+            k['cookies'].load()
         return self.botcls(*a, **k)
