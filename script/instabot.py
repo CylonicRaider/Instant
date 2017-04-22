@@ -1,6 +1,6 @@
 # -*- coding: ascii -*-
 
-import sys, re, time
+import sys, os, re, time
 import traceback
 import collections, heapq, ast
 import json
@@ -15,6 +15,8 @@ except ImportError:
     from Queue import Queue, Empty as QueueEmpty
 
 VERSION = 'v1.4.2'
+
+RELAXED_COOKIES = bool(os.environ.get('INSTABOT_RELAXED_COOKIES'))
 
 _unicode = websocket_server.compat.unicode
 
@@ -585,11 +587,13 @@ class OptionParser:
             raise SystemExit('ERROR: Missing value for %r' % n)
 
 class CmdlineBotBuilder:
+    RELAXED_COOKIES = RELAXED_COOKIES
     def __init__(self, botcls=None, defnick=None):
         if botcls is None: botcls = HookBot
         self.botcls = botcls
         self.defnick = defnick
         self.cookies = None
+        self.relaxed_cookies = self.RELAXED_COOKIES
         self.args = []
         self.kwds = {}
         self.parser = None
@@ -615,6 +619,8 @@ class CmdlineBotBuilder:
             self.cookies = websocket_server.cookies.LWPCookieJar(c)
             self.cookies.load()
             self.kwds['cookies'] = self.cookies
+        if self.cookies and self.relaxed_cookies:
+            self.cookies.relaxed = True
     def add(self, *args, **kwds):
         self.args.extend(args)
         self.kwds.update(kwds)
