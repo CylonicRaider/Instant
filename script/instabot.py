@@ -612,9 +612,10 @@ class CmdlineBotBuilder:
     def get_args(self, *names, **kwds):
         return self.parser.get(*names, **kwds)
     def __call__(self, *args, **kwds):
-        self.add(*args, **kwds)
-        a = [self.parser.get('url'), self.parser.get('nick')] + self.args
-        k = self.kwds
+        a = [self.parser.get('url'), self.parser.get('nick')]
+        a.extend(self.args)
+        a.extend(args)
+        k = dict(self.kwds, **kwds)
         c = self.get_args('cookies')
         if c is None:
             pass
