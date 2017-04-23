@@ -3673,18 +3673,18 @@ this.Instant = function() {
       },
       /* Show the reading popups */
       showRead: function() {
-        var update = false;
+        if (popupsRead.length) Instant.popups.add(accessPopup, true);
         popupsRead.forEach(function(popup) {
           if (! Instant.popups.isShown(popup)) {
             popup.removeAttribute('data-new');
             Instant.popups.add(popup);
-            update = true;
           }
         });
         if (focus) Instant.privmsg._update();
       },
       /* Show the writing popups */
       showWrite: function() {
+        if (popupsEdit.length) Instant.popups.add(accessPopup, true);
         popupsEdit.forEach(function(popup) {
           if (! Instant.popups.isShown(popup))
             Instant.popups.add(popup);
