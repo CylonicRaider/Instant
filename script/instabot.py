@@ -1,6 +1,6 @@
 # -*- coding: ascii -*-
 
-import sys, os, re, time
+import sys, os, re, time, stat
 import traceback
 import collections, heapq, ast
 import json
@@ -617,7 +617,8 @@ class CmdlineBotBuilder:
             self.cookies.relaxed = self.relaxed_cookies
             self.kwds['cookies'] = self.cookies
         else:
-            self.cookies = websocket_server.cookies.LWPCookieJar(c)
+            self.cookies = websocket_server.cookies.LWPCookieJar(c,
+                stat.S_IRUSR | stat.S_IWUSR)
             self.cookies.relaxed = self.relaxed_cookies
             self.cookies.load()
             self.kwds['cookies'] = self.cookies
