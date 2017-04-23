@@ -3832,6 +3832,7 @@ this.Instant = function() {
         Instant.privmsg._update();
         Instant.notifications.submitNew({level: 'privmsg',
           text: 'You have a new private message.',
+          btntext: 'View',
           onclick: function() {
             popup.removeAttribute('data-new');
             Instant.popups.add(popup);
@@ -4586,6 +4587,7 @@ this.Instant = function() {
       } else {
         this.icon = null;
       }
+      this.btntext = options.btntext || 'Activate';
       this.onclick = options.onclick || null;
       this.data = options.data || {};
       if (! this.icon && this.color && icon_canvas)
