@@ -4864,8 +4864,7 @@ this.Instant = function() {
         }
         if ($sel('.popup:not(.popup-weak)', stack)) {
           wrapper.style.display = 'block';
-          Instant.util.adjustScrollbar($cls('close-all', wrapper),
-                                       $cls('popups-content', wrapper));
+          Instant.popups._update();
           Instant.popups.focus(node);
         }
       },
@@ -4877,8 +4876,7 @@ this.Instant = function() {
           wrapper.style.display = '';
           Instant.input.focus();
         } else {
-          Instant.util.adjustScrollbar($cls('close-all', wrapper),
-                                       $cls('popups-content', wrapper));
+          Instant.popups._update();
           Instant.popups.focus(next);
         }
       },
@@ -4894,6 +4892,9 @@ this.Instant = function() {
           node.classList.remove('collapsed');
           $sel('.popup-collapse img', node).src = collapseURL;
         }
+        if (node.parentNode == stack) {
+          Instant.popups._update();
+        }
       },
       /* Check whether a popup is already shown */
       isShown: function(node) {
@@ -4904,6 +4905,11 @@ this.Instant = function() {
         while (stack.firstChild) stack.removeChild(stack.firstChild);
         wrapper.style.display = '';
         Instant.input.focus();
+      },
+      /* Adjust the position of the "close all" button */
+      _update: function() {
+        Instant.util.adjustScrollbar($cls('close-all', wrapper),
+                                     $cls('popups-content', wrapper));
       },
       /* Create a new popup */
       make: function(options) {
@@ -5578,6 +5584,7 @@ this.Instant = function() {
     repeat(function() {
       Instant.util.adjustScrollbar($cls('sidebar', main),
                                    $cls('message-pane', main));
+      Instant.popups._update();
     }, 1000);
     Instant.notifications.submitNew({text: 'Ready.'});
     Instant._fireListeners('init.final');
