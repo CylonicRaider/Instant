@@ -961,7 +961,7 @@ body {
   margin: 0;
   border: 0;
   padding: 0;
-  width: 30em;
+  width: 20em;
   max-width: 100%;
   height: 6em;
   min-width: 100%;
@@ -972,7 +972,7 @@ body {
   background: transparent;
   box-shadow: 0 0 5px #808080;
   outline: none;
-  resize: vertical;
+  resize: both;
 }
 
 img.turn-right {
