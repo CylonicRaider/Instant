@@ -2097,7 +2097,8 @@ this.Instant = function() {
         /* Smiley table */
         var SMILIES = {
           '+1' : '#008000', '-1' : '#c00000', '>:)': '#c00000',
-          '>:]': '#c00000', '>:}': '#c00000', '>:D': '#c00000'
+          '>:]': '#c00000', '>:}': '#c00000', '>:D': '#c00000',
+          '<3' : '#c00080'
         };
         var SMILEY_DEFAULT = '#c0c000';
         /* Helper: Quickly create a DOM node */
@@ -2180,7 +2181,7 @@ this.Instant = function() {
             name: 'smiley',
             re: new RegExp('[+-]1|>?[:;=][D)\\]}|{\\[/\\\\(cCSPoO3]|' +
               '[SD)\\\\/\\]}|{\\[(cCoO][:=]<?|\\^\\^|([\\^oO])[._]\\1|' +
-              '>[._-]?<|;[_-];|\\._\\.|\\\\o/'),
+              '>[._-]?<|;[_-];|\\._\\.|\\\\o/|<3'),
             bef: /[\s(]|^$/, aft: /[\s.,:;!?)]|^$/,
             cb: function(m, out) {
               var c = SMILIES[m[0]] || SMILEY_DEFAULT;
