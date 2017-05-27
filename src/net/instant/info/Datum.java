@@ -2,6 +2,7 @@ package net.instant.info;
 
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.net.UnknownHostException;
 import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;
@@ -146,7 +147,17 @@ public class Datum {
     }
 
     public String formatLogEntry() {
-        InetAddress sourceIP = sourceAddress.getAddress();
+        InetAddress sourceIP;
+        if (sourceAddress == null) {
+            try {
+                sourceIP = InetAddress.getByName("0.0.0.0");
+            } catch (UnknownHostException exc) {
+                // Should not happen.
+                throw new RuntimeException(exc);
+            }
+        } else {
+            sourceIP = sourceAddress.getAddress();
+        }
         String ret = String.format("%s %s %s %s %s %s %s %s %s",
             formatElement(sourceIP), formatElement(rfc1413),
             formatElement(auth), formatElementDatetime(timestamp),
