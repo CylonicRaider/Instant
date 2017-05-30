@@ -212,7 +212,8 @@ public class RoomWebSocketHook extends WebSocketHook {
             hook.processLeave(new PresenceChangeInfo(false, info,
                                                      rd, left));
         if (room == null) {
-            LOGGER.warning("Closing without a room");
+            LOGGER.warning("Closing without a room (" +
+                info.getConnection() + ")");
         } else {
             room.sendBroadcast(left);
         }

@@ -4,11 +4,16 @@ import java.nio.ByteBuffer;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import net.instant.api.MessageContents;
 import net.instant.api.RequestResponseData;
 import net.instant.api.Room;
+import org.java_websocket.exceptions.WebsocketNotConnectedException;
 
 public class RoomDistributor implements Room {
+
+    private static final Logger LOGGER = Logger.getLogger("RoomDistr");
 
     private final MessageDistributor parent;
     private final String name;
@@ -25,25 +30,39 @@ public class RoomDistributor implements Room {
         return name;
     }
 
-    public void add(RequestResponseData conn) {
+    protected void add(RequestResponseData conn) {
         conns.add(conn);
     }
 
-    public void remove(RequestResponseData conn) {
+    protected void remove(RequestResponseData conn) {
         conns.remove(conn);
     }
 
     public void broadcast(ByteBuffer message) {
-        synchronized (conns) {
-            for (RequestResponseData c : conns) {
+        RequestResponseData[] cl = getClientArray();
+        for (RequestResponseData c : cl) {
+            try {
                 c.getConnection().send(message);
+            } catch (WebsocketNotConnectedException exc) {
+                // Should not happen!
+                LOGGER.log(Level.WARNING, "Non-connected connection " +
+                    "present (" + c.getConnection() + "); removing",
+                    exc);
+                parent.remove(c);
             }
         }
     }
     public void broadcast(String message) {
-        synchronized (conns) {
-            for (RequestResponseData c : conns) {
+        RequestResponseData[] cl = getClientArray();
+        for (RequestResponseData c : cl) {
+            try {
                 c.getConnection().send(message);
+            } catch (WebsocketNotConnectedException exc) {
+                // Should not happen, too!
+                LOGGER.log(Level.WARNING, "Non-connected connection " +
+                    "present (" + c.getConnection() + "); removing",
+                    exc);
+                parent.remove(c);
             }
         }
     }
@@ -51,6 +70,11 @@ public class RoomDistributor implements Room {
         broadcast(message.toString());
     }
 
+    protected RequestResponseData[] getClientArray() {
+        synchronized (conns) {
+            return conns.toArray(new RequestResponseData[conns.size()]);
+        }
+    }
     public Set<RequestResponseData> getClients() {
         synchronized (conns) {
             return new HashSet<RequestResponseData>(conns);
