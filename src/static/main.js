@@ -3256,6 +3256,12 @@ this.Instant = function() {
           /* Initialize submodule */
           init: function() {
             node = $makeNode('a', 'room-name', {href: ''});
+            /* Clickable UI messages are a bit too close to this one,
+             * and one can still drag-and-drop it, or use the context menu.
+             */
+            node.addEventListener('click', function(event) {
+              event.preventDefault();
+            });
             if (Instant.roomName) {
               node.appendChild(document.createTextNode('&' +
                 Instant.roomName));
