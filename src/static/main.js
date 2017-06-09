@@ -1354,11 +1354,13 @@ this.Instant = function() {
           if (! msgs) continue;
           var msge = Instant.message.getMessageNode(range.endContainer);
           if (! msge) continue;
-          var msgrange = Instant.message.resolveMessageRange(msgs, msge);
-          msgrange.forEach(function(m) {
-            covered[m.id] = m;
-          });
           if (msgs == msge) {
+            /* HACK: Check if the selection is entirely inside replies */
+            var replies = $cls('replies', msgs);
+            if (replies.contains(range.startContainer) &&
+                replies.contains(range.endContainer))
+              continue;
+            /* Check if part of the selection is outside the content */
             var content = $cls('content', msgs);
             if (! content.contains(range.startContainer) ||
                 ! content.contains(range.endContainer))
@@ -1366,6 +1368,10 @@ this.Instant = function() {
           } else {
             singleMessage = false;
           }
+          var msgrange = Instant.message.resolveMessageRange(msgs, msge);
+          msgrange.forEach(function(m) {
+            covered[m.id] = m;
+          });
         }
         /* Create deduplicated array */
         var messages = [];
