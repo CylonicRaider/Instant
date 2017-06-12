@@ -3210,6 +3210,10 @@ this.Instant = function() {
       },
       /* Make a UI message */
       makeMessage: function(options) {
+        function stopFlash() {
+          if (msgnode.classList.contains('flash'))
+            msgnode.classList.add('flash-done');
+        }
         var msgnode = document.createElement('div');
         msgnode.tabIndex = 0;
         if (typeof options.content == 'string') {
@@ -3220,6 +3224,11 @@ this.Instant = function() {
         if (options.color) {
           msgnode.style.color = options.color;
         }
+        if (options.flash) {
+          msgnode.classList.add('flash');
+        }
+        msgnode.addEventListener('animationend', stopFlash);
+        msgnode.addEventListener('click', stopFlash);
         if (options.onclick) {
           msgnode.classList.add('clickable');
           msgnode.addEventListener('click', options.onclick);
@@ -3253,6 +3262,19 @@ this.Instant = function() {
         try {
           msgbox.removeChild(msgnode);
         } catch (e) {}
+      },
+      /* Flash a UI message */
+      flashMessage: function(msgnode) {
+        if (msgnode.classList.contains('flash-done')) {
+          msgnode.classList.remove('flash-done');
+        } else if (! msgnode.classList.contains('flash')) {
+          msgnode.classList.add('flash');
+        } else {
+          msgnode.classList.remove('flash');
+          /* HACK: Force a reflow. */
+          void msgnode.offsetWidth;
+          msgnode.classList.add('flash');
+        }
       },
       /* Room name widget */
       roomName: function() {
@@ -3843,6 +3865,7 @@ this.Instant = function() {
         popup.setAttribute('data-new', 'yes');
         popupsRead.push(popup);
         Instant.privmsg._update();
+        Instant.sidebar.flashMessage(msgRead);
         Instant.notifications.submitNew({level: 'privmsg',
           text: 'You have a new private message.',
           btntext: 'View',
