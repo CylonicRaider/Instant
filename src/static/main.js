@@ -2920,9 +2920,9 @@ this.Instant = function() {
         } else if (event.keyCode >= 37 && event.keyCode <= 40) {
           var curs;
           if (inputMsg.selectionDirection == 'backward') {
-            curs = inputMsg.selectionEnd;
-          } else {
             curs = inputMsg.selectionStart;
+          } else {
+            curs = inputMsg.selectionEnd;
           }
           if (event.keyCode == 37) { // Left
             if (! text || curs == 0)
