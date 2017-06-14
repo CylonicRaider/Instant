@@ -2918,12 +2918,8 @@ this.Instant = function() {
           /* Update bar size */
           Instant.input._updateMessage(event);
         } else if (event.keyCode >= 37 && event.keyCode <= 40) {
-          var curs;
-          if (inputMsg.selectionDirection == 'backward') {
-            curs = inputMsg.selectionStart;
-          } else {
-            curs = inputMsg.selectionEnd;
-          }
+          if (inputMsg.selectionStart != inputMsg.selectionEnd) return;
+          var curs = inputMsg.selectionStart;
           if (event.keyCode == 37) { // Left
             if (! text || curs == 0)
               navigate('left');
