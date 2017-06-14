@@ -2261,28 +2261,27 @@ this.Instant = function() {
           },
           { /* Block monospace sigils */
             name: 'monoBlock',
-            re: /(\n)?```(\n)?/,
+            re: /```/,
             cb: function(m, out, status) {
+              var nlb = (m.index > 0 && m.input[m.index - 1] == '\n');
+              var nla = (m.index + m[0].length < m.input.length &&
+                         m.input[m.index + m[0].length] == '\n');
               /* Block-level monospace marker */
-              if (m[2] != null && status.grabbing == null) {
+              if (nla && status.grabbing == null) {
                 /* Sigil introducing block */
-                var st = (m[1] || '') + '```';
-                var node = makeSigil(st, 'mono-block-before');
+                var node = makeSigil('```', 'mono-block-before');
                 var nl = makeNode('\n', 'hidden');
                 out.push(node);
                 out.push(nl);
                 out.push({add: 'monoBlock', nodes: [node, nl]});
                 status.grabbing = status.id;
-              } else if (m[1] != null && status.grabbing != null) {
+                return 1;
+              } else if (nlb && status.grabbing != null) {
                 /* Sigil terminating block */
-                var st = '```';
-                var node = makeSigil(st, 'mono-block-after');
-                var nl = makeNode('\n', 'hidden');
-                out.push({rem: 'monoBlock', nodes: [node, nl]});
-                out.push(nl);
+                var node = makeSigil('```', 'mono-block-after');
+                out.push({rem: 'monoBlock', nodes: [node]});
                 out.push(node);
                 status.grabbing = null;
-                return -(m[2] || '').length;
               } else {
                 out.push(m[0]);
               }
