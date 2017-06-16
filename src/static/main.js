@@ -5540,6 +5540,7 @@ this.Instant = function() {
   function InstantEvent(type, data) {
     if (! (this instanceof InstantEvent))
       return new InstantEvent(type, data);
+    if (data == null) data = {};
     this.instant = Instant;
     this.type = type;
     this.cancelable = (!! data._cancel);
