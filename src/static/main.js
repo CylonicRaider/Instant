@@ -4447,16 +4447,23 @@ this.Instant = function() {
     return {
       /* Initialize submodule */
       init: function() {
-        function radio(name, value, checked) {
-          var ret = $makeNode('input', {type: 'radio', name: name,
-            value: value});
-          if (checked) ret.checked = true;
-          return ret;
+        function radio(group, name, desc, title, extra) {
+          extra = extra || {};
+          var node = $makeNode('input', {type: 'radio', name: group,
+            value: name});
+          if (extra.checked) node.checked = true;
+          var xcls = (extra.className && ' ' + extra.className || '');
+          return ['label', group + '-' + name + xcls, {title: title}, [
+            node, ' ' + desc
+          ]];
         }
-        function checkbox(name, checked) {
-          var ret = $makeNode('input', {type: 'checkbox', name: name});
-          if (checked) ret.checked = true;
-          return ret;
+        function checkbox(name, desc, title, extra) {
+          extra = extra || {};
+          var node = $makeNode('input', {type: 'checkbox', name: name});
+          if (extra.checked) node.checked = true;
+          return ['label', name, {title: title}, [
+            node, ' ' + desc
+          ]];
         }
         wrapperNode = $makeNode('div', 'settings-wrapper', [
           ['button', 'settings', [
@@ -4466,34 +4473,40 @@ this.Instant = function() {
             ['h2', ['Settings']],
             ['div', 'settings-theme', [
               ['h3', ['Theme:']],
-              ['label', [radio('theme', 'bright', true), ' Bright']],
-              ['label', [radio('theme', 'dark'), ' Dark']],
-              ['label', [radio('theme', 'verydark'), ' Very dark']]
+              radio('theme', 'bright', 'Bright', 'Black-on-white theme ' +
+                'for well-lit environments', {checked: true}),
+              radio('theme', 'dark', 'Dark', 'Gray-on-black theme for ' +
+                'those who like it'),
+              radio('theme', 'verydark', 'Very dark', 'Dimmed version of ' +
+                'Dark for very dark evironments')
             ]],
             ['hr'],
             ['div', 'settings-notifications', [
               ['h3', ['Notifications: ',
                 ['a', 'more-link', {href: '#'}, '(more)']
               ]],
-              ['label', 'notifies-none', [
-                radio('notifies', 'none', true), ' None']],
-              ['label', 'notifies-privmsg more-content', [
-                radio('notifies', 'privmsg'), ' On private messages']],
-              ['label', 'notifies-ping', [
-                radio('notifies', 'ping'), ' When pinged']],
-              ['label', 'notifies-update more-content', [
-                radio('notifies', 'update'), ' On updates']],
-              ['label', 'notifies-reply', [
-                radio('notifies', 'reply'), ' When replied to']],
-              ['label', 'notifies-activity', [
-                radio('notifies', 'activity'), ' On activity']],
-              ['label', 'notifies-disconnect more-content', [
-                radio('notifies', 'disconnect'), ' On disconnects']]
+              radio('notifies', 'none', 'None', 'No notifications at all',
+                {checked: true}),
+              radio('notifies', 'privmsg', 'On private messages', 'Notify ' +
+                'when you receive a private message',
+                {className: 'more-content'}),
+              radio('notifies', 'ping', 'When pinged', 'Notify when you ' +
+                'are pinged (or any of the above)'),
+              radio('notifies', 'update', 'On updates', 'Notify when ' +
+                'there is a new update (or any of the above)',
+                {className: 'more-content'}),
+              radio('notifies', 'reply', 'When replied to', 'Notify when ' +
+                'one of your messages is replied to (or any of the above)'),
+              radio('notifies', 'activity', 'On activity', 'Notify when ' +
+                'anyone posts a message (or any of the above)'),
+              radio('notifies', 'disconnect', 'On disconnects', 'Notify ' +
+                'when your connection is interrupted (or any of the above)',
+                {className: 'more-content'})
             ]],
             ['hr'],
             ['div', 'settings-nodisturb', [
-              ['label', {title: 'Void notifications that are below your ' +
-                'chosen level'}, [checkbox('no-disturb'), ' Do not disturb']]
+              checkbox('no-disturb', 'Do not disturb', 'Void ' +
+                'notifications that are below your chosen level' )
             ]]
           ]]
         ]);
