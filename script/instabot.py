@@ -253,7 +253,8 @@ class Bot(InstantClient):
                                  'uuid': self.identity['uuid']})
     def on_client_message(self, data, content, rawmsg):
         peer = content['from']
-        if data.get('type') == 'who' and peer != self.identity['id']:
+        if (data.get('type') == 'who' and peer != self.identity['id'] and
+                self.nickname is not None):
             self.send_unicast(peer, {'type': 'nick', 'nick': self.nickname,
                                      'uuid': self.identity['uuid']})
 
