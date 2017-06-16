@@ -3479,6 +3479,35 @@ this.Instant = function() {
         if (node) while (node.firstChild) node.removeChild(node.firstChild);
         Instant.userList.update();
       },
+      /* Obtain data for a certain (set of) users in a convenient format
+       * The user list is filtered by entries that match all parameters of
+       * the function which are not null (so, calling query() by itself will
+       * dump the entire user list).
+       * The return value is an (unordered) array of objects containing the
+       * properties "id", "uuid", "nick" with corresponding contents, one
+       * object for each user list entry that matched the filter. */
+      query: function(nick, uuid, id) {
+        var data = Array.prototype.map.call(node.children, function(el) {
+          return el.firstElementChild;
+        });
+        if (nick != null)
+          data = data.filter(function(el) {
+            return (el.getAttribute('data-nick') == nick);
+          });
+        if (uuid != null)
+          data = data.filter(function(el) {
+            return (el.getAttribute('data-uuid') == uuid);
+          });
+        if (id != null)
+          data = data.filter(function(el) {
+            return (el.getAttribute('data-id') == id);
+          });
+        return data.map(function(el) {
+          return {id: el.getAttribute('data-id'),
+                  uuid: el.getAttribute('data-uuid'),
+                  nick: el.getAttribute('data-nick')};
+        });
+      },
       /* Update the collapsing state */
       _updateCollapse: function() {
         var newState = (document.documentElement.offsetWidth <= 400 ||
