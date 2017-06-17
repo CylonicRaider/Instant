@@ -359,6 +359,8 @@ this.Instant = function() {
         Instant.connection.sendSeq({type: 'ping'});
     }, 30000);
     return {
+      /* A kill switch for certain edge cases */
+      _dontConnect: false,
       /* Initialize the submodule, by installing the connection status
        * widget */
       init: function() {
@@ -383,7 +385,7 @@ this.Instant = function() {
       },
       /* Actually connect */
       connect: function() {
-        if (! Instant.connectionURL) {
+        if (! Instant.connectionURL || Instant.connection._dontConnect) {
           ws = null;
           return null;
         }
@@ -5708,6 +5710,10 @@ function init() {
   wrapperClose.addEventListener('click', function() {
     Instant.animation.greeter.hide();
     Instant.input.focus();
+  });
+  /* Avoid hasty reconnects on refreshes */
+  window.addEventListener('beforeunload', function() {
+    Instant.connection._dontConnect = true;
   });
 }
 
