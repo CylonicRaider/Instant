@@ -603,8 +603,12 @@ class CmdlineBotBuilder:
         self.parser.help_action()
         self.parser.option('nick', self.defnick,
                            help='The nickname to use')
+        self.parser.flag_ex('no-nick', None, 'nick',
+                            help='Use no nickname at all')
         self.parser.option('cookies',
                            help='Cookie file (empty string -> memory)')
+        self.parser.flag_ex('no-cookies', None, 'cookies',
+                            help='Do not save cookies')
         self.parser.argument('url', help='The URL to connect to')
         return self.parser
     def parse(self, argv):
