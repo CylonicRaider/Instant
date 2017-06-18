@@ -3349,6 +3349,11 @@ this.Instant = function() {
         /* Collapse user list on small windows */
         window.addEventListener('resize', Instant.userList._updateCollapse);
         Instant.userList._updateCollapse();
+        /* Flush the animation when the tab is shown (after having been hidden) */
+        window.addEventListener('visibilitychange', function() {
+          if (document.visibilityState == 'visible')
+            Instant.userList._updateDecay();
+        });
         /* Context menu actions */
         $cls('action-ping', menu).addEventListener('click', function() {
           var parent = menu.parentNode;
@@ -3518,6 +3523,18 @@ this.Instant = function() {
         lastCollapsed = newState;
         Instant.userList.collapse(newState);
       },
+      /* Forcefully update the nick color decay animation */
+      _updateDecay: function() {
+        var now = Date.now();
+        Array.prototype.forEach.call(node.children, function(el) {
+          var nick = el.firstElementChild;
+          var time = nick.getAttribute('data-last-active') - now;
+          /* Keep in sync with the CSS */
+          if (time < -300000) time = -300000;
+          nick.style.webkitAnimationDelay = time + 'ms';
+          nick.style.animationDelay = time + 'ms';
+        });
+      },
       /* Update some CSS properties */
       update: function() {
         /* Update counter */
@@ -3547,14 +3564,7 @@ this.Instant = function() {
           collapser.classList.remove('collapsed');
           if (parent) parent.classList.remove('collapsed');
           /* Update animations */
-          var now = Date.now();
-          Array.prototype.forEach.call(node.children, function(el) {
-            var nick = el.firstElementChild;
-            var time = nick.getAttribute('data-last-active') - now;
-            if (time < -300000) time = -300000;
-            nick.style.webkitAnimationDelay = time + 'ms';
-            nick.style.animationDelay = time + 'ms';
-          });
+          Instant.userList._updateDecay();
         }
         Instant.userList.update();
       },
@@ -4091,6 +4101,7 @@ this.Instant = function() {
           if (pane.scrollTop == 0) Instant.logs.pull.more();
           Instant.animation.offscreen.checkAll();
         });
+        /* Navigate to linked messages */
         window.addEventListener('hashchange', updateHash);
         updateHash();
       },
