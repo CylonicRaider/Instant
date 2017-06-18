@@ -333,7 +333,8 @@ TRAILING_COMMA = re.compile(r',\s*\)$')
 PARAM = re.compile(r'([a-zA-Z0-9_-]+)=(%s|%s)(?=\s|$)' %
                    (SCALAR.pattern, TUPLE.pattern))
 INTEGER = re.compile(r'^[0-9]+$')
-CONSTANTS = {'None': None, 'True': True, 'False': False}
+CONSTANTS = {'None': None, 'True': True, 'False': False,
+             'Ellipsis': Ellipsis}
 def read_logs(src, filt=None):
     for line in src:
         m = LOGLINE_START.match(line)
