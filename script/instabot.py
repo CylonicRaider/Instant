@@ -236,8 +236,8 @@ class InstantClient(object):
 
 class Bot(InstantClient):
     NICKNAME = None
-    def __init__(self, url, nickname=None, **kwds):
-        if nickname is None: nickname = self.NICKNAME
+    def __init__(self, url, nickname=Ellipsis, **kwds):
+        if nickname is Ellipsis: nickname = self.NICKNAME
         InstantClient.__init__(self, url, **kwds)
         self.nickname = nickname
         self.identity = None
@@ -259,7 +259,7 @@ class Bot(InstantClient):
                                      'uuid': self.identity['uuid']})
 
 class HookBot(Bot):
-    def __init__(self, url, nickname=None, **kwds):
+    def __init__(self, url, nickname=Ellipsis, **kwds):
         Bot.__init__(self, url, nickname, **kwds)
         self.init_cb = kwds.get('init_cb')
         self.open_cb = kwds.get('open_cb')
@@ -282,10 +282,10 @@ class HookBot(Bot):
     def on_close(self):
         Bot.on_close(self)
         if self.close_cb is not None: self.close_cb(self)
-    def send_post(self, text, parent=None, nickname=None):
+    def send_post(self, text, parent=None, nickname=Ellipsis):
         data = {'type': 'post', 'text': text}
         if parent is not None: data['parent'] = parent
-        if nickname is None:
+        if nickname is Ellipsis:
             data['nick'] = self.nickname
         else:
             data['nick'] = nickname

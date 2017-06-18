@@ -466,7 +466,7 @@ log_exception = instabot.log_exception
 
 class Scribe(instabot.Bot):
     NICKNAME = NICKNAME
-    def __init__(self, url, nickname=None, **kwds):
+    def __init__(self, url, nickname=Ellipsis, **kwds):
         instabot.Bot.__init__(self, url, nickname, **kwds)
         self.scheduler = kwds['scheduler']
         self.db = kwds['db']
