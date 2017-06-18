@@ -89,6 +89,24 @@ class LogDB:
     def close(self):
         pass
 
+class LogDBNull(LogDB):
+    def bounds(self):
+        return (None, None, None)
+    def get(self, index):
+        return None
+    def query(self, lfrom=None, lto=None, amount=None):
+        return []
+    def extend(self, entries):
+        return []
+    def delete(self, ids):
+        return []
+    def append_uuid(self, uid, uuid):
+        return False
+    def get_uuid(self, uid):
+        return False
+    def query_uuid(self, ids=None):
+        return []
+
 class LogDBList(LogDB):
     @staticmethod
     def merge_logs(base, add, maxlen=None):
@@ -114,7 +132,10 @@ class LogDBList(LogDB):
         else:
             return (self.data[0]['id'], self.data[-1]['id'], len(self.data))
     def get(self, index):
-        return self.data[index]
+        try:
+            return self.data[index]
+        except IndexError:
+            return None
     def query(self, lfrom=None, lto=None, amount=None):
         if lfrom is None:
             fromidx = None
@@ -161,7 +182,7 @@ class LogDBList(LogDB):
             self._uuid_list = self._uuid_list[c:]
         return ret
     def get_uuid(self, uid):
-        return self.uuids[uid]
+        return self.uuids.get(uid)
     def query_uuid(self, ids=None):
         if not ids: return self.uuids
         ret = {}
@@ -683,8 +704,10 @@ def main():
     p = b.make_parser(sys.argv[0])
     p.option('maxlen', MAXLEN, type=int,
              help='Maximum amount of logs to deliver')
-    p.option('msgdb', placeholder='<file>',
+    p.option('msgdb', placeholder='<file>', default=Ellipsis,
              help='SQLite database file for messages')
+    p.flag_ex('no-msgdb', None, 'msgdb',
+              help='Do not store messages at all')
     p.option('read-file', [], accum=True, placeholder='<file>',
              help='Parse log file for messages')
     p.option('push-logs', [], accum=True, varname='push_logs',
@@ -708,6 +731,8 @@ def main():
     log('SCRIBE version=%s' % VERSION)
     log('OPENING file=%r maxlen=%r' % (msgdb_file, maxlen))
     if msgdb_file is None:
+        msgdb = LogDBNull(maxlen)
+    elif msgdb_file is Ellipsis:
         msgdb = LogDBList(maxlen)
     else:
         msgdb = LogDBSQLite(msgdb_file, maxlen)
