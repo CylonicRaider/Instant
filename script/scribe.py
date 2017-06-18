@@ -695,6 +695,8 @@ def main():
     b.parse(sys.argv[1:])
     b.add_args('push_logs', 'dont_stay', 'dont_pull')
     maxlen, msgdb_file, toread = b.get_args('maxlen', 'msgdb', 'read-file')
+    # Fail early.
+    b.get_args('url')
     try:
         signal.signal(signal.SIGINT, interrupt)
     except Exception:
