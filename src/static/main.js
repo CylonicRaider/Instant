@@ -1100,7 +1100,7 @@ this.Instant = function() {
                   }));
                 break;
               case 'log': /* Someone delivers logs to us */
-                var before = null, after = null;
+                var before = null, after = null, count = 0;
                 if (data.data) {
                   /* Actually merge logs */
                   var added = Instant.logs.merge(data.data, true);
@@ -1134,6 +1134,7 @@ this.Instant = function() {
                     if (! before || el.id < before) before = el.id;
                     if (! after || el.id > after) after = el.id;
                   });
+                  count = data.data.length;
                 }
                 /* Call finishing handler */
                 var key = data.key;
@@ -1141,7 +1142,7 @@ this.Instant = function() {
                   before || true : null;
                 after = (key == 'initial' || key == 'after') ?
                   after || true : null;
-                Instant.logs.pull._done(before, after);
+                Instant.logs.pull._done(before, after, count);
                 Instant._fireListeners('logs.new', {message: msg,
                   data: data});
                 break;
@@ -1155,7 +1156,7 @@ this.Instant = function() {
             if (reply != null) Instant.connection.send(replyTo, reply);
           },
           /* Done with loading logs for whatever reasons */
-          _done: function(before, after) {
+          _done: function(before, after, count) {
             /* Reset things */
             if (before) {
               pullType.before = false;
@@ -1166,7 +1167,8 @@ this.Instant = function() {
               Instant.animation.spinner.hide('logs-after');
             }
             /* Check for more logs above */
-            Instant.animation._updateLogs();
+            if (count > 1)
+              Instant.animation._updateLogs();
             /* Reset peers
              * A copy of newestPeer is kept for the next step. */
             var nPeer = newestPeer;
