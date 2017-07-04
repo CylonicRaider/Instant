@@ -4807,7 +4807,7 @@ this.Instant = function() {
           });
       },
       desktop: function() {
-        /* The currently pending desktop notification */
+        /* The currently displayed desktop notification */
         var current = null;
         return {
           /* Display a desktop notification for the given notification object
@@ -4868,8 +4868,9 @@ this.Instant = function() {
               var m = /Firefox\/(\d+)(?=\D)/i.exec(navigator.userAgent);
               if (m && m[1] < 49) icon = null;
               /* Actually create notification */
-              var ret = new Notification(title, {body: body,
-                icon: icon});
+              var opts = {body: body};
+              if (icon != null) opts.icon = icon;
+              var ret = new Notification(title, opts);
               /* Install event handler */
               ret.onclick = onclick;
               /* Allow user to modify notification after creation */
