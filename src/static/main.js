@@ -3209,7 +3209,9 @@ this.Instant = function() {
       },
       /* Make a UI message */
       makeMessage: function(options) {
-        var stopFlash = Instant.sidebar.unflashMessage.bind(Instant.sidebar);
+        function stopFlash(evt) {
+          Instant.sidebar.unflashMessage(evt.target);
+        }
         var msgnode = document.createElement('div');
         msgnode.tabIndex = 0;
         if (typeof options.content == 'string') {
@@ -3755,6 +3757,7 @@ this.Instant = function() {
             Instant.popups.add(popup);
           }
         });
+        Instant.privmsg._update();
         Instant.sidebar.unflashMessage(msgRead);
       },
       /* Show the writing popups */
