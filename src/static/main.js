@@ -3210,7 +3210,7 @@ this.Instant = function() {
       /* Make a UI message */
       makeMessage: function(options) {
         function stopFlash(evt) {
-          Instant.sidebar.unflashMessage(evt.target);
+          Instant.animation.unflash(evt.target);
         }
         var msgnode = document.createElement('div');
         msgnode.tabIndex = 0;
@@ -3260,24 +3260,6 @@ this.Instant = function() {
         try {
           msgbox.removeChild(msgnode);
         } catch (e) {}
-      },
-      /* Flash a UI message */
-      flashMessage: function(msgnode) {
-        if (msgnode.classList.contains('flash-done')) {
-          msgnode.classList.remove('flash-done');
-        } else if (! msgnode.classList.contains('flash')) {
-          msgnode.classList.add('flash');
-        } else {
-          msgnode.classList.remove('flash');
-          /* HACK: Force a reflow. */
-          void msgnode.offsetWidth;
-          msgnode.classList.add('flash');
-        }
-      },
-      /* Stop a UI message's flashing */
-      unflashMessage: function(msgnode) {
-        if (msgnode.classList.contains('flash'))
-          msgnode.classList.add('flash-done');
       },
       /* Room name widget */
       roomName: function() {
@@ -3758,7 +3740,7 @@ this.Instant = function() {
           }
         });
         Instant.privmsg._update();
-        Instant.sidebar.unflashMessage(msgRead);
+        Instant.animation.unflash(msgRead);
       },
       /* Show the writing popups */
       showWrite: function() {
@@ -3908,7 +3890,7 @@ this.Instant = function() {
         popup.setAttribute('data-new', 'yes');
         popupsRead.push(popup);
         Instant.privmsg._update();
-        Instant.sidebar.flashMessage(msgRead);
+        Instant.animation.flash(msgRead);
         Instant.notifications.submitNew({level: 'privmsg',
           text: 'You have a new private message.',
           btntext: 'View',
@@ -4111,6 +4093,24 @@ this.Instant = function() {
         /* Navigate to linked messages */
         window.addEventListener('hashchange', updateHash);
         updateHash();
+      },
+      /* Flash something */
+      flash: function(node) {
+        if (node.classList.contains('flash-done')) {
+          node.classList.remove('flash-done');
+        } else if (! node.classList.contains('flash')) {
+          node.classList.add('flash');
+        } else {
+          node.classList.remove('flash');
+          /* HACK: Force a reflow. */
+          void node.offsetWidth;
+          node.classList.add('flash');
+        }
+      },
+      /* Abort flashing something */
+      unflash: function(node) {
+        if (node.classList.contains('flash'))
+          node.classList.add('flash-done');
       },
       /* Navigate the input to the given message */
       goToMessage: function(msg) {
