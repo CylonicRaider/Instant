@@ -1030,14 +1030,14 @@ img.inline {
 @-webkit-keyframes bgfade { to { background: transparent; } }
 @keyframes bgfade { to { background: transparent; } }
 
-.ui-message-box > .flash {
-  -webkit-animation: flash 4s step-end;
-  animation: flash 4s step-end;
+.flash {
+  -webkit-animation: bgflash 4s step-end;
+  animation: bgflash 4s step-end;
 }
-.ui-message-box > .flash.flash-done {
+.flash.flash-done {
   animation-name: none;
 }
-@-webkit-keyframes flash {
+@-webkit-keyframes bgflash {
   0% { background: transparent; }
   12.5% { background: #808080; }
   25% { background: transparent; }
@@ -1048,7 +1048,7 @@ img.inline {
   87.5% { background: #808080; }
   100% { background: transparent; }
 }
-@keyframes flash {
+@keyframes bgflash {
   0% { background: transparent; }
   12.5% { background: #808080; }
   25% { background: transparent; }

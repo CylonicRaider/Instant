@@ -4280,12 +4280,12 @@ this.Instant = function() {
       }(),
       /* Offscreen message (alert) management */
       offscreen: function() {
+        /* The container node */
+        var containerNode = null;
         /* Unread messages above/below */
         var unreadAbove = null, unreadBelow = null;
         /* Unread messages with @-mentions of self */
         var mentionAbove = null, mentionBelow = null;
-        /* The nodes containing the alerts */
-        var aboveNode = null, belowNode = null;
         /* Scan the message tree in document order for a message for which
          * filter returns a true value; falsy messages are returned
          * unconditionally. */
@@ -4319,9 +4319,10 @@ this.Instant = function() {
                * focus on the node. */
               if (event.type == 'keydown') node.focus();
             }
+            containerNode = container;
             /* Extract the alerts themself */
-            aboveNode = $cls('alert-above', container);
-            belowNode = $cls('alert-below', container);
+            var aboveNode = $cls('alert-above', container);
+            var belowNode = $cls('alert-below', container);
             aboveNode.addEventListener('click', function(e) {
               handleEvent(e, aboveNode);
             });
@@ -4403,34 +4404,35 @@ this.Instant = function() {
               Instant.animation.offscreen._update();
             }
           },
+          /* Update the status of an alert */
+          showAlert: function(name, visible, ping) {
+            var node = $cls(name, containerNode);
+            if (! node) return null;
+            if (visible && ! node.classList.contains('visible') ||
+                ping && ! node.classList.contains('ping'))
+              Instant.animation.flash(node);
+            if (visible) {
+              node.classList.add('visible');
+            } else {
+              node.classList.remove('visible');
+            }
+            if (ping) {
+              node.classList.add('ping');
+            } else {
+              node.classList.remove('ping');
+            }
+            return node;
+          },
           /* Update the attached nodes */
           _update: function() {
-            if (aboveNode) {
-              if (mentionAbove) {
-                aboveNode.classList.add('ping');
-                aboveNode.classList.add('visible');
-              } else if (unreadAbove) {
-                aboveNode.classList.remove('ping');
-                aboveNode.classList.add('visible');
-              } else {
-                aboveNode.classList.remove('ping');
-                aboveNode.classList.remove('visible');
-              }
+            var aboveNode = Instant.animation.offscreen.showAlert(
+              'alert-above', unreadAbove, mentionAbove);
+            var belowNode = Instant.animation.offscreen.showAlert(
+              'alert-below', unreadBelow, mentionBelow);
+            if (aboveNode)
               aboveNode.href = '#' + ((unreadAbove) ? unreadAbove.id : '');
-            }
-            if (belowNode) {
-              if (mentionBelow) {
-                belowNode.classList.add('ping');
-                belowNode.classList.add('visible');
-              } else if (unreadBelow) {
-                belowNode.classList.remove('ping');
-                belowNode.classList.add('visible');
-              } else {
-                belowNode.classList.remove('ping');
-                belowNode.classList.remove('visible');
-              }
+            if (belowNode)
               belowNode.href = '#' + ((unreadBelow) ? unreadBelow.id : '');
-            }
           },
           /* Update the message nodes referenced if they could have been
            * replaced */
