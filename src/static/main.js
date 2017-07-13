@@ -3798,6 +3798,12 @@ this.Instant = function() {
         if (parent) popup.setAttribute('data-parent', parent);
         var editor = $cls('pm-editor', popup);
         if (text) editor.value = text;
+        editor.addEventListener('keydown', function(event) {
+          if (event.keyCode == 13 && event.ctrlKey) {
+            Instant.privmsg._send(popup);
+            event.preventDefault();
+          }
+        });
         popupsEdit.push(popup);
         Instant.popups.add(popup);
         Instant.privmsg._update();
