@@ -3904,6 +3904,7 @@ this.Instant = function() {
             popup.removeAttribute('data-new');
             Instant.popups.add(popup);
             Instant.privmsg._update();
+            Instant.animation.unflash(msgRead);
           }
         });
       },
