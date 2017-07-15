@@ -3518,7 +3518,7 @@ this.Instant = function() {
           var nick = el.firstElementChild;
           var time = nick.getAttribute('data-last-active') - now;
           /* Keep in sync with the CSS */
-          if (time < -300000) time = -300000;
+          if (time < -600000) time = -600000;
           nick.style.webkitAnimationDelay = time + 'ms';
           nick.style.animationDelay = time + 'ms';
         });

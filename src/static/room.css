@@ -1062,8 +1062,8 @@ img.inline {
 
 .user-list .nick {
   /* Keep in sync with Instant.userList._updateDecay(). */
-  -webkit-animation: clrfade 300s cubic-bezier(0.5, 0.0, 1.0, 1.0) both;
-  animation: clrfade 300s cubic-bezier(0.5, 0.0, 1.0, 1.0) both;
+  -webkit-animation: clrfade 600s cubic-bezier(0.5, 0.0, 1.0, 1.0) both;
+  animation: clrfade 600s cubic-bezier(0.5, 0.0, 1.0, 1.0) both;
 }
 @-webkit-keyframes clrfade { to { color: rgba(0, 0, 0, 0.5); } }
 @keyframes clrfade { to { color: rgba(0, 0, 0, 0.5); } }
