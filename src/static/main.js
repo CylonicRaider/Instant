@@ -3223,7 +3223,7 @@ this.Instant = function() {
           msgnode.style.color = options.color;
         }
         if (options.flash) {
-          msgnode.classList.add('flash');
+          Instant.animation.flash(msgnode);
         }
         msgnode.addEventListener('animationend', stopFlash);
         msgnode.addEventListener('click', stopFlash);
