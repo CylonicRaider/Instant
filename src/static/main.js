@@ -2680,12 +2680,13 @@ this.Instant = function() {
         return parent.getAttribute('data-id');
       },
       /* Move the input bar into the given message/container */
-      jumpTo: function(parent, force) {
+      jumpTo: function(parent) {
         /* Disallow replying to loading messages
          * Seriously, kids, do you not have anything better to do? */
         if (parent.matches('#load-wrapper *')) return false;
         /* Remove marker class from old parent */
         var oldParent = Instant.message.getParentMessage(inputNode);
+        if (oldParent == parent) return false;
         if (oldParent) oldParent.classList.remove('input-host');
         /* Handle message parents */
         if (Instant.message.isMessage(parent)) {
@@ -2693,6 +2694,8 @@ this.Instant = function() {
           parent.classList.add('input-host');
           parent = Instant.message.makeReplies(parent);
         }
+        /* Handle animation */
+        Instant.animation.offscreen._inputMoved();
         /* Actually relocate the input */
         parent.appendChild(inputNode);
         /* Successful */
@@ -4448,6 +4451,13 @@ this.Instant = function() {
             if (unreadBelow != null) unreadBelow = $id(unreadBelow.id);
             if (mentionAbove != null) mentionAbove = $id(mentionAbove.id);
             if (mentionBelow != null) mentionBelow = $id(mentionBelow.id);
+          },
+          /* Reply to the input bar having moved */
+          _inputMoved: function() {
+            var aboveNode = $cls('alert-above', containerNode);
+            var belowNode = $cls('alert-below', containerNode);
+            if (aboveNode) Instant.animation.unflash(aboveNode);
+            if (belowNode) Instant.animation.unflash(belowNode);
           },
           /* Get the bottommost unread message above the screen, if any */
           getUnreadAbove: function() {
