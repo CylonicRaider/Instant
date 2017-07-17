@@ -2422,8 +2422,12 @@ this.Instant = function() {
                 break;
               }
               /* Insert text up to match */
-              if (matches[minIdx].index != idx)
-                out.push(text.substring(idx, matches[minIdx].index));
+              if (matches[minIdx].index != idx) {
+                var t = text.substring(idx, matches[minIdx].index);
+                if (status.grabbing != null)
+                  t = document.createTextNode(t);
+                out.push(t);
+              }
               /* Process match */
               status.id = minIdx;
               var adv = matchers[minIdx].cb(matches[minIdx], out,
