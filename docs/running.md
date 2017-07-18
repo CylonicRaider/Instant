@@ -186,12 +186,12 @@ option. (Refer to the `--help` message for a listing.)
     noting down messages (which the second version could deliver to clients).
 
 - `--push-logs` *client-ID* — *Push logs*: Can be used to (crudely) transfer
-  logs between instances. When specified, Scribe pushes all of its logs to the
-  participant with the specified ID unconditionally after initializing the
-  message database and reading logfiles (if any). Because of the asynchronous
-  nature of the protocol (and the peer-to-peer-based log system), clients
-  happily accept any piece of logs offered to them, whether it was requested
-  or not. This option may be repeated.
+  logs between instances. When specified, Scribe pushes all of its logs to
+  the participant with the specified ID unconditionally after initializing
+  the message database and reading logfiles (if any). Because of the
+  asynchronous nature of the protocol (and the peer-to-peer-based log
+  system), clients happily accept any piece of logs offered to them, whether
+  it was requested or not. This option may be repeated.
 
 - `--dont-stay` — *Do not remain in room*: Lets Scribe exit once it has
   finished updating its message database. Can be useful to grab a snapshot of
@@ -205,10 +205,21 @@ option. (Refer to the `--help` message for a listing.)
     updating its logs. Intended to provide short-term coverage when the
     "main" instance of Scribe is being restarted.
 
-- `--nick` *name* — *Nickname*: Last but not least, this allows setting a
-  custom nick-name for the bot. An empty nickname will make the bot invisible
-  to users, although it will still reply with the empty nickname upon request
-  and count towards the user count.
+- `--nick` *name* — *Nickname*: Allows setting a custom nick-name for the
+  bot. An empty nickname will make the bot invisible to users, although it
+  will still reply with the empty nickname upon request and contribute to the
+  user count.
+
+- `--no-nick` — *No nickname*: Disables sending of a nickname altogether;
+  this renders the bot truly invisible (from the user list's perspective).
+
+- `--cookies` *file*: Stores cookies in the given file. Allows the bot to
+  maintain a consistent identity across reconnects. If the empty string is
+  passed as the file, cookies will be recorded in memory only and forgotten
+  when the bot exits.
+
+- `--no-cookies` — *No cookies*: Disables the storage of cookies (as is the
+  default).
 
 - *url* — *WebSocket URL to connect to*: The single mandatory positional
   argument specifies (indeed) where to connect to. It is the resource `ws`
