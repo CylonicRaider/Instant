@@ -1012,7 +1012,7 @@ img.inline {
   right: 2px;
   width: 2px;
   height: 100%;
-  background: #808080;
+  background: #c0c0c0;
   -webkit-animation-name: bgfade;
   -webkit-animation-duration: 60s;
   -webkit-animation-timing-function: linear;
