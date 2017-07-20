@@ -4292,10 +4292,12 @@ this.Instant = function() {
           }
         };
       }(),
-      /* Offscreen message (alert) management */
+      /* Offscreen/unread message (alert) management */
       offscreen: function() {
         /* The container node */
         var containerNode = null;
+        /* The (live) lists of offscreen messages/mentions */
+        var unreadMessages = null, unreadMentions = null;
         /* Unread messages above/below */
         var unreadAbove = null, unreadBelow = null;
         /* Unread messages with @-mentions of self */
@@ -4333,7 +4335,12 @@ this.Instant = function() {
                * focus on the node. */
               if (event.type == 'keydown') node.focus();
             }
+            /* Link interesting node (lists) */
             containerNode = container;
+            unreadMessages = $clsAll('message new offscreen',
+                                     container);
+            unreadMentions = $clsAll('message new offscreen ping',
+                                     container);
             /* Extract the alerts themself */
             var aboveNode = $cls('alert-above', container);
             var belowNode = $cls('alert-below', container);
@@ -4436,6 +4443,36 @@ this.Instant = function() {
               node.classList.remove('ping');
             }
             return node;
+          },
+          /* Find the closest unread messages surrounding probe
+           * If mention is true, they additionally have to be @-mentions.
+           * If probe is one of the messages, the result is unspecified.
+           * Returns an array with two elements, either of which can be null
+           * to indicate lack of a matching message. */
+          bisect: function(probe, mention) {
+            var list = (mention) ? unreadMentions : unreadMessages;
+            var docCmp = Instant.message.documentCmp.bind(Instant.message);
+            /* Special case */
+            if (! list.length) return [null, null];
+            /* Actual bisection */
+            var li = 0, ri = list.length;
+            for (;;) {
+              /* Stop if found */
+              if (docCmp(probe, list[li]) <= 0) {
+                return [list[li - 1] || null, list[li]];
+              } else if (docCmp(list[ri - 1], probe) <= 0) {
+                return [list[ri - 1], list[ri] || null];
+              } else if (ri - li == 1) {
+                return [list[li], list[ri]];
+              }
+              /* Select branch to choose */
+              var m = (li + ri) >> 1;
+              if (docCmp(probe, list[m]) < 0) {
+                ri = m;
+              } else {
+                li = m;
+              }
+            }
           },
           /* Update the attached nodes */
           _update: function() {
