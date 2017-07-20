@@ -4294,8 +4294,8 @@ this.Instant = function() {
       }(),
       /* Offscreen/unread message (alert) management */
       offscreen: function() {
-        /* The container node */
-        var containerNode = null;
+        /* The container nodes */
+        var messageBox = null, containerNode = null;
         /* The (live) lists of offscreen messages/mentions */
         var unreadMessages = null, unreadMentions = null;
         /* Unread messages above/below */
@@ -4323,7 +4323,7 @@ this.Instant = function() {
         }
         return {
           /* Attach to a given DOM node */
-          init: function(container) {
+          init: function(msgbox, container) {
             /* Handler for events */
             function handleEvent(event, node) {
               var msg = Instant.message.forFragment(node.hash);
@@ -4336,11 +4336,12 @@ this.Instant = function() {
               if (event.type == 'keydown') node.focus();
             }
             /* Link interesting node (lists) */
+            messageBox = msgbox;
             containerNode = container;
             unreadMessages = $clsAll('message new offscreen',
-                                     container);
+                                     msgbox);
             unreadMentions = $clsAll('message new offscreen ping',
-                                     container);
+                                     msgbox);
             /* Extract the alerts themself */
             var aboveNode = $cls('alert-above', container);
             var belowNode = $cls('alert-below', container);
@@ -5723,7 +5724,7 @@ this.Instant = function() {
     Instant.logs.pull.init(Instant.message.getMessageBox());
     Instant.animation.init(Instant.message.getMessageBox());
     Instant.animation.greeter.init(loadWrapper);
-    Instant.animation.offscreen.init(
+    Instant.animation.offscreen.init(Instant.message.getMessageBox(),
       $cls('alert-container', Instant.input.getNode()));
     Instant.popups.init();
     Instant.popups.windows.init();
