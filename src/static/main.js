@@ -1963,7 +1963,13 @@ this.Instant = function() {
       _parentValid: function(msg) {
         var md = (Instant.roomName == 'threads') ? 10 : 5;
         // The input bar is one deeper than the message.
-        return (msg.getAttribute('data-depth') < md - 1);
+        if (msg.getAttribute('data-depth') >= md - 1) return false;
+        // Disallow unnecessary threading.
+        if (Instant.message.getParentMessage(msg) &&
+          ! Instant.message.getSuccessor(msg) &&
+          ! Instant.message.hasReplies(msg)) return false;
+        // Else...
+        return true;
       },
       /* Move the input bar into the given message/container */
       jumpTo: function(parent, force) {
@@ -2016,16 +2022,8 @@ this.Instant = function() {
             }
             /* If no parent has a precedessor, cannot do anything */
             if (! prev) return false;
-            par = prev;
-            /* Descend into its children until we find one with no replies;
-             * stop just beneath it */
-            for (;;) {
-              var ch = Instant.message.getLastReply(par);
-              if (! ch || ! Instant.message.hasReplies(ch)) break;
-              par = ch;
-            }
             /* End up here */
-            Instant.input.jumpTo(par, true);
+            Instant.input.jumpTo(prev, true);
             return true;
           case 'down':
             /* Special case: message without replies or successor */
@@ -2037,20 +2035,15 @@ this.Instant = function() {
               Instant.input.jumpTo(Instant.message.getParent(par), true);
               return true;
             }
-            /* Traverse parents until we have a successor */
-            var next;
-            while (par) {
-              next = Instant.message.getSuccessor(par);
-              if (next) break;
-              par = Instant.message.getParentMessage(par);
-            }
-            /* Moved all the way up -> main thread */
-            if (! next) {
-              Instant.input.jumpTo(root, true);
+            /* If we have no successor, just move to our parent */
+            if (! Instant.message.getSuccessor(par)) {
+              par = Instant.message.getParent(par);
+              /* Moved all the way up -> main thread */
+              Instant.input.jumpTo(par || root, true);
               return true;
             }
             /* Descend into the current message as far as possible */
-            par = next;
+            par = Instant.message.getSuccessor(par);
             while (Instant.message.hasReplies(par)) {
               par = Instant.message.getReply(par);
             }
