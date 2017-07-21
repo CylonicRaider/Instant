@@ -16,6 +16,19 @@ body {
   outline: 1px dotted black;
 }
 
+#main {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  opacity: 0;
+  text-align: left;
+}
+#main.fixed {
+  position: fixed;
+}
+
 #load-wrapper {
   display: inline-block;
   position: relative;
@@ -241,19 +254,6 @@ body {
     padding: 0 1px;
   }
 
-}
-
-#main {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  opacity: 0;
-  text-align: left;
-}
-#main.fixed {
-  position: fixed;
 }
 
 .sidebar {

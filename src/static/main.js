@@ -5768,8 +5768,11 @@ function init() {
     /* Nothing is going to hide it, so we have to. */
     Instant.animation.greeter.hide();
   }
-  /* Show main element */
-  main.style.opacity = '1';
+  /* Show main element
+   * Deferred to avoid partial FOUC-s. */
+  $onload(function() {
+    main.style.opacity = '1';
+  }, true, true);
   /* Focus input bar if Escape pressed and not focused */
   document.documentElement.addEventListener('keydown', function(event) {
     if (event.keyCode == 27) { // Escape
