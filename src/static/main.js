@@ -4492,12 +4492,12 @@ this.Instant = function() {
                 if (rescanUA)
                   unreadAbove = scanMessages(unreadAbove, isUnread, prec);
                 if (rescanUB)
-                  unreadBelow = scanMessages(unreadAbove, isUnread, succ);
+                  unreadBelow = scanMessages(unreadBelow, isUnread, succ);
                 if (rescanUA)
-                  mentionAbove = scanMessages(unreadAbove, isUnreadMention,
+                  mentionAbove = scanMessages(mentionAbove, isUnreadMention,
                                               prec);
                 if (rescanUB)
-                  mentionBelow = scanMessages(unreadAbove, isUnreadMention,
+                  mentionBelow = scanMessages(mentionBelow, isUnreadMention,
                                               succ);
                 changed = true;
               }
