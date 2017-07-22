@@ -1121,12 +1121,6 @@ this.Instant = function() {
                   });
                   /* Scroll back */
                   restore();
-                  /* Check for offscreen messages */
-                  Instant.animation.offscreen.update(added.map(
-                    function(key) {
-                      return Instant.message.get(key);
-                    }
-                  ));
                   /* Avoid stale node references */
                   Instant.animation.offscreen._updateMessages();
                   /* Detect earliest and latest message */
@@ -4458,7 +4452,9 @@ this.Instant = function() {
               var input = Instant.input.getNode();
               for (var i = 0; i < add.length; i++) {
                 var n = add[i];
-                if (n.classList.contains('offscreen')) continue;
+                if (! n.classList.contains('new') ||
+                    n.classList.contains('offscreen'))
+                  continue;
                 n.classList.add('offscreen');
                 var icmp = docCmp(n, input);
                 if (icmp < 0) {
