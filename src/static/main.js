@@ -4443,61 +4443,63 @@ this.Instant = function() {
           },
           /* Update the offscreen status of some messages */
           _updateOffscreen: function(add, remove) {
-            var docCmp = Instant.message.documentCmp.bind(Instant.message);
-            var input = Instant.input.getNode();
             var changed = false;
-            add = add || [];
-            for (var i = 0; i < add.length; i++) {
-              var n = add[i];
-              n.classList.add('offscreen');
-              var icmp = docCmp(n, input);
-              if (icmp < 0) {
-                if (! unreadAbove || docCmp(unreadAbove, n) < 0) {
-                  unreadAbove = n;
-                  changed = true;
-                }
-                if (n.classList.contains('ping') && (! mentionAbove ||
-                    docCmp(mentionAbove, n) < 0)) {
-                  mentionAbove = n;
-                  changed = true;
-                }
-              } else if (icmp > 0) {
-                if (! unreadBelow || docCmp(unreadBelow, n) > 0) {
-                  unreadBelow = n;
-                  changed = true;
-                }
-                if (n.classList.contains('ping') && (! mentionBelow ||
-                    docCmp(mentionBelow, n) > 0)) {
-                  mentionBelow = n;
-                  changed = true;
+            if (add && add.length) {
+              var docCmp = Instant.message.documentCmp.bind(Instant.message);
+              var input = Instant.input.getNode();
+              for (var i = 0; i < add.length; i++) {
+                var n = add[i];
+                n.classList.add('offscreen');
+                var icmp = docCmp(n, input);
+                if (icmp < 0) {
+                  if (! unreadAbove || docCmp(unreadAbove, n) < 0) {
+                    unreadAbove = n;
+                    changed = true;
+                  }
+                  if (n.classList.contains('ping') && (! mentionAbove ||
+                      docCmp(mentionAbove, n) < 0)) {
+                    mentionAbove = n;
+                    changed = true;
+                  }
+                } else if (icmp > 0) {
+                  if (! unreadBelow || docCmp(unreadBelow, n) > 0) {
+                    unreadBelow = n;
+                    changed = true;
+                  }
+                  if (n.classList.contains('ping') && (! mentionBelow ||
+                      docCmp(mentionBelow, n) > 0)) {
+                    mentionBelow = n;
+                    changed = true;
+                  }
                 }
               }
             }
-            remove = remove || [];
-            for (var i = 0; i < remove.length; i++) {
-              var n = remove[i];
-              n.classList.remove('offscreen');
-              if (n == unreadAbove || n == unreadBelow ||
-                  n == mentionAbove || n == mentionBelow) {
+            if (remove && remove.length) {
+              var rescanUA = false, rescanUB = false;
+              var rescanMA = false, rescanMB = false;
+              for (var i = 0; i < remove.length; i++) {
+                var n = remove[i];
+                n.classList.remove('offscreen');
+                if (n == unreadAbove) rescanUA = true;
+                if (n == unreadBelow) rescanUB = true;
+                if (n == mentionAbove) rescanMA = true;
+                if (n == mentionBelow) rescanMB = true;
+              }
+              if (rescanUA || rescanUB || rescanMA || rescanMB) {
                 var im = Instant.message;
                 var prec = im.getDocumentPrecedessor.bind(im);
                 var succ = im.getDocumentSuccessor.bind(im);
-                if (n == unreadAbove) {
-                  unreadAbove = scanMessages(n, isUnread, prec);
-                  changed = true;
-                }
-                if (n == unreadBelow) {
-                  unreadBelow = scanMessages(n, isUnread, succ);
-                  changed = true;
-                }
-                if (n == mentionAbove) {
-                  mentionAbove = scanMessages(n, isUnreadMention, prec);
-                  changed = true;
-                }
-                if (n == mentionBelow) {
-                  mentionBelow = scanMessages(n, isUnreadMention, succ);
-                  changed = true;
-                }
+                if (rescanUA)
+                  unreadAbove = scanMessages(unreadAbove, isUnread, prec);
+                if (rescanUB)
+                  unreadBelow = scanMessages(unreadAbove, isUnread, succ);
+                if (rescanUA)
+                  mentionAbove = scanMessages(unreadAbove, isUnreadMention,
+                                              prec);
+                if (rescanUB)
+                  mentionBelow = scanMessages(unreadAbove, isUnreadMention,
+                                              succ);
+                changed = true;
               }
             }
             if (changed)
