@@ -4386,45 +4386,11 @@ this.Instant = function() {
           },
           /* Mark the message as offscreen */
           set: function(msg) {
-            msg.classList.add('offscreen');
-            if (isUnread(msg)) {
-              var docCmp = Instant.message.documentCmp.bind(Instant.message);
-              var icmp = docCmp(msg, Instant.input.getNode());
-              if (icmp < 0 && (! unreadAbove ||
-                  docCmp(msg, unreadAbove) > 0))
-                unreadAbove = msg;
-              if (icmp > 0 && (! unreadBelow ||
-                  docCmp(msg, unreadBelow) < 0))
-                unreadBelow = msg;
-              if (msg.classList.contains('ping')) {
-                if (icmp < 0 && (! mentionAbove ||
-                    docCmp(msg, mentionAbove) > 0))
-                  mentionAbove = msg;
-                if (icmp > 0 && (! mentionBelow ||
-                    docCmp(msg, mentionBelow) < 0))
-                  mentionBelow = msg;
-              }
-              Instant.animation.offscreen._update();
-            }
+            Instant.animation.offscreen._updateOffscreen([msg], null);
           },
           /* Remove the offscreen mark */
           clear: function(msg) {
-            msg.classList.remove('offscreen');
-            if (msg == unreadAbove || msg == unreadBelow ||
-                msg == mentionAbove || msg == mentionBelow) {
-              var im = Instant.message;
-              var prec = im.getDocumentPrecedessor.bind(im);
-              var succ = im.getDocumentSuccessor.bind(im);
-              if (msg == unreadAbove)
-                unreadAbove = scanMessages(msg, isUnread, prec);
-              if (msg == unreadBelow)
-                unreadBelow = scanMessages(msg, isUnread, succ);
-              if (msg == mentionAbove)
-                mentionAbove = scanMessages(msg, isUnreadMention, prec);
-              if (msg == mentionBelow)
-                mentionBelow = scanMessages(msg, isUnreadMention, succ);
-              Instant.animation.offscreen._update();
-            }
+            Instant.animation.offscreen._updateOffscreen(null, [msg]);
           },
           /* Update the status of an alert */
           showAlert: function(name, visible, ping) {
@@ -4474,6 +4440,68 @@ this.Instant = function() {
                 li = m;
               }
             }
+          },
+          /* Update the offscreen status of some messages */
+          _updateOffscreen: function(add, remove) {
+            var docCmp = Instant.message.documentCmp.bind(Instant.message);
+            var input = Instant.input.getNode();
+            var changed = false;
+            add = add || [];
+            for (var i = 0; i < add.length; i++) {
+              var n = add[i];
+              n.classList.add('offscreen');
+              var icmp = docCmp(n, input);
+              if (icmp < 0) {
+                if (! unreadAbove || docCmp(unreadAbove, n) < 0) {
+                  unreadAbove = n;
+                  changed = true;
+                }
+                if (n.classList.contains('ping') && (! mentionAbove ||
+                    docCmp(mentionAbove, n) < 0)) {
+                  mentionAbove = n;
+                  changed = true;
+                }
+              } else if (icmp > 0) {
+                if (! unreadBelow || docCmp(unreadBelow, n) > 0) {
+                  unreadBelow = n;
+                  changed = true;
+                }
+                if (n.classList.contains('ping') && (! mentionBelow ||
+                    docCmp(mentionBelow, n) > 0)) {
+                  mentionBelow = n;
+                  changed = true;
+                }
+              }
+            }
+            remove = remove || [];
+            for (var i = 0; i < remove.length; i++) {
+              var n = remove[i];
+              n.classList.remove('offscreen');
+              if (n == unreadAbove || n == unreadBelow ||
+                  n == mentionAbove || n == mentionBelow) {
+                var im = Instant.message;
+                var prec = im.getDocumentPrecedessor.bind(im);
+                var succ = im.getDocumentSuccessor.bind(im);
+                if (n == unreadAbove) {
+                  unreadAbove = scanMessages(n, isUnread, prec);
+                  changed = true;
+                }
+                if (n == unreadBelow) {
+                  unreadBelow = scanMessages(n, isUnread, succ);
+                  changed = true;
+                }
+                if (n == mentionAbove) {
+                  mentionAbove = scanMessages(n, isUnreadMention, prec);
+                  changed = true;
+                }
+                if (n == mentionBelow) {
+                  mentionBelow = scanMessages(n, isUnreadMention, succ);
+                  changed = true;
+                }
+              }
+            }
+            if (changed)
+              Instant.animation.offscreen._update();
           },
           /* Update the attached nodes */
           _update: function() {
