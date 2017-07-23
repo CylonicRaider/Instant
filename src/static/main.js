@@ -4356,7 +4356,7 @@ this.Instant = function() {
             Instant.animation.offscreen._updateArrows();
           },
           /* Mark multiple messages as offscreen (or not) */
-          update: function(msgs) {
+          checkMany: function(msgs) {
             if (Instant.title.isBlurred()) {
               Instant.animation.offscreen._updateOffscreen(msgs, null);
             } else {
