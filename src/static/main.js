@@ -4353,7 +4353,7 @@ this.Instant = function() {
               if (e.keyCode != 13) return; // Return
               handleEvent(e, belowNode);
             });
-            Instant.animation.offscreen._update();
+            Instant.animation.offscreen._updateArrows();
           },
           /* Mark multiple messages as offscreen (or not) */
           update: function(msgs) {
@@ -4510,10 +4510,10 @@ this.Instant = function() {
               }
             }
             if (changed)
-              Instant.animation.offscreen._update();
+              Instant.animation.offscreen._updateArrows();
           },
           /* Update the attached nodes */
-          _update: function() {
+          _updateArrows: function() {
             var aboveNode = Instant.animation.offscreen.showAlert(
               'alert-above', unreadAbove, mentionAbove);
             var belowNode = Instant.animation.offscreen.showAlert(
