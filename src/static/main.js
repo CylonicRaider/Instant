@@ -2692,10 +2692,10 @@ this.Instant = function() {
           parent.classList.add('input-host');
           parent = Instant.message.makeReplies(parent);
         }
-        /* Handle animation */
-        Instant.animation.offscreen._inputMoved();
         /* Actually relocate the input */
         parent.appendChild(inputNode);
+        /* Handle animation */
+        Instant.animation.offscreen._inputMoved();
         /* Successful */
         return true;
       },
@@ -4353,7 +4353,6 @@ this.Instant = function() {
               if (e.keyCode != 13) return; // Return
               handleEvent(e, belowNode);
             });
-            Instant.animation.offscreen._updateArrows();
           },
           /* Mark multiple messages as offscreen (or not) */
           checkMany: function(msgs) {
@@ -4512,6 +4511,24 @@ this.Instant = function() {
             if (changed)
               Instant.animation.offscreen._updateArrows();
           },
+          /* Re-point the notification arrows according to the location of
+           * the input bar */
+          _updateInput: function() {
+            var docCmp = Instant.message.documentCmp.bind(Instant.message);
+            var input = Instant.input.getNode();
+            if ((! unreadAbove || docCmp(unreadAbove, input) < 0) &&
+                (! unreadBelow || docCmp(unreadBelow, input) > 0))
+              return;
+            var newNeighbors = Instant.animation.offscreen.bisect(input);
+            unreadAbove = newNeighbors[0];
+            unreadBelow = newNeighbors[1];
+            if (unreadAbove || unreadBelow) {
+              newNeighbors = Instant.animation.offscreen.bisect(input, true);
+              mentionAbove = newNeighbors[0];
+              mentionBelow = newNeighbors[1];
+            }
+            Instant.animation.offscreen._updateArrows();
+          },
           /* Update the attached nodes */
           _updateArrows: function() {
             var aboveNode = Instant.animation.offscreen.showAlert(
@@ -4533,6 +4550,7 @@ this.Instant = function() {
           },
           /* Reply to the input bar having moved */
           _inputMoved: function() {
+            Instant.animation.offscreen._updateInput();
             var aboveNode = $cls('alert-above', containerNode);
             var belowNode = $cls('alert-below', containerNode);
             if (aboveNode) Instant.animation.unflash(aboveNode);
