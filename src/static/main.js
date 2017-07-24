@@ -5826,7 +5826,7 @@ function init() {
   /* Show main element
    * Deferred to avoid partial FOUC-s. */
   $onload(function() {
-    main.style.opacity = '1';
+    main.classList.add('ready');
   }, true, true);
   /* Focus input bar if Escape pressed and not focused */
   document.documentElement.addEventListener('keydown', function(event) {

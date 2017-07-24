@@ -28,6 +28,9 @@ body {
 #main.fixed {
   position: fixed;
 }
+#main.ready {
+  opacity: 1;
+}
 
 #load-wrapper {
   display: inline-block;
@@ -1068,11 +1071,11 @@ img.inline {
 @-webkit-keyframes clrfade { to { color: rgba(0, 0, 0, 0.5); } }
 @keyframes clrfade { to { color: rgba(0, 0, 0, 0.5); } }
 
-body, #main, #main * {
+body, #main * {
   -webkit-transition: background 0.5s, color 0.5s;
   transition: background 0.5s, color 0.5s;
 }
-#main {
+#main.ready {
   -webkit-transition: background 0.5s, color 0.5s, opacity 1s;
   transition: background 0.5s, color 0.5s, opacity 1s;
 }
