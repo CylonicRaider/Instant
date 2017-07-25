@@ -3379,8 +3379,8 @@ this.Instant = function() {
           }
           // Middle index and text.
           var m = (b + e) >> 1;
-          var t = children[m].textContent;
-          var i = children[m].getAttribute('data-id');
+          var t = children[m].firstElementChild.textContent;
+          var i = children[m].firstElementChild.getAttribute('data-id');
           // Test which half to engage.
           if (name < t) {
             e = m;
