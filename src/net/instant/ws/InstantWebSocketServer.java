@@ -103,6 +103,7 @@ public class InstantWebSocketServer extends WebSocketServer
     private final Map<Datum, RequestInfo> infos;
     private final Map<RequestInfo, Hook> assignments;
     private InformationCollector collector;
+    private ConnectionGC connectionGC;
     private PrintStream httpLog;
     private CookieHandler cookies;
 
@@ -113,6 +114,7 @@ public class InstantWebSocketServer extends WebSocketServer
         infos = new HashMap<Datum, RequestInfo>();
         assignments = new HashMap<RequestInfo, Hook>();
         collector = new InformationCollector(this);
+        connectionGC = new ConnectionGC(this);
         for (Draft d : getDraft()) {
             if (d instanceof DraftWrapper) {
                 ((DraftWrapper) d).setCollector(collector);
@@ -178,6 +180,20 @@ public class InstantWebSocketServer extends WebSocketServer
         };
     }
 
+    public InformationCollector getInformationCollector() {
+        return collector;
+    }
+    public void setInformationCollector(InformationCollector c) {
+        collector = c;
+    }
+
+    public ConnectionGC getConnectionGC() {
+        return connectionGC;
+    }
+    public void setConnectionGC(ConnectionGC gc) {
+        connectionGC = gc;
+    }
+
     public CookieHandler getCookieHandler() {
         return cookies;
     }
@@ -223,6 +239,7 @@ public class InstantWebSocketServer extends WebSocketServer
                         String reason, boolean remote) {
         LOGGER.fine("Connection closed (" + conn + ")");
         RequestInfo info = popInfo(conn);
+        connectionGC.removeDeadline(info);
         Hook h = clearAssignment(info);
         if (h != null) {
             h.onClose(info, code, reason, remote);
@@ -355,6 +372,13 @@ public class InstantWebSocketServer extends WebSocketServer
     }
     public static Draft getEffectiveDraft(RequestInfo info) {
         return getEffectiveDraft(info.getBase().getDraft());
+    }
+
+    public void start() {
+        Thread thr = new Thread(connectionGC, "Connection GC");
+        thr.setDaemon(true);
+        thr.start();
+        run();
     }
 
     protected static List<Draft> wrapDrafts(List<Draft> in) {

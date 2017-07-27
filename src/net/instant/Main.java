@@ -213,7 +213,7 @@ public class Main implements Runnable {
         srv.addInternalHook(new Error404Hook());
         if (startupCmd != null) runCommand(startupCmd);
         LOGGER.info("Running");
-        srv.run();
+        srv.start();
     }
 
     private static PrintStream resolveOutputStream(String path) {
