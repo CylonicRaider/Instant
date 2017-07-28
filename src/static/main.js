@@ -1355,7 +1355,7 @@ this.Instant = function() {
           if (msgs == msge) {
             /* HACK: Check if the selection is entirely inside replies */
             var replies = $cls('replies', msgs);
-            if (replies.contains(range.startContainer) &&
+            if (replies && replies.contains(range.startContainer) &&
                 replies.contains(range.endContainer))
               continue;
             /* Check if part of the selection is outside the content */
