@@ -7,15 +7,25 @@ import net.instant.api.RequestResponseData;
 
 public class ConnectionGC implements Runnable {
 
+    public static final long GC_INTERVAL = 30000;
+
+    private final InstantWebSocketServer parent;
     private final Map<RequestResponseData, Long> deadlines;
 
     public ConnectionGC(InstantWebSocketServer parent) {
-        deadlines = Collections.synchronizedMap(
+        this.parent = parent;
+        this.deadlines = Collections.synchronizedMap(
             new HashMap<RequestResponseData, Long>());
     }
 
+    public InstantWebSocketServer getParent() {
+        return parent;
+    }
+
     public Map<RequestResponseData, Long> getDeadlines() {
-        return Collections.unmodifiableMap(deadlines);
+        synchronized (deadlines) {
+            return new HashMap<RequestResponseData, Long>(deadlines);
+        }
     }
 
     public Long getDeadline(RequestResponseData connection) {
@@ -31,7 +41,19 @@ public class ConnectionGC implements Runnable {
     }
 
     public void run() {
-        /* TODO */
+        for (;;) {
+            long now = System.currentTimeMillis();
+            for (Map.Entry<RequestResponseData, Long> e :
+                 getDeadlines().entrySet()) {
+                if (e.getValue() != null && e.getValue() < now)
+                    e.getKey().getConnection().close();
+            }
+            try {
+                Thread.sleep(GC_INTERVAL);
+            } catch (InterruptedException exc) {
+                break;
+            }
+        }
     }
 
 }
