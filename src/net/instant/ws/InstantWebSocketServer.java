@@ -208,6 +208,15 @@ public class InstantWebSocketServer extends WebSocketServer
         httpLog = output;
     }
 
+    public void setDeadline(RequestInfo info, Long deadline) {
+        if (deadline == null) {
+            connectionGC.removeDeadline(info);
+        } else {
+            connectionGC.setDeadline(info, deadline +
+                ConnectionGC.GRACE_TIME);
+        }
+    }
+
     /* Who on the world would give methods such long names? */
     @Override
     public ServerHandshakeBuilder onWebsocketHandshakeReceivedAsServer(

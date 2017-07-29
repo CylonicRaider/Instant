@@ -7,7 +7,8 @@ import net.instant.api.RequestResponseData;
 
 public class ConnectionGC implements Runnable {
 
-    public static final long GC_INTERVAL = 10000;
+    public static final long INTERVAL = 10000;
+    public static final long GRACE_TIME = 1000;
 
     private final InstantWebSocketServer parent;
     private final Map<RequestResponseData, Long> deadlines;
@@ -49,7 +50,7 @@ public class ConnectionGC implements Runnable {
                     e.getKey().getConnection().close();
             }
             try {
-                Thread.sleep(GC_INTERVAL);
+                Thread.sleep(INTERVAL);
             } catch (InterruptedException exc) {
                 break;
             }

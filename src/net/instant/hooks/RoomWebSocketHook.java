@@ -2,7 +2,10 @@ package net.instant.hooks;
 
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.logging.Logger;
@@ -50,10 +53,13 @@ public class RoomWebSocketHook extends WebSocketHook {
     public static final String ROOM_POSTF = "/ws";
     public static final String COOKIE_NAME = "uid";
 
+    private final Map<RequestInfo, InstantWebSocketServer> parents;
     private MessageDistributor distr;
     private Hook hook;
 
     public RoomWebSocketHook(MessageDistributor distr) {
+        this.parents = Collections.synchronizedMap(
+            new HashMap<RequestInfo, InstantWebSocketServer>());
         this.distr = distr;
         whitelist(ROOM_PREF + Main.ROOM_RE + ROOM_POSTF);
     }
@@ -110,6 +116,7 @@ public class RoomWebSocketHook extends WebSocketHook {
         if (! InstantWebSocketServer.INSECURE_COOKIES)
             cookie.put("Secure", null);
         info.putCookie(cookie);
+        parents.put(info, parent);
     }
 
     public void onOpen(RequestInfo info, ClientHandshake handshake) {
@@ -156,15 +163,22 @@ public class RoomWebSocketHook extends WebSocketHook {
         Object d = data.opt("data");
         String from = distr.connectionID(info);
         if ("ping".equals(type)) {
-            conn.send(new Message("pong").seq(seq).data(d).makeString());
+            conn.send(new Message("pong").seq(seq).makeString());
+            InstantWebSocketServer srv = parents.get(info);
+            if (d instanceof JSONObject) {
+                Long next = ((JSONObject) d).optLong("next");
+                srv.setDeadline(info, next);
+            } else {
+                srv.setDeadline(info, null);
+            }
         } else if ("unicast".equals(type)) {
             String to = null;
-            RequestResponseData target;
+            RequestResponseData target = null;
             try {
                 to = data.getString("to");
                 target = distr.connection(to);
             } catch (JSONException e) {
-                target = null;
+                /* Handled below */
             }
             if (target == null) {
                 sendMessage(conn, ProtocolError.NO_PARTICIPANT.makeMessage(
@@ -203,6 +217,7 @@ public class RoomWebSocketHook extends WebSocketHook {
 
     public void onClose(RequestInfo info, int code, String reason,
                         boolean remote) {
+        parents.remove(info);
         Room room = distr.getRoom(info);
         String id = distr.connectionID(info);
         Message left = prepare("left").makeData("id", id);
