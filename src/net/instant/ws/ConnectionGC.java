@@ -8,7 +8,7 @@ import net.instant.api.RequestResponseData;
 public class ConnectionGC implements Runnable {
 
     public static final long INTERVAL = 10000;
-    public static final long GRACE_TIME = 1000;
+    public static final long GRACE_TIME = 5000;
 
     private final InstantWebSocketServer parent;
     private final Map<RequestResponseData, Long> deadlines;
