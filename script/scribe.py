@@ -16,7 +16,7 @@ NICKNAME = 'Scribe'
 VERSION = instabot.VERSION
 MAXLEN = None
 
-PING_DELAY = 2700 # 45 min
+PING_DELAY = 3600 # 1 h
 
 def parse_version(s):
     if s.startswith('v'): s = s[1:]
@@ -509,7 +509,7 @@ class Scribe(instabot.Bot):
         self._execute(self._push_logs)
         if not self.dont_pull:
             self._logs_begin()
-        self._send_ping(False)
+        self._send_ping()
         self.scheduler.set_forever(False)
     def handle_joined(self, content, rawmsg):
         instabot.Bot.handle_joined(self, content, rawmsg)
@@ -685,7 +685,9 @@ class Scribe(instabot.Bot):
         self.send_broadcast({'type': 'log-done'})
         if self.dont_stay: self.close()
     def _send_ping(self, actually=True):
-        if actually: self.send_seq({'type': 'ping'})
+        if actually:
+            self.send_seq({'type': 'ping',
+                           'next': time.time() * 1000 + self.ping_delay})
         with self._ping_lock:
             self._ping_job = self.scheduler.add(self.ping_delay,
                                                 self._send_ping)
