@@ -356,7 +356,8 @@ this.Instant = function() {
     /* Send pings every thirty seconds */
     setInterval(function() {
       if (Instant && Instant.connection && Instant.connection.isConnected())
-        Instant.connection.sendSeq({type: 'ping'});
+        // A grace time is already applied.
+        Instant.connection.sendPing({next: Date.now() + 60000});
     }, 30000);
     return {
       /* A kill switch for certain edge cases */
