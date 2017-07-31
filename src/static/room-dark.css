@@ -20,7 +20,7 @@
 .dark #load-wrapper {
   color: white;
 }
-.dark #load-wrapper, .dark .breadcrumbs {
+.dark #load-wrapper .load-wrapper-inner, .dark .breadcrumbs {
   background: black;
 }
 .dark .breadcrumbs a {

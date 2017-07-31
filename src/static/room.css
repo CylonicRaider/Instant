@@ -33,17 +33,25 @@ body {
 }
 
 #load-wrapper {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  overflow: auto;
+}
+#load-wrapper .load-wrapper-inner {
   display: inline-block;
   position: relative;
+  margin: 30px auto;
+  padding: 30px;
   vertical-align: top;
   background: white;
-  padding: 30px;
-  margin: 30px auto;
   -webkit-transition: background 0.5s, color 0.5s,
                       opacity 1s, box-shadow 0.1s;
   transition: background 0.5s, color 0.5s,
               opacity 1s, box-shadow 0.1s;
-  z-index: 100;
 }
 
 #load-wrapper hr {
@@ -76,8 +84,15 @@ body {
   width: 1.2em;
   height: 1.2em;
 }
-#load-wrapper:hover #load-wrapper-close {
+#load-wrapper .load-wrapper-inner:hover #load-wrapper-close {
   visibility: visible;
+}
+
+#load-wrapper.busy .load-wrapper-inner {
+  box-shadow: 0 0 30px #808080;
+}
+#load-wrapper.busy #loading-message {
+  display: none;
 }
 
 .note {

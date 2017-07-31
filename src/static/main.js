@@ -5810,8 +5810,7 @@ function init() {
   var wrapper = $id('load-wrapper');
   var main = $id('main');
   /* Apply some animations */
-  wrapper.style.boxShadow = '0 0 30px #808080';
-  $id('loading-message').style.display = 'none';
+  wrapper.classList.add('busy');
   /* Display splash messages */
   var m = $id('splash-messages');
   Instant.message.addReply({id: 'loading-0-wait', nick: 'Loading',
@@ -5819,15 +5818,15 @@ function init() {
   var isIE = /*@cc_on!@*/0;
   if (isIE) Instant.message.addReply({id: 'loading-1-ie', nick: 'Doom',
     text: '/me awaits IE users...'}, m);
-  /* Hide greeter */
-  if (! Instant.roomName) {
-    /* Nothing is going to hide it, so we have to. */
-    Instant.animation.greeter.hide();
-  }
-  /* Show main element
-   * Deferred to avoid partial FOUC-s. */
   $onload(function() {
+    /* Show main element
+     * Deferred to avoid partial FOUC-s. */
     main.classList.add('ready');
+    /* Hide greeter */
+    if (! Instant.roomName) {
+      /* Nothing is going to hide it, so we have to. */
+      Instant.animation.greeter.hide();
+    }
   }, true, true);
   /* Focus input bar if Escape pressed and not focused */
   document.documentElement.addEventListener('keydown', function(event) {
