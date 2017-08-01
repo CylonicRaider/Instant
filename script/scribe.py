@@ -17,6 +17,7 @@ VERSION = instabot.VERSION
 MAXLEN = None
 
 PING_DELAY = 3600 # 1 h
+MAX_PINGS = 3
 
 def parse_version(s):
     if s.startswith('v'): s = s[1:]
@@ -473,10 +474,12 @@ class Scribe(instabot.Bot):
         self.dont_stay = kwds.get('dont_stay', False)
         self.dont_pull = kwds.get('dont_pull', False)
         self.ping_delay = kwds.get('ping_delay', PING_DELAY)
+        self.max_pings = kwds.get('max_pings', MAX_PINGS)
         self.push_logs = kwds.get('push_logs', [])
         self._cur_candidate = None
         self._logs_done = False
         self._ping_job = None
+        self._last_pong = None
         self._ping_lock = threading.RLock()
     def connect(self):
         # HACK to avoid logging doubly
@@ -485,6 +488,7 @@ class Scribe(instabot.Bot):
         instabot.Bot.connect(self)
     def on_open(self):
         instabot.Bot.on_open(self)
+        self._last_pong = None
         log('OPENED')
     def on_message(self, rawmsg):
         log('MESSAGE content=%r' % (rawmsg,))
@@ -503,6 +507,9 @@ class Scribe(instabot.Bot):
                 self.scheduler.cancel(self._ping_job)
                 self._ping_job = None
         self.scheduler.set_forever(False)
+    def handle_pong(self, content, rawmsg):
+        instabot.Bot.handle_pong(self, content, rawmsg)
+        self._last_pong = time.time()
     def handle_identity(self, content, rawmsg):
         instabot.Bot.handle_identity(self, content, rawmsg)
         self.send_broadcast({'type': 'who'})
@@ -685,8 +692,13 @@ class Scribe(instabot.Bot):
         self.send_broadcast({'type': 'log-done'})
         if self.dont_stay: self.close()
     def _send_ping(self):
+        now = time.time()
+        if (self._last_pong is not None and now >= self._last_pong +
+                self.max_pings * self.ping_delay):
+            self.close()
+            return
         self.send_seq({'type': 'ping',
-                       'next': time.time() * 1000 + self.ping_delay})
+                       'next': (now + self.ping_delay) * 1000})
         with self._ping_lock:
             self._ping_job = self.scheduler.add(self.ping_delay,
                                                 self._send_ping)
