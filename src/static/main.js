@@ -353,10 +353,25 @@ this.Instant = function() {
     var overridden = false;
     /* Message handlers */
     var rawHandlers = {}, handlers = {};
-    /* Send pings every thirty seconds */
+    /* Send regular pings
+     * lastPong is a [local time, server time] array (or null). */
+    var lastPong = null;
     setInterval(function() {
-      if (Instant && Instant.connection && Instant.connection.isConnected())
-        Instant.connection.sendPing({next: Date.now() + 60000});
+      if (! Instant || ! Instant.connection || ! Instant.connection.isConnected())
+        return;
+      var payload = null;
+      if (lastPong) {
+        var now = Date.now();
+        var delta = lastPong[1] - lastPong[0];
+        if (lastPong[0] <= now - 60000) {
+          console.warn('Last ping response too far in the past; reconnecting.');
+          Instant.connection.reconnect();
+          return;
+        } else {
+          payload = {next: Date.now() + delta + 60000};
+        }
+      }
+      Instant.connection.sendPing(payload);
     }, 30000);
     return {
       /* A kill switch for certain edge cases */
@@ -483,6 +498,8 @@ this.Instant = function() {
             Instant.logs.pull.start();
             break;
           case 'pong': /* Server replied to a ping */
+            lastPong = [Date.now(), msg.timestamp];
+            break;
           case 'reply': /* Reply to a message sent */
             /* Nothing to do */
             break;
@@ -588,9 +605,10 @@ this.Instant = function() {
       },
       /* Handle a dead connection */
       _closed: function(event) {
-        /* Update flag */
+        /* Update flags */
         var wasConnected = connected;
         connected = false;
+        lastPong = null;
         /* Inform logs */
         Instant.logs.pull._disconnected();
         /* Send event */
@@ -623,6 +641,10 @@ this.Instant = function() {
       },
       /* Most basic sending */
       sendRaw: function(data) {
+        /* Debugging hook */
+        if (window.logInstantMessages)
+          console.debug('[Sending]', data);
+        /* Actual sending */
         return ws.send(data);
       },
       /* Send an object whilst adding a sequence ID (in-place); return the
