@@ -684,10 +684,9 @@ class Scribe(instabot.Bot):
         self._logs_done = True
         self.send_broadcast({'type': 'log-done'})
         if self.dont_stay: self.close()
-    def _send_ping(self, actually=True):
-        if actually:
-            self.send_seq({'type': 'ping',
-                           'next': time.time() * 1000 + self.ping_delay})
+    def _send_ping(self):
+        self.send_seq({'type': 'ping',
+                       'next': time.time() * 1000 + self.ping_delay})
         with self._ping_lock:
             self._ping_job = self.scheduler.add(self.ping_delay,
                                                 self._send_ping)
