@@ -356,7 +356,6 @@ this.Instant = function() {
     /* Send pings every thirty seconds */
     setInterval(function() {
       if (Instant && Instant.connection && Instant.connection.isConnected())
-        // A grace time is already applied.
         Instant.connection.sendPing({next: Date.now() + 60000});
     }, 30000);
     return {
@@ -4324,6 +4323,7 @@ this.Instant = function() {
               var msg = Instant.message.forFragment(node.hash);
               if (msg) {
                 Instant.animation.goToMessage(msg);
+                Instant.animation.offscreen.check(msg);
                 event.preventDefault();
               }
               /* Allow scanning unread messages quickly by keeping
