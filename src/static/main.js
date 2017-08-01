@@ -250,36 +250,6 @@ this.Instant = function() {
       }
     }
   }
-  /* Logging handlers */
-  var console = {
-    /* Log a debugging message */
-    log: function() {
-      if (window.console) {
-        window.console['log'].apply(window.console, arguments);
-      }
-    },
-    /* Log an information message */
-    info: function() {
-      if (window.console) {
-        window.console.info.apply(window.console, arguments);
-      }
-    },
-    /* Log a warning */
-    warn: function() {
-      if (window.console) {
-        window.console.warn.apply(window.console, arguments);
-      }
-    },
-    /* Log an error */
-    error: function() {
-      if (window.console) {
-        window.console.error.apply(window.console, arguments);
-      } else {
-        alert('ERROR: ' + arguments.join(' '));
-      }
-    }
-  };
-  console['debug'] = console['log'];
   /* Own identity */
   Instant.identity = function() {
     return {
