@@ -128,12 +128,13 @@ class InstantClient(object):
         self._wslock = threading.RLock()
     def connect(self):
         with self._wslock:
-            if self.ws is not None: return
+            if self.ws is not None: return self.ws
             jar = self.cookies
             self.ws = websocket_server.client.connect(self.url,
                 cookies=jar, timeout=self.timeout)
             if isinstance(jar, websocket_server.cookies.FileCookieJar):
                 jar.save()
+        return self.ws
     def on_open(self):
         pass
     def on_message(self, rawmsg):

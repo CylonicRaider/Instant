@@ -485,7 +485,7 @@ class Scribe(instabot.Bot):
         # HACK to avoid logging doubly
         if not self.ws: log('CONNECT url=%r' % self.url)
         self.scheduler.set_forever(True)
-        instabot.Bot.connect(self)
+        return instabot.Bot.connect(self)
     def on_open(self):
         instabot.Bot.on_open(self)
         self._last_pong = None
