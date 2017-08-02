@@ -767,7 +767,7 @@ def main():
     try:
         while 1:
             try:
-                bot.connect()
+                ws = bot.connect()
             except Exception as exc:
                 log_exception('ERROR', exc)
                 time.sleep(reconnect)
@@ -781,6 +781,8 @@ def main():
                 pass
             sched.clear()
             time.sleep(1)
+            ws.close_now()
+            thr.join(1)
     except (KeyboardInterrupt, SystemExit) as e:
         bot.close()
         if isinstance(e, SystemExit):
