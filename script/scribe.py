@@ -780,9 +780,9 @@ def main():
             except websocket_server.ConnectionClosedError:
                 pass
             sched.clear()
-            time.sleep(1)
             ws.close_now()
             thr.join(1)
+            time.sleep(1)
     except (KeyboardInterrupt, SystemExit) as e:
         bot.close()
         if isinstance(e, SystemExit):
