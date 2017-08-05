@@ -2255,7 +2255,7 @@ this.Instant = function() {
             name: 'monoBlock',
             re: /```\n([\s\S]*?)\n```/,
             bef: /\W|^$/, aft: /\W|^$/,
-            cb: function(m, out, status) {
+            cb: function(m, out) {
               var bnode = makeSigil('```', 'mono-block-before');
               var bnl = makeNode('\n', 'hidden');
               var anode = makeSigil('```', 'mono-block-after');
@@ -2270,7 +2270,7 @@ this.Instant = function() {
           { /* Subheadings */
             name: 'heading',
             re: /^(#\s*)+/m,
-            cb: function(m, out, status) {
+            cb: function(m, out) {
               out.push(makeSigil(m[0], 'heading-marker'));
               out.push({line: 'heading'});
             },
@@ -2291,7 +2291,7 @@ this.Instant = function() {
           { /* Quoted lines */
             name: 'quote',
             re: /^(>\s*)+/m,
-            cb: function(m, out, status) {
+            cb: function(m, out) {
               out.push(makeSigil(m[0], 'quote-marker'));
               out.push({line: 'quote'});
             },
@@ -2312,11 +2312,11 @@ this.Instant = function() {
           { /* Monospace line */
             name: 'term',
             re: /^\$\s*/m,
-            cb: function(m, out, status) {
+            cb: function(m, out) {
               out.push(makeSigil(m[0], 'term-marker'));
               out.push({line: 'term'});
             },
-            add: function(stack, status) {
+            add: function() {
               return makeNode(null, 'term-line monospace');
             }
           }
@@ -2331,7 +2331,7 @@ this.Instant = function() {
             /* Intermediate result; current index; text length; array of
              * matches; length of matchers; status object */
             var out = [], idx = 0, len = text.length, matches = [];
-            var mlen = matchers.length, status = {grabbing: null};
+            var mlen = matchers.length, status = {};
             /* Duplicate regexes; create index */
             var matcherIndex = {};
             var regexes = matchers.map(function(el) {
@@ -2343,16 +2343,8 @@ this.Instant = function() {
             /* Main loop */
             while (idx < len) {
               /* Index (into array) of foremost match so far */
-              var minIdx = null, ib, ie;
-              /* Which indices to iterate over */
-              if (status.grabbing == null) {
-                ib = 0;
-                ie = mlen;
-              } else {
-                ib = status.grabbing;
-                ie = ib + 1;
-              }
-              for (var i = ib; i < ie; i++) {
+              var minIdx = null;
+              for (var i = 0; i < mlen; i++) {
                 /* This one won't match */
                 if (matches[i] == Infinity) continue;
                 /* Recalculate indices where necessary */
@@ -2395,12 +2387,8 @@ this.Instant = function() {
                 break;
               }
               /* Insert text up to match */
-              if (matches[minIdx].index != idx) {
-                var t = text.substring(idx, matches[minIdx].index);
-                if (status.grabbing != null)
-                  t = document.createTextNode(t);
-                out.push(t);
-              }
+              if (matches[minIdx].index != idx)
+                out.push(text.substring(idx, matches[minIdx].index));
               /* Process match */
               status.id = minIdx;
               var adv = matchers[minIdx].cb(matches[minIdx], out,
