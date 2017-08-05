@@ -2251,35 +2251,20 @@ this.Instant = function() {
               status.emphLevel--;
             }
           },
-          { /* Block monospace sigils */
+          { /* Monospace blocks */
             name: 'monoBlock',
-            re: /```/,
+            re: /```\n([\s\S]*?)\n```/,
+            bef: /\W|^$/, aft: /\W|^$/,
             cb: function(m, out, status) {
-              var nlb = (m.index > 0 && m.input[m.index - 1] == '\n');
-              var nla = (m.index + m[0].length < m.input.length &&
-                         m.input[m.index + m[0].length] == '\n');
-              /* Block-level monospace marker */
-              if (nla && status.grabbing == null) {
-                /* Sigil introducing block */
-                var node = makeSigil('```', 'mono-block-before');
-                var nl = makeNode('\n', 'hidden');
-                out.push(node);
-                out.push(nl);
-                out.push({add: 'monoBlock', nodes: [node, nl]});
-                status.grabbing = status.id;
-                return 1;
-              } else if (nlb && status.grabbing != null) {
-                /* Sigil terminating block */
-                var node = makeSigil('```', 'mono-block-after');
-                out.push({rem: 'monoBlock', nodes: [node]});
-                out.push(node);
-                status.grabbing = null;
-              } else {
-                out.push(m[0]);
-              }
-            },
-            add: function() {
-              return makeNode(null, 'monospace monospace-block');
+              var bnode = makeSigil('```', 'mono-block-before');
+              var bnl = makeNode('\n', 'hidden');
+              var anode = makeSigil('```', 'mono-block-after');
+              out.push(bnode);
+              out.push(bnl);
+              out.push({add: 'monoBlock', nodes: [bnode, bnl]});
+              out.push(makeNode(m[1] + '\n', 'monospace monospace-block'));
+              out.push({rem: 'monoBlock', nodes: [anode]});
+              out.push(anode);
             }
           },
           { /* Subheadings */
