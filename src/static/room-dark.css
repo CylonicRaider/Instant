@@ -107,7 +107,8 @@
   border-color: #e0e0e0;
 }
 
-.dark .nick, .dark .message.emote > .line .content {
+.dark .nick, .dark .message.emote > .line .content,
+.dark .input-bar .input-nick-sizer {
   -webkit-filter: brightness(0.875);
   filter: brightness(0.875);
 }
