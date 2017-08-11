@@ -22,9 +22,6 @@ function $sel(sel, elem) {
 function $selAll(sel, elem) {
   return (elem || document).querySelectorAll(sel);
 }
-function $esc(text) {
-  return text.replace(/&/g, '&amp;').replace(/</g, '&lt;');
-}
 function $parentWithClass(el, cls) {
   while (el && ! (el.classList && el.classList.contains(cls)))
     el = el.parentNode;
