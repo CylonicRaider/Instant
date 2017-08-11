@@ -4261,8 +4261,8 @@ this.Instant = function() {
         /* Unread messages with @-mentions of self */
         var mentionAbove = null, mentionBelow = null;
         /* Scan the message tree in document order for a message for which
-         * filter returns a true value; falsy messages are returned
-         * unconditionally. */
+         * filter returns a true value; falsy messages (such as null) are
+         * returned unconditionally. */
         function scanMessages(start, filter, step) {
           for (;;) {
             if (! start || filter(start)) return start;
