@@ -1545,7 +1545,7 @@ this.Instant = function() {
         if (params.from && params.from == Instant.identity.id)
           clsname += ' mine';
         if (Instant.identity.nick != null &&
-          Instant.message.scanMentions(content, Instant.identity.nick))
+            Instant.message.scanMentions(content, Instant.identity.nick))
           clsname += ' ping';
         if (params.isNew)
           clsname += ' new';
