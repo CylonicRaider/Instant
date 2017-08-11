@@ -1106,7 +1106,7 @@ this.Instant = function() {
                     if (typeof msg.text != 'string')
                       msg.text = JSON.stringify(msg.text);
                     /* Import message */
-                    Instant.message.importMessage(msg, pane);
+                    Instant.message.importMessage(msg, pane, true);
                   });
                   /* Scroll back */
                   restore();
@@ -1889,7 +1889,7 @@ this.Instant = function() {
         return child;
       },
       /* Integrate a message into a hierarchy */
-      importMessage: function(message, root) {
+      importMessage: function(message, root, preserve) {
         /* Parse content */
         if (typeof message == 'object' && message.nodeType === undefined)
           message = Instant.message.makeMessage(message);
@@ -1912,6 +1912,12 @@ this.Instant = function() {
           $moveCh(Instant.message._getReplyNode(prev),
                   Instant.message.makeReplies(message));
           prev.parentNode.removeChild(prev);
+          if (preserve) {
+            if (prev.classList.contains('new'))
+              message.classList.add('new');
+            if (prev.classList.contains('offscreen'))
+              message.classList.add('offscreen');
+          }
           Instant.input.update();
         }
         if (fake) delete fakeMessages[msgid];
