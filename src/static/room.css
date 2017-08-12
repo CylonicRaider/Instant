@@ -740,7 +740,7 @@ body {
 .message-box {
   position: relative;
   padding-left: 3.5em;
-  overflow: auto;
+  overflow: hidden;
 }
 .message-box.notimes {
   padding-left: 0;
