@@ -1106,7 +1106,7 @@ this.Instant = function() {
                     if (typeof msg.text != 'string')
                       msg.text = JSON.stringify(msg.text);
                     /* Import message */
-                    Instant.message.importMessage(msg, pane, true);
+                    Instant.message.importMessage(msg, pane);
                   });
                   /* Scroll back */
                   restore();
@@ -1888,8 +1888,11 @@ this.Instant = function() {
         /* Return the (possibly processed) child */
         return child;
       },
-      /* Integrate a message into a hierarchy */
-      importMessage: function(message, root, preserve) {
+      /* Integrate a message into a hierarchy
+       * If noPreserve is false and another message node with the same ID is
+       * present, certain attributes (i.e. CSS classes) of the "old" node are
+       * carried over to the new one. */
+      importMessage: function(message, root, noPreserve) {
         /* Parse content */
         if (typeof message == 'object' && message.nodeType === undefined)
           message = Instant.message.makeMessage(message);
@@ -1912,7 +1915,7 @@ this.Instant = function() {
           $moveCh(Instant.message._getReplyNode(prev),
                   Instant.message.makeReplies(message));
           prev.parentNode.removeChild(prev);
-          if (preserve) {
+          if (! noPreserve) {
             if (prev.classList.contains('new'))
               message.classList.add('new');
             if (prev.classList.contains('offscreen'))
