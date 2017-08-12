@@ -4458,6 +4458,7 @@ this.Instant = function() {
               var rescanMA = false, rescanMB = false;
               for (var i = 0; i < remove.length; i++) {
                 var n = remove[i];
+                if (! n.classList.contains('offscreen')) continue;
                 n.classList.remove('offscreen');
                 if (n == unreadAbove) rescanUA = true;
                 if (n == unreadBelow) rescanUB = true;
