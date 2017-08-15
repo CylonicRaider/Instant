@@ -651,6 +651,9 @@ class Scribe(instabot.Bot):
         self.send_logs(uid, reply)
     def _process_log(self, data, uid):
         rawlogs, uuids = data.get('data', []), data.get('uuids', {})
+        for k, v in data.get('users', {}).items():
+            u = v.get('uuid')
+            if u: uuids[k] = u
         res = self.process_logs(rawlogs, uuids)
         if not self.dont_pull:
             if res[0] or res[1]:
