@@ -1095,6 +1095,15 @@ this.Instant = function() {
                   var added = Instant.logs.merge(data.data, true);
                   /* Merge UUID-s */
                   Instant.logs.mergeUUID(data.uuids);
+                  /* Future compatibility */
+                  if (data.users) {
+                    var uuids = {};
+                    for (var key in data.users) {
+                      if (! data.users.hasOwnProperty(key)) continue;
+                      uuids[key] = data.users[key].uuid;
+                    }
+                    Instant.logs.mergeUUID(uuids);
+                  }
                   /* Prepare for scrolling */
                   var restore = Instant.input.saveScrollState(true);
                   /* Import messages */
