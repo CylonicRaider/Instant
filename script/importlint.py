@@ -4,6 +4,7 @@
 import sys, os, re
 
 RAW_IDENT = r'[a-zA-Z_$][a-zA-Z0-9_$]*'
+DOT_IDENT = RAW_IDENT + r'(\s*\.\s*' + RAW_IDENT + ')*'
 KEYWORDS = ('abstract|assert|boolean|break|byte|case|catch|char|class|const|'
     'continue|default|do|double|else|enum|extends|final|finally|float|for|'
     'goto|if|implements|import|instanceof|int|interface|long|native|new|'
@@ -14,10 +15,10 @@ REGEXES = {
     # Identifier. Not matching the "e" in float literals.
     # FIXME: Unicode support.
     'identifier': re.compile(r'(?!%s)(?<![a-zA-Z0-9_$])%s' %
-                             (KEYWORDS, RAW_IDENT)),
+                             (KEYWORDS, DOT_IDENT)),
     # Interesting statement.
     'import': re.compile(r'(?<![a-zA-Z0-9_$])import\s+(static\s+)?'
-        r'(?P<name>%(i)s\s*(\.\s*%(i)s\s*)*);' % {'i': RAW_IDENT}),
+                         r'(?P<name>%s);' % DOT_IDENT),
     # Character or string. (The code is supposed to be syntactically valid.)
     'charstring': re.compile(r'''(?s)'([^']|\.)+'|"([^"]|\.)*"'''),
     # Comments.
