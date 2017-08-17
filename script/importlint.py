@@ -62,6 +62,7 @@ def tokenize(data):
     non-interesting bits along with indexes of the formers
     """
     def normalize_tok_name(tok):
+        "Normalize an identifier to include no whitespace"
         return re.sub(r'\s+', '', tok.group('name'))
     lineno, ret, imports, idents = 1, [], [], []
     for ent in match_tokens(data, REGEXES):
@@ -83,10 +84,39 @@ def tokenize(data):
         lineno += ent.count('\n')
     return {None: ret, 'import': imports, 'ident': idents}
 
+def importlint(filename, warn=True, sort=False):
+    """
+    Check a Java source file for superfluous imports and optionally
+    sort them
+    """
+    def trailing(name):
+        "Extract the trailing portion of an identifier"
+        return name.rpartition('.')[2]
+    with open(filename, 'r') as f:
+        # Gather data.
+        info = tokenize(f.read())
+        parts, imports, idents = info[None], info['import'], info['ident']
+        # Enumerate used and imported names.
+        used = set(trailing(n[1]) for n in idents if '.' not in n[1])
+        imported = set(trailing(n[1]) for n in imports)
+        excess = imported.difference(used)
+        ret = bool(excess)
+        if ret and warn:
+            for ent in parts:
+                if not isinstance(ent, tuple) or ent[0] != 'import':
+                    continue
+                impdatum = imports[ent[1]]
+                if trailing(impdatum[1]) not in excess:
+                    continue
+                sys.stderr.write('%s:%s: warning: superfluous import of '
+                    '%s\n' % (filename, ent[2], impdatum[1]))
+    return ret
+
 def main():
     """
     Main function
     """
-    pass
+    for filename in sys.argv[1:]:
+        importlint(filename)
 
 if __name__ == '__main__': main()
