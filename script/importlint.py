@@ -20,7 +20,7 @@ REGEXES = {
                              (KEYWORDS, DOT_IDENT)),
     # Interesting statement.
     'import': re.compile(r'(?<![a-zA-Z0-9_$])import\s+(static\s+)?'
-                         r'(?P<name>%s(\s*\.\s*\*)?);' % DOT_IDENT),
+                         r'(?P<name>%s);' % DOT_IDENT),
     # Character or string. (The code is supposed to be syntactically valid.)
     'charstring': re.compile(r'''(?s)'([^']|\\.)+'|"([^"]|\\.)*"'''),
     # Comments.
