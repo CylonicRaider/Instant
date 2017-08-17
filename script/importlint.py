@@ -27,7 +27,7 @@ REGEXES = {
     'import': re.compile(r'(?m)(^\s*)?(?<![a-zA-Z0-9_$])import\s+(static\s+)?'
                          r'(?P<name>%s)\s*;[^\n\S]*\n?' % DOT_IDENT),
     # Character or string. (The code is supposed to be syntactically valid.)
-    'charstring': re.compile(r'''(?s)'([^']|\\.)+'|"([^"]|\\.)*"'''),
+    'charstring': re.compile(r'''(?s)'([^\\']|\\.)+'|"([^\\"]|\\.)*"'''),
     # Comments.
     'linecomment': re.compile(r'(?m)//.*?$'),
     'blockcomment': re.compile(r'(?s)/\*.*?\*/'),
