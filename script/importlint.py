@@ -137,7 +137,26 @@ def main():
     """
     Main function
     """
-    for filename in sys.argv[1:]:
-        importlint(filename)
+    in_args, warn, sort = False, True, False
+    filenames = []
+    for arg in sys.argv[1:]:
+        if not in_args and arg.startswith('-'):
+            if arg == '--':
+                in_args = True
+            elif arg == '--warn':
+                warn = True
+            elif arg == '--no-warn':
+                warn = False
+            elif arg == '--sort':
+                sort = True
+            elif arg == '--no-sort':
+                sort = False
+            else:
+                sys.stderr.write('Unknown option %r!\n' % arg)
+                sys.exit(1)
+            continue
+        filenames.append(arg)
+    for f in filenames:
+        importlint(f, warn=warn, sort=sort)
 
 if __name__ == '__main__': main()
