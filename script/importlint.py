@@ -22,9 +22,10 @@ REGEXES = {
     # Package declaration.
     'package': re.compile(r'(?<![a-zA-Z0-9_$])package\s+(?P<name>%s)\s*;' %
                           DOT_IDENT),
-    # Interesting statement.
-    'import': re.compile(r'(?<![a-zA-Z0-9_$])import\s+(static\s+)?'
-                         r'(?P<name>%s)\s*;' % DOT_IDENT),
+    # Import. Attempts to capture surrounding whitespace (such as the line
+    # terminator), but not too much, for easier pruning.
+    'import': re.compile(r'(?m)(^\s*)?(?<![a-zA-Z0-9_$])import\s+(static\s+)?'
+                         r'(?P<name>%s)\s*;[^\n\S]*\n?' % DOT_IDENT),
     # Character or string. (The code is supposed to be syntactically valid.)
     'charstring': re.compile(r'''(?s)'([^']|\\.)+'|"([^"]|\\.)*"'''),
     # Comments.
@@ -119,11 +120,11 @@ def tokenize(data):
     return {None: ret, 'import': imports, 'ident': idents,
             'package': package}
 
-def importlint(filename, warn=True, sort=False):
+def importlint(filename, warn=True, sort=False, prune=False):
     """
     Check a Java source file for superfluous imports and optionally sort them
     """
-    mode, writeback = ('r+' if sort else 'r'), False
+    mode, writeback = ('r+' if sort or prune else 'r'), False
     with open(filename, mode) as f:
         # Gather data.
         info = tokenize(f.read())
@@ -138,18 +139,31 @@ def importlint(filename, warn=True, sort=False):
             if sep and pref in (package, 'java.lang'):
                 redundant.add(n[1])
         excess = imported.difference(used)
+        remove = excess.union(trailing_name(n) for n in redundant)
         # Sort them.
         if sort:
             oi = list(imports)
             imports.sort(key=lambda x: name_cmp_key(x[1]))
             if imports != oi:
+                sys.stderr.write('%s: note: rearranged imports\n' % filename)
+                writeback = True
+        # Reomove excess ones.
+        if prune:
+            for n, ent in enumerate(imports):
+                if trailing_name(ent[1]) in remove:
+                    imports[n] = None
+            if None in imports:
+                sys.stderr.write('%s: note: removed superfluous imports\n' %
+                                 filename)
                 writeback = True
         # Overwrite file.
         if writeback:
             f.seek(0)
             for ent in parts:
                 if isinstance(ent, tuple):
-                    f.write(info[ent[0]][ent[1]][0].group())
+                    ref = info[ent[0]][ent[1]]
+                    if ref is None: continue
+                    f.write(ref[0].group())
                 else:
                     f.write(ent)
             f.truncate()
@@ -160,6 +174,7 @@ def importlint(filename, warn=True, sort=False):
                 if not isinstance(ent, tuple) or ent[0] != 'import':
                     continue
                 impdatum = imports[ent[1]]
+                if impdatum is None: continue
                 bn = trailing_name(impdatum[1])
                 if bn in excess:
                     sys.stderr.write('%s:%s: warning: superfluous import '
@@ -173,7 +188,7 @@ def main():
     """
     Main function
     """
-    in_args, warn, sort = False, True, False
+    in_args, warn, sort, prune = False, True, False, False
     filenames = []
     for arg in sys.argv[1:]:
         if not in_args and arg.startswith('-'):
@@ -187,12 +202,16 @@ def main():
                 sort = True
             elif arg == '--no-sort':
                 sort = False
+            elif arg == '--prune':
+                prune = True
+            elif arg == '--no-prune':
+                prune = False
             else:
                 sys.stderr.write('Unknown option %r!\n' % arg)
                 sys.exit(1)
             continue
         filenames.append(arg)
     for f in filenames:
-        importlint(f, warn=warn, sort=sort)
+        importlint(f, warn=warn, sort=sort, prune=prune)
 
 if __name__ == '__main__': main()
