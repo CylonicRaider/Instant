@@ -28,6 +28,16 @@ REGEXES = {
     'blockcomment': re.compile(r'(?s)/\*.*?\*/'),
     }
 
+def normalize_name(name):
+    "Normalize an identifier to include no whitespace"
+    return re.sub(r'\s+', '', name)
+def leading_name(name):
+    "Extract the leading portion of an identifier"
+    return name.partition('.')[0]
+def trailing_name(name):
+    "Extract the trailing portion of an identifier"
+    return name.rpartition('.')[2]
+
 def match_tokens(data, regexes):
     """
     Regex race algorithm, as seen in the Instant frontend
@@ -61,9 +71,6 @@ def tokenize(data):
     Partition a Java source file into a list of interesting and
     non-interesting bits along with indexes of the formers
     """
-    def normalize_tok_name(tok):
-        "Normalize an identifier to include no whitespace"
-        return re.sub(r'\s+', '', tok.group('name'))
     lineno, ret, imports, idents = 1, [], [], []
     for ent in match_tokens(data, REGEXES):
         if isinstance(ent, str):
@@ -75,10 +82,10 @@ def tokenize(data):
         if name == 'identifier':
             # Indirect addressing to ease sorting imports below.
             ret.append(('ident', len(idents), lineno))
-            idents.append((tok.group(), normalize_tok_name(tok)))
+            idents.append((tok.group(), normalize_name(tok.group('name'))))
         elif name == 'import':
             ret.append(('import', len(imports), lineno))
-            imports.append((tok.group(), normalize_tok_name(tok)))
+            imports.append((tok.group(), normalize_name(tok.group('name'))))
         else:
             ret.append(tok.group())
         lineno += ent.count('\n')
@@ -89,24 +96,21 @@ def importlint(filename, warn=True, sort=False):
     Check a Java source file for superfluous imports and optionally
     sort them
     """
-    def trailing(name):
-        "Extract the trailing portion of an identifier"
-        return name.rpartition('.')[2]
     with open(filename, 'r') as f:
         # Gather data.
         info = tokenize(f.read())
         parts, imports, idents = info[None], info['import'], info['ident']
         # Enumerate used and imported names.
-        used = set(trailing(n[1]) for n in idents if '.' not in n[1])
-        imported = set(trailing(n[1]) for n in imports)
+        used = set(leading_name(n[1]) for n in idents)
+        imported = set(trailing_name(n[1]) for n in imports)
         excess = imported.difference(used)
-        ret = bool(excess)
-        if ret and warn:
+        ret = (not excess)
+        if not ret and warn:
             for ent in parts:
                 if not isinstance(ent, tuple) or ent[0] != 'import':
                     continue
                 impdatum = imports[ent[1]]
-                if trailing(impdatum[1]) not in excess:
+                if trailing_name(impdatum[1]) not in excess:
                     continue
                 sys.stderr.write('%s:%s: warning: superfluous import of '
                     '%s\n' % (filename, ent[2], impdatum[1]))
