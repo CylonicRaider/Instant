@@ -18,9 +18,12 @@ REGEXES = {
     # FIXME: Unicode support.
     'identifier': re.compile(r'(?<![a-zA-Z0-9_$])(?!%s)(?P<name>%s)' %
                              (KEYWORDS, DOT_IDENT)),
+    # Package declaration.
+    'package': re.compile(r'(?<![a-zA-Z0-9_$])package\s+(?P<name>%s)\s*;' %
+                          DOT_IDENT),
     # Interesting statement.
     'import': re.compile(r'(?<![a-zA-Z0-9_$])import\s+(static\s+)?'
-                         r'(?P<name>%s);' % DOT_IDENT),
+                         r'(?P<name>%s)\s*;' % DOT_IDENT),
     # Character or string. (The code is supposed to be syntactically valid.)
     'charstring': re.compile(r'''(?s)'([^']|\\.)+'|"([^"]|\\.)*"'''),
     # Comments.
@@ -71,7 +74,7 @@ def tokenize(data):
     Partition a Java source file into a list of interesting and
     non-interesting bits along with indexes of the formers
     """
-    lineno, ret, imports, idents = 1, [], [], []
+    lineno, ret, imports, idents, package = 1, [], [], [], None
     for ent in match_tokens(data, REGEXES):
         if isinstance(ent, str):
             ret.append(ent)
@@ -86,10 +89,14 @@ def tokenize(data):
         elif name == 'import':
             ret.append(('import', len(imports), lineno))
             imports.append((tok.group(), normalize_name(tok.group('name'))))
+        elif name == 'package':
+            ret.append(tok.group())
+            package = normalize_name(tok.group('name'))
         else:
             ret.append(tok.group())
         lineno += ent.count('\n')
-    return {None: ret, 'import': imports, 'ident': idents}
+    return {None: ret, 'import': imports, 'ident': idents,
+            'package': package}
 
 def importlint(filename, warn=True, sort=False):
     """
@@ -100,20 +107,30 @@ def importlint(filename, warn=True, sort=False):
         # Gather data.
         info = tokenize(f.read())
         parts, imports, idents = info[None], info['import'], info['ident']
+        package = info['package']
         # Enumerate used and imported names.
         used = set(leading_name(n[1]) for n in idents)
-        imported = set(trailing_name(n[1]) for n in imports)
+        imported, redundant = set(), set()
+        for n in imports:
+            pref, sep, bn = n[1].rpartition('.')
+            imported.add(bn)
+            if sep and pref in (package, 'java.lang'):
+                redundant.add(n[1])
         excess = imported.difference(used)
-        ret = (not excess)
+        # Report them
+        ret = (not excess and not redundant)
         if not ret and warn:
             for ent in parts:
                 if not isinstance(ent, tuple) or ent[0] != 'import':
                     continue
                 impdatum = imports[ent[1]]
-                if trailing_name(impdatum[1]) not in excess:
-                    continue
-                sys.stderr.write('%s:%s: warning: superfluous import of '
-                    '%s\n' % (filename, ent[2], impdatum[1]))
+                bn = trailing_name(impdatum[1])
+                if bn in excess:
+                    sys.stderr.write('%s:%s: warning: superfluous import '
+                        'of %s\n' % (filename, ent[2], impdatum[1]))
+                elif impdatum[1] in redundant:
+                    sys.stderr.write('%s:%s: warning: redundant import '
+                        'of %s\n' % (filename, ent[2], impdatum[1]))
     return ret
 
 def main():
