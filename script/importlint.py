@@ -24,8 +24,9 @@ REGEXES = {
                           DOT_IDENT),
     # Import. Attempts to capture surrounding whitespace (such as the line
     # terminator), but not too much, for easier pruning.
-    'import': re.compile(r'(?m)(^\s*)?(?<![a-zA-Z0-9_$])import\s+(static\s+)?'
-                         r'(?P<name>%s)\s*;[^\n\S]*\n?' % DOT_IDENT),
+    'import': re.compile(r'(?m)(^[^\n\S]*)?(?<![a-zA-Z0-9_$])import\s+'
+                         r'(static\s+)?(?P<name>%s)\s*;[^\n\S]*\n?' %
+                         DOT_IDENT),
     # Character or string. (The code is supposed to be syntactically valid.)
     'charstring': re.compile(r'''(?s)'([^\\']|\\.)+'|"([^\\"]|\\.)*"'''),
     # Comments.
