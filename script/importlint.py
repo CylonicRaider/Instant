@@ -2,6 +2,7 @@
 # -*- coding: ascii -*-
 
 import sys, os, re
+import functools
 
 RAW_IDENT = r'[a-zA-Z_$][a-zA-Z0-9_$]*'
 DOT_IDENT = RAW_IDENT + r'(\s*\.\s*' + RAW_IDENT + ')*'
@@ -32,7 +33,7 @@ REGEXES = {
     }
 
 def normalize_name(name):
-    "Normalize an identifier to include no whitespace"
+    "Normalize an identifier to have no whitespace"
     return re.sub(r'\s+', '', name)
 def leading_name(name):
     "Extract the leading portion of an identifier"
@@ -40,6 +41,26 @@ def leading_name(name):
 def trailing_name(name):
     "Extract the trailing portion of an identifier"
     return name.rpartition('.')[2]
+
+# Yes, implementing a *class* with *six redundant methods* is a bit
+# annoying...
+@functools.cmp_to_key
+def name_cmp_key(a, b):
+    "Compare two fully qualified class names lexicographically"
+    # ...OTOH, some of those data could be cached.
+    sa, sb = a.split('.'), b.split('.')
+    for i in range(max(len(a), len(b))):
+        try:
+            va = sa[i]
+        except IndexError:
+            return -1
+        try:
+            vb = sb[i]
+        except IndexError:
+            return 1
+        if va != vb:
+            return -1 if va < vb else 1
+    return 0
 
 def match_tokens(data, regexes):
     """
@@ -85,10 +106,10 @@ def tokenize(data):
         if name == 'identifier':
             # Indirect addressing to ease sorting imports below.
             ret.append(('ident', len(idents), lineno))
-            idents.append((tok.group(), normalize_name(tok.group('name'))))
+            idents.append((tok, normalize_name(tok.group('name'))))
         elif name == 'import':
             ret.append(('import', len(imports), lineno))
-            imports.append((tok.group(), normalize_name(tok.group('name'))))
+            imports.append((tok, normalize_name(tok.group('name'))))
         elif name == 'package':
             ret.append(tok.group())
             package = normalize_name(tok.group('name'))
@@ -100,10 +121,10 @@ def tokenize(data):
 
 def importlint(filename, warn=True, sort=False):
     """
-    Check a Java source file for superfluous imports and optionally
-    sort them
+    Check a Java source file for superfluous imports and optionally sort them
     """
-    with open(filename, 'r') as f:
+    mode, writeback = ('r+' if sort else 'r'), False
+    with open(filename, mode) as f:
         # Gather data.
         info = tokenize(f.read())
         parts, imports, idents = info[None], info['import'], info['ident']
@@ -117,7 +138,22 @@ def importlint(filename, warn=True, sort=False):
             if sep and pref in (package, 'java.lang'):
                 redundant.add(n[1])
         excess = imported.difference(used)
-        # Report them
+        # Sort them.
+        if sort:
+            oi = list(imports)
+            imports.sort(key=lambda x: name_cmp_key(x[1]))
+            if imports != oi:
+                writeback = True
+        # Overwrite file.
+        if writeback:
+            f.seek(0)
+            for ent in parts:
+                if isinstance(ent, tuple):
+                    f.write(info[ent[0]][ent[1]][0].group())
+                else:
+                    f.write(ent)
+            f.truncate()
+        # Report them.
         ret = (not excess and not redundant)
         if not ret and warn:
             for ent in parts:
