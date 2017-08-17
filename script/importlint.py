@@ -212,7 +212,10 @@ def main():
                 sys.exit(1)
             continue
         filenames.append(arg)
+    res = True
     for f in filenames:
-        importlint(f, warn=warn, sort=sort, prune=prune)
+        if not importlint(f, warn=warn, sort=sort, prune=prune):
+            res = False
+    sys.exit(0 if res else 2)
 
 if __name__ == '__main__': main()
