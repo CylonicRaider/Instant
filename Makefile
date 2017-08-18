@@ -61,7 +61,8 @@ src/static/logo-static_128x128.ico: src/static/logo-static.svg
 # messages.
 _lint-changed:
 	@script/importlint.py --sort --prune --empty-lines --report-null \
-	$$(git diff --name-only | grep '\.java$$') | xargs -r0 git add
+	$$(git diff --cached --name-only | grep '\.java$$') | \
+	xargs -r0 git add
 
 _compile-after-lint: _lint-changed Instant.jar
 
