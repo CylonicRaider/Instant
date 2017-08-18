@@ -11,7 +11,7 @@ AUTOASSETS = src/static/logo-static.svg src/static/logo-static_32x32.png \
 
 _JAVA_SOURCES = $(patsubst src/%,%,$(SOURCES))
 
-.PHONY: clean run
+.PHONY: clean lint run
 
 Instant.jar: .build.jar $(LIBRARIES) $(ASSETS) $(AUTOASSETS)
 	cp .build.jar Instant.jar
@@ -38,6 +38,9 @@ cookie-key.bin:
 
 clean:
 	rm -f .build.jar Instant.jar Instant-run.jar
+
+lint:
+	script/importlint.py $(SOURCES)
 
 run: Instant-run.jar cookie-key.bin
 	cd src && INSTANT_COOKIES_INSECURE=yes \
