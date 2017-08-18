@@ -167,7 +167,7 @@ def importlint(filename, warn=True, sort=False, prune=False,
                 f.write(tw)
             f.truncate()
         # Report them.
-        ret = (not excess and not redundant or writeback)
+        ret = (not excess and not redundant)
         if not ret and warn:
             for ent in parts:
                 if not isinstance(ent, tuple) or ent[0] != 'import':
@@ -188,11 +188,31 @@ def main():
     Main function
     """
     warn, sort, prune, empty_lines = True, False, False, False
+    report = False
     in_args, filenames = False, []
     for arg in sys.argv[1:]:
         if not in_args and arg.startswith('-'):
             if arg == '--':
                 in_args = True
+            elif arg == '--help':
+                sys.stderr.write('USAGE: %s %s [--report|--report-null|'
+                    '--no-report] <file(s)>\n' % (sys.argv[0], ' '.join(
+                        '[--[no-]%s]' % x for x in ('warn', 'sort', 'prune',
+                                                    'empty-lines'))))
+                sys.stderr.write('Default is --warn only.\n'
+                    '--warn       : Report unnecessary imports.\n'
+                    '--sort       : Lexicographically sort the imports '
+                        '(modifies file).\n'
+                    '--prune      : Remove unnecessary imports (modifies '
+                        'file; negates --warn).\n'
+                    '--empty-lines: Strip double blank lines arising from '
+                        'import removal to single ones (only effective if '
+                        '--prune is).\n'
+                    '--report     : Print names of modified/warned-about '
+                        'files (newline-terminated).\n'
+                    '--report-null: Print names of modified/warned-about '
+                        'files (NUL-terminated).\n')
+                sys.exit(0)
             elif arg == '--warn':
                 warn = True
             elif arg == '--no-warn':
@@ -209,15 +229,29 @@ def main():
                 empty_lines = True
             elif arg == '--no-empty-lines':
                 empty_lines = False
+            elif arg == '--report':
+                report = True
+            elif arg == '--report-null':
+                report = Ellipsis
+            elif arg == '--no-report':
+                report = False
             else:
                 sys.stderr.write('Unknown option %r!\n' % arg)
                 sys.exit(1)
             continue
         filenames.append(arg)
-    res = True
+    checked, res = set(), True
     for f in filenames:
+        if f in checked: continue
+        checked.add(f)
         if not importlint(f, warn=warn, sort=sort, prune=prune,
                           empty_lines=empty_lines):
+            if report is Ellipsis:
+                sys.stdout.write(f + '\0')
+                sys.stdout.flush()
+            elif report:
+                sys.stdout.write(f + '\n')
+                sys.stdout.flush()
             res = False
     sys.exit(0 if res else 2)
 
