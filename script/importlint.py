@@ -144,19 +144,26 @@ def importlint(filename, warn=True, sort=False, prune=False,
         # Overwrite file.
         if writeback:
             f.seek(0)
-            nlstate = 0
+            nlstate, do_nlprune = 0, False
             for ent in parts:
                 if isinstance(ent, tuple):
                     ref = info[ent[0]][ent[1]]
                     if ref is None:
-                        if nlstate == 1: nlstate = 2
+                        do_nlprune = True
                         continue
                     tw = ref[0].group()
                 else:
                     tw = ent
                 if empty_lines:
-                    if nlstate == 2 and tw.startswith('\n'): tw = tw[1:]
-                    nlstate = 1 if tw.endswith('\n\n') else 0
+                    if nlstate > 1 and tw.startswith('\n') and do_nlprune:
+                        tw = tw[1:]
+                    do_nlprune = False
+                    if len(tw) != tw.count('\n'):
+                        nlstate = 0
+                    if tw.endswith('\n\n'):
+                        nlstate += 2
+                    elif tw.endswith('\n'):
+                        nlstate += 1
                 f.write(tw)
             f.truncate()
         # Report them.
