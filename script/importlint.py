@@ -25,8 +25,8 @@ REGEXES = {
     # Import. Attempts to capture surrounding whitespace (such as the line
     # terminator), but not too much, for easier pruning.
     'import': re.compile(r'(?m)(^[^\n\S]*)?(?<![a-zA-Z0-9_$])import\s+'
-                         r'(static\s+)?(?P<name>%s)\s*;[^\n\S]*\n?' %
-                         DOT_IDENT),
+                         r'((?P<static>static)\s+)?(?P<name>%s)\s*;'
+                         r'[^\n\S]*\n?' % DOT_IDENT),
     # Character or string. (The code is supposed to be syntactically valid.)
     'charstring': re.compile(r'''(?s)'([^\\']|\\.)+'|"([^\\"]|\\.)*"'''),
     # Comments.
@@ -43,26 +43,6 @@ def leading_name(name):
 def trailing_name(name):
     "Extract the trailing portion of an identifier"
     return name.rpartition('.')[2]
-
-# Yes, implementing a *class* with *six redundant methods* is a bit
-# annoying...
-@functools.cmp_to_key
-def name_cmp_key(a, b):
-    "Compare two fully qualified class names lexicographically"
-    # ...OTOH, some of those data could be cached.
-    sa, sb = a.split('.'), b.split('.')
-    for i in range(max(len(a), len(b))):
-        try:
-            va = sa[i]
-        except IndexError:
-            return -1
-        try:
-            vb = sb[i]
-        except IndexError:
-            return 1
-        if va != vb:
-            return -1 if va < vb else 1
-    return 0
 
 def match_tokens(data, regexes):
     """
@@ -125,6 +105,9 @@ def importlint(filename, warn=True, sort=False, prune=False):
     """
     Check a Java source file for superfluous imports and optionally sort them
     """
+    def sortkey(ent):
+        "Sorting key for imports"
+        return [ent[0].group('static') or ''] + ent[1].split('.')
     mode, writeback = ('r+' if sort or prune else 'r'), False
     with open(filename, mode) as f:
         # Gather data.
@@ -144,7 +127,7 @@ def importlint(filename, warn=True, sort=False, prune=False):
         # Sort them.
         if sort:
             oi = list(imports)
-            imports.sort(key=lambda x: name_cmp_key(x[1]))
+            imports.sort(key=sortkey)
             if imports != oi:
                 sys.stderr.write('%s: note: rearranged imports\n' % filename)
                 writeback = True
