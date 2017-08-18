@@ -65,5 +65,6 @@ _lint-changed:
 	xargs -r0 git add
 
 _compile-after-lint: _lint-changed Instant.jar
+	@git add Instant.jar
 
 pre-commit: _compile-after-lint
