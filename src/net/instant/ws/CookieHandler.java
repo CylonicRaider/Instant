@@ -9,7 +9,6 @@ import java.util.Map;
 import net.instant.util.Encodings;
 import net.instant.util.Formats;
 import net.instant.util.StringSigner;
-import net.instant.util.Util;
 import org.java_websocket.handshake.ClientHandshake;
 import org.java_websocket.handshake.ServerHandshakeBuilder;
 import org.json.JSONObject;

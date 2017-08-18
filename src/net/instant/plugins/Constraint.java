@@ -1,8 +1,5 @@
 package net.instant.plugins;
 
-import java.util.HashMap;
-import java.util.Map;
-
 public enum Constraint {
 
     BREAKS(false, false, false),

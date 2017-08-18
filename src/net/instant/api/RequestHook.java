@@ -1,7 +1,6 @@
 package net.instant.api;
 
 import java.nio.ByteBuffer;
-import org.java_websocket.WebSocket;
 
 /**
  * A hook intercepting HTTP requests (of any kind).

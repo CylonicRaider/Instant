@@ -1,8 +1,8 @@
 package net.instant.proto;
 
 import net.instant.info.RequestInfo;
-import org.json.JSONObject;
 import org.json.JSONException;
+import org.json.JSONObject;
 
 public class MessageInfo implements net.instant.api.Message {
 

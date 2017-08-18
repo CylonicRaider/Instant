@@ -6,23 +6,17 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import net.instant.api.RequestType;
-import net.instant.info.Datum;
-import net.instant.info.InformationCollector;
 import net.instant.info.RequestInfo;
 import net.instant.util.DefaultStringMatcher;
 import net.instant.util.StringMatcher;
 import net.instant.util.fileprod.FileCell;
 import net.instant.util.fileprod.FileProducer;
 import net.instant.util.fileprod.ProducerJob;
-import net.instant.ws.Draft_Raw;
 import net.instant.ws.InstantWebSocketServer;
-import org.java_websocket.WebSocket;
 import org.java_websocket.handshake.ClientHandshake;
 import org.java_websocket.handshake.Handshakedata;
-import org.java_websocket.handshake.ServerHandshakeBuilder;
 
 public class StaticFileHook extends HookAdapter {
 

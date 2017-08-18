@@ -1,7 +1,6 @@
 package net.instant.plugins;
 
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 import net.instant.util.Formats;
 

@@ -3,10 +3,8 @@ package net.instant.hooks;
 import java.nio.ByteBuffer;
 import net.instant.info.RequestInfo;
 import net.instant.ws.InstantWebSocketServer;
-import org.java_websocket.WebSocket;
 import org.java_websocket.handshake.ClientHandshake;
 import org.java_websocket.handshake.Handshakedata;
-import org.java_websocket.handshake.ServerHandshakeBuilder;
 
 public abstract class HookAdapter implements InstantWebSocketServer.Hook {
 

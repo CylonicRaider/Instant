@@ -1,6 +1,5 @@
 package net.instant.hooks;
 
-import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collections;
 import java.util.HashMap;
@@ -9,13 +8,10 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.logging.Logger;
-import java.util.regex.Pattern;
 import net.instant.Main;
 import net.instant.api.Cookie;
 import net.instant.api.RequestResponseData;
 import net.instant.api.Room;
-import net.instant.info.Datum;
-import net.instant.info.InformationCollector;
 import net.instant.info.RequestInfo;
 import net.instant.proto.Message;
 import net.instant.proto.MessageDistributor;
@@ -24,14 +20,11 @@ import net.instant.proto.PresenceChangeInfo;
 import net.instant.proto.ProtocolError;
 import net.instant.proto.RoomDistributor;
 import net.instant.util.Formats;
-import net.instant.util.UniqueCounter;
 import net.instant.util.Util;
 import net.instant.ws.InstantWebSocketServer;
 import org.java_websocket.WebSocket;
-import org.java_websocket.framing.CloseFrame;
 import org.java_websocket.handshake.ClientHandshake;
 import org.java_websocket.handshake.Handshakedata;
-import org.java_websocket.handshake.ServerHandshakeBuilder;
 import org.json.JSONException;
 import org.json.JSONObject;
 

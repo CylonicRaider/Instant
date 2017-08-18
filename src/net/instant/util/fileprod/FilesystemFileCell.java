@@ -3,8 +3,6 @@ package net.instant.util.fileprod;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.nio.ByteBuffer;
-import net.instant.util.Util;
 
 public class FilesystemFileCell extends FileCell {
 

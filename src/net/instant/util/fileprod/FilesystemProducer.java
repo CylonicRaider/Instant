@@ -2,7 +2,6 @@ package net.instant.util.fileprod;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
 
 public class FilesystemProducer extends WhitelistProducer {
 

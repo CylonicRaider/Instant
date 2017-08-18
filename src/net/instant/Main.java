@@ -6,18 +6,13 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintStream;
-import java.net.InetSocketAddress;
 import java.net.URL;
 import java.util.jar.Manifest;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
 import net.instant.hooks.Error404Hook;
-import net.instant.hooks.RoomWebSocketHook;
-import net.instant.hooks.RedirectHook;
-import net.instant.hooks.StaticFileHook;
 import net.instant.plugins.PluginException;
-import net.instant.proto.MessageDistributor;
 import net.instant.util.Formats;
 import net.instant.util.Logging;
 import net.instant.util.StringSigner;
@@ -33,10 +28,8 @@ import net.instant.util.argparse.StringOption;
 import net.instant.util.fileprod.FileProducer;
 import net.instant.util.fileprod.FilesystemProducer;
 import net.instant.util.fileprod.ResourceProducer;
-import net.instant.util.fileprod.StringProducer;
 import net.instant.ws.CookieHandler;
 import net.instant.ws.InstantWebSocketServer;
-import org.java_websocket.server.WebSocketServer;
 
 public class Main implements Runnable {
 
