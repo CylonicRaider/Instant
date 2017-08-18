@@ -101,7 +101,8 @@ def tokenize(data):
     return {None: ret, 'import': imports, 'ident': idents,
             'package': package}
 
-def importlint(filename, warn=True, sort=False, prune=False):
+def importlint(filename, warn=True, sort=False, prune=False,
+               empty_lines=False):
     """
     Check a Java source file for superfluous imports and optionally sort them
     """
@@ -143,13 +144,20 @@ def importlint(filename, warn=True, sort=False, prune=False):
         # Overwrite file.
         if writeback:
             f.seek(0)
+            nlstate = 0
             for ent in parts:
                 if isinstance(ent, tuple):
                     ref = info[ent[0]][ent[1]]
-                    if ref is None: continue
-                    f.write(ref[0].group())
+                    if ref is None:
+                        if nlstate == 1: nlstate = 2
+                        continue
+                    tw = ref[0].group()
                 else:
-                    f.write(ent)
+                    tw = ent
+                if empty_lines:
+                    if nlstate == 2 and tw.startswith('\n'): tw = tw[1:]
+                    nlstate = 1 if tw.endswith('\n\n') else 0
+                f.write(tw)
             f.truncate()
         # Report them.
         ret = (not excess and not redundant)
@@ -172,8 +180,8 @@ def main():
     """
     Main function
     """
-    in_args, warn, sort, prune = False, True, False, False
-    filenames = []
+    warn, sort, prune, empty_lines = True, False, False, False
+    in_args, filenames = False, []
     for arg in sys.argv[1:]:
         if not in_args and arg.startswith('-'):
             if arg == '--':
@@ -190,6 +198,10 @@ def main():
                 prune = True
             elif arg == '--no-prune':
                 prune = False
+            elif arg == '--empty-lines':
+                empty_lines = True
+            elif arg == '--no-empty-lines':
+                empty_lines = False
             else:
                 sys.stderr.write('Unknown option %r!\n' % arg)
                 sys.exit(1)
@@ -197,7 +209,8 @@ def main():
         filenames.append(arg)
     res = True
     for f in filenames:
-        if not importlint(f, warn=warn, sort=sort, prune=prune):
+        if not importlint(f, warn=warn, sort=sort, prune=prune,
+                          empty_lines=empty_lines):
             res = False
     sys.exit(0 if res else 2)
 
