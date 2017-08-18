@@ -167,7 +167,7 @@ def importlint(filename, warn=True, sort=False, prune=False,
                 f.write(tw)
             f.truncate()
         # Report them.
-        ret = (not excess and not redundant)
+        ret = (not excess and not redundant or writeback)
         if not ret and warn:
             for ent in parts:
                 if not isinstance(ent, tuple) or ent[0] != 'import':
