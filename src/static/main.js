@@ -1446,8 +1446,8 @@ this.Instant = function() {
         /* Done */
         return stack[0][1];
       },
-      /* Detect links, emphasis, and smileys out of a flat string and render
-       * those into a DOM node */
+      /* Detect links, emphasis, smilies, etc. out of a flat string and
+       * render those into a DOM node */
       parseContent: function(text) {
         /* Compatibility wrapper */
         return Instant.message.parser.parse(text);
@@ -2191,7 +2191,7 @@ this.Instant = function() {
               out.push(Instant.nick.makeMention(m[0]));
             }
           },
-          { /* Smileys */
+          { /* Smilies */
             name: 'smiley',
             re: new RegExp('[+-]1|<[/\\\\]?3|' +
               '>?[:;=]\'?[D)\\]}|{\\[/\\\\(cCSPoO3]|' +
