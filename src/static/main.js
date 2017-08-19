@@ -5356,16 +5356,16 @@ this.Instant = function() {
       },
       /* Serialize all data to the configured locations */
       save: function() {
-        if (! this.backupSession && ! this.backupLocal) return;
         var serData = JSON.stringify(this._data);
         if (this.backupSession && window.sessionStorage)
           sessionStorage.setItem(this.name, serData);
         if (this.backupLocal && window.localStorage)
           localStorage.setItem(this.name, serData);
+        return serData;
       }
     };
-    /* Actual data */
-    var data = {};
+    /* Actual data object */
+    var data = new Storage('instant-data', true, true);
     return {
       /* Export class */
       Storage: Storage,
@@ -5375,63 +5375,43 @@ this.Instant = function() {
       },
       /* Get the value associated with the given key, or undefined */
       get: function(key) {
-        return data[key];
+        return data.get(key);
       },
       /* Assign the value to the key and save the results (asynchronously) */
       set: function(key, value) {
-        var oldValue = data[key];
-        data[key] = value;
-        Instant.storage._save();
+        var oldValue = data.set(key, value);
         Instant._fireListeners('storage.set', {key: key, value: value,
           oldValue: oldValue});
       },
       /* Remove the given key and save the results (asynchronously) */
       del: function(key) {
-        var oldValue = data[key];
-        delete data[key];
-        Instant.storage._save();
+        var oldValue = data.del(key);
         Instant._fireListeners('storage.del', {key: key,
           oldValue: oldValue});
       },
       /* Remove all keys and save the results (still asynchronously) */
       clear: function() {
-        Instant.storage._clear(),
-        Instant.storage._save();
+        data.clear();
         Instant._fireListeners('storage.clear');
-      },
-      /* Reset the internal storage *without* saving automatically */
-      _clear: function() {
-        data = {};
       },
       /* Read the underlying storage backends and merge the results into the
        * data array. */
       load: function() {
-        if (window.localStorage) {
-          update(data, thaw(localStorage.getItem('instant-data')));
-          if (Instant.roomName) {
-            var d = thaw(localStorage.getItem('instant-data-rooms'));
-            if (d) update(data, d[Instant.roomName]);
-          }
-        }
-        if (window.sessionStorage) {
-          update(data, thaw(sessionStorage.getItem('instant-data')));
+        data.load();
+        if (window.localStorage && Instant.roomName) {
+          var d = thaw(localStorage.getItem('instant-data-rooms'));
+          if (d) update(data._data, d[Instant.roomName]);
         }
         Instant._fireListeners('storage.load');
       },
       /* Serialize the current data to the backends
        * This version does not run event handlers. */
       _save: function() {
-        var encoded = JSON.stringify(data);
-        if (window.sessionStorage) {
-          sessionStorage.setItem('instant-data', encoded);
-        }
-        if (window.localStorage) {
-          localStorage.setItem('instant-data', encoded);
-          if (Instant.roomName) {
-            var rd = thaw(localStorage.getItem('instant-data-rooms')) || {};
-            rd[Instant.roomName] = data;
-            localStorage.setItem('instant-data-rooms', JSON.stringify(rd));
-          }
+        data.save();
+        if (window.localStorage && Instant.roomName) {
+          var rd = thaw(localStorage.getItem('instant-data-rooms')) || {};
+          rd[Instant.roomName] = data._data;
+          localStorage.setItem('instant-data-rooms', JSON.stringify(rd));
         }
       },
       /* Serialize the current data to the backends */
@@ -5439,10 +5419,10 @@ this.Instant = function() {
         Instant._fireListeners('storage.save');
         Instant.storage._save();
       },
-      /* Obtain a reference to the raw data storage object
+      /* Obtain a reference to the underlying storage object
        * NOTE that the reference might silently become invalid, and remember
        *      to save regularly. */
-      getData: function() {
+      getStorage: function() {
         return data;
       }
     };
