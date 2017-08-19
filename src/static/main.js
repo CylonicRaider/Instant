@@ -5303,9 +5303,69 @@ this.Instant = function() {
         base[k] = ext[k];
       }
     }
+    /* Storage class */
+    function Storage(name, backupSession, backupLocal) {
+      this.name = name;
+      this.backupSession = backupSession;
+      this.backupLocal = backupLocal;
+      this._data = null;
+    }
+    Storage.prototype = {
+      /* Get the value corresponding to key */
+      get: function(key) {
+        return this._data[key];
+      },
+      /* Assign value to key and return the old value */
+      set: function(key, value) {
+        var oldValue = this._data[key];
+        this._data[key] = value;
+        return oldValue;
+      },
+      /* Remove the key and return the old value */
+      del: function(key) {
+        var oldValue = this._data[key];
+        delete this._data[key];
+        return oldValue;
+      },
+      /* Reset all data */
+      clear: function(key) {
+        this._data = {};
+      },
+      /* Restore data from the configured locations
+       * If merge is true, only individual keys are updated by their
+       * counterparts from the storage (if present), otherwise, the entire
+       * data set is replaced by its counterpart from the storage. Values
+       * from session storage override values from local storage.
+       * NOTE that merging is not recursive. */
+      load: function(merge) {
+        function apply(data, ext) {
+          if (! ext) return;
+          if (merge) {
+            update(this._data, ext);
+          } else {
+            this._data = ext;
+          }
+        }
+        if (this.backupLocal && window.localStorage)
+          apply(thaw(localStorage.getItem(this.name)));
+        if (this.backupSession && window.sessionStorage)
+          apply(thaw(sessionStorage.getItem(this.name)));
+      },
+      /* Serialize all data to the configured locations */
+      save: function() {
+        if (! this.backupSession && ! this.backupLocal) return;
+        var serData = JSON.stringify(this._data);
+        if (this.backupSession && window.sessionStorage)
+          sessionStorage.setItem(this.name, serData);
+        if (this.backupLocal && window.localStorage)
+          localStorage.setItem(this.name, serData);
+      }
+    };
     /* Actual data */
     var data = {};
     return {
+      /* Export class */
+      Storage: Storage,
       /* Initialize submodule */
       init: function() {
         Instant.storage.load();
