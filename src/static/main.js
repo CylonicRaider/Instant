@@ -5319,17 +5319,20 @@ this.Instant = function() {
       set: function(key, value) {
         var oldValue = this._data[key];
         this._data[key] = value;
+        this.save();
         return oldValue;
       },
       /* Remove the key and return the old value */
       del: function(key) {
         var oldValue = this._data[key];
         delete this._data[key];
+        this.save();
         return oldValue;
       },
       /* Reset all data */
       clear: function(key) {
         this._data = {};
+        this.save();
       },
       /* Restore data from the configured locations
        * If merge is true, only individual keys are updated by their
