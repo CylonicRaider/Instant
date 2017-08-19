@@ -5308,7 +5308,7 @@ this.Instant = function() {
       this.name = name;
       this.backupSession = backupSession;
       this.backupLocal = backupLocal;
-      this._data = null;
+      this._data = {};
     }
     Storage.prototype = {
       /* Get the value corresponding to key */
@@ -5334,6 +5334,15 @@ this.Instant = function() {
         this._data = {};
         this.save();
       },
+      /* Include an already-deserialized object into the internal data */
+      _apply: function(merge, data) {
+        if (! data) return;
+        if (merge) {
+          update(this._data, data);
+        } else {
+          this._data = data;
+        }
+      },
       /* Restore data from the configured locations
        * If merge is true, only individual keys are updated by their
        * counterparts from the storage (if present), otherwise, the entire
@@ -5341,14 +5350,7 @@ this.Instant = function() {
        * from session storage override values from local storage.
        * NOTE that merging is not recursive. */
       load: function(merge) {
-        function apply(data, ext) {
-          if (! ext) return;
-          if (merge) {
-            update(this._data, ext);
-          } else {
-            this._data = ext;
-          }
-        }
+        var apply = this._apply.bind(this, merge);
         if (this.backupLocal && window.localStorage)
           apply(thaw(localStorage.getItem(this.name)));
         if (this.backupSession && window.sessionStorage)
@@ -5364,11 +5366,46 @@ this.Instant = function() {
         return serData;
       }
     };
+    /* A specialized Storage that additionally backs up data inside
+     * another stored object */
+    function FallbackStorage(name, fallbackName, fallbackInstance) {
+      Storage.call(this, name, true, true);
+      this.fallbackName = fallbackName;
+      this.fallbackInstance = fallbackInstance;
+    }
+    FallbackStorage.prototype = Object.create(Storage.prototype);
+    /* Restore data from the configured locations */
+    FallbackStorage.prototype.load = function(merge) {
+      /* Duplicating because of relevant application order */
+      var apply = this._apply.bind(this, merge);
+      if (this.backupLocal && window.localStorage) {
+        apply(thaw(localStorage.getItem(this.name)));
+        if (this.fallbackName && this.fallbackInstance) {
+          var d = localStorage.getItem(this.fallbackName);
+          if (d && typeof d == 'object')
+            apply(thaw(d[this.fallbackInstance]));
+        }
+      }
+      if (this.backupSession && window.sessionStorage)
+        apply(thaw(sessionStorage.getItem(this.name)));
+    };
+    /* Serialize all data to the configured locations */
+    FallbackStorage.prototype.save = function() {
+      Storage.prototype.save.call(this);
+      if (this.backupLocal && window.localStorage && this.fallbackName &&
+          this.fallbackInstance) {
+        var rd = thaw(localStorage.getItem(this.fallbackName)) || {};
+        rd[this.fallbackInstance] = data._data;
+        localStorage.setItem(this.fallbackName, JSON.stringify(rd));
+      }
+    };
     /* Actual data object */
-    var data = new Storage('instant-data', true, true);
+    var data = new FallbackStorage('instant-data', 'instant-data-rooms',
+                                   Instant.roomName);
     return {
-      /* Export class */
+      /* Export classes */
       Storage: Storage,
+      FallbackStorage: FallbackStorage,
       /* Initialize submodule */
       init: function() {
         Instant.storage.load();
@@ -5397,27 +5434,13 @@ this.Instant = function() {
       /* Read the underlying storage backends and merge the results into the
        * data array. */
       load: function() {
-        data.load();
-        if (window.localStorage && Instant.roomName) {
-          var d = thaw(localStorage.getItem('instant-data-rooms'));
-          if (d) update(data._data, d[Instant.roomName]);
-        }
+        data.load(true);
         Instant._fireListeners('storage.load');
-      },
-      /* Serialize the current data to the backends
-       * This version does not run event handlers. */
-      _save: function() {
-        data.save();
-        if (window.localStorage && Instant.roomName) {
-          var rd = thaw(localStorage.getItem('instant-data-rooms')) || {};
-          rd[Instant.roomName] = data._data;
-          localStorage.setItem('instant-data-rooms', JSON.stringify(rd));
-        }
       },
       /* Serialize the current data to the backends */
       save: function() {
         Instant._fireListeners('storage.save');
-        Instant.storage._save();
+        data.save();
       },
       /* Obtain a reference to the underlying storage object
        * NOTE that the reference might silently become invalid, and remember
