@@ -1925,8 +1925,6 @@ this.Instant = function() {
                   Instant.message.makeReplies(message));
           prev.parentNode.removeChild(prev);
           if (! noPreserve) {
-            if (prev.classList.contains('new'))
-              message.classList.add('new');
             if (prev.classList.contains('offscreen'))
               message.classList.add('offscreen');
           }
