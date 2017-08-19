@@ -5283,7 +5283,7 @@ this.Instant = function() {
   }();
   /* Offline storage */
   Instant.storage = function() {
-    /* Utility function */
+    /* Utility functions */
     function thaw(str) {
       if (! str) return null;
       var res = null;
@@ -5295,6 +5295,13 @@ this.Instant = function() {
         return null;
       }
       return res;
+    }
+    function update(base, ext) {
+      if (! ext) return;
+      for (var k in ext) {
+        if (! ext.hasOwnProperty(k)) continue;
+        base[k] = ext[k];
+      }
     }
     /* Actual data */
     var data = {};
@@ -5336,22 +5343,15 @@ this.Instant = function() {
       /* Read the underlying storage backends and merge the results into the
        * data array. */
       load: function() {
-        function embed(res) {
-          if (! res) return;
-          for (var key in res) {
-            if (! res.hasOwnProperty(key)) continue;
-            data[key] = res[key];
-          }
-        }
         if (window.localStorage) {
-          embed(thaw(localStorage.getItem('instant-data')));
+          update(data, thaw(localStorage.getItem('instant-data')));
           if (Instant.roomName) {
             var d = thaw(localStorage.getItem('instant-data-rooms'));
-            if (d) embed(d[Instant.roomName]);
+            if (d) update(data, d[Instant.roomName]);
           }
         }
         if (window.sessionStorage) {
-          embed(thaw(sessionStorage.getItem('instant-data')));
+          update(data, thaw(sessionStorage.getItem('instant-data')));
         }
         Instant._fireListeners('storage.load');
       },
@@ -5381,7 +5381,7 @@ this.Instant = function() {
        *      to save regularly. */
       getData: function() {
         return data;
-      },
+      }
     };
   }();
   /* Miscellaneous utilities */
