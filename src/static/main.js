@@ -3796,7 +3796,19 @@ this.Instant = function() {
           }
         });
       },
-      /* Produce a DOM node corresponding to the given description */
+      /* Produce a DOM node corresponding to the given description
+       * data has the following attributes:
+       * draft     (A): Whether the PM to construct the UI for is a draft.
+       * id        (A): The ID of the message.
+       * parent    (A): The message this PM is a reply to.
+       * from      (I): The user the PM originates from.
+       * nick      (I): The nick-name of the user the PM originates from.
+       * to        (O): The recipient of the PM.
+       * tonick    (O): The nickname of the recipient of the PM.
+       * text      (A): The content of the PM.
+       * timestamp (A): The UNIX timestamp of the message in milliseconds.
+       * (I -- applies to incoming messages; O -- applies to outgoing
+       * messages; A -- applies to all messages.) */
       _makePopup: function(data) {
         /* Display nickname */
         var nick = (data.draft) ? data.tonick : data.nick;
