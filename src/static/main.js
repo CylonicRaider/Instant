@@ -3776,11 +3776,9 @@ this.Instant = function() {
       _onmessage: function(msg) {
         var data = msg.data;
         if (data.type != 'privmsg') return;
-        data.draft = false;
-        data.id = msg.id;
-        data.from = msg.from;
-        data.timestamp = msg.timestamp;
-        var popup = Instant.privmsg._makePopup(data);
+        var popup = Instant.privmsg._makePopup({id: msg.id,
+          parent: data.parent, from: msg.from, nick: data.nick,
+          text: data.text, timestamp: data.timestamp, draft: false});
         popup.setAttribute('data-new', 'yes');
         popupsRead.push(popup);
         Instant.privmsg._update();
