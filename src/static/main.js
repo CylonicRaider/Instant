@@ -3663,8 +3663,7 @@ this.Instant = function() {
             {text: 'Drafts', onclick: sw, className: 'show-drafts'}
           ],
           noClose: true,
-          className: 'popup-weak'
-        });
+          className: 'popup-weak'});
       },
       /* Update notification state */
       _update: function() {
