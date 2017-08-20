@@ -216,7 +216,7 @@ this.Instant = function() {
     return s;
     /* Was it that hard? */
   }
-  /* Format a date sensibly */
+  /* Format a Date object sensibly */
   function formatDate(date) {
     /* Zero-pad a number */
     function zpad(n, l) {
@@ -229,6 +229,11 @@ this.Instant = function() {
       zpad(date.getHours(), 2) + ':' +
       zpad(date.getMinutes(), 2) + ':' +
       zpad(date.getSeconds(), 2));
+  }
+  /* Format a Date object into a DOM node sensibly */
+  function formatDateNode(date) {
+    return $makeNode('time', {datetime: date.toISOString(),
+      'data-timestamp': date.getTime()}, formatDate(date));
   }
   /* Run a function immediately, and then after a fixed interval */
   function repeat(callback, time) {
@@ -5476,6 +5481,7 @@ this.Instant = function() {
       leftpad: leftpad,
       /* Format a date-time nicely */
       formatDate: formatDate,
+      formatDateNode: formatDateNode,
       /* Run a function immediately, and then after a fixed interval */
       repeat: repeat,
       /* Adjust the right margin of an element to account for scrollbars */
