@@ -3817,7 +3817,7 @@ this.Instant = function() {
         var nick = (data.draft) ? data.tonick : data.nick;
         var nickNode = (nick == null) ? Instant.nick.makeAnonymous() :
           Instant.nick.makeNode(nick);
-        nickNode.classList.add((data.draft) ? 'pm-from-nick' : 'pm-to-nick');
+        nickNode.classList.add((data.draft) ? 'pm-to-nick' : 'pm-from-nick');
         /* Create structure skeleton */
         var body = $makeFrag(
           ! data.draft && data.id && ['div', 'pm-header', [
@@ -3850,7 +3850,7 @@ this.Instant = function() {
           ]],
           (data.timestamp != null) && ['div', 'pm-header', [
             ['strong', null, 'Date: '],
-            ['span', 'pm-date', formatDate(new Date(data.timestamp))]
+            ['span', 'pm-date', [formatDateNode(new Date(data.timestamp))]]
           ]],
           ['hr'],
           ['div', 'pm-body', [
@@ -3915,6 +3915,33 @@ this.Instant = function() {
         }
         /* Done */
         return popup;
+      },
+      /* Reverse the operation performed by _makePopup */
+      _extractPopupData: function(popup) {
+        function extractText(cls, key) {
+          var node = $cls(cls, popup);
+          if (node) ret[key] = node.textContent;
+        }
+        var ret = {draft: popup.classList.contains('pm-draft'),
+          id: popup.getAttribute('data-id')};
+        extractText('pm-parent-id', 'parent');
+        var dateNode = $sel('.pm-date time', popup);
+        if (dateNode)
+          ret.timestamp = +dateNode.getAttribute('data-timestamp');
+        if (ret.draft) {
+          ret.from = popup.getAttribute('data-from');
+          ret.nick = popup.getAttribute('data-from-nick');
+          extractText('pm-to-id', 'to');
+          extractText('pm-to-nick', 'tonick');
+          ret.text = $cls('pm-editor', popup).value;
+        } else {
+          extractText('pm-from-id', 'from');
+          extractText('pm-from-nick', 'nick');
+          ret.to = popup.getAttribute('data-to');
+          ret.tonick = popup.getAttribute('data-to-nick');
+          ret.text = $cls('pm-body', popup).textContent;
+        }
+        return ret;
       },
       /* Return the amount of unread private messages */
       countUnread: function() {
