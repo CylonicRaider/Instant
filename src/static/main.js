@@ -3783,7 +3783,7 @@ this.Instant = function() {
         if (data.type != 'privmsg') return;
         var popup = Instant.privmsg._makePopup({id: msg.id,
           parent: data.parent, from: msg.from, nick: data.nick,
-          text: data.text, timestamp: data.timestamp, draft: false});
+          text: data.text, timestamp: msg.timestamp, draft: false});
         popup.setAttribute('data-new', 'yes');
         popupsRead.push(popup);
         Instant.privmsg._update();
@@ -3903,15 +3903,19 @@ this.Instant = function() {
         if (data.parent)
           $cls('pm-parent-id', popup).textContent = data.parent;
         if (data.draft) {
-          popup.setAttribute('data-from', data.from);
-          popup.setAttribute('data-from-nick', data.nick);
+          if (data.from != null)
+            popup.setAttribute('data-from', data.from);
+          if (data.nick != null)
+            popup.setAttribute('data-from-nick', data.nick);
           $cls('pm-to-id', popup).textContent = data.to;
           $cls('pm-editor', popup).value = data.text || '';
         } else {
           $cls('pm-message-id', popup).textContent = data.id;
           $cls('pm-from-id', popup).textContent = data.from;
-          popup.setAttribute('data-to', data.to);
-          popup.setAttribute('data-to-nick', data.tonick);
+          if (data.to != null)
+            popup.setAttribute('data-to', data.to);
+          if (data.tonick != null)
+            popup.setAttribute('data-to-nick', data.tonick);
         }
         /* Done */
         return popup;
