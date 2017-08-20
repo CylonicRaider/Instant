@@ -3735,52 +3735,11 @@ this.Instant = function() {
       },
       /* Start writing a message to uid */
       write: function(uid, nick, text, parent) {
-        var nickNode;
-        if (nick === undefined) {
-          nickNode = Instant.userList.get(uid);
-          if (nickNode)
-            nick = nickNode.getAttribute('data-nick');
-        }
-        if (nick == null) {
-          nickNode = Instant.nick.makeAnonymous();
-        } else {
-          nickNode = Instant.nick.makeNode(nick);
-        }
-        var popupContent = $makeFrag(
-          parent && ['div', 'pm-header', [
-            ['strong', null, 'Reply-to: '],
-            ['span', 'monospace pm-reply-to']
-          ]],
-          ['div', 'pm-header', [
-            ['strong', null, 'To: '],
-            ['span', [nickNode, ' ', ['i', ['(user ID ',
-               ['span', 'monospace pm-to-uid'], ')']]]],
-          ]], ['hr'], ['textarea', 'pm-editor']
-        );
-        /* NOTE: DocumentFragment does not implement
-         *       getElementsByClassName() */
-        if (parent)
-          $sel('.pm-reply-to', popupContent).textContent = parent;
-        $sel('.pm-to-uid', popupContent).textContent = uid;
-        var popup = Instant.popups.make({title: 'Private message editor',
-          className: 'pm-popup',
-          content: popupContent,
-          buttons: [
-            {text: 'Finish later', onclick: function() {
-              Instant.popups.del(popup);
-            }, className: 'first'},
-            {text: 'Delete', color: '#c00000', onclick: function() {
-              Instant.privmsg._remove(popup);
-            }},
-            {text: 'Send', color: '#008000', onclick: function() {
-              Instant.privmsg._send(popup);
-            }}
-          ],
-          focusSel: '.pm-editor'});
-        popup.setAttribute('data-recipient', uid);
-        if (parent) popup.setAttribute('data-parent', parent);
+        var now = Date.now();
+        var popup = Instant.privmsg._makePopup({id: 'draft-' + now,
+          parent: parent, to: uid, tonick: nick, text: text, timestamp: now,
+          draft: true});
         var editor = $cls('pm-editor', popup);
-        if (text) editor.value = text;
         editor.addEventListener('keydown', function(event) {
           if (event.keyCode == 13 && event.ctrlKey) {
             Instant.privmsg._send(popup);
@@ -3790,7 +3749,7 @@ this.Instant = function() {
         popupsEdit.push(popup);
         Instant.popups.add(popup);
         Instant.privmsg._update();
-        $cls('pm-editor', popup).focus();
+        editor.focus();
         editor.setSelectionRange(editor.value.length, editor.value.length);
       },
       /* Remove a PM draft or reader */
@@ -3804,12 +3763,12 @@ this.Instant = function() {
       },
       /* Send a PM draft */
       _send: function(popup) {
-        var recipient = popup.getAttribute('data-recipient');
-        var text = $cls('pm-editor', popup).value;
         var data = {type: 'privmsg', nick: Instant.identity.nick,
-          text: text};
-        if (popup.getAttribute('data-parent'))
-          data.parent = popup.getAttribute('data-parent');
+          text: $cls('pm-editor', popup).value};
+        var parentNode = $cls('pm-parent-id', popup);
+        if (parentNode)
+          data.parent = parentNode.textContent;
+        var recipient = $cls('pm-to-id').textContent;
         Instant.connection.sendUnicast(recipient, data);
         Instant.privmsg._remove(popup);
       },
@@ -3817,65 +3776,11 @@ this.Instant = function() {
       _onmessage: function(msg) {
         var data = msg.data;
         if (data.type != 'privmsg') return;
-        var nickNode;
-        if (data.nick == null) {
-          nickNode = Instant.nick.makeAnonymous();
-        } else {
-          nickNode = Instant.nick.makeNode(data.nick);
-        }
-        var msgNode = Instant.message.parseContent(data.text);
-        var popupContent = $makeFrag(
-          ['div', 'pm-header', [
-            ['strong', null, 'ID: '],
-            ['span', [
-              ['span', 'monospace pm-message-id'],
-              data.parent && ' ',
-              data.parent && ['i', [
-                '(reply to ', ['span', 'monospace pm-parent-id'], ')'
-              ]]
-            ]]
-          ]], ['div', 'pm-header', [
-            ['strong', null, 'From: '],
-            ['span', [
-              nickNode, ' ',
-              ['i', ['(user ID ', ['span', 'monospace pm-from-uid'], ')']]
-            ]]
-          ]], ['div', 'pm-header', [
-            ['strong', null, 'Date: '],
-            ['span', [formatDate(new Date(msg.timestamp))]]
-          ]],
-          ['hr'],
-          msgNode
-        );
-        $sel('.pm-message-id', popupContent).textContent = msg.id;
-        if (data.parent)
-          $sel('.pm-parent-id', popupContent).textContent = data.parent;
-        $sel('.pm-from-uid', popupContent).textContent = msg.from;
-        var popup = Instant.popups.make({title: 'Private message',
-          className: 'pm-popup',
-          content: popupContent,
-          buttons: [
-            {text: 'Read later', onclick: function() {
-              Instant.popups.del(popup);
-            }, className: 'first'},
-            {text: 'Delete', color: '#c00000', onclick: function() {
-              Instant.privmsg._remove(popup);
-            }},
-            {text: 'Quote & Reply', color: '#008000', onclick: function() {
-              var nick = data.nick;
-              if (nick == undefined) nick = null;
-              var text = data.text.replace(/^(.)?/mg, function(char) {
-                return ((char) ? '> ' + char : '>');
-              }) + '\n';
-              Instant.privmsg.write(msg.from, nick, text, msg.id);
-            }},
-            {text: 'Reply', color: '#008000', onclick: function() {
-              var nick = data.nick;
-              if (nick == undefined) nick = null;
-              Instant.privmsg.write(msg.from, nick, null, msg.id);
-            }}
-          ],
-          focusSel: '.first'});
+        data.draft = false;
+        data.id = msg.id;
+        data.from = msg.from;
+        data.timestamp = msg.timestamp;
+        var popup = Instant.privmsg._makePopup(data);
         popup.setAttribute('data-new', 'yes');
         popupsRead.push(popup);
         Instant.privmsg._update();
@@ -3890,6 +3795,111 @@ this.Instant = function() {
             Instant.animation.unflash(msgRead);
           }
         });
+      },
+      /* Produce a DOM node corresponding to the given description */
+      _makePopup: function(data) {
+        /* Display nickname */
+        var nick = (data.draft) ? data.tonick : data.nick;
+        var nickNode = (nick == null) ? Instant.nick.makeAnonymous() :
+          Instant.nick.makeNode(nick);
+        nickNode.classList.add((data.draft) ? 'pm-from-nick' : 'pm-to-nick');
+        /* Create structure skeleton */
+        var body = $makeFrag(
+          ! data.draft && data.id && ['div', 'pm-header', [
+            ['strong', null, 'ID: '],
+            ['span', [
+              ['span', 'monospace pm-message-id'],
+              data.parent && ' ',
+              data.parent && ['i', [
+                '(reply to ', ['span', 'monospace pm-parent-id'], ')'
+              ]]
+            ]]
+          ]],
+          data.draft && data.parent && ['div', 'pm-header', [
+            ['strong', null, 'Reply-to: '],
+            ['span', 'monospace pm-parent-id']
+          ]],
+          ! data.draft && ['div', 'pm-header', [
+            ['strong', null, 'From: '],
+            ['span', [
+              nickNode, ' ',
+              ['i', ['(user ID ', ['span', 'monospace pm-from-id'], ')']]
+            ]]
+          ]],
+          data.draft && ['div', 'pm-header', [
+            ['strong', null, 'To: '],
+            ['span', [
+              nickNode, ' ',
+              ['i', ['(user ID ', ['span', 'monospace pm-to-id'], ')']]
+            ]]
+          ]],
+          (data.timestamp != null) && ['div', 'pm-header', [
+            ['strong', null, 'Date: '],
+            ['span', 'pm-date', formatDate(new Date(data.timestamp))]
+          ]],
+          ['hr'],
+          ['div', 'pm-body', [
+            ! data.draft && Instant.message.parseContent(data.text),
+            data.draft && ['textarea', 'pm-editor']
+          ]]
+        );
+        /* Create buttons */
+        var buttons = (data.draft) ? [
+          {text: 'Finish later', onclick: function() {
+            Instant.popups.del(popup);
+          }, className: 'first'},
+          {text: 'Delete', color: '#c00000', onclick: function() {
+            Instant.privmsg._remove(popup);
+          }},
+          {text: 'Send', color: '#008000', onclick: function() {
+            Instant.privmsg._send(popup);
+          }}
+        ] : [
+          {text: 'Read later', onclick: function() {
+            Instant.popups.del(popup);
+          }, className: 'first'},
+          {text: 'Delete', color: '#c00000', onclick: function() {
+            Instant.privmsg._remove(popup);
+          }},
+          {text: 'Quote & Reply', color: '#008000', onclick: function() {
+            var nick = data.nick;
+            if (nick == undefined) nick = null;
+            var text = data.text.replace(/^(.)?/mg, function(char) {
+              return ((char) ? '> ' + char : '>');
+            }) + '\n';
+            Instant.privmsg.write(data.from, nick, text, data.id);
+          }},
+          {text: 'Reply', color: '#008000', onclick: function() {
+            var nick = data.nick;
+            if (nick == undefined) nick = null;
+            Instant.privmsg.write(data.from, nick, null, data.id);
+          }}
+        ];
+        /* Create actual popup */
+        var popup = Instant.popups.make({
+          title: 'Private message' + ((data.draft) ? ' editor' : ''),
+          className: 'pm-popup ' + ((data.draft) ? 'pm-draft' : 'pm-viewer'),
+          content: body,
+          buttons: buttons,
+          focusSel: (data.draft) ? '.pm-editor' : '.first'
+        });
+        /* Distribute remaining data into attributes */
+        popup.setAttribute('data-id', data.id);
+        if (data.parent)
+          $cls('pm-parent-id', popup).textContent = data.parent;
+        if (data.draft) {
+          popup.setAttribute('data-from', data.from);
+          popup.setAttribute('data-from-nick', data.nick);
+          $cls('pm-to-id', popup).textContent = data.to;
+          $cls('pm-editor', popup).value = data.text || '';
+        } else {
+          $cls('pm-message-id', popup).textContent = data.id;
+          $cls('pm-from-id', popup).textContent = data.from;
+          popup.setAttribute('data-to', data.to);
+          popup.setAttribute('data-to-nick', data.tonick);
+        }
+        /* Done */
+        return popup;
       },
       /* Return the amount of unread private messages */
       countUnread: function() {
