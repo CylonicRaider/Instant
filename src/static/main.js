@@ -3807,7 +3807,7 @@ this.Instant = function() {
         var recipient = popup.getAttribute('data-recipient');
         var text = $cls('pm-editor', popup).value;
         var data = {type: 'privmsg', nick: Instant.identity.nick,
-          text: text}
+          text: text};
         if (popup.getAttribute('data-parent'))
           data.parent = popup.getAttribute('data-parent');
         Instant.connection.sendUnicast(recipient, data);
