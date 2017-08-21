@@ -482,6 +482,7 @@ this.Instant = function() {
           case 'left': /* User left */
             Instant.userList.remove(msg.data.id);
             Instant.logs.pull._onmessage(msg);
+            Instant.privmsg._onmessage(msg);
             break;
           case 'who': /* Active connection enumeration */
             /* Nothing to do */
@@ -3682,6 +3683,7 @@ this.Instant = function() {
           }
         });
         Instant.privmsg._update();
+        Instant.privmsg._updateNicks();
       },
       /* Update notification state */
       _update: function() {
@@ -3730,6 +3732,17 @@ this.Instant = function() {
           Instant.popups.del(accessPopup);
         }
         Instant.title.update();
+      },
+      /* Update the gray-out status of all popups */
+      _updateNicks: function() {
+        function update(popup) {
+          var nick = $sel('.pm-header .nick', popup);
+          if (! Instant.userList.get(nick.getAttribute('data-uid')) &&
+              nick.style.backgroundColor)
+            nick.style.backgroundColor = '';
+        }
+        popupsRead.forEach(update);
+        popupsEdit.forEach(update);
       },
       /* Show the reading popups */
       showRead: function() {
@@ -3805,14 +3818,6 @@ this.Instant = function() {
         var recipient = $cls('pm-to-id').textContent;
         Instant.connection.sendUnicast(recipient, data);
         Instant.privmsg._remove(popup);
-      },
-      /* Incoming remote message */
-      _onmessage: function(msg) {
-        var data = msg.data;
-        if (data.type != 'privmsg') return;
-        Instant.privmsg._read({id: msg.id, parent: data.parent,
-          from: msg.from, nick: data.nick, text: data.text,
-          timestamp: msg.timestamp, draft: false, unread: true}, true);
       },
       /* Display the popup for an incoming message */
       _read: function(data, isNew) {
@@ -3985,6 +3990,24 @@ this.Instant = function() {
           ret.text = $cls('pm-body', popup).textContent;
         }
         return ret;
+      },
+      /* Handle incoming remote messages */
+      _onmessage: function(msg) {
+        switch (msg.type) {
+          case 'left':
+            Instant.privmsg._updateNicks();
+            break;
+          // Dunno why someone should broadcast a PM, but, sure, why not.
+          case 'unicast': case 'broadcast':
+            var data = msg.data;
+            switch (data.type) {
+              case 'privmsg':
+                Instant.privmsg._read({id: msg.id, parent: data.parent,
+                  from: msg.from, nick: data.nick, text: data.text,
+                  timestamp: msg.timestamp, draft: false, unread: true}, true);
+                break;
+          }
+        }
       },
       /* Return the amount of unread private messages */
       countUnread: function() {
