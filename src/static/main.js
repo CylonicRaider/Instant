@@ -3647,6 +3647,8 @@ this.Instant = function() {
     var popupsRead = [], popupsEdit = [];
     /* Message opening popup */
     var accessPopup = null;
+    /* Reload-safe cache of popups */
+    var storage = null;
     return {
       /* Initialize submodule */
       init: function() {
@@ -3669,6 +3671,8 @@ this.Instant = function() {
           ],
           noClose: true,
           className: 'popup-weak'});
+        storage = new Instant.storage.Storage('instant-pm-backup', true);
+        storage.load();
       },
       /* Update notification state */
       _update: function() {
@@ -3724,6 +3728,7 @@ this.Instant = function() {
         popupsRead.forEach(function(popup) {
           if (! Instant.popups.isShown(popup)) {
             popup.classList.remove('pm-unread');
+            Instant.privmsg._save(popup);
             Instant.popups.add(popup);
           }
         });
@@ -3751,14 +3756,24 @@ this.Instant = function() {
             event.preventDefault();
           }
         });
+        editor.addEventListener('change', function(event) {
+          Instant.privmsg._save(popup);
+        });
         popupsEdit.push(popup);
+        Instant.privmsg._save(popup);
         Instant.popups.add(popup);
         Instant.privmsg._update();
         editor.focus();
         editor.setSelectionRange(editor.value.length, editor.value.length);
       },
+      /* Save the current state of the popup into storage */
+      _save: function(popup) {
+        var data = Instant.privmsg._extractPopupData(popup);
+        storage.set(data.id, data);
+      },
       /* Remove a PM draft or reader */
       _remove: function(popup) {
+        storage.del(popup.getAttribute('data-id'));
         var idx = popupsRead.indexOf(popup);
         if (idx != -1) popupsRead.splice(idx, 1);
         idx = popupsEdit.indexOf(popup);
@@ -3786,6 +3801,7 @@ this.Instant = function() {
           text: data.text, timestamp: msg.timestamp, draft: false,
           unread: true});
         popupsRead.push(popup);
+        Instant.privmsg._save(popup);
         Instant.privmsg._update();
         Instant.animation.flash(msgRead);
         Instant.notifications.submitNew({level: 'privmsg',
