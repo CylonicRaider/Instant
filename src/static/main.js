@@ -176,6 +176,10 @@ function $evalIn() {
   }
 }
 
+// The latter method is used for ephemeral debugging statements and scanned
+// for through the source code aggressively.
+if (! console.debug) console.debug = console['log'];
+
 /* Early preparation; define most of the functionality */
 this.Instant = function() {
   /* Locale-agnostic abbreviated month name table */
