@@ -3673,6 +3673,15 @@ this.Instant = function() {
           className: 'popup-weak'});
         storage = new Instant.storage.Storage('instant-pm-backup', true);
         storage.load();
+        storage.keys().forEach(function(k) {
+          var data = storage.get(k);
+          if (data.draft) {
+            Instant.privmsg._write(data);
+          } else {
+            Instant.privmsg._read(data);
+          }
+        });
+        Instant.privmsg._update();
       },
       /* Update notification state */
       _update: function() {
@@ -3746,9 +3755,12 @@ this.Instant = function() {
       /* Start writing a message to uid */
       write: function(uid, nick, text, parent) {
         var now = Date.now();
-        var popup = Instant.privmsg._makePopup({id: 'draft-' + now,
-          parent: parent, to: uid, tonick: nick, text: text, timestamp: now,
-          draft: true});
+        Instant.privmsg._write({id: 'draft-' + now, parent: parent, to: uid,
+          tonick: nick, text: text, timestamp: now, draft: true}, true);
+      },
+      /* Actually start writing a message with the given parameters */
+      _write: function(data, isNew) {
+        var popup = Instant.privmsg._makePopup(data);
         var editor = $cls('pm-editor', popup);
         editor.addEventListener('keydown', function(event) {
           if (event.keyCode == 13 && event.ctrlKey) {
@@ -3759,12 +3771,14 @@ this.Instant = function() {
         editor.addEventListener('change', function(event) {
           Instant.privmsg._save(popup);
         });
-        popupsEdit.push(popup);
-        Instant.privmsg._save(popup);
-        Instant.popups.add(popup);
-        Instant.privmsg._update();
-        editor.focus();
         editor.setSelectionRange(editor.value.length, editor.value.length);
+        popupsEdit.push(popup);
+        if (isNew) {
+          Instant.privmsg._save(popup);
+          Instant.popups.add(popup);
+          Instant.privmsg._update();
+          editor.focus();
+        }
       },
       /* Save the current state of the popup into storage */
       _save: function(popup) {
@@ -3796,24 +3810,29 @@ this.Instant = function() {
       _onmessage: function(msg) {
         var data = msg.data;
         if (data.type != 'privmsg') return;
-        var popup = Instant.privmsg._makePopup({id: msg.id,
-          parent: data.parent, from: msg.from, nick: data.nick,
-          text: data.text, timestamp: msg.timestamp, draft: false,
-          unread: true});
+        Instant.privmsg._read({id: msg.id, parent: data.parent,
+          from: msg.from, nick: data.nick, text: data.text,
+          timestamp: msg.timestamp, draft: false, unread: true}, true);
+      },
+      /* Display the popup for an incoming message */
+      _read: function(data, isNew) {
+        var popup = Instant.privmsg._makePopup(data);
         popupsRead.push(popup);
-        Instant.privmsg._save(popup);
-        Instant.privmsg._update();
-        Instant.animation.flash(msgRead);
-        Instant.notifications.submitNew({level: 'privmsg',
-          text: 'You have a new private message.',
-          btntext: 'View',
-          onclick: function() {
-            popup.classList.remove('pm-unread');
-            Instant.popups.add(popup);
-            Instant.privmsg._update();
-            Instant.animation.unflash(msgRead);
-          }
-        });
+        if (isNew) {
+          Instant.privmsg._save(popup);
+          Instant.privmsg._update();
+          Instant.animation.flash(msgRead);
+          Instant.notifications.submitNew({level: 'privmsg',
+            text: 'You have a new private message.',
+            btntext: 'View',
+            onclick: function() {
+              popup.classList.remove('pm-unread');
+              Instant.popups.add(popup);
+              Instant.privmsg._update();
+              Instant.animation.unflash(msgRead);
+            }
+          });
+        }
       },
       /* Produce a DOM node corresponding to the given description
        * data has the following attributes:
@@ -5138,7 +5157,11 @@ this.Instant = function() {
       /* Remove a node from the popup stack */
       del: function(node) {
         var next = node.nextElementSibling || node.previousElementSibling;
-        stack.removeChild(node);
+        try {
+          stack.removeChild(node);
+        } catch (e) {
+          return;
+        }
         if (! $sel('.popup:not(.popup-weak)', stack)) {
           wrapper.style.display = '';
           Instant.input.focus();
@@ -5388,7 +5411,7 @@ this.Instant = function() {
       keys: function() {
         var ret = [];
         for (var k in this._data) {
-          if (this._data.hasOwnProperty(ret)) ret.push(k);
+          if (this._data.hasOwnProperty(k)) ret.push(k);
         }
         return ret;
       },
