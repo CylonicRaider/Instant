@@ -1078,7 +1078,7 @@ this.Instant = function() {
                   lastUpdate = Date.now();
                 }
                 if (window.logInstantLogPulling)
-                  console.debug("[LogPull]", "Got advertisement", data);
+                  console.debug('[LogPull]', 'Got advertisement', data);
                 break;
               case 'log-request': /* Someone requests logs from us */
                 reply = {type: 'log'};
