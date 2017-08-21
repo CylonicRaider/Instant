@@ -3944,10 +3944,12 @@ this.Instant = function() {
           if (data.nick != null)
             popup.setAttribute('data-from-nick', data.nick);
           $cls('pm-to-id', popup).textContent = data.to;
+          $cls('pm-to-nick', popup).setAttribute('data-uid', data.to);
           $cls('pm-editor', popup).value = data.text || '';
         } else {
           $cls('pm-message-id', popup).textContent = data.id;
           $cls('pm-from-id', popup).textContent = data.from;
+          $cls('pm-from-nick', popup).setAttribute('data-uid', data.from);
           if (data.to != null)
             popup.setAttribute('data-to', data.to);
           if (data.tonick != null)
