@@ -5384,6 +5384,14 @@ this.Instant = function() {
       this._data = {};
     }
     Storage.prototype = {
+      /* List all keys */
+      keys: function() {
+        var ret = [];
+        for (var k in this._data) {
+          if (this._data.hasOwnProperty(ret)) ret.push(k);
+        }
+        return ret;
+      },
       /* Get the value corresponding to key */
       get: function(key) {
         return this._data[key];
