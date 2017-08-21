@@ -3678,7 +3678,7 @@ this.Instant = function() {
         } else {
           var count = popupsRead.length, unread = 0;
           for (var i = 0; i < count; i++) {
-            if (popupsRead[i].getAttribute('data-new')) unread++;
+            if (popupsRead[i].classList.contains('pm-unread')) unread++;
           }
           var pls = (count == 1) ? '' : 's', text;
           if (unread == 0) {
@@ -3723,7 +3723,7 @@ this.Instant = function() {
         if (popupsRead.length) Instant.popups.add(accessPopup, true);
         popupsRead.forEach(function(popup) {
           if (! Instant.popups.isShown(popup)) {
-            popup.removeAttribute('data-new');
+            popup.classList.remove('pm-unread');
             Instant.popups.add(popup);
           }
         });
@@ -3783,8 +3783,8 @@ this.Instant = function() {
         if (data.type != 'privmsg') return;
         var popup = Instant.privmsg._makePopup({id: msg.id,
           parent: data.parent, from: msg.from, nick: data.nick,
-          text: data.text, timestamp: msg.timestamp, draft: false});
-        popup.setAttribute('data-new', 'yes');
+          text: data.text, timestamp: msg.timestamp, draft: false,
+          unread: true});
         popupsRead.push(popup);
         Instant.privmsg._update();
         Instant.animation.flash(msgRead);
@@ -3792,7 +3792,7 @@ this.Instant = function() {
           text: 'You have a new private message.',
           btntext: 'View',
           onclick: function() {
-            popup.removeAttribute('data-new');
+            popup.classList.remove('pm-unread');
             Instant.popups.add(popup);
             Instant.privmsg._update();
             Instant.animation.unflash(msgRead);
@@ -3893,7 +3893,8 @@ this.Instant = function() {
         /* Create actual popup */
         var popup = Instant.popups.make({
           title: 'Private message' + ((data.draft) ? ' editor' : ''),
-          className: 'pm-popup ' + ((data.draft) ? 'pm-draft' : 'pm-viewer'),
+          className: 'pm-popup ' + ((data.unread) ? ' pm-unread' : '') +
+            ((data.draft) ? 'pm-draft' : 'pm-viewer'),
           content: body,
           buttons: buttons,
           focusSel: (data.draft) ? '.pm-editor' : '.first'
@@ -3927,6 +3928,7 @@ this.Instant = function() {
           if (node) ret[key] = node.textContent;
         }
         var ret = {draft: popup.classList.contains('pm-draft'),
+          unread: popup.classList.contains('pm-unread'),
           id: popup.getAttribute('data-id')};
         extractText('pm-parent-id', 'parent');
         var dateNode = $sel('.pm-date time', popup);
@@ -3951,7 +3953,7 @@ this.Instant = function() {
       countUnread: function() {
         var count = 0;
         popupsRead.forEach(function(popup) {
-          if (popup.getAttribute('data-new')) count++;
+          if (popup.classList.contains('pm-unread')) count++;
         });
         return count;
       }
