@@ -1009,6 +1009,8 @@ this.Instant = function() {
             pullStarted = null;
             lastUpdate = null;
             timer = null;
+            /* Notify other submodules */
+            Instant.logs.pull._gatherDone();
             /* Request logs! */
             var sentBefore = false, sentAfter = false;
             if (! keys.length) {
@@ -1044,6 +1046,12 @@ this.Instant = function() {
             if (window.logInstantLogPulling)
               console.debug('[LogPull]', 'Sent requests (B/A):', sentBefore,
                             sentAfter);
+          },
+          /* Notify other submodules that we are done gathering log
+           * advertisements */
+          _gatherDone: function() {
+            /* Now, most of the user list should have been enumerated */
+            Instant.privmsg._updateNicks();
           },
           /* Handler for messages */
           _onmessage: function(msg) {
@@ -3692,7 +3700,6 @@ this.Instant = function() {
           }
         });
         Instant.privmsg._update();
-        Instant.privmsg._updateNicks();
       },
       /* Update notification state */
       _update: function() {
