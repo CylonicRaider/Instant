@@ -1555,7 +1555,6 @@ this.Instant = function() {
         /* Filter out emotes and whitespace; parse (remaining) content */
         var emote = /^\/me/.test(params.text);
         var text = (emote) ? params.text.substr(3) : params.text;
-        text = text.trim();
         var content = Instant.message.parseContent(text);
         /* Collect some values */
         var clsname = 'message';
@@ -2158,6 +2157,13 @@ this.Instant = function() {
         var lateMatchers = 0;
         /* Message parsing fragments */
         var matchers = [
+          { /* Leading/trailing whitespace */
+            name: 'whitespace',
+            re: /^\s+|\s+$/,
+            cb: function(m, out) {
+              out.push(makeNode(m[0], 'hidden'));
+            }
+          },
           { /* Room/message links */
             name: 'room',
             re: /\B&([a-zA-Z]([\w-]*[a-zA-Z0-9])?)(#([a-zA-Z0-9]+))?\b/,
