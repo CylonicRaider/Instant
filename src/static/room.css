@@ -125,8 +125,6 @@ body {
   display: flex;
   -webkit-align-items: baseline;
   align-items: baseline;
-  white-space: pre-wrap;
-  word-wrap: break-word;
 }
 .message.ping > .line {
   background: #ffffc0;
