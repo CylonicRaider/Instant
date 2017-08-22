@@ -2184,7 +2184,7 @@ this.Instant = function() {
               /* Insert http:// if necessary */
               var url = m[1];
               if (! m[2]) url = 'http://' + url;
-                var node = makeNode(m[1], 'link', null, 'a');
+              var node = makeNode(m[1], 'link', null, 'a');
               node.href = url;
               node.target = '_blank';
               out.push(node);
@@ -2458,8 +2458,7 @@ this.Instant = function() {
             }
             doEOL(stack, out, i);
             for (var i = 0; i < stack.length; i++) declassify(stack[i]);
-            /* Assign actual emphasis levels (italic -> bold -> small-caps,
-             * with combinations in between) */
+            /* Render result into a DOM node */
             stack = [makeNode(null, 'message-text')];
             status = {};
             for (var i = 0; i < out.length; i++) {
