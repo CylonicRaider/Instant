@@ -3792,9 +3792,11 @@ this.Instant = function() {
         var popup = Instant.privmsg._makePopup(data);
         var editor = $cls('pm-editor', popup);
         editor.addEventListener('keydown', function(event) {
-          if (event.keyCode == 13 && event.ctrlKey) {
+          if (event.keyCode == 13 && event.ctrlKey) { // Return
             Instant.privmsg._send(popup);
             event.preventDefault();
+          } else if (event.keyCode == 27) { // Escape
+            event.stopPropagation();
           }
         });
         editor.addEventListener('change', function(event) {
