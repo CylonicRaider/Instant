@@ -911,11 +911,24 @@ body {
   background: black;
 }
 .popup .popup-bottom {
+  display: -webkit-flex;
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
   padding: 0 5px 5px 5px;
-  text-align: right;
 }
 .popup .popup-bottom:empty {
   padding-bottom: 0;
+}
+.popup .popup-bottom > * {
+  margin-left: 0.25em;
+}
+.popup .popup-bottom > :first-child {
+  margin-left: 0;
+}
+.popup .popup-bottom > .spacer {
+  margin-left: 0;
+  flex-grow: 1;
 }
 
 .popup.popup-hidetitle .popup-header {

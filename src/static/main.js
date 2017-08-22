@@ -5275,6 +5275,10 @@ this.Instant = function() {
         if (options.buttons) {
           var bottom = $cls('popup-bottom', ret);
           options.buttons.forEach(function(el) {
+            if (el == null) {
+              bottom.appendChild($makeNode('span', 'spacer'));
+              return;
+            }
             var btn = $makeNode('button', 'button', [el.text]);
             if (el.color) btn.style.color = el.color;
             if (el.onclick) btn.addEventListener('click', el.onclick);
