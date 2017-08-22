@@ -6039,6 +6039,6 @@ function init() {
 }
 
 /* It is quite conceivable this could be run after the document is ready.
- * Citation: Look at the 5000 lines above.
+ * Citation: Look at the thousands of lines above.
  * Second citation: The script is deferred. */
 $onload(init);
