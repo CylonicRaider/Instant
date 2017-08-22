@@ -1553,7 +1553,7 @@ this.Instant = function() {
       /* Generate a DOM node for the specified message parameters */
       makeMessage: function(params) {
         /* Filter out emotes and whitespace; parse (remaining) content */
-        var emote = /^\/me/.test(params.text);
+        var emote = /^\/me(?=\s|$)/.test(params.text);
         var text = (emote) ? params.text.substr(3) : params.text;
         var content = Instant.message.parseContent(text);
         /* Collect some values */
