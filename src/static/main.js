@@ -3924,12 +3924,12 @@ this.Instant = function() {
             var editor = $cls('pm-editor', popup);
             if (body.lastElementChild != editor)
               body.removeChild(body.lastElementChild);
-            if (editor.getAttribute('data-hidden') == 'yes') {
-              editor.setAttribute('data-hidden', 'no');
+            if (editor.style.display == 'none') {
+              editor.style.display = '';
               this.textContent = 'Preview';
             } else {
               body.appendChild(Instant.message.parseContent(editor.value));
-              editor.setAttribute('data-hidden', 'yes');
+              editor.style.display = 'none';
               this.textContent = 'Edit';
             }
           }},

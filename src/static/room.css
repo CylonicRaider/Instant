@@ -1005,10 +1005,6 @@ body {
   outline: none;
   resize: both;
 }
-.pm-popup .pm-body > .pm-editor[data-hidden="yes"],
-.pm-popup .pm-body > .pm-editor:not([data-hidden="yes"]) + .message-text {
-  display: none;
-}
 
 img.turn-right {
   -webkit-transform: rotate(90deg);
