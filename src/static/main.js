@@ -4014,6 +4014,7 @@ this.Instant = function() {
         title.textContent = 'Private message (sent)';
         popup.classList.remove('pm-draft');
         popup.classList.add('pm-afterview');
+        popup.setAttribute('data-focus', '.first');
         if (isNew)
           Instant.privmsg._save(popup);
       },
@@ -4039,7 +4040,11 @@ this.Instant = function() {
           ret.nick = popup.getAttribute('data-from-nick');
           extractText('pm-to-id', 'to');
           extractText('pm-to-nick', 'tonick');
-          ret.text = $cls('pm-editor', popup).value;
+          if (ret.type == 'pm-afterview') {
+            ret.text = $cls('message-text', popup).textContent;
+          } else {
+            ret.text = $cls('pm-editor', popup).value;
+          }
         } else {
           extractText('pm-from-id', 'from');
           extractText('pm-from-nick', 'nick');
