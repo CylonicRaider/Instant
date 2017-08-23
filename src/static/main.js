@@ -3693,7 +3693,7 @@ this.Instant = function() {
         storage.load();
         storage.keys().forEach(function(k) {
           var data = storage.get(k);
-          if (data.draft) {
+          if (data.type == 'pm-draft') {
             Instant.privmsg._write(data);
           } else {
             Instant.privmsg._read(data);
@@ -3785,7 +3785,7 @@ this.Instant = function() {
       write: function(uid, nick, text, parent) {
         var now = Date.now();
         Instant.privmsg._write({id: 'draft-' + now, parent: parent, to: uid,
-          tonick: nick, text: text, timestamp: now, draft: true}, true);
+          tonick: nick, text: text, timestamp: now, type: 'pm-draft'}, true);
       },
       /* Actually start writing a message with the given parameters */
       _write: function(data, isNew) {
@@ -3871,14 +3871,15 @@ this.Instant = function() {
        * (I -- applies to incoming messages; O -- applies to outgoing
        * messages; A -- applies to all messages.) */
       _makePopup: function(data) {
-        /* Display nickname */
-        var nick = (data.draft) ? data.tonick : data.nick;
+        /* Pre-computed variables */
+        var draft = (data.type == 'pm-draft');
+        var nick = (draft) ? data.tonick : data.nick;
         var nickNode = (nick == null) ? Instant.nick.makeAnonymous() :
           Instant.nick.makeNode(nick);
-        nickNode.classList.add((data.draft) ? 'pm-to-nick' : 'pm-from-nick');
+        nickNode.classList.add((draft) ? 'pm-to-nick' : 'pm-from-nick');
         /* Create structure skeleton */
         var body = $makeFrag(
-          ! data.draft && data.id && ['div', 'pm-header', [
+          ! draft && data.id && ['div', 'pm-header', [
             ['strong', null, 'ID: '],
             ['span', [
               ['span', 'monospace pm-message-id'],
@@ -3888,18 +3889,18 @@ this.Instant = function() {
               ]]
             ]]
           ]],
-          data.draft && data.parent && ['div', 'pm-header', [
+          draft && data.parent && ['div', 'pm-header', [
             ['strong', null, 'Reply-to: '],
             ['span', 'monospace pm-parent-id']
           ]],
-          ! data.draft && ['div', 'pm-header', [
+          ! draft && ['div', 'pm-header', [
             ['strong', null, 'From: '],
             ['span', [
               nickNode, ' ',
               ['i', ['(user ID ', ['span', 'monospace pm-from-id'], ')']]
             ]]
           ]],
-          data.draft && ['div', 'pm-header', [
+          draft && ['div', 'pm-header', [
             ['strong', null, 'To: '],
             ['span', [
               nickNode, ' ',
@@ -3912,12 +3913,12 @@ this.Instant = function() {
           ]],
           ['hr'],
           ['div', 'pm-body', [
-            ! data.draft && Instant.message.parseContent(data.text),
-            data.draft && ['textarea', 'pm-editor']
+            ! draft && Instant.message.parseContent(data.text),
+            draft && ['textarea', 'pm-editor']
           ]]
         );
         /* Create buttons */
-        var buttons = (data.draft) ? [
+        var buttons = (draft) ? [
           {text: 'Finish later', onclick: function() {
             Instant.popups.del(popup);
           }, className: 'first'},
@@ -3950,18 +3951,18 @@ this.Instant = function() {
         ];
         /* Create actual popup */
         var popup = Instant.popups.make({
-          title: 'Private message' + ((data.draft) ? ' editor' : ''),
+          title: 'Private message' + ((draft) ? ' editor' : ''),
           className: 'pm-popup ' + ((data.unread) ? ' pm-unread' : '') +
-            ((data.draft) ? 'pm-draft' : 'pm-viewer'),
+            ((draft) ? 'pm-draft' : 'pm-viewer'),
           content: body,
           buttons: buttons,
-          focusSel: (data.draft) ? '.pm-editor' : '.first'
+          focusSel: (draft) ? '.pm-editor' : '.first'
         });
         /* Distribute remaining data into attributes */
         popup.setAttribute('data-id', data.id);
         if (data.parent)
           $cls('pm-parent-id', popup).textContent = data.parent;
-        if (data.draft) {
+        if (draft) {
           if (data.from != null)
             popup.setAttribute('data-from', data.from);
           if (data.nick != null)
@@ -3987,14 +3988,16 @@ this.Instant = function() {
           var node = $cls(cls, popup);
           if (node) ret[key] = node.textContent;
         }
-        var ret = {draft: popup.classList.contains('pm-draft'),
+        var ret = {
+          type: (popup.classList.contains('pm-draft')) ? 'pm-draft' :
+            'privmsg',
           unread: popup.classList.contains('pm-unread'),
           id: popup.getAttribute('data-id')};
         extractText('pm-parent-id', 'parent');
         var dateNode = $sel('.pm-date time', popup);
         if (dateNode)
           ret.timestamp = +dateNode.getAttribute('data-timestamp');
-        if (ret.draft) {
+        if (ret.type == 'pm-draft') {
           ret.from = popup.getAttribute('data-from');
           ret.nick = popup.getAttribute('data-from-nick');
           extractText('pm-to-id', 'to');
@@ -4022,7 +4025,8 @@ this.Instant = function() {
               case 'privmsg':
                 Instant.privmsg._read({id: msg.id, parent: data.parent,
                   from: msg.from, nick: data.nick, text: data.text,
-                  timestamp: msg.timestamp, draft: false, unread: true}, true);
+                  timestamp: msg.timestamp, type: 'privmsg', unread: true},
+                  true);
                 break;
           }
         }
