@@ -4045,7 +4045,8 @@ this.Instant = function() {
           extractText('pm-to-id', 'to');
           extractText('pm-to-nick', 'tonick');
           if (ret.type == 'pm-afterview') {
-            ret.text = $cls('message-text', popup).textContent;
+            ret.text = Instant.message.parser.extractText(
+              $cls('message-text', popup));
           } else {
             ret.text = $cls('pm-editor', popup).value;
           }
@@ -4054,7 +4055,8 @@ this.Instant = function() {
           extractText('pm-from-nick', 'nick');
           ret.to = popup.getAttribute('data-to');
           ret.tonick = popup.getAttribute('data-to-nick');
-          ret.text = $cls('pm-body', popup).textContent;
+          ret.text = Instant.message.parser.extractText(
+            $cls('message-text', popup));
         }
         return ret;
       },
