@@ -3876,7 +3876,7 @@ this.Instant = function() {
        * messages; A -- applies to all messages.) */
       _makePopup: function(data) {
         /* Pre-computed variables */
-        var draft = (data.type == 'pm-draft');
+        var draft = (data.type == 'pm-draft' || data.type == 'pm-afterview');
         var nick = (draft) ? data.tonick : data.nick;
         var nickNode = (nick == null) ? Instant.nick.makeAnonymous() :
           Instant.nick.makeNode(nick);
@@ -4029,11 +4029,12 @@ this.Instant = function() {
                 'privmsg',
           unread: popup.classList.contains('pm-unread'),
           id: popup.getAttribute('data-id')};
+        var draft = (ret.type == 'pm-draft' || ret.type == 'pm-afterview');
         extractText('pm-parent-id', 'parent');
         var dateNode = $sel('.pm-date time', popup);
         if (dateNode)
           ret.timestamp = +dateNode.getAttribute('data-timestamp');
-        if (ret.type == 'pm-draft') {
+        if (draft) {
           ret.from = popup.getAttribute('data-from');
           ret.nick = popup.getAttribute('data-from-nick');
           extractText('pm-to-id', 'to');
