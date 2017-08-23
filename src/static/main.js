@@ -2509,6 +2509,10 @@ this.Instant = function() {
             /* Done! */
             return stack[0];
           },
+          /* Reverse the transformation performed by the parser */
+          extractText: function(node) {
+            return node.textContent;
+          },
           /* Add an early matcher */
           addEarlyMatcher: function(m) {
             matchers.splice(earlyMatchers++, 0, m);
