@@ -3913,12 +3913,27 @@ this.Instant = function() {
           ]],
           ['hr'],
           ['div', 'pm-body', [
-            ! draft && Instant.message.parseContent(data.text),
-            draft && ['textarea', 'pm-editor']
+            draft && ['textarea', 'pm-editor', {'data-hidden': ''}],
+            ! draft && Instant.message.parseContent(data.text || '')
           ]]
         );
         /* Create buttons */
         var buttons = (draft) ? [
+          {text: 'Preview', onclick: function() {
+            var body = $cls('pm-body', popup);
+            var editor = $cls('pm-editor', popup);
+            if (body.lastElementChild != editor)
+              body.removeChild(body.lastElementChild);
+            if (editor.getAttribute('data-hidden') == 'yes') {
+              editor.setAttribute('data-hidden', 'no');
+              this.textContent = 'Preview';
+            } else {
+              body.appendChild(Instant.message.parseContent(editor.value));
+              editor.setAttribute('data-hidden', 'yes');
+              this.textContent = 'Edit';
+            }
+          }},
+          null, // Spacer
           {text: 'Finish later', onclick: function() {
             Instant.popups.del(popup);
           }, className: 'first'},
