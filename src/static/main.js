@@ -3693,8 +3693,10 @@ this.Instant = function() {
         storage.load();
         storage.keys().forEach(function(k) {
           var data = storage.get(k);
-          if (data.type == 'pm-draft') {
-            Instant.privmsg._write(data);
+          if (data.type == 'pm-draft' || data.type == 'pm-afterview') {
+            var popup = Instant.privmsg._write(data);
+            if (data.type == 'pm-afterview')
+              Instant.privmsg._transformAfterview(popup);
           } else {
             Instant.privmsg._read(data);
           }
@@ -3810,6 +3812,7 @@ this.Instant = function() {
           Instant.privmsg._update();
           editor.focus();
         }
+        return popup;
       },
       /* Save the current state of the popup into storage */
       _save: function(popup) {
@@ -3835,7 +3838,7 @@ this.Instant = function() {
           data.parent = parentNode.textContent;
         var recipient = $cls('pm-to-id').textContent;
         Instant.connection.sendUnicast(recipient, data);
-        Instant.privmsg._remove(popup);
+        Instant.privmsg._transformAfterview(popup, true);
       },
       /* Display the popup for an incoming message */
       _read: function(data, isNew) {
@@ -3856,6 +3859,7 @@ this.Instant = function() {
             }
           });
         }
+        return popup;
       },
       /* Produce a DOM node corresponding to the given description
        * data has the following attributes:
@@ -3932,7 +3936,7 @@ this.Instant = function() {
               editor.style.display = 'none';
               this.textContent = 'Edit';
             }
-          }},
+          }, className: 'pm-preview'},
           null, // Spacer
           {text: 'Finish later', onclick: function() {
             Instant.popups.del(popup);
@@ -3997,6 +4001,22 @@ this.Instant = function() {
         /* Done */
         return popup;
       },
+      /* Transform the given editor popup into an after-view */
+      _transformAfterview: function(popup, isNew) {
+        var title = $cls('popup-title', popup);
+        var body = $cls('pm-body', popup);
+        var editor = $cls('pm-editor', popup);
+        var preview = $cls('pm-preview', popup);
+        var newText = Instant.message.parseContent(editor.value);
+        while (body.firstChild) body.removeChild(body.firstChild);
+        body.appendChild(newText);
+        preview.parentNode.removeChild(preview);
+        title.textContent = 'Private message (sent)';
+        popup.classList.remove('pm-draft');
+        popup.classList.add('pm-afterview');
+        if (isNew)
+          Instant.privmsg._save(popup);
+      },
       /* Reverse the operation performed by _makePopup */
       _extractPopupData: function(popup) {
         function extractText(cls, key) {
@@ -4005,7 +4025,8 @@ this.Instant = function() {
         }
         var ret = {
           type: (popup.classList.contains('pm-draft')) ? 'pm-draft' :
-            'privmsg',
+                (popup.classList.contains('pm-afterview')) ? 'pm-afterview' :
+                'privmsg',
           unread: popup.classList.contains('pm-unread'),
           id: popup.getAttribute('data-id')};
         extractText('pm-parent-id', 'parent');
