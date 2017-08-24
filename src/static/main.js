@@ -3730,12 +3730,14 @@ this.Instant = function() {
         popups.forEach(function(popup) {
           counts[Instant.privmsg._getPopupClass(popup)]++;
         });
-        /* Update signage */
+        /* Update signage
+         * HACK: Pasting together HTML to levery Array.prototype.join(). */
         var text = ['I', 'D', 'O'].filter(function(l) {
           return counts[l];
         }).map(function(l) {
-          return counts[l] + l.toLowerCase();
-        }).join(';');
+          return ('<span style="color: ' + COLORS[l] + '">' + counts[l] +
+            l.toLowerCase() + '</span>');
+        }).join('; ');
         if (counts.U) {
           var pls = (counts.U == 1) ? '' : 's';
           msgUnread.textContent = ('New private message' + pls + ' (' +
@@ -3746,7 +3748,7 @@ this.Instant = function() {
         }
         if (text) {
           var pls = (counts.I + counts.D + counts.O == 1) ? '' : 's';
-          msgOthers.textContent = ('Private message' + pls + ' (' +
+          msgOthers.innerHTML = ('Private message' + pls + ' (' +
             text + ')');
           Instant.sidebar.showMessage(msgOthers);
         } else {
