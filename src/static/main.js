@@ -3774,13 +3774,15 @@ this.Instant = function() {
         Instant.title.update();
       },
       /* Update the gray-out status of all popups */
-      _updateNicks: function() {
-        popups.forEach(function(popup) {
+      _updateNicks: function(popup) {
+        if (popup) {
           var nick = $sel('.pm-header .nick', popup);
           if (! Instant.userList.get(nick.getAttribute('data-uid')) &&
-            nick.style.backgroundColor)
+              nick.style.backgroundColor)
             nick.style.backgroundColor = '';
-        });
+          return;
+        }
+        popups.forEach(Instant.privmsg._updateNicks.bind(Instant.privmsg));
       },
       /* Show the requested popups */
       show: function(unread, inbox, drafts, outbox) {
@@ -3826,6 +3828,7 @@ this.Instant = function() {
         popups.push(popup);
         if (isNew) {
           Instant.privmsg._save(popup);
+          Instant.privmsg._updateNicks(popup);
           Instant.popups.add(popup);
           Instant.privmsg._update();
           editor.focus();
