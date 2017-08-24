@@ -3663,6 +3663,13 @@ this.Instant = function() {
   }();
   /* Private messages */
   Instant.privmsg = function() {
+    /* Color-coding */
+    var COLORS = {
+      U: '#808000', /* Unread - important */
+      I: '#008000', /* Read - okay */
+      D: '#0000c0', /* Draft - neutral */
+      O: '#c00000'  /* Outbox - can be removed */
+    };
     /* UI messages (unread/others) */
     var msgUnread = null, msgOthers = null;
     /* Popup storage */
@@ -3677,7 +3684,8 @@ this.Instant = function() {
         function sh(u, i, d, o) {
           return Instant.privmsg.show.bind(Instant.privmsg, u, i, d, o);
         }
-        var su = sh(1, 0, 0, 0), sm = sh(0, 1, 1, 1);
+        var su = sh(true, false, false, false);
+        var sm = sh(false, true, true, true);
         msgUnread = Instant.sidebar.makeMessage({
           content: 'New private messages',
           color: Instant.notifications.COLORS.privmsg,
@@ -3690,10 +3698,14 @@ this.Instant = function() {
           title: 'Private messages',
           content: 'Click below to open your inbox / all drafts.',
           buttons: [
-            {text: 'Unread', onclick: su, className: 'show-unread'},
-            {text: 'Inbox', onclick: sh(0,1,0,0), className: 'show-inbox'},
-            {text: 'Drafts', onclick: sh(0,0,1,0), className: 'show-drafts'},
-            {text: 'Outbox', onclick: sh(0,0,0,1), className: 'show-outbox'}
+            {text: 'Unread', onclick: su, color: COLORS.U,
+             className: 'show-unread'},
+            {text: 'Inbox', onclick: sh(false, true, false, false),
+             color: COLORS.I, className: 'show-inbox'},
+            {text: 'Drafts', onclick: sh(false, false, true, false),
+             color: COLORS.D, className: 'show-drafts'},
+            {text: 'Outbox', onclick: sh(false, false, false, true),
+             color: COLORS.O, className: 'show-outbox'}
           ],
           noClose: true,
           className: 'popup-weak'});
