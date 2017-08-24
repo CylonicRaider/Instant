@@ -3722,7 +3722,7 @@ this.Instant = function() {
         var text = ['I', 'D', 'O'].filter(function(l) {
           return counts[l];
         }).map(function(l) {
-          return counts[l] + l;
+          return counts[l] + l.toLowerCase();
         }).join(';');
         if (counts.U) {
           var pls = (counts.U == 1) ? '' : 's';
