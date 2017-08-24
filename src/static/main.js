@@ -3942,13 +3942,13 @@ this.Instant = function() {
           null, // Spacer
           {text: 'Finish later', onclick: function() {
             Instant.popups.del(popup);
-          }, className: 'first'},
+          }, className: 'first pm-finish-later'},
           {text: 'Delete', color: '#c00000', onclick: function() {
             Instant.privmsg._remove(popup);
           }},
           {text: 'Send', color: '#008000', onclick: function() {
             Instant.privmsg._send(popup);
-          }}
+          }, className: 'pm-send'}
         ] : [
           {text: 'Read later', onclick: function() {
             Instant.popups.del(popup);
@@ -4009,12 +4009,14 @@ this.Instant = function() {
         var body = $cls('pm-body', popup);
         var editor = $cls('pm-editor', popup);
         var preview = $cls('pm-preview', popup);
-        var finishLater = $cls('first', popup);
+        var finishLater = $cls('pm-finish-later', popup);
+        var send = $cls('pm-send', popup);
         var newText = Instant.message.parseContent(editor.value);
         while (body.firstChild) body.removeChild(body.firstChild);
         body.appendChild(newText);
         preview.parentNode.removeChild(preview);
         finishLater.textContent = 'Dismiss';
+        send.parentNode.removeChild(send);
         title.textContent = 'Private message (sent)';
         popup.classList.remove('pm-draft');
         popup.classList.add('pm-afterview');
