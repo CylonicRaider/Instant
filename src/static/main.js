@@ -4009,10 +4009,12 @@ this.Instant = function() {
         var body = $cls('pm-body', popup);
         var editor = $cls('pm-editor', popup);
         var preview = $cls('pm-preview', popup);
+        var finishLater = $cls('first', popup);
         var newText = Instant.message.parseContent(editor.value);
         while (body.firstChild) body.removeChild(body.firstChild);
         body.appendChild(newText);
         preview.parentNode.removeChild(preview);
+        finishLater.textContent = 'Dismiss';
         title.textContent = 'Private message (sent)';
         popup.classList.remove('pm-draft');
         popup.classList.add('pm-afterview');
