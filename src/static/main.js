@@ -3663,10 +3663,10 @@ this.Instant = function() {
   }();
   /* Private messages */
   Instant.privmsg = function() {
-    /* UI messages (reading/writing) */
-    var msgRead = null, msgEdit = null;
-    /* Popup arrays (reading/writing) */
-    var popupsRead = [], popupsEdit = [];
+    /* UI messages (unread/others) */
+    var msgUnread = null, msgOthers = null;
+    /* Popup storage */
+    var popups = [];
     /* Message opening popup */
     var accessPopup = null;
     /* Reload-safe cache of popups */
@@ -3674,22 +3674,26 @@ this.Instant = function() {
     return {
       /* Initialize submodule */
       init: function() {
-        var sr = Instant.privmsg.showRead.bind(Instant.privmsg);
-        var sw = Instant.privmsg.showWrite.bind(Instant.privmsg);
-        msgRead = Instant.sidebar.makeMessage({
+        function sh(u, i, d, o) {
+          return Instant.privmsg.show.bind(Instant.privmsg, u, i, d, o);
+        }
+        var su = sh(1, 0, 0, 0), sm = sh(0, 1, 1, 1);
+        msgUnread = Instant.sidebar.makeMessage({
+          content: 'New private messages',
+          color: Instant.notifications.COLORS.privmsg,
+          onclick: su});
+        msgOthers = Instant.sidebar.makeMessage({
           content: 'Private messages',
           color: Instant.notifications.COLORS.privmsg,
-          onclick: sr});
-        msgEdit = Instant.sidebar.makeMessage({
-          content: 'Private message drafts',
-          color: Instant.notifications.COLORS.privmsg,
-          onclick: sw});
+          onclick: sm});
         accessPopup = Instant.popups.make({
           title: 'Private messages',
-          content: 'Click here to open your inbox / all drafts.',
+          content: 'Click below to open your inbox / all drafts.',
           buttons: [
-            {text: 'Inbox', onclick: sr, className: 'show-inbox'},
-            {text: 'Drafts', onclick: sw, className: 'show-drafts'}
+            {text: 'Unread', onclick: su, className: 'show-unread'},
+            {text: 'Inbox', onclick: sh(0,1,0,0), className: 'show-inbox'},
+            {text: 'Drafts', onclick: sh(0,0,1,0), className: 'show-drafts'},
+            {text: 'Outbox', onclick: sh(0,0,0,1), className: 'show-outbox'}
           ],
           noClose: true,
           className: 'popup-weak'});
@@ -3709,46 +3713,46 @@ this.Instant = function() {
       },
       /* Update notification state */
       _update: function() {
-        if (! popupsRead.length) {
-          Instant.sidebar.hideMessage(msgRead);
-          $cls('show-inbox', accessPopup).style.display = 'none';
+        /* Categorize popups into Unread, Inbox, Drafts, Outbox */
+        var counts = {U: 0, I: 0, D: 0, O: 0};
+        popups.forEach(function(popup) {
+          counts[Instant.privmsg._getPopupClass(popup)]++;
+        });
+        /* Update signage */
+        var text = ['I', 'D', 'O'].filter(function(l) {
+          return counts[l];
+        }).map(function(l) {
+          return counts[l] + l;
+        }).join(';');
+        if (counts.U) {
+          var pls = (counts.U == 1) ? '' : 's';
+          msgUnread.textContent = ('New private message' + pls + ' (' +
+            counts.U + '!!)');
+          Instant.sidebar.showMessage(msgUnread);
         } else {
-          var count = popupsRead.length, unread = 0;
-          for (var i = 0; i < count; i++) {
-            if (popupsRead[i].classList.contains('pm-unread')) unread++;
-          }
-          var pls = (count == 1) ? '' : 's', text;
-          if (unread == 0) {
-            text = '(' + count + ')';
-          } else if (count == unread) {
-            text = '(' + unread + '!!)';
-          } else {
-            text = '(' + (count - unread) + ' + ' + unread + '!!)';
-          }
-          msgRead.textContent = 'Private message' + pls + ' ' + text;
-          Instant.sidebar.showMessage(msgRead);
-          var btn = $cls('show-inbox', accessPopup);
-          btn.style.display = '';
-          btn.textContent = 'Inbox ' + text;
+          Instant.sidebar.hideMessage(msgUnread);
         }
-        if (! popupsEdit.length) {
-          Instant.sidebar.hideMessage(msgEdit);
-          $cls('show-drafts', accessPopup).style.display = 'none';
+        if (text) {
+          var pls = (counts.I + counts.D + counts.O == 1) ? '' : 's';
+          msgOthers.textContent = ('Private message' + pls + ' (' +
+            text + ')');
+          Instant.sidebar.showMessage(msgOthers);
         } else {
-          var pls = 's', text;
-          if (popupsEdit.length == 1) {
-            pls = '';
-            text = '(1)';
-          } else {
-            text = '(' + popupsEdit.length + ')';
-          }
-          msgEdit.textContent = 'Private message draft' + pls + ' ' + text;
-          Instant.sidebar.showMessage(msgEdit);
-          var btn = $cls('show-drafts', accessPopup);
-          btn.style.display = '';
-          btn.textContent = 'Draft' + pls + ' ' + text;
+          Instant.sidebar.hideMessage(msgOthers);
         }
-        if (popupsRead.length || popupsEdit.length) {
+        /* Update control popup */
+        if (counts.U + counts.I + counts.D + counts.O) {
+          [['U', 'show-unread', 'Unread'], ['I', 'show-inbox', 'Inbox'],
+           ['D', 'show-drafts', 'Drafts'], ['O', 'show-outbox', 'Outbox']
+          ].forEach(function(el) {
+            var btn = $cls(el[1], accessPopup);
+            if (counts[el[0]]) {
+              btn.textContent = el[2] + ' (' + counts[el[0]] + ')';
+              btn.style.display = '';
+            } else {
+              btn.style.display = 'none';
+            }
+          });
           Instant.popups.add(accessPopup, true);
         } else {
           Instant.popups.del(accessPopup);
@@ -3757,35 +3761,31 @@ this.Instant = function() {
       },
       /* Update the gray-out status of all popups */
       _updateNicks: function() {
-        function update(popup) {
+        popups.forEach(function(popup) {
           var nick = $sel('.pm-header .nick', popup);
           if (! Instant.userList.get(nick.getAttribute('data-uid')) &&
-              nick.style.backgroundColor)
+            nick.style.backgroundColor)
             nick.style.backgroundColor = '';
-        }
-        popupsRead.forEach(update);
-        popupsEdit.forEach(update);
+        });
       },
-      /* Show the reading popups */
-      showRead: function() {
-        if (popupsRead.length) Instant.popups.add(accessPopup, true);
-        popupsRead.forEach(function(popup) {
-          if (! Instant.popups.isShown(popup)) {
+      /* Show the requested popups */
+      show: function(unread, inbox, drafts, outbox) {
+        var flags = {U: unread, I: inbox, D: drafts, O: outbox};
+        var update = false;
+        popups.forEach(function(popup) {
+          if (Instant.popups.isShown(popup)) return;
+          var cls = Instant.privmsg._getPopupClass(popup);
+          if (! flags[cls]) return;
+          if (cls == 'U') {
             popup.classList.remove('pm-unread');
             Instant.privmsg._save(popup);
-            Instant.popups.add(popup);
+            update = true;
           }
+          Instant.popups.add(popup);
         });
-        Instant.privmsg._update();
-        Instant.animation.unflash(msgRead);
-      },
-      /* Show the writing popups */
-      showWrite: function() {
-        if (popupsEdit.length) Instant.popups.add(accessPopup, true);
-        popupsEdit.forEach(function(popup) {
-          if (! Instant.popups.isShown(popup))
-            Instant.popups.add(popup);
-        });
+        if (update) Instant.privmsg._update();
+        Instant.animation.unflash(msgUnread);
+        Instant.animation.unflash(msgOthers);
       },
       /* Start writing a message to uid */
       write: function(uid, nick, text, parent) {
@@ -3809,7 +3809,7 @@ this.Instant = function() {
           Instant.privmsg._save(popup);
         });
         editor.setSelectionRange(editor.value.length, editor.value.length);
-        popupsEdit.push(popup);
+        popups.push(popup);
         if (isNew) {
           Instant.privmsg._save(popup);
           Instant.popups.add(popup);
@@ -3826,10 +3826,8 @@ this.Instant = function() {
       /* Remove a PM draft or reader */
       _remove: function(popup) {
         storage.del(popup.getAttribute('data-id'));
-        var idx = popupsRead.indexOf(popup);
-        if (idx != -1) popupsRead.splice(idx, 1);
-        idx = popupsEdit.indexOf(popup);
-        if (idx != -1) popupsEdit.splice(idx, 1);
+        var idx = popups.indexOf(popup);
+        if (idx != -1) popups.splice(idx, 1);
         Instant.popups.del(popup);
         Instant.privmsg._update();
       },
@@ -3847,11 +3845,11 @@ this.Instant = function() {
       /* Display the popup for an incoming message */
       _read: function(data, isNew) {
         var popup = Instant.privmsg._makePopup(data);
-        popupsRead.push(popup);
+        popups.push(popup);
         if (isNew) {
           Instant.privmsg._save(popup);
           Instant.privmsg._update();
-          Instant.animation.flash(msgRead);
+          Instant.animation.flash(msgUnread);
           Instant.notifications.submitNew({level: 'privmsg',
             text: 'You have a new private message.',
             btntext: 'View',
@@ -3859,7 +3857,7 @@ this.Instant = function() {
               popup.classList.remove('pm-unread');
               Instant.popups.add(popup);
               Instant.privmsg._update();
-              Instant.animation.unflash(msgRead);
+              Instant.animation.unflash(msgUnread);
             }
           });
         }
@@ -4022,6 +4020,18 @@ this.Instant = function() {
         if (isNew)
           Instant.privmsg._save(popup);
       },
+      /* Determine which of the four classes the popup belongs to */
+      _getPopupClass: function(popup) {
+        if (popup.classList.contains('pm-draft')) {
+          return 'D';
+        } else if (popup.classList.contains('pm-afterview')) {
+          return 'O';
+        } else if (popup.classList.contains('pm-unread')) {
+          return 'U';
+        } else {
+          return 'I';
+        }
+      },
       /* Reverse the operation performed by _makePopup */
       _extractPopupData: function(popup) {
         function extractText(cls, key) {
@@ -4082,7 +4092,7 @@ this.Instant = function() {
       /* Return the amount of unread private messages */
       countUnread: function() {
         var count = 0;
-        popupsRead.forEach(function(popup) {
+        popups.forEach(function(popup) {
           if (popup.classList.contains('pm-unread')) count++;
         });
         return count;
