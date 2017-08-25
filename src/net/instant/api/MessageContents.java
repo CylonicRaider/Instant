@@ -27,8 +27,8 @@ public interface MessageContents {
      * The message type.
      * Generally, messages passed through to other clients should retain the
      * message type (and the wording should be chosen to facilitate that),
-     * unless change is semantically warranted; e.g. "unicast" and
-     * "broadcast" messages are nearly re-translated by the core, but a
+     * unless change is semantically warranted; e.g., "unicast" and
+     * "broadcast" messages are nearly retransmitted by the core, but a
      * "ping" message is replied to with a "pong".
      * Message types should be short alphanumeric strings with dashes as word
      * separators.

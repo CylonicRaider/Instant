@@ -7,7 +7,7 @@ import java.util.Set;
 /**
  * A server-sent event.
  * The class provides convenience methods for accessing the attributes of the
- * event, and, most importantly, the toString() method which serializes the
+ * event, and, most importantly, the toString() method, which serializes the
  * event as conforming to the standard. The values are recalled in the order
  * they were inserted.
  * Standard fields are:

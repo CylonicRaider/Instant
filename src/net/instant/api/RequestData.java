@@ -24,7 +24,7 @@ public interface RequestData {
     /**
      * The authenticated identity of the request.
      * E.g. an account name.
-     * Not implemented by the backend, but possibly by plugins.
+     * Not implemented by the core, but possibly by plugins.
      * null if not available (e.g. for an anonymous user).
      */
     String getAuthIdentity();
@@ -57,7 +57,7 @@ public interface RequestData {
     /**
      * The type of the request.
      * Plugins should check what kind of resource the client requests, and
-     * reject the connection appropriately.
+     * only accept the connection if they can deal with it.
      */
     RequestType getRequestType();
 

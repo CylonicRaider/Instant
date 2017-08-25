@@ -32,13 +32,15 @@ public interface ResponseBuilder {
 
     /**
      * Fabricate a new cookie with the given name and value.
-     * Metadata may be set using the put() method.
+     * Metadata may be set using the put() method. To be actually sent, the
+     * cookie must be given the putCookie() method.
      */
     Cookie makeCookie(String name, String value);
 
     /**
      * Fabricate a new cookie with the given name and data.
-     * Metadata may be amended using the put() method().
+     * Metadata may be amended using the put() method. To be actually sent,
+     * the cookie must be given the putCookie() method.
      */
     Cookie makeCookie(String name, JSONObject data);
 

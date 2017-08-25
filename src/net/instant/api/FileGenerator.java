@@ -21,7 +21,7 @@ public interface FileGenerator {
      * Produce a static file.
      * Assuming that hasFile() has confirmed the existence of the given
      * path, actually fetch the given file, possibly blocking.
-     * The method is run asynchronously.
+     * The method is run in a background thread.
      * An exception thrown will force the core to "bail out" irregularly.
      */
     FileInfo generateFile(String path) throws IOException;

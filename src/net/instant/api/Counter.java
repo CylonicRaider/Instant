@@ -26,8 +26,9 @@ public interface Counter {
     /**
      * Obtain the UUID form of a new ID or the given one.
      * The core embeds the ID into the timestamp (and, against the standard,
-     * the "clock sequence" field) of a Type-1 UUID, using the node
-     * identifier field to increase cross-instance uniqueness.
+     * the "clock sequence" field) of a Type-1 UUID, using a random (but
+     * constant for the lifetime of a backend) node identifier field to
+     * increase cross-instance uniqueness.
      */
     UUID getUUID();
     UUID getUUID(long id);

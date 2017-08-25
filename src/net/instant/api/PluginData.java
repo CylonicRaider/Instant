@@ -19,7 +19,7 @@ public interface PluginData {
     Set<String> getDependencies();
 
     /**
-     * An auxillary attribute of the plugin.
+     * An auxiliary attribute of the plugin.
      */
     String getAttribute(String attr);
 

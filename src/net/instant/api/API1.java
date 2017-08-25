@@ -4,7 +4,7 @@ import java.util.regex.Pattern;
 
 /**
  * Instant Programmers' Backend Interface revision 1.
- * The "core" refers the "base" Instant, without plugins.
+ * Where mentioned, the "core" refers the "base" Instant, without plugins.
  */
 public interface API1 {
 
@@ -29,18 +29,19 @@ public interface API1 {
     /**
      * Alias a single file path to another.
      * Used by the core to provide singular paths like /favicon.ico.
-     * NOTE that the original location of the file is accessible as well.
+     * NOTE that the "original" location of the file (i.e. the to argument)
+     *      is normally accessible as well.
      */
     void addFileAlias(String from, String to);
 
     /**
-     * Alias a regular expression of paths to a template.
+     * Alias a regular expression matching paths to a template.
      * Used by the backend to map virtual files from various locations (like
      * /room/welcome/) to an actual file (like /static/room.html).
      * to is a template which is expanded by replacing backslashes followed
-     * by group numbers with the corresponding groups as matched by the
-     * pattern (where "group 0" is the entire match) and replacing double
-     * backslashes with single ones.
+     * by (optionally brace-enclosed) group numbers with the corresponding
+     * groups as matched by the pattern (where "group 0" is the entire match)
+     * and replacing double backslashes with single ones.
      */
     void addFileAlias(Pattern from, String to);
 
@@ -52,15 +53,15 @@ public interface API1 {
      * will be like ".*\\.txt".
      * NOTE that differently to file aliases and redirects, pattern is always
      *      a regular expression pattern, since assigning a content type to
-     *      a single path is deemed too rare to be useful.
+     *      a single path was deemed too rare to be useful.
      */
     void addContentType(String pattern, String type);
 
     /**
      * Redirect clients from a path to another.
-     * Differently from file aliases, whose results are served as the path
-     * the client requested, redirects actually change the URL the client
-     * is requesting. code is the HTTP code to use.
+     * Differently to file aliases, whose results are served as the path the
+     * client requested, redirects actually change the URL the client is
+     * requesting (or, rather, ask it to). code is the HTTP code to use.
      */
     void addRedirect(String from, String to, int code);
 
@@ -94,14 +95,15 @@ public interface API1 {
 
     /**
      * Obtain a unique ID generator.
-     * ID-s are time-based and guaranteed to be unique for the lifetime of
-     * a backend.
+     * ID-s are time-based and guaranteed to be unique across all generators
+     * (which may be the same instance) for the lifetime of a backend, and
+     * probably beyond.
      */
     Counter getCounter();
 
     /**
      * Invoke the default plugin initializer.
-     * A plugin may wish to use declarative features, but yet execute own
+     * A plugin may wish to both use the declarative features and execute own
      * code upon initialization.
      * Returns the object returned by the default handler.
      */
@@ -109,7 +111,8 @@ public interface API1 {
 
     /**
      * Obtain a configuration value.
-     * Configuration values are hierarchical dot-delimited lowercase strings.
+     * Configuration values are named by hierarchical dot-delimited lowercase
+     * strings.
      * The code distinguishes between empty values and the absence of such;
      * a non-null return does not guarantee the string not to be empty.
      * Currently, system properties and environment variables (where the name

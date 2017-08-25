@@ -4,8 +4,8 @@ import java.util.Set;
 
 /**
  * Representation of a chat room.
- * Instances may be garbage-collected when there are no clients connected to
- * a room.
+ * Instances may or may not be garbage-collected when there are no clients
+ * connected to a room.
  */
 public interface Room {
 

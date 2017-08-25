@@ -4,14 +4,14 @@ import java.nio.ByteBuffer;
 
 /**
  * Information about a static file and its contents.
- * The methods marked as "assumed to be constant" may not be called but once
- * for filling internal data structures by the core.
+ * The methods marked as "assumed to be constant" may be called only once and
+ * then cached values may be reused.
  */
 public interface FileInfo {
 
     /**
      * The name of the file.
-     * Used for caching purposes. Is assumed to be constant.
+     * Used for caching purposes. Assumed to be constant.
      */
     String getName();
 
@@ -24,14 +24,14 @@ public interface FileInfo {
 
     /**
      * The creation date of the (cached) file as a UNIX timestamp.
-     * Is assumed to be constant.
+     * Assumed to be constant.
      */
     long getCreated();
 
     /**
      * Whether this information is still valid.
      * If the underlying resource changed for which reasons ever, only this
-     * method's return value should change. The core will reload the file
+     * method's return value needs to change. The core will reload the file
      * when the need arises.
      */
     boolean isValid();
