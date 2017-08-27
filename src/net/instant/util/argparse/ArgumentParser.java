@@ -99,6 +99,8 @@ public class ArgumentParser {
                     opt = argiter.next();
                     results.add(opt.process(v, splitter));
                     break;
+                default:
+                    throw new RuntimeException("Unknown ArgValue type?!");
             }
         }
         return new ParseResult(results);
