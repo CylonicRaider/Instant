@@ -8,6 +8,8 @@ public class ParseResult {
 
     private final Map<Option<?>, OptionValue<?>> data;
 
+    // Creating the mapping by subsequent additions of pairs turns out to be
+    // hardly possible without compiler errors.
     public ParseResult(Iterable<OptionValue<?>> values) {
         Map<Option<?>, OptionValue<?>> data =
             new LinkedHashMap<Option<?>, OptionValue<?>>();
