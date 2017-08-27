@@ -168,6 +168,7 @@ def importlint(filename, warn=True, sort=False, prune=False,
             f.truncate()
         # Report them.
         ret = (not excess and not redundant)
+        if ret and writeback: ret = Ellipsis
         if not ret and warn:
             for ent in parts:
                 if not isinstance(ent, tuple) or ent[0] != 'import':
@@ -244,14 +245,16 @@ def main():
     for f in filenames:
         if f in checked: continue
         checked.add(f)
-        if not importlint(f, warn=warn, sort=sort, prune=prune,
-                          empty_lines=empty_lines):
+        r = importlint(f, warn=warn, sort=sort, prune=prune,
+                       empty_lines=empty_lines)
+        if not r or r is Ellipsis:
             if report is Ellipsis:
                 sys.stdout.write(f + '\0')
                 sys.stdout.flush()
             elif report:
                 sys.stdout.write(f + '\n')
                 sys.stdout.flush()
+        if not r:
             res = False
     sys.exit(0 if res else 2)
 
