@@ -11,6 +11,7 @@ AUTOASSETS = src/static/logo-static.svg src/static/logo-static_32x32.png \
 
 _JAVA_SOURCES = $(patsubst src/%,%,$(SOURCES))
 
+.NOTPARALLEL:
 .PHONY: clean lint run pre-commit
 
 Instant.jar: .build.jar $(LIBRARIES) $(ASSETS) $(AUTOASSETS)
@@ -57,14 +58,10 @@ src/static/logo-static_128x128.png: src/static/logo-static.svg
 src/static/logo-static_128x128.ico: src/static/logo-static.svg
 	convert -background none -density 288 $< $@
 
-# Hacks to run lint and compile steps in proper sequence and without noisy
-# messages.
 _lint-changed:
 	@script/importlint.py --sort --prune --empty-lines --report-null \
 	$$(git diff --cached --name-only --diff-filter d | grep '\.java$$') \
 	| xargs -r0 git add
 
-_compile-after-lint: _lint-changed Instant.jar
+pre-commit: _lint-changed Instant.jar
 	@git add Instant.jar
-
-pre-commit: _compile-after-lint
