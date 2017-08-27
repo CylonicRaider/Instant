@@ -45,7 +45,7 @@ public abstract class Option<X> {
         return this;
     }
 
-    public abstract OptionValue<X> process(ArgValue v, ArgumentSplitter s)
-        throws ParseException;
+    public abstract OptionValue<X> process(ArgumentValue v,
+        ArgumentSplitter s) throws ParseException;
 
 }

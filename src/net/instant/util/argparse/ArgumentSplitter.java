@@ -18,16 +18,16 @@ public class ArgumentSplitter {
      * Negative -- parsing long option; next at negative of this index
      */
     protected int index;
-    protected ArgValue pushbackValue;
+    protected ArgumentValue pushbackValue;
 
     public ArgumentSplitter(Iterable<String> args) {
         iterator = args.iterator();
     }
 
-    public ArgValue next(Mode mode) {
+    public ArgumentValue next(Mode mode) {
         if (pushbackValue != null) {
             /* Argument percolating back up the call chain */
-            ArgValue ret = pushbackValue;
+            ArgumentValue ret = pushbackValue;
             pushbackValue = null;
             return ret;
         }
@@ -41,41 +41,41 @@ public class ArgumentSplitter {
             /* Beginning of an option */
             if (value.equals("-") || value.equals("--")) {
                 /* Special case */
-                return new ArgValue(ArgValue.Type.ARGUMENT, value);
+                return new ArgumentValue(ArgumentValue.Type.ARGUMENT, value);
             } else if (value.startsWith("--")) {
                 /* Long option */
                 index = value.indexOf('=') + 1;
                 if (index != 0) {
-                    return new ArgValue(ArgValue.Type.LONG_OPTION,
-                                        value.substring(2, index - 1));
+                    return new ArgumentValue(ArgumentValue.Type.LONG_OPTION,
+                                             value.substring(2, index - 1));
                 } else {
-                    return new ArgValue(ArgValue.Type.LONG_OPTION,
-                                        value.substring(2));
+                    return new ArgumentValue(ArgumentValue.Type.LONG_OPTION,
+                                             value.substring(2));
                 }
             } else if (value.startsWith("-")) {
                 /* Short options */
                 index = 2;
-                return new ArgValue(ArgValue.Type.SHORT_OPTION,
+                return new ArgumentValue(ArgumentValue.Type.SHORT_OPTION,
                                     value.substring(2, 3));
             } else {
                 /* Just an argument */
-                return new ArgValue(ArgValue.Type.ARGUMENT, value);
+                return new ArgumentValue(ArgumentValue.Type.ARGUMENT, value);
             }
         } else if (mode != Mode.OPTIONS || index < 0) {
             /* A (possibly directly attached) argument */
             int idx = Math.abs(index);
             index = 0;
-            return new ArgValue((idx != 0) ? ArgValue.Type.VALUE :
-                ArgValue.Type.ARGUMENT, value.substring(idx));
+            return new ArgumentValue((idx != 0) ? ArgumentValue.Type.VALUE :
+                ArgumentValue.Type.ARGUMENT, value.substring(idx));
         } else {
             /* More short options */
             index++;
-            return new ArgValue(ArgValue.Type.SHORT_OPTION,
-                                value.substring(index - 1, index));
+            return new ArgumentValue(ArgumentValue.Type.SHORT_OPTION,
+                                     value.substring(index - 1, index));
         }
     }
 
-    public void pushback(ArgValue value) {
+    public void pushback(ArgumentValue value) {
         pushbackValue = value;
     }
 

@@ -1,6 +1,6 @@
 package net.instant.util.argparse;
 
-public class ArgValue {
+public class ArgumentValue {
 
     public enum Type {
         SHORT_OPTION, // Single-letter option
@@ -12,7 +12,7 @@ public class ArgValue {
     private final Type type;
     private final String value;
 
-    public ArgValue(Type type, String value) {
+    public ArgumentValue(Type type, String value) {
         this.type = type;
         this.value = value;
     }

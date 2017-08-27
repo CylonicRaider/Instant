@@ -56,7 +56,7 @@ public class ArgumentParser {
         return arguments.remove(arg);
     }
 
-    public Option<?> getOption(ArgValue val) {
+    public Option<?> getOption(ArgumentValue val) {
         switch (val.getType()) {
             case LONG_OPTION:
                 return options.get(val.getValue());
@@ -76,7 +76,7 @@ public class ArgumentParser {
         boolean argsOnly = false;
         Option<?> opt;
         for (;;) {
-            ArgValue v = splitter.next((argsOnly) ?
+            ArgumentValue v = splitter.next((argsOnly) ?
                 ArgumentSplitter.Mode.FORCE_ARGUMENTS :
                 ArgumentSplitter.Mode.OPTIONS);
             if (v == null) break;
@@ -100,7 +100,8 @@ public class ArgumentParser {
                     results.add(opt.process(v, splitter));
                     break;
                 default:
-                    throw new RuntimeException("Unknown ArgValue type?!");
+                    throw new RuntimeException("Unknown ArgumentValue " +
+                        "type?!");
             }
         }
         return new ParseResult(results);
