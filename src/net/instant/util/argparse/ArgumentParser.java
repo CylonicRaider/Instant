@@ -1,7 +1,10 @@
 package net.instant.util.argparse;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
@@ -65,8 +68,40 @@ public class ArgumentParser {
         }
     }
 
-    public ParseResult parse(String[] args) {
-        return null; // NYI
+    public ParseResult parse(String[] args) throws ParseException {
+        Iterator<Option<?>> argiter = arguments.iterator();
+        ArgumentSplitter splitter = new ArgumentSplitter(
+            Arrays.asList(args));
+        List<OptionValue<?>> results = new LinkedList<OptionValue<?>>();
+        boolean argsOnly = false;
+        Option<?> opt;
+        for (;;) {
+            ArgValue v = splitter.next((argsOnly) ?
+                ArgumentSplitter.Mode.FORCE_ARGUMENTS :
+                ArgumentSplitter.Mode.OPTIONS);
+            if (v == null) break;
+            switch (v.getType()) {
+                case LONG_OPTION: case SHORT_OPTION:
+                    opt = getOption(v);
+                    results.add(opt.process(v, splitter));
+                    break;
+                case VALUE:
+                    throw new ParseException("Superfluous option value: " +
+                        v.getValue());
+                case ARGUMENT:
+                    if (v.getValue().equals("--")) {
+                        argsOnly = true;
+                        continue;
+                    } else if (! argiter.hasNext()) {
+                        throw new ParseException("Superfluous argument: " +
+                            v.getValue());
+                    }
+                    opt = argiter.next();
+                    results.add(opt.process(v, splitter));
+                    break;
+            }
+        }
+        return new ParseResult(results);
     }
 
 }
