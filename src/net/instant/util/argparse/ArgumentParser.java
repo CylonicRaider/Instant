@@ -1,20 +1,21 @@
 package net.instant.util.argparse;
 
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.LinkedHashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Set;
+import java.util.Map;
 
 public class ArgumentParser {
 
-    private final Set<Option<?>> options;
+    private final Map<String, Option<?>> options;
+    private final Map<Character, Option<?>> shortOptions;
     private final List<Option<?>> arguments;
     private String progname;
 
     public ArgumentParser(String progname) {
         this.progname = progname;
-        this.options = new LinkedHashSet<Option<?>>();
+        this.options = new LinkedHashMap<String, Option<?>>();
+        this.shortOptions = new LinkedHashMap<Character, Option<?>>();
         this.arguments = new ArrayList<Option<?>>();
     }
 
@@ -25,20 +26,23 @@ public class ArgumentParser {
         progname = name;
     }
 
-    public Set<Option<?>> getOptions() {
-        return Collections.unmodifiableSet(options);
+    public List<Option<?>> getOptions() {
+        return new ArrayList<Option<?>>(options.values());
     }
 
     public List<Option<?>> getArguments() {
-        return Collections.unmodifiableList(arguments);
+        return new ArrayList<Option<?>>(arguments);
     }
 
     public <X> Option<X> addOption(Option<X> opt) {
-        options.add(opt);
+        options.put(opt.getName(), opt);
+        if (opt.getShortName() != '\0')
+            shortOptions.put(opt.getShortName(), opt);
         return opt;
     }
     public boolean removeOption(Option<?> opt) {
-        return options.remove(opt);
+        shortOptions.remove(opt.getShortName());
+        return (options.remove(opt.getName()) != null);
     }
 
     public <X> Option<X> addArgument(Option<X> arg) {
@@ -47,6 +51,18 @@ public class ArgumentParser {
     }
     public boolean removeArgument(Option<?> arg) {
         return arguments.remove(arg);
+    }
+
+    public Option<?> getOption(ArgValue val) {
+        switch (val.getType()) {
+            case LONG_OPTION:
+                return options.get(val.getValue());
+            case SHORT_OPTION:
+                return shortOptions.get(val.getValue().charAt(0));
+            default:
+                throw new IllegalArgumentException("Trying to resolve " +
+                    "non-option");
+        }
     }
 
     public ParseResult parse(String[] args) {
