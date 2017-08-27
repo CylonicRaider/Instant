@@ -5,6 +5,12 @@ import java.util.Iterator;
 /* FIXME: Non-BMP Unicode support */
 public class ArgumentSplitter {
 
+    public enum Mode {
+        OPTIONS, // Continuations of short options are options, too
+        ARGUMENTS, // Continuations of short options are arguments
+        FORCE_ARGUMENTS // Everything is an argument
+    }
+
     protected final Iterator<String> iterator;
     protected String value;
     /* Zero -- nothing consumed; grab new value
@@ -12,19 +18,26 @@ public class ArgumentSplitter {
      * Negative -- parsing long option; next at negative of this index
      */
     protected int index;
+    protected ArgValue pushbackValue;
 
     public ArgumentSplitter(Iterable<String> args) {
         iterator = args.iterator();
     }
 
-    public ArgValue next(boolean expectArgument) {
+    public ArgValue next(Mode mode) {
+        if (pushbackValue != null) {
+            /* Argument percolating back up the call chain */
+            ArgValue ret = pushbackValue;
+            pushbackValue = null;
+            return ret;
+        }
         if (index == 0 || index >= value.length()) {
             /* New value required */
             if (! iterator.hasNext()) return null;
             value = iterator.next();
             index = 0;
         }
-        if (index == 0) {
+        if (mode != Mode.FORCE_ARGUMENTS && index == 0) {
             /* Beginning of an option */
             if (value.equals("-") || value.equals("--")) {
                 /* Special case */
@@ -48,7 +61,7 @@ public class ArgumentSplitter {
                 /* Just an argument */
                 return new ArgValue(ArgValue.Type.ARGUMENT, value);
             }
-        } else if (expectArgument || index < 0) {
+        } else if (mode != Mode.OPTIONS || index < 0) {
             /* A (possibly directly attached) argument */
             int idx = Math.abs(index);
             index = 0;
@@ -60,6 +73,10 @@ public class ArgumentSplitter {
             return new ArgValue(ArgValue.Type.SHORT_OPTION,
                                 value.substring(index - 1, index));
         }
+    }
+
+    public void pushback(ArgValue value) {
+        pushbackValue = value;
     }
 
 }
