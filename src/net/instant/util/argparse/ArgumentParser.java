@@ -2,11 +2,13 @@ package net.instant.util.argparse;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 public class ArgumentParser {
 
@@ -69,6 +71,7 @@ public class ArgumentParser {
     }
 
     public ParseResult parse(String[] args) throws ParseException {
+        Set<Option<?>> missing = new HashSet<Option<?>>(options.values());
         Iterator<Option<?>> argiter = arguments.iterator();
         ArgumentSplitter splitter = new ArgumentSplitter(
             Arrays.asList(args));
@@ -83,6 +86,7 @@ public class ArgumentParser {
             switch (v.getType()) {
                 case LONG_OPTION: case SHORT_OPTION:
                     opt = getOption(v);
+                    missing.remove(opt);
                     results.add(opt.process(this, v, splitter));
                     break;
                 case VALUE:
@@ -103,6 +107,17 @@ public class ArgumentParser {
                     throw new RuntimeException("Unknown ArgumentValue " +
                         "type?!");
             }
+        }
+        for (Option<?> o : missing) {
+            if (o.isRequired())
+                throw new ParseException("Missing required option --" +
+                                         o.getName());
+        }
+        while (argiter.hasNext()) {
+            Option<?> o = argiter.next();
+            if (o.isRequired())
+                throw new ParseException("Missing required option --" +
+                                         o.getName());
         }
         return new ParseResult(results);
     }

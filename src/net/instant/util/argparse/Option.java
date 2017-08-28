@@ -5,6 +5,7 @@ public abstract class Option<X> {
     private String name;
     private Character shortname;
     private String help;
+    private boolean required;
 
     public Option(String name, Character shortname, String help) {
         this.name = name;
@@ -42,6 +43,17 @@ public abstract class Option<X> {
     }
     public Option<X> help(String h) {
         help = h;
+        return this;
+    }
+
+    public boolean isRequired() {
+        return required;
+    }
+    public void setRequired(boolean r) {
+        required = r;
+    }
+    public Option<X> required() {
+        required = true;
         return this;
     }
 
