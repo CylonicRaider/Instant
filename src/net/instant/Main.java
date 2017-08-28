@@ -49,7 +49,7 @@ public class Main implements Runnable {
         this.args = args;
     }
 
-    public int getArguments() {
+    public int getArgumentCount() {
         return args.length;
     }
 
