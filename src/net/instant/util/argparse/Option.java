@@ -3,10 +3,10 @@ package net.instant.util.argparse;
 public abstract class Option<X> {
 
     private String name;
-    private char shortname;
+    private Character shortname;
     private String help;
 
-    public Option(String name, char shortname, String help) {
+    public Option(String name, Character shortname, String help) {
         this.name = name;
         this.shortname = shortname;
         this.help = help;
@@ -23,13 +23,13 @@ public abstract class Option<X> {
         return this;
     }
 
-    public char getShortName() {
+    public Character getShortName() {
         return shortname;
     }
-    public void setShortName(char n) {
+    public void setShortName(Character n) {
         shortname = n;
     }
-    public Option<X> shortname(char n) {
+    public Option<X> shortname(Character n) {
         shortname = n;
         return this;
     }

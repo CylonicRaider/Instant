@@ -39,7 +39,7 @@ public class ArgumentParser {
 
     public <X> Option<X> addOption(Option<X> opt) {
         options.put(opt.getName(), opt);
-        if (opt.getShortName() != '\0')
+        if (opt.getShortName() != null)
             shortOptions.put(opt.getShortName(), opt);
         return opt;
     }
