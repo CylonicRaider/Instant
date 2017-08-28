@@ -13,7 +13,9 @@ public class ParseResult {
     public ParseResult(Iterable<OptionValue<?>> values) {
         Map<Option<?>, OptionValue<?>> data =
             new LinkedHashMap<Option<?>, OptionValue<?>>();
-        for (OptionValue<?> v : values) data.put(v.getOption(), v);
+        for (OptionValue<?> v : values) {
+            if (v != null) data.put(v.getOption(), v);
+        }
         this.data = Collections.unmodifiableMap(data);
     }
 
