@@ -3858,6 +3858,7 @@ this.Instant = function() {
         var recipient = $cls('pm-to-id').textContent;
         Instant.connection.sendUnicast(recipient, data);
         Instant.privmsg._transformAfterview(popup, true);
+        Instant.privmsg._update();
       },
       /* Display the popup for an incoming message */
       _read: function(data, isNew) {
