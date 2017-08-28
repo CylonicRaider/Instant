@@ -18,4 +18,8 @@ public class OptionValue<X> {
         return value;
     }
 
+    public OptionValue<X> merge(OptionValue<X> old) {
+        return this;
+    }
+
 }

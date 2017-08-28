@@ -13,9 +13,8 @@ public class ParseResult {
     public ParseResult(Iterable<OptionValue<?>> values) {
         Map<Option<?>, OptionValue<?>> data =
             new LinkedHashMap<Option<?>, OptionValue<?>>();
-        for (OptionValue<?> v : values) {
-            if (v != null) data.put(v.getOption(), v);
-        }
+        // Delegated into a method to have a name for the type parameter.
+        for (OptionValue<?> v : values) update(data, v);
         this.data = Collections.unmodifiableMap(data);
     }
 
@@ -27,6 +26,14 @@ public class ParseResult {
         @SuppressWarnings("unchecked")
         X ret = (X) data.get(opt);
         return ret;
+    }
+
+    private <X> void update(Map<Option<?>, OptionValue<?>> data,
+                            OptionValue<X> v) {
+        if (v == null) return;
+        @SuppressWarnings("unchecked")
+        OptionValue<X> o = (OptionValue<X>) data.get(v.getOption());
+        data.put(v.getOption(), v.merge(o));
     }
 
 }
