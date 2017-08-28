@@ -83,7 +83,7 @@ public class ArgumentParser {
             switch (v.getType()) {
                 case LONG_OPTION: case SHORT_OPTION:
                     opt = getOption(v);
-                    results.add(opt.process(v, splitter));
+                    results.add(opt.process(this, v, splitter));
                     break;
                 case VALUE:
                     throw new ParseException("Superfluous option value: " +
@@ -97,7 +97,7 @@ public class ArgumentParser {
                             v.getValue());
                     }
                     opt = argiter.next();
-                    results.add(opt.process(v, splitter));
+                    results.add(opt.process(this, v, splitter));
                     break;
                 default:
                     throw new RuntimeException("Unknown ArgumentValue " +
