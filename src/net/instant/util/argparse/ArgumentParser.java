@@ -2,6 +2,8 @@ package net.instant.util.argparse;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
@@ -12,16 +14,14 @@ import java.util.Set;
 
 public class ArgumentParser {
 
-    private final Map<String, Option<?>> options;
-    private final Map<Character, Option<?>> shortOptions;
-    private final List<Option<?>> arguments;
+    private final Map<String, BaseOption<?>> options;
+    private final Map<Character, BaseOption<?>> shortOptions;
     private String progname;
 
     public ArgumentParser(String progname) {
         this.progname = progname;
-        this.options = new LinkedHashMap<String, Option<?>>();
-        this.shortOptions = new LinkedHashMap<Character, Option<?>>();
-        this.arguments = new ArrayList<Option<?>>();
+        this.options = new LinkedHashMap<String, BaseOption<?>>();
+        this.shortOptions = new LinkedHashMap<Character, BaseOption<?>>();
     }
 
     public String getProgName() {
@@ -31,34 +31,36 @@ public class ArgumentParser {
         progname = name;
     }
 
-    public List<Option<?>> getOptions() {
-        return new ArrayList<Option<?>>(options.values());
+    public Collection<BaseOption<?>> getAllOptions() {
+        return Collections.unmodifiableCollection(options.values());
     }
 
-    public List<Option<?>> getArguments() {
-        return new ArrayList<Option<?>>(arguments);
+    protected <Y extends Collection<BaseOption<?>>> Y getOptions(Y list,
+            boolean positional) {
+        for (BaseOption<?> opt : options.values()) {
+            if (opt.isPositional() == positional) list.add(opt);
+        }
+        return list;
+    }
+    public List<BaseOption<?>> getOptions() {
+        return getOptions(new ArrayList<BaseOption<?>>(), false);
+    }
+    public List<BaseOption<?>> getArguments() {
+        return getOptions(new ArrayList<BaseOption<?>>(), true);
     }
 
-    public <X> Option<X> addOption(Option<X> opt) {
+    public <X> BaseOption<X> add(BaseOption<X> opt) {
         options.put(opt.getName(), opt);
         if (opt.getShortName() != null)
             shortOptions.put(opt.getShortName(), opt);
         return opt;
     }
-    public boolean removeOption(Option<?> opt) {
+    public boolean remove(BaseOption<?> opt) {
         shortOptions.remove(opt.getShortName());
         return (options.remove(opt.getName()) != null);
     }
 
-    public <X> Option<X> addArgument(Option<X> arg) {
-        arguments.add(arg);
-        return arg;
-    }
-    public boolean removeArgument(Option<?> arg) {
-        return arguments.remove(arg);
-    }
-
-    public Option<?> getOption(ArgumentValue val) {
+    public BaseOption<?> getOption(ArgumentValue val) {
         switch (val.getType()) {
             case LONG_OPTION:
                 return options.get(val.getValue());
@@ -71,13 +73,15 @@ public class ArgumentParser {
     }
 
     public ParseResult parse(String[] args) throws ParseException {
-        Set<Option<?>> missing = new HashSet<Option<?>>(options.values());
-        Iterator<Option<?>> argiter = arguments.iterator();
+        Set<BaseOption<?>> missing = getOptions(
+            new HashSet<BaseOption<?>>(), false);
+        Iterator<BaseOption<?>> argiter = getOptions(
+            new LinkedList<BaseOption<?>>(), true).iterator();
         ArgumentSplitter splitter = new ArgumentSplitter(
             Arrays.asList(args));
         List<OptionValue<?>> results = new LinkedList<OptionValue<?>>();
         boolean argsOnly = false;
-        Option<?> opt;
+        BaseOption<?> opt;
         for (;;) {
             ArgumentValue v = splitter.next((argsOnly) ?
                 ArgumentSplitter.Mode.FORCE_ARGUMENTS :
@@ -86,6 +90,9 @@ public class ArgumentParser {
             switch (v.getType()) {
                 case LONG_OPTION: case SHORT_OPTION:
                     opt = getOption(v);
+                    if (! opt.isPositional())
+                        throw new ParseException("Using argument <" +
+                            opt.getName() + "> as option");
                     missing.remove(opt);
                     results.add(opt.process(this, v, splitter));
                     break;
@@ -108,16 +115,16 @@ public class ArgumentParser {
                         "type?!");
             }
         }
-        for (Option<?> o : missing) {
+        for (BaseOption<?> o : missing) {
             if (o.isRequired())
                 throw new ParseException("Missing required option --" +
                                          o.getName());
         }
         while (argiter.hasNext()) {
-            Option<?> o = argiter.next();
+            BaseOption<?> o = argiter.next();
             if (o.isRequired())
-                throw new ParseException("Missing required option --" +
-                                         o.getName());
+                throw new ParseException("Missing required argument <" +
+                                         o.getName() + ">");
         }
         return new ParseResult(results);
     }
