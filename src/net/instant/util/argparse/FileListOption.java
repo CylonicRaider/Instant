@@ -10,7 +10,7 @@ public class FileListOption extends ListOption<File> {
         setSeparator(Pattern.quote(File.pathSeparator));
     }
 
-    protected String getItemPlaceholder() {
+    protected String getDefaultItemPlaceholder() {
         return "path";
     }
 

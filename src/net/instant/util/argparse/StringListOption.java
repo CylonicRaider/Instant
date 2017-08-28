@@ -6,7 +6,7 @@ public class StringListOption extends ListOption<String> {
         super(name, shortname, help);
     }
 
-    protected String getItemPlaceholder() {
+    protected String getDefaultItemPlaceholder() {
         return "str";
     }
 

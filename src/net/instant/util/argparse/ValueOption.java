@@ -9,6 +9,7 @@ public abstract class ValueOption<X> extends Option<X> {
 
     public ValueOption(String name, Character shortName, String help) {
         super(name, shortName, help);
+        placeholder = getDefaultPlaceholder();
     }
 
     public X getDefault() {
@@ -54,9 +55,7 @@ public abstract class ValueOption<X> extends Option<X> {
     protected abstract String getDefaultPlaceholder();
 
     public String formatArguments() {
-        String pl = getPlaceholder();
-        if (pl == null) pl = getDefaultPlaceholder();
-        return "<" + pl + ">";
+        return "<" + getPlaceholder() + ">";
     }
     public String formatHelp() {
         String ret = super.formatHelp();
