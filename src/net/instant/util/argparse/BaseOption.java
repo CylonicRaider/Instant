@@ -59,6 +59,23 @@ public abstract class BaseOption<X> {
 
     public abstract boolean isPositional();
 
+    public String formatUsage() {
+        String name = formatName();
+        String args = formatArguments();
+        StringBuilder sb = new StringBuilder();
+        if (! isRequired()) sb.append('[');
+        if (name != null) sb.append(name);
+        if (name != null && args != null) sb.append(' ');
+        if (args != null) sb.append(args);
+        if (! isRequired()) sb.append(']');
+        return sb.toString();
+    }
+    public abstract String formatName();
+    public abstract String formatArguments();
+    public String formatHelp() {
+        return getHelp();
+    }
+
     public abstract OptionValue<X> process(ArgumentParser p, ArgumentValue v,
         ArgumentSplitter s) throws ParseException;
 

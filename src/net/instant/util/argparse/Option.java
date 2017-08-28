@@ -10,4 +10,15 @@ public abstract class Option<X> extends BaseOption<X> {
         return false;
     }
 
+    public String formatName() {
+        StringBuilder sb = new StringBuilder();
+        sb.append("--");
+        sb.append(getName());
+        if (getShortName() != null) {
+            sb.append("|-");
+            sb.append(getShortName());
+        }
+        return sb.toString();
+    }
+
 }
