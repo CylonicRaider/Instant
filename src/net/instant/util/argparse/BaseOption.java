@@ -78,5 +78,7 @@ public abstract class BaseOption<X> {
 
     public abstract OptionValue<X> process(ArgumentParser p, ArgumentValue v,
         ArgumentSplitter s) throws ParseException;
+    public abstract OptionValue<X> processOmitted(ArgumentParser p)
+        throws ParseException;
 
 }

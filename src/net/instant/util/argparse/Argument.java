@@ -22,4 +22,12 @@ public abstract class Argument<X> extends BaseOption<X> {
         return sb.toString();
     }
 
+    public OptionValue<X> processOmitted(ArgumentParser p)
+            throws ParseException {
+        if (isRequired())
+            throw new ParseException("Missing required argument <" +
+                getName() + ">");
+        return null;
+    }
+
 }

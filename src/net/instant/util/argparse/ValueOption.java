@@ -89,6 +89,13 @@ public class ValueOption<X> extends Option<X> {
                 "option --" + v.getValue());
         return converter.wrap(this, optionalDefault);
     }
+    public OptionValue<X> processOmitted(ArgumentParser p)
+            throws ParseException {
+        super.processOmitted(p);
+        if (getDefault() != null)
+            return converter.wrap(this, getDefault());
+        return null;
+    }
 
     public static <T> ValueOption<T> of(Class<T> cls, String name,
             Character shortname, String help) {

@@ -138,15 +138,11 @@ public class ArgumentParser {
             }
         }
         for (BaseOption<?> o : missing) {
-            if (o.isRequired())
-                throw new ParseException("Missing required option --" +
-                                         o.getName());
+            results.add(o.processOmitted(this));
         }
         while (argiter.hasNext()) {
             BaseOption<?> o = argiter.next();
-            if (o.isRequired())
-                throw new ParseException("Missing required argument <" +
-                                         o.getName() + ">");
+            results.add(o.processOmitted(this));
         }
         return new ParseResult(results);
     }

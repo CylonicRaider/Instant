@@ -48,6 +48,13 @@ public class ValueArgument<X> extends Argument<X> {
                                   ArgumentSplitter s) throws ParseException {
         return converter.wrap(this, converter.convert(v.getValue()));
     }
+    public OptionValue<X> processOmitted(ArgumentParser p)
+            throws ParseException {
+        super.processOmitted(p);
+        if (getDefault() != null)
+            return converter.wrap(this, getDefault());
+        return null;
+    }
 
     public static <T> ValueArgument<T> of(Class<T> cls, String name,
                                           String help) {

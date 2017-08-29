@@ -21,4 +21,12 @@ public abstract class Option<X> extends BaseOption<X> {
         return sb.toString();
     }
 
+    public OptionValue<X> processOmitted(ArgumentParser p)
+            throws ParseException {
+        if (isRequired())
+            throw new ParseException("Missing required option --" +
+                getName());
+        return null;
+    }
+
 }
