@@ -13,7 +13,7 @@ public class HelpOption extends ActionOption {
     }
 
     protected void run(ArgumentParser p) {
-        displayHelp(p);
+        displayHelp(p, 0);
     }
 
     private static List<BaseOption<?>> sortedOptions(ArgumentParser p) {
@@ -64,9 +64,10 @@ public class HelpOption extends ActionOption {
         return sb.toString();
     }
 
-    public static void displayHelp(ArgumentParser p) {
+    public static void displayHelp(ArgumentParser p, int code) {
         System.err.println(formatUsage(p, true));
         System.err.println(formatHelp(p));
+        System.exit(code);
     }
 
 }
