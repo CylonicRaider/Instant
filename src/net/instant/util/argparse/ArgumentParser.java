@@ -73,16 +73,22 @@ public class ArgumentParser {
     }
 
     public ParseResult parse(String[] args) throws ParseException {
+        return parse(Arrays.asList(args), true);
+    }
+    public ParseResult parse(Iterable<String> args) throws ParseException {
+        return parse(args, true);
+    }
+    public ParseResult parse(Iterable<String> args, boolean full)
+            throws ParseException {
         Set<BaseOption<?>> missing = getOptions(
             new HashSet<BaseOption<?>>(), false);
         Iterator<BaseOption<?>> argiter = getOptions(
             new LinkedList<BaseOption<?>>(), true).iterator();
-        ArgumentSplitter splitter = new ArgumentSplitter(
-            Arrays.asList(args));
+        ArgumentSplitter splitter = new ArgumentSplitter(args);
         List<OptionValue<?>> results = new LinkedList<OptionValue<?>>();
         boolean argsOnly = false;
         BaseOption<?> opt;
-        for (;;) {
+        main: for (;;) {
             ArgumentValue v = splitter.next((argsOnly) ?
                 ArgumentSplitter.Mode.FORCE_ARGUMENTS :
                 ArgumentSplitter.Mode.OPTIONS);
@@ -104,8 +110,11 @@ public class ArgumentParser {
                         argsOnly = true;
                         continue;
                     } else if (! argiter.hasNext()) {
-                        throw new ParseException("Superfluous argument: " +
-                            v.getValue());
+                        if (full)
+                            throw new ParseException("Superfluous " +
+                                "argument: " + v.getValue());
+                        splitter.pushback(v);
+                        break main;
                     }
                     opt = argiter.next();
                     results.add(opt.process(this, v, splitter));

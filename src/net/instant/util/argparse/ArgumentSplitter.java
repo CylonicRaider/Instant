@@ -3,7 +3,7 @@ package net.instant.util.argparse;
 import java.util.Iterator;
 
 /* FIXME: Non-BMP Unicode support */
-public class ArgumentSplitter {
+public class ArgumentSplitter implements Iterable<String> {
 
     public enum Mode {
         OPTIONS, // Continuations of short options are options, too
@@ -22,6 +22,32 @@ public class ArgumentSplitter {
 
     public ArgumentSplitter(Iterable<String> args) {
         iterator = args.iterator();
+    }
+
+    public Iterator<String> iterator() {
+        return new Iterator<String>() {
+
+            public boolean hasNext() {
+                return ArgumentSplitter.this.hasNext();
+            }
+
+            public String next() {
+                return ArgumentSplitter.this.next(
+                    Mode.FORCE_ARGUMENTS).getValue();
+            }
+
+            public void remove() {
+                throw new UnsupportedOperationException("Cannot remove " +
+                    "from ArgumentSplitter");
+            }
+
+        };
+    }
+
+    public boolean hasNext() {
+        if (pushbackValue != null || index != 0 && index < value.length())
+            return true;
+        return iterator.hasNext();
     }
 
     public ArgumentValue next(Mode mode) {
