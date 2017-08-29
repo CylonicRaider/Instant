@@ -11,6 +11,7 @@ public class ListOptionValue<X, Y extends Collection<X>>
     }
 
     public OptionValue<Y> merge(OptionValue<Y> old) {
+        if (old == null) return this;
         old.getValue().addAll(getValue());
         return old;
     }

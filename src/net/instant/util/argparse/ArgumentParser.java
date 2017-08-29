@@ -102,7 +102,9 @@ public class ArgumentParser {
                     opt = getOption(v);
                     if (opt == null) {
                         if (full)
-                            throw new ParseException("Unknown option --" +
+                            throw new ParseException("Unknown option " +
+                                ((v.getType() == ArgumentValue.Type
+                                    .LONG_OPTION) ? "--" : "-") +
                                 v.getValue());
                         splitter.pushback(v);
                         break main;

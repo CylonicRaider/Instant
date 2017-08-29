@@ -82,7 +82,7 @@ public class ArgumentSplitter implements Iterable<String> {
                 /* Short options */
                 index = 2;
                 return new ArgumentValue(ArgumentValue.Type.SHORT_OPTION,
-                                    value.substring(2, 3));
+                                         value.substring(1, 2));
             } else {
                 /* Just an argument */
                 return new ArgumentValue(ArgumentValue.Type.ARGUMENT, value);
