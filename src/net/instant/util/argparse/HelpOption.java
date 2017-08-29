@@ -34,7 +34,7 @@ public class HelpOption extends ActionOption {
             }
         }
         for (BaseOption<?> opt : sortedOptions(p)) {
-            sb.append(' ');
+            if (sb.length() != 0) sb.append(' ');
             sb.append(opt.formatUsage());
         }
         return sb.toString();
