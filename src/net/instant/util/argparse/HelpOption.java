@@ -9,7 +9,7 @@ public class HelpOption extends ActionOption {
         super(name, shortName, help);
     }
     public HelpOption() {
-        this("help", '?', "Display help.");
+        this("help", '?', "Display help");
     }
 
     protected void run(ArgumentParser p) {
@@ -21,6 +21,10 @@ public class HelpOption extends ActionOption {
         p.getOptions(ret, false);
         p.getOptions(ret, true);
         return ret;
+    }
+
+    private static String makeWidth(int w) {
+        return (w == 0) ? "" : Integer.toString(-w);
     }
 
     public static String formatUsage(ArgumentParser p, boolean prefix) {
@@ -47,13 +51,15 @@ public class HelpOption extends ActionOption {
                 opt.formatName(), ((opt.isPositional()) ? ":" : ""),
                 opt.formatArguments(), opt.formatHelp()
             };
+            if (item[2] == null) item[2] = "";
             wdN = Math.max(wdN, item[0].length() + item[1].length());
             wdA = Math.max(wdA, item[2].length());
             columns.add(item);
         }
-        String optFormat = String.format("%%-%ds%%s %%-%ds: %%s", wdN, wdA);
-        String argFormat = String.format("%%-%ds%%s %%-%ds: %%s", wdN - 1,
-                                         wdA);
+        String optFormat = String.format("%%%ss%%s%s%%%ss: %%s",
+            makeWidth(wdN), ((wdA != 0) ? " " : ""), makeWidth(wdA));
+        String argFormat = String.format("%%%ss%%s%s%%%ss: %%s",
+            makeWidth(wdN - 1), ((wdA != 0) ? " " : ""), makeWidth(wdA));
         StringBuilder sb = new StringBuilder();
         for (String[] col : columns) {
             if (sb.length() != 0) sb.append('\n');

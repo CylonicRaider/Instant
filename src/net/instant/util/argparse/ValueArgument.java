@@ -35,7 +35,7 @@ public class ValueArgument<X> extends Argument<X> {
     }
 
     public String formatArguments() {
-        return null;
+        return getConverter().getPlaceholder();
     }
     public String formatHelp() {
         String ret = super.formatHelp();

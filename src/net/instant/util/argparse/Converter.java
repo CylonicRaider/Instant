@@ -10,12 +10,12 @@ public abstract class Converter<T> {
 
     static {
         registry = new HashMap<Class<?>, Converter<?>>();
-        register(String.class, new Converter<String>("str") {
+        register(String.class, new Converter<String>("<str>") {
             public String convert(String data) {
                 return data;
             }
         });
-        register(Integer.class, new Converter<Integer>("int") {
+        register(Integer.class, new Converter<Integer>("<int>") {
             public Integer convert(String data) throws ParseException {
                 try {
                     return Integer.parseInt(data);
@@ -25,7 +25,7 @@ public abstract class Converter<T> {
                 }
             }
         });
-        register(File.class, new Converter<File>("path") {
+        register(File.class, new Converter<File>("<path>") {
             public File convert(String data) {
                 return new File(data);
             }

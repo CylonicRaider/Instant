@@ -13,5 +13,13 @@ public abstract class Argument<X> extends BaseOption<X> {
     public String formatName() {
         return '<' + getName() + '>';
     }
+    public String formatUsage() {
+        String name = formatName();
+        StringBuilder sb = new StringBuilder();
+        if (! isRequired()) sb.append('[');
+        if (name != null) sb.append(name);
+        if (! isRequired()) sb.append(']');
+        return sb.toString();
+    }
 
 }

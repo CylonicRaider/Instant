@@ -106,7 +106,7 @@ public class ArgumentParser {
                                 v.getValue());
                         splitter.pushback(v);
                         break main;
-                    } else if (! opt.isPositional()) {
+                    } else if (opt.isPositional()) {
                         throw new ParseException("Using argument <" +
                             opt.getName() + "> as option");
                     }
