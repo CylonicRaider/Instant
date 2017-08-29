@@ -60,6 +60,10 @@ public class ArgumentParser {
         return (options.remove(opt.getName()) != null);
     }
 
+    public void addHelp() {
+        add(new HelpOption());
+    }
+
     public BaseOption<?> getOption(ArgumentValue val) {
         switch (val.getType()) {
             case LONG_OPTION:
