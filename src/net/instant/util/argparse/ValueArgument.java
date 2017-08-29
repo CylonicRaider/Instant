@@ -46,10 +46,7 @@ public class ValueArgument<X> extends Argument<X> {
 
     public OptionValue<X> process(ArgumentParser p, ArgumentValue v,
                                   ArgumentSplitter s) throws ParseException {
-        return wrap(converter.convert(v.getValue()));
-    }
-    protected OptionValue<X> wrap(X item) {
-        return new OptionValue<X>(this, item);
+        return converter.wrap(this, converter.convert(v.getValue()));
     }
 
     public static <T> ValueArgument<T> of(Class<T> cls, String name,

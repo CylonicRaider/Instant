@@ -75,7 +75,7 @@ public class ValueOption<X> extends Option<X> {
         if (a != null) {
             if (a.getType() == ArgumentValue.Type.VALUE ||
                     a.getType() == ArgumentValue.Type.ARGUMENT) {
-                return wrap(converter.convert(a.getValue()));
+                return converter.wrap(this, converter.convert(a.getValue()));
             } else {
                 s.pushback(a);
             }
@@ -83,10 +83,7 @@ public class ValueOption<X> extends Option<X> {
         if (! isOptional())
             throw new ParseException("Missing required argument for " +
                 "option --" + v.getValue());
-        return wrap(optionalDefault);
-    }
-    protected OptionValue<X> wrap(X item) {
-        return new OptionValue<X>(this, item);
+        return converter.wrap(this, optionalDefault);
     }
 
     public static <T> ValueOption<T> of(Class<T> cls, String name,
