@@ -57,7 +57,13 @@ public class ValueOption<X> extends Option<X> {
     }
 
     public String formatArguments() {
-        return "<" + getConverter().getPlaceholder() + ">";
+        StringBuilder sb = new StringBuilder();
+        if (isOptional()) sb.append('[');
+        sb.append('<');
+        sb.append(getConverter().getPlaceholder());
+        sb.append('>');
+        if (isOptional()) sb.append(']');
+        return sb.toString();
     }
     public String formatHelp() {
         String ret = super.formatHelp();
