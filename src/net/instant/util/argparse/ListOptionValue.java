@@ -6,7 +6,7 @@ import java.util.Collection;
 public class ListOptionValue<X, Y extends Collection<X>>
         extends OptionValue<Y> {
 
-    public ListOptionValue(Option<Y> option, Y value) {
+    public ListOptionValue(BaseOption<Y> option, Y value) {
         super(option, value);
     }
 
