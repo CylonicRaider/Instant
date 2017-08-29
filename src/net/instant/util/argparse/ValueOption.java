@@ -86,8 +86,8 @@ public class ValueOption<X> extends Option<X> {
         }
         if (! isOptional())
             throw new ParseException("Missing required argument for " +
-                "option --" + v.getValue());
-        return converter.wrap(this, optionalDefault);
+                "option --" + getName());
+        return converter.wrap(this, getOptionalDefault());
     }
     public OptionValue<X> processOmitted(ArgumentParser p)
             throws ParseException {
