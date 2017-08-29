@@ -96,9 +96,16 @@ public class ArgumentParser {
             switch (v.getType()) {
                 case LONG_OPTION: case SHORT_OPTION:
                     opt = getOption(v);
-                    if (! opt.isPositional())
+                    if (opt == null) {
+                        if (full)
+                            throw new ParseException("Unknown option --" +
+                                v.getValue());
+                        splitter.pushback(v);
+                        break main;
+                    } else if (! opt.isPositional()) {
                         throw new ParseException("Using argument <" +
                             opt.getName() + "> as option");
+                    }
                     missing.remove(opt);
                     results.add(opt.process(this, v, splitter));
                     break;
