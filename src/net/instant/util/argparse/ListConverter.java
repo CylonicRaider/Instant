@@ -13,12 +13,9 @@ public class ListConverter<E> extends Converter<List<E>> {
 
     static {
         registry = new HashMap<Class<?>, ListConverter<?>>();
-        registerL(String.class, new ListConverter<String>(
-            get(String.class), ","));
-        registerL(Integer.class, new ListConverter<Integer>(
-            get(Integer.class), ","));
-        registerL(File.class, new ListConverter<File>(
-            get(File.class), File.pathSeparator));
+        registerL(String.class, ",");
+        registerL(Integer.class, ",");
+        registerL(File.class, File.pathSeparator);
     }
 
     private final Converter<E> inner;
@@ -65,6 +62,9 @@ public class ListConverter<E> extends Converter<List<E>> {
 
     public static <F> void registerL(Class<F> cls, ListConverter<F> cvt) {
         registry.put(cls, cvt);
+    }
+    public static <F> void registerL(Class<F> cls, String separator) {
+        registry.put(cls, new ListConverter<F>(get(cls), separator));
     }
     public static void deregisterL(Class<?> cls) {
         registry.remove(cls);
