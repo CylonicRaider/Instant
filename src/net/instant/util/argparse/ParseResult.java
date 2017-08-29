@@ -22,10 +22,15 @@ public class ParseResult {
         return data;
     }
 
-    public <X> X get(BaseOption<X> opt) {
+    public <X> OptionValue<X> getRaw(BaseOption<X> opt) {
         @SuppressWarnings("unchecked")
-        X ret = (X) data.get(opt);
+        OptionValue<X> ret = (OptionValue<X>) data.get(opt);
         return ret;
+    }
+
+    public <X> X get(BaseOption<X> opt) {
+        OptionValue<X> v = getRaw(opt);
+        return (v == null) ? null : v.getValue();
     }
 
     private <X> void update(Map<BaseOption<?>, OptionValue<?>> data,
