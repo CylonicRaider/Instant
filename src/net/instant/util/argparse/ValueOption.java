@@ -1,15 +1,29 @@
 package net.instant.util.argparse;
 
-public abstract class ValueOption<X> extends Option<X> {
+import java.util.List;
 
+public class ValueOption<X> extends Option<X> {
+
+    private Converter<X> converter;
     private X defaultValue;
     private boolean optional;
     private X optionalDefault;
-    private String placeholder;
 
-    public ValueOption(String name, Character shortName, String help) {
+    public ValueOption(String name, Character shortName, String help,
+                       Converter<X> converter) {
         super(name, shortName, help);
-        placeholder = getDefaultPlaceholder();
+        this.converter = converter;
+    }
+
+    public Converter<X> getConverter() {
+        return converter;
+    }
+    public void setConverter(Converter<X> c) {
+        converter = c;
+    }
+    public ValueOption<X> withConverter(Converter<X> c) {
+        converter = c;
+        return this;
     }
 
     public X getDefault() {
@@ -42,30 +56,14 @@ public abstract class ValueOption<X> extends Option<X> {
         return this;
     }
 
-    public String getPlaceholder() {
-        return placeholder;
-    }
-    public void setPlaceholder(String p) {
-        placeholder = p;
-    }
-    public ValueOption<X> withPlaceholder(String p) {
-        placeholder = p;
-        return this;
-    }
-    protected abstract String getDefaultPlaceholder();
-
     public String formatArguments() {
-        return "<" + getPlaceholder() + ">";
+        return "<" + getConverter().getPlaceholder() + ">";
     }
     public String formatHelp() {
         String ret = super.formatHelp();
-        String def = formatDefault();
-        if (def != null) ret += " (default " + def + ")";
+        if (getDefault() != null)
+            ret += " (default " + getConverter().format(getDefault()) + ")";
         return ret;
-    }
-    protected String formatDefault() {
-        X def = getDefault();
-        return (def == null) ? null : String.valueOf(def);
     }
 
     public OptionValue<X> process(ArgumentParser p, ArgumentValue v,
@@ -77,7 +75,7 @@ public abstract class ValueOption<X> extends Option<X> {
         if (a != null) {
             if (a.getType() == ArgumentValue.Type.VALUE ||
                     a.getType() == ArgumentValue.Type.ARGUMENT) {
-                return wrap(parse(a.getValue()));
+                return wrap(converter.convert(a.getValue()));
             } else {
                 s.pushback(a);
             }
@@ -87,9 +85,18 @@ public abstract class ValueOption<X> extends Option<X> {
                 "option --" + v.getValue());
         return wrap(optionalDefault);
     }
-    protected abstract X parse(String data) throws ParseException;
     protected OptionValue<X> wrap(X item) {
         return new OptionValue<X>(this, item);
+    }
+
+    public static <T> ValueOption<T> of(Class<T> cls, String name,
+            Character shortname, String help) {
+        return new ValueOption<T>(name, shortname, help, Converter.get(cls));
+    }
+    public static <T> ValueOption<List<T>> ofList(Class<T> cls, String name,
+            Character shortname, String help) {
+        return new ValueOption<List<T>>(name, shortname, help,
+                                        ListConverter.getL(cls));
     }
 
 }
