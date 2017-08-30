@@ -18,7 +18,7 @@ public interface MessageContents {
 
     /**
      * The client-assigned sequence identifier.
-     * Should be treated like an opaque value and passed through to replies
+     * Should be treated like an opaque value and passed through to responses
      * to the message.
      */
     Object getSequence();
@@ -30,7 +30,7 @@ public interface MessageContents {
      * message type (and the wording should be chosen to facilitate that),
      * unless change is semantically warranted; e.g., "unicast" and
      * "broadcast" messages are nearly fully retransmitted by the core, but a
-     * "ping" message is replied to with a "pong".
+     * "ping" message is responded to with a "pong".
      * Message types should be short alphanumeric lowercase strings with
      * dashes as word separators.
      */

@@ -167,7 +167,7 @@ option. (Refer to the `--help` message for a listing.)
 - `--maxlen` *num* — *Maximum log chunk length*: As default (and as the
   browser-based client does), Scribe delivers the entirety of its log
   database if asked to (and the Web client does that); this option caps the
-  length of a single log reply to the given length to allow incremental
+  length of a single log response to the given length to allow incremental
   loading.
 
     If logs are stored in memory, their amount is additionally capped to the
@@ -207,8 +207,8 @@ option. (Refer to the `--help` message for a listing.)
 
 - `--nick` *name* — *Nickname*: Allows setting a custom nick-name for the
   bot. An empty nickname will make the bot invisible to users, although it
-  will still reply with the empty nickname upon request and contribute to the
-  user count.
+  will still respond with the empty nickname upon request and contribute to
+  the user count.
 
 - `--no-nick` — *No nickname*: Disables sending of a nickname altogether;
   this renders the bot truly invisible (from the user list's perspective).

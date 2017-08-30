@@ -645,10 +645,10 @@ class Scribe(instabot.Bot):
     def _process_log_request(self, data, uid):
         logs = self.db.query(data.get('from'), data.get('to'),
                              data.get('amount'))
-        reply = {'data': logs,
-                 'uuids': self.db.query_uuid(ent['from'] for ent in logs)}
-        if data.get('key') is not None: reply['key'] = data['key']
-        self.send_logs(uid, reply)
+        response = {'data': logs,
+                    'uuids': self.db.query_uuid(ent['from'] for ent in logs)}
+        if data.get('key') is not None: response['key'] = data['key']
+        self.send_logs(uid, response)
     def _process_log(self, data, uid):
         rawlogs, uuids = data.get('data', []), data.get('uuids', {})
         for k, v in data.get('users', {}).items():

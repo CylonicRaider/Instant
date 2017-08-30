@@ -143,8 +143,9 @@ class InstantClient(object):
         func = {
             'identity': self.handle_identity, 'pong': self.handle_pong,
             'joined': self.handle_joined, 'unicast': self.handle_unicast,
-            'broadcast': self.handle_broadcast, 'reply': self.handle_reply,
-            'left': self.handle_left, 'error': self.handle_error
+            'broadcast': self.handle_broadcast,
+            'response': self.handle_response, 'left': self.handle_left,
+            'error': self.handle_error
         }.get(msgt, self.on_unknown)
         func(content, rawmsg)
     def on_frame(self, msgtype, content, final):
@@ -165,7 +166,7 @@ class InstantClient(object):
         self.on_client_message(content['data'], content, rawmsg)
     def handle_broadcast(self, content, rawmsg):
         self.on_client_message(content['data'], content, rawmsg)
-    def handle_reply(self, content, rawmsg):
+    def handle_response(self, content, rawmsg):
         pass
     def handle_left(self, content, rawmsg):
         pass

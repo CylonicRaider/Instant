@@ -14,8 +14,8 @@ public interface RequestHook {
      * If the return value is true, the hook is assumed to be in charge of
      * the request and no further handling happens.
      * Because of structural constraints, the response headers and the body
-     * of a plain HTTP reply must be sent separately; headers are submitted
-     * in evaluateRequest(), the body is sent in onOpen() (and/or
+     * of a plain HTTP response must be sent separately; headers are
+     * submitted in evaluateRequest(), the body is sent in onOpen() (and/or
      * subsequently).
      * Individual requests can be identified using the RequestData object,
      * which is guaranteed to be identical with the ClientConnection

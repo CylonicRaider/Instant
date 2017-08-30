@@ -333,14 +333,16 @@ this.Instant = function() {
      * lastPong is a [local time, server time] array (or null). */
     var lastPong = null;
     setInterval(function() {
-      if (! Instant || ! Instant.connection || ! Instant.connection.isConnected())
+      if (! Instant || ! Instant.connection ||
+          ! Instant.connection.isConnected())
         return;
       var payload = null;
       if (lastPong) {
         var now = Date.now();
         var delta = lastPong[1] - lastPong[0];
         if (lastPong[0] <= now - 60000) {
-          console.warn('Last ping response too far in the past; reconnecting.');
+          console.warn('Last ping response too far in the past; ' +
+              'reconnecting...');
           Instant.connection.reconnect();
           return;
         } else {
@@ -473,10 +475,10 @@ this.Instant = function() {
             /* Initiate log pull */
             Instant.logs.pull.start();
             break;
-          case 'pong': /* Server replied to a ping */
+          case 'pong': /* Server responded to a ping */
             lastPong = [Date.now(), msg.timestamp];
             break;
-          case 'reply': /* Reply to a message sent */
+          case 'response': /* Response to a message sent */
             /* Nothing to do */
             break;
           case 'joined': /* New user joined (might be ourself) */
@@ -938,7 +940,7 @@ this.Instant = function() {
         var POLL_TIME = 100;
         /* The pane to add parent-less messages to */
         var pane = null;
-        /* Waiting for replies to arrive */
+        /* Waiting for responses to arrive */
         var timer = null;
         /* Time when the pull started; last time we got a log-info */
         var pullStarted = null, lastUpdate = null;
@@ -952,8 +954,10 @@ this.Instant = function() {
           /* Initialize the pane node */
           init: function(paneNode) {
             /* Verbosity level */
-            if (window.logInstantLogPulling === undefined)
-              window.logInstantLogPulling = (!! Instant.query.get('verbose'));
+            if (window.logInstantLogPulling === undefined) {
+              var v = (!! Instant.query.get('verbose'))
+              window.logInstantLogPulling = v;
+            }
             pane = paneNode;
           },
           /* Actually start pulling logs */
@@ -1072,14 +1076,14 @@ this.Instant = function() {
               }
               return;
             }
-            var reply = null, replyTo = msg.from;
+            var response = null, respondTo = msg.from;
             /* Check message */
             var data = msg.data;
             switch (data.type) {
               case 'log-query': /* Someone asks about our logs */
                 /* FIXME: Does include "live" messages as logs. */
-                reply = Instant.logs.bounds();
-                reply.type = 'log-info';
+                response = Instant.logs.bounds();
+                response.type = 'log-info';
                 break;
               case 'log-info': /* Someone informs us about their logs */
                 var from = data.from, to = data.to;
@@ -1094,15 +1098,15 @@ this.Instant = function() {
                   console.debug('[LogPull]', 'Got advertisement', data);
                 break;
               case 'log-request': /* Someone requests logs from us */
-                reply = {type: 'log'};
-                if (data.from != null) reply.from = data.from;
-                if (data.to != null) reply.to = data.to;
-                if (data.length != null) reply.length = data.length;
-                if (data.key != null) reply.key = data.key;
-                reply.data = Instant.logs.get(data.from, data.to,
-                                              data.length);
-                reply.uuids = Instant.logs.queryUUID(
-                  reply.data.map(function(e) {
+                response = {type: 'log'};
+                if (data.from != null) response.from = data.from;
+                if (data.to != null) response.to = data.to;
+                if (data.length != null) response.length = data.length;
+                if (data.key != null) response.key = data.key;
+                response.data = Instant.logs.get(data.from, data.to,
+                                                 data.length);
+                response.uuids = Instant.logs.queryUUID(
+                  response.data.map(function(e) {
                     return e.from;
                   }));
                 break;
@@ -1162,8 +1166,9 @@ this.Instant = function() {
               default:
                 throw new Error('Bad message supplied to _onmessage().');
             }
-            /* Send reply */
-            if (reply != null) Instant.connection.send(replyTo, reply);
+            /* Send response */
+            if (response != null)
+              Instant.connection.send(respondTo, response);
           },
           /* Done with loading logs for whatever reasons */
           _done: function(before, after, count) {
@@ -3348,7 +3353,8 @@ this.Instant = function() {
         /* Collapse user list on small windows */
         window.addEventListener('resize', Instant.userList._updateCollapse);
         Instant.userList._updateCollapse();
-        /* Flush the animation when the tab is shown (after having been hidden) */
+        /* Flush the animation when the tab is shown (after having been
+         * hidden) */
         window.addEventListener('visibilitychange', function() {
           if (document.visibilityState == 'visible')
             Instant.userList._updateDecay();
@@ -5949,8 +5955,8 @@ this.Instant = function() {
        *              resolved first.
        * Execution order:
        * - All resources are fetched asynchronously in no particular order
-       *   (and may have been cached). Execution of scripts is, except for the
-       *   constraints noted, concurrent.
+       *   (and may have been cached). Execution of scripts is, except for
+       *   the constraints noted, concurrent.
        * - styles are fully asynchronous and do not affect the loading of the
        *   plugin that requested them.
        * - Scripts with the before parameter set to false are not run until

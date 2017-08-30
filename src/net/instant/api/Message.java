@@ -42,10 +42,10 @@ public interface Message {
     /**
      * Construct a message to be sent back to the client.
      * Differently to Room's constructMessage, ID auto-generation is not
-     * provided since replies should be sent to the client only; it can
+     * provided since responses should be sent to the client only; it can
      * be produced via the API1 interface "manually" if necessary. The
      * type argument tells which type to assign to the new message.
      */
-    MessageContents makeReply(String type);
+    MessageContents makeResponse(String type);
 
 }
