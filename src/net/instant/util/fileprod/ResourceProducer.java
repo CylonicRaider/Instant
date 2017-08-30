@@ -12,6 +12,7 @@ public class ResourceProducer extends WhitelistProducer {
     }
     public ResourceProducer() {
         this(null);
+        // Cannot call methods until parent constructor has been invoked.
         setClassLoader(getClass().getClassLoader());
     }
 

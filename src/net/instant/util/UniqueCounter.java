@@ -23,7 +23,6 @@ public class UniqueCounter implements Counter {
                  (long) rnd[3] << 16 & 0x000000FF0000L |
                  (long) rnd[4] <<  8 & 0x00000000FF00L |
                  (long) rnd[5] <<  0 & 0x0000000000FFL;
-        Util.clear(rnd);
     }
 
     /**
@@ -42,7 +41,7 @@ public class UniqueCounter implements Counter {
             sequence++;
         }
         lastTime = curTime;
-        return curTime << 10 | sequence;
+        return (curTime << 10) + sequence;
     }
 
     public String getString(long v) {
@@ -78,7 +77,7 @@ public class UniqueCounter implements Counter {
         /* Tuck carry into high two-thirds */
         uts_hi += uts_lo >>> 32;
         uts_lo &= 0xFFFFFFFFL;
-        /* Assemble everything into an UUID */
+        /* Assemble everything into a UUID */
         return new UUID(uts_lo << 32 | uts_hi << 16 & 0xFFFF0000L |
                         uts_hi >> 16 & 0xFFF | 0x1000,
                         uts_hi << 20 & 0x3FFF000000000000L | nodeID |
