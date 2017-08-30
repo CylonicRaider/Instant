@@ -3861,6 +3861,7 @@ this.Instant = function() {
         Instant.connection.sendUnicast(recipient, data);
         Instant.privmsg._transformAfterview(popup, true);
         Instant.privmsg._update();
+        Instant.popups.focus(popup);
       },
       /* Display the popup for an incoming message */
       _read: function(data, isNew) {
