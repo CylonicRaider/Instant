@@ -5,7 +5,7 @@ import java.util.UUID;
 /**
  * A unique ID generator.
  * To reduce collisions, the core provides a central instance for all
- * needs.
+ * needs. Do not use wastefully.
  */
 public interface Counter {
 

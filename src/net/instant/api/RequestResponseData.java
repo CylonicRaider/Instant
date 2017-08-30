@@ -2,7 +2,6 @@ package net.instant.api;
 
 import java.util.List;
 import java.util.Map;
-import org.java_websocket.WebSocket;
 
 /**
  * Information about an HTTP request and the response to it.
@@ -40,11 +39,5 @@ public interface RequestResponseData extends RequestData {
      * Includes those of all plugins and the core.
      */
     List<Cookie> getResponseCookies();
-
-    /**
-     * The data channel to the client.
-     * Should usually not be used directly, except for its send() methods.
-     */
-    WebSocket getConnection();
 
 }

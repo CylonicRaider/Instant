@@ -6,6 +6,11 @@ import java.util.Set;
  * Representation of a chat room.
  * Instances may or may not be garbage-collected when there are no clients
  * connected to a room.
+ * A special (unique) instance is maintained for clients that are not members
+ * of "proper" rooms. For it, getName() returns null; broadcasting to it
+ * fails with an exception; all methods that would reference it return null
+ * instead (see RoomGroup for exceptions) or pretend that it doesn't exist
+ * otherwise.
  */
 public interface Room {
 
@@ -17,13 +22,13 @@ public interface Room {
     /**
      * All clients currently connected to the room.
      */
-    Set<RequestResponseData> getClients();
+    Set<ClientConnection> getClients();
 
     /**
      * Send a message to a single client.
      * Returns the ID of the message as filled in by the core.
      */
-    String sendUnicast(RequestResponseData client, MessageContents msg);
+    String sendUnicast(ClientConnection client, MessageContents msg);
 
     /**
      * Send a message to all room members.

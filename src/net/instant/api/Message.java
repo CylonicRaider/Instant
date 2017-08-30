@@ -32,10 +32,10 @@ public interface Message {
     /**
      * The client the message originated from.
      */
-    RequestResponseData getSource();
+    ClientConnection getSource();
 
     /**
-     * The room the message was submitted in.
+     * The room the message was submitted to.
      */
     Room getRoom();
 

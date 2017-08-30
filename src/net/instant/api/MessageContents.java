@@ -10,7 +10,8 @@ public interface MessageContents {
     /**
      * The message ID.
      * Filled in by the core; should normally not be changed.
-     * Incoming messages do not have ID-s.
+     * Messages as sent by clients do not have ID-s; messages sent back to
+     * clients do neither; messages passed on to other clients do have them.
      */
     String getID();
     void setID(String id);
@@ -18,7 +19,7 @@ public interface MessageContents {
     /**
      * The client-assigned sequence identifier.
      * Should be treated like an opaque value and passed through to replies
-     * as appropriate.
+     * to the message.
      */
     Object getSequence();
     void setSequence(Object seq);
@@ -28,17 +29,17 @@ public interface MessageContents {
      * Generally, messages passed through to other clients should retain the
      * message type (and the wording should be chosen to facilitate that),
      * unless change is semantically warranted; e.g., "unicast" and
-     * "broadcast" messages are nearly retransmitted by the core, but a
+     * "broadcast" messages are nearly fully retransmitted by the core, but a
      * "ping" message is replied to with a "pong".
-     * Message types should be short alphanumeric strings with dashes as word
-     * separators.
+     * Message types should be short alphanumeric lowercase strings with
+     * dashes as word separators.
      */
     String getType();
     void setType(String type);
 
     /**
      * The message's source.
-     * Should be a client ID as assigned to by the core if the message
+     * Should be a client ID as assigned by the core if the message
      * originated from a client, or not present for messages emitted by the
      * backend itself.
      */

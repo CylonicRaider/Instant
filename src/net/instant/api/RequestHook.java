@@ -18,8 +18,9 @@ public interface RequestHook {
      * in evaluateRequest(), the body is sent in onOpen() (and/or
      * subsequently).
      * Individual requests can be identified using the RequestData object,
-     * which is guaranteed to be identical with the RequestResponseData
-     * objects below for a single request.
+     * which is guaranteed to be identical with the ClientConnection
+     * objects below for a single request. (resp is identical to it as well,
+     * but displays a different method set.)
      */
     boolean evaluateRequest(RequestData req, ResponseBuilder resp);
 
@@ -32,7 +33,7 @@ public interface RequestHook {
      * instance may be formatted as actual WebSocket messages, or as raw
      * data (in spite of the class name).
      */
-    void onOpen(RequestResponseData req);
+    void onOpen(ClientConnection req);
 
     /**
      * Handle binary data from the client.
@@ -41,7 +42,7 @@ public interface RequestHook {
      * Should not be confused with MessageHook.onMessage(), which can
      * intercept "messages" as well.
      */
-    void onInput(RequestResponseData req, ByteBuffer data);
+    void onInput(ClientConnection req, ByteBuffer data);
 
     /**
      * Handle string data from the client.
@@ -49,14 +50,14 @@ public interface RequestHook {
      * Should not be confused with MessageHook.onMessage(), which can
      * intercept "messages" as well.
      */
-    void onInput(RequestResponseData req, String data);
+    void onInput(ClientConnection req, String data);
 
     /**
      * Handle a closed connection.
      * Per-request resources should be cleaned up here.
      * normal indicates whether the close is orderly or abnormal.
      */
-    void onClose(RequestResponseData req, boolean normal);
+    void onClose(ClientConnection req, boolean normal);
 
     /**
      * Handle an error condition.
@@ -71,6 +72,6 @@ public interface RequestHook {
      * To clarify, after an onOpen(), an onClose() will always be called, or
      * the whole backend will go down.
      */
-    void onError(RequestResponseData req, Exception exc);
+    void onError(ClientConnection req, Exception exc);
 
 }

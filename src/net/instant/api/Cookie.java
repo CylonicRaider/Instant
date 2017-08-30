@@ -8,7 +8,7 @@ import org.json.JSONObject;
  * The mapping part of the interface handles cookie attributes (such as
  * Path or Secure); to insert an attribute with an explicit value (such
  * as Secure), map the name to a null value. Although not part of the
- * interface, cookies should maintain insertion order for attributes.
+ * interface, cookies maintain insertion order for attributes.
  */
 public interface Cookie extends Map<String, String> {
 

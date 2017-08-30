@@ -13,7 +13,7 @@ public interface PresenceChange {
     /**
      * The client that is joining/leaving.
      */
-    RequestResponseData getSource();
+    ClientConnection getSource();
 
     /**
      * The room the client is joining/leaving.
@@ -24,7 +24,8 @@ public interface PresenceChange {
      * Message that will be broadcast to the room to inform about the event.
      * The core does not set the data field because the other ones suffice
      * for it; to transmit additional data, set it (preferably) to a
-     * JSONObject if not already done by another plugin.
+     * JSONObject if not already done by another plugin and put your data
+     * into it.
      */
     MessageContents getMessage();
 

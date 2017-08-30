@@ -102,6 +102,13 @@ public interface API1 {
     Counter getCounter();
 
     /**
+     * Obtain the global room group.
+     * Can be used to enumerate all rooms without having a reference to some
+     * room already present.
+     */
+    RoomGroup getRooms();
+
+    /**
      * Invoke the default plugin initializer.
      * A plugin may wish to both use the declarative features and execute own
      * code upon initialization.

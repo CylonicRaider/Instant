@@ -4,8 +4,9 @@ import java.nio.ByteBuffer;
 
 /**
  * Information about a static file and its contents.
- * The methods marked as "assumed to be constant" may be called only once and
- * then cached values may be reused.
+ * The methods marked as "assumed to be constant" will not be called
+ * repeatedly by the core; cached values will be used instead (so that
+ * the methods here can perform more-or-less expensive computation).
  */
 public interface FileInfo {
 
