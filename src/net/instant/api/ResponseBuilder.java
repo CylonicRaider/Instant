@@ -28,7 +28,7 @@ public interface ResponseBuilder {
     /**
      * Add an HTTP response header.
      */
-    void putHeader(String name, String content);
+    void addHeader(String name, String content);
 
     /**
      * Fabricate a new cookie with the given name and value.
@@ -47,6 +47,6 @@ public interface ResponseBuilder {
     /**
      * Add an HTTP response header serializing the cookie.
      */
-    void putCookie(Cookie cookie);
+    void addCookie(Cookie cookie);
 
 }
