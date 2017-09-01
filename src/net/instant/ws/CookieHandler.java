@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.LinkedList;
 import java.util.Map;
 import net.instant.api.Cookie;
 import net.instant.util.Encodings;
@@ -99,16 +100,22 @@ public class CookieHandler {
     }
 
     public List<Cookie> extractCookies(ClientHandshake request) {
-        List<Cookie> ret = new ArrayList<Cookie>();
+        List<String> values = new LinkedList<String>();
         Iterator<String> it = request.iterateHttpFields();
         while (it.hasNext()) {
             String name = it.next();
             if (! name.equals("Cookie")) continue;
-            String value = request.getFieldValue(name);
-            if (value.isEmpty()) continue;
-            Map<String, String> values = Formats.parseTokenMap(value);
-            if (values == null) continue;
-            for (Map.Entry<String, String> ent : values.entrySet()) {
+            values.add(request.getFieldValue(name));
+        }
+        return extractCookies(values);
+    }
+    public List<Cookie> extractCookies(Iterable<String> values) {
+        List<Cookie> ret = new ArrayList<Cookie>();
+        for (String value : values) {
+            if (value == null || value.isEmpty()) continue;
+            Map<String, String> cookies = Formats.parseTokenMap(value);
+            if (cookies == null) continue;
+            for (Map.Entry<String, String> ent : cookies.entrySet()) {
                 try {
                     ret.add(new DefaultCookie(ent.getKey(), ent.getValue()));
                 } catch (IllegalArgumentException exc) {}
