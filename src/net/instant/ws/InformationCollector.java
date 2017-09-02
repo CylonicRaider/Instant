@@ -16,6 +16,7 @@ import org.java_websocket.drafts.Draft;
 import org.java_websocket.handshake.ClientHandshake;
 import org.java_websocket.handshake.Handshakedata;
 import org.java_websocket.handshake.ServerHandshakeBuilder;
+import org.java_websocket.handshake.HandshakeBuilder;
 import org.json.JSONObject;
 
 public class InformationCollector {
@@ -164,12 +165,18 @@ public class InformationCollector {
         protected void initRequestLine(String line) {
             reqLine = line;
         }
-        protected void initData(WebSocket conn, Draft draft,
-                                ClientHandshake handshake) {
+        protected void initRequest(WebSocket conn, Draft draft,
+                                   ClientHandshake handshake) {
             ws = conn;
             request = handshake;
             reqType = InstantWebSocketServer.getRequestType(draft);
             cookies = parent.getCookieHandler().extractCookies(handshake);
+        }
+        protected void initResponse(ServerHandshakeBuilder handshake) {
+            response = handshake;
+        }
+        protected void postProcess() {
+            parent.getCookieHandler().setCookies(response, respCookies);
         }
 
     }
@@ -188,20 +195,34 @@ public class InformationCollector {
         return parent;
     }
 
-    public void addRequestLine(Handshakedata handshake, String line) {
+    public Datum addRequestLine(Handshakedata handshake, String line) {
         Datum d = new Datum();
         d.initRequestLine(line);
         synchronized (this) {
             requests.put(handshake, d);
         }
+        return d;
     }
-    public void addRequestData(WebSocket conn, Draft draft,
-                               ClientHandshake request) {
+    public Datum addRequestData(WebSocket conn, Draft draft,
+                                ClientHandshake request) {
+        synchronized (this) {
+            Datum d = requests.get(request);
+            d.initRequest(conn, draft, request);
+            connections.put(conn, d);
+            return d;
+        }
+    }
+    public Datum addResponse(ClientHandshake request,
+                             ServerHandshakeBuilder response,
+                             HandshakeBuilder result) {
         synchronized (this) {
             Datum d = requests.remove(request);
-            d.initData(conn, draft, request);
-            connections.put(conn, d);
+            d.initResponse((ServerHandshakeBuilder) result);
+            return d;
         }
+    }
+    public void postProcess(Datum d) {
+        d.postProcess();
     }
 
 }

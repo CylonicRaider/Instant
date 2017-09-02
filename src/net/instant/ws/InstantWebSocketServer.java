@@ -98,7 +98,10 @@ public class InstantWebSocketServer extends WebSocketServer
     public void postProcess(ClientHandshake request,
                             ServerHandshakeBuilder response,
                             HandshakeBuilder result) {
+        InformationCollector.Datum d = collector.addResponse(
+            request, response, result);
         /* NYI */
+        collector.postProcess(d);
     }
 
     public void onOpen(WebSocket conn, ClientHandshake handshake) {
