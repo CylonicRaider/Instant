@@ -14,9 +14,9 @@ import net.instant.api.ResponseBuilder;
 import org.java_websocket.WebSocket;
 import org.java_websocket.drafts.Draft;
 import org.java_websocket.handshake.ClientHandshake;
+import org.java_websocket.handshake.HandshakeBuilder;
 import org.java_websocket.handshake.Handshakedata;
 import org.java_websocket.handshake.ServerHandshakeBuilder;
-import org.java_websocket.handshake.HandshakeBuilder;
 import org.json.JSONObject;
 
 public class InformationCollector {
@@ -218,6 +218,13 @@ public class InformationCollector {
     }
     public void postProcess(Datum d) {
         d.postProcess();
+    }
+
+    public synchronized Datum get(WebSocket ws) {
+        return connections.get(ws);
+    }
+    public synchronized Datum remove(WebSocket ws) {
+        return connections.remove(ws);
     }
 
 }
