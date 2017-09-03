@@ -195,31 +195,26 @@ public class InformationCollector {
         return parent;
     }
 
-    public Datum addRequestLine(Handshakedata handshake, String line) {
+    public synchronized Datum addRequestLine(Handshakedata handshake,
+                                             String line) {
         Datum d = new Datum();
         d.initRequestLine(line);
-        synchronized (this) {
-            requests.put(handshake, d);
-        }
+        requests.put(handshake, d);
         return d;
     }
-    public Datum addRequestData(WebSocket conn, Draft draft,
-                                ClientHandshake request) {
-        synchronized (this) {
-            Datum d = requests.get(request);
-            d.initRequest(conn, draft, request);
-            connections.put(conn, d);
-            return d;
-        }
+    public synchronized Datum addRequestData(WebSocket conn, Draft draft,
+                                             ClientHandshake request) {
+        Datum d = requests.get(request);
+        d.initRequest(conn, draft, request);
+        connections.put(conn, d);
+        return d;
     }
-    public Datum addResponse(ClientHandshake request,
-                             ServerHandshakeBuilder response,
-                             HandshakeBuilder result) {
-        synchronized (this) {
-            Datum d = requests.remove(request);
-            d.initResponse((ServerHandshakeBuilder) result);
-            return d;
-        }
+    public synchronized Datum addResponse(ClientHandshake request,
+                                          ServerHandshakeBuilder response,
+                                          HandshakeBuilder result) {
+        Datum d = requests.remove(request);
+        d.initResponse((ServerHandshakeBuilder) result);
+        return d;
     }
     public void postProcess(Datum d) {
         d.postProcess();
