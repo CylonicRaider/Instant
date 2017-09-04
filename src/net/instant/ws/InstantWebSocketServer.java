@@ -4,21 +4,26 @@ import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.LinkedHashMap;
+import java.util.Set;
+import net.instant.api.RequestHook;
 import net.instant.api.RequestType;
 import org.java_websocket.WebSocket;
 import org.java_websocket.WebSocketImpl;
 import org.java_websocket.drafts.Draft;
+import org.java_websocket.exceptions.InvalidDataException;
+import org.java_websocket.framing.CloseFrame;
 import org.java_websocket.handshake.ClientHandshake;
 import org.java_websocket.handshake.HandshakeBuilder;
 import org.java_websocket.handshake.Handshakedata;
 import org.java_websocket.handshake.ServerHandshakeBuilder;
 import org.java_websocket.handshake.ServerHandshakeBuilder;
 import org.java_websocket.server.WebSocketServer;
-import org.java_websocket.exceptions.InvalidDataException;
-import java.util.Iterator;
 
 public class InstantWebSocketServer extends WebSocketServer
         implements Draft_Raw.ConnectionVerifier, DraftWrapper.Hook {
@@ -33,12 +38,19 @@ public class InstantWebSocketServer extends WebSocketServer
         DEFAULT_DRAFTS = Collections.unmodifiableList(l);
     }
 
+    private final Set<RequestHook> hooks;
+    private final Set<RequestHook> internalHooks;
+    private final Map<WebSocket, RequestHook> assignments;
     private InformationCollector collector;
     private CookieHandler cookies;
     private ConnectionGC gc;
 
     public InstantWebSocketServer(InetSocketAddress addr) {
         super(addr, wrapDrafts(DEFAULT_DRAFTS));
+        hooks = new LinkedHashSet<RequestHook>();
+        internalHooks = new LinkedHashSet<RequestHook>();
+        assignments = Collections.synchronizedMap(
+            new HashMap<WebSocket, RequestHook>());
         collector = new InformationCollector(this);
         gc = new ConnectionGC();
         // TODO: Get a StringSigner instance here.
@@ -100,29 +112,99 @@ public class InstantWebSocketServer extends WebSocketServer
                             HandshakeBuilder result) {
         InformationCollector.Datum d = collector.addResponse(
             request, response, result);
-        /* NYI */
+        for (RequestHook h : getAllHooks()) {
+            if (h.evaluateRequest(d, d)) {
+                assignments.put(d.getConnection(), h);
+                break;
+            }
+        }
         collector.postProcess(d);
     }
 
     public void onOpen(WebSocket conn, ClientHandshake handshake) {
-        /* NYI */
+        RequestHook h = assignments.get(conn);
+        InformationCollector.Datum d = collector.get(conn);
+        if (h != null) h.onOpen(d);
     }
 
     public void onMessage(WebSocket conn, String message) {
-        /* NYI */
+        RequestHook h = assignments.get(conn);
+        InformationCollector.Datum d = collector.get(conn);
+        if (h != null) h.onInput(d, message);
     }
 
     public void onMessage(WebSocket conn, ByteBuffer message) {
-        /* NYI */
+        RequestHook h = assignments.get(conn);
+        InformationCollector.Datum d = collector.get(conn);
+        if (h != null) h.onInput(d, message);
     }
 
     public void onClose(WebSocket conn, int code, String reason,
                         boolean remote) {
-        /* NYI */
+        RequestHook h = assignments.get(conn);
+        InformationCollector.Datum d = collector.get(conn);
+        if (h != null)
+            h.onClose(d, (code == CloseFrame.NORMAL ||
+                          code == CloseFrame.GOING_AWAY));
     }
 
     public void onError(WebSocket conn, Exception ex) {
-        /* NYI */
+        if (conn == null) {
+            for (RequestHook h : getAllHooks()) h.onError(null, ex);
+            return;
+        }
+        RequestHook h = assignments.get(conn);
+        InformationCollector.Datum d = collector.get(conn);
+        if (h != null) h.onError(d, ex);
+    }
+
+    public Iterable<RequestHook> getAllHooks() {
+        return new Iterable<RequestHook>() {
+            public Iterator<RequestHook> iterator() {
+                return new Iterator<RequestHook>() {
+
+                    private boolean atInternal = false;
+                    private Iterator<RequestHook> wrapped = hooks.iterator();
+
+                    public boolean hasNext() {
+                        boolean hn = wrapped.hasNext();
+                        if (! hn && ! atInternal) {
+                            atInternal = true;
+                            wrapped = internalHooks.iterator();
+                            hn = wrapped.hasNext();
+                        }
+                        return hn;
+                    }
+
+                    public RequestHook next() {
+                        // Swap iterator out if necessary.
+                        hasNext();
+                        return wrapped.next();
+                    }
+
+                    public void remove() {
+                        throw new UnsupportedOperationException();
+                    }
+
+                };
+            }
+        };
+    }
+    public Set<RequestHook> getHooks() {
+        return Collections.unmodifiableSet(hooks);
+    }
+    public Set<RequestHook> getInternalHooks() {
+        return Collections.unmodifiableSet(internalHooks);
+    }
+    public void addHook(RequestHook hook) {
+        hooks.add(hook);
+    }
+    public void addInternalHook(RequestHook hook) {
+        internalHooks.add(hook);
+    }
+    public void removeHook(RequestHook hook) {
+        hooks.remove(hook);
+        internalHooks.remove(hook);
     }
 
     protected static List<Draft> wrapDrafts(List<Draft> in) {
