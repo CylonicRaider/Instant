@@ -2,10 +2,9 @@ package net.instant.ws;
 
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
-import java.util.Iterator;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.LinkedList;
 import java.util.Map;
 import net.instant.api.Cookie;
 import net.instant.util.Encodings;
@@ -100,14 +99,8 @@ public class CookieHandler {
     }
 
     public List<Cookie> extractCookies(ClientHandshake request) {
-        List<String> values = new LinkedList<String>();
-        Iterator<String> it = request.iterateHttpFields();
-        while (it.hasNext()) {
-            String name = it.next();
-            if (! name.equals("Cookie")) continue;
-            values.add(request.getFieldValue(name));
-        }
-        return extractCookies(values);
+        return extractCookies(Collections.singletonList(
+            request.getFieldValue("Cookie")));
     }
     public List<Cookie> extractCookies(Iterable<String> values) {
         List<Cookie> ret = new ArrayList<Cookie>();
