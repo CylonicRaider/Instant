@@ -135,7 +135,19 @@ public class CookieHandler {
 
     public JSONObject parseCookieContent(String value) {
         String[] parts = value.split("\\|", -1);
-        if (parts.length != 2) return null;
+        if (parts.length == 1) {
+            synchronized (this) {
+                if (signer != null) return null;
+            }
+            try {
+                return new JSONObject(new String(Encodings.fromBase64(value),
+                                                 "utf-8"));
+            } catch (Exception exc) {
+                return null;
+            }
+        } else if (parts.length != 2) {
+            return null;
+        }
         byte[] data, signature;
         try {
             data = Encodings.fromBase64(parts[0]);
@@ -161,7 +173,7 @@ public class CookieHandler {
             throw new RuntimeException(exc);
         }
         synchronized (this) {
-            if (signer == null) return null;
+            if (signer == null) return Encodings.toBase64(enc);
             sig = signer.sign(enc);
             if (sig == null) return null;
         }
