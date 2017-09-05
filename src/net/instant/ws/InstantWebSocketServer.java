@@ -1,5 +1,6 @@
 package net.instant.ws;
 
+import java.io.File;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
@@ -13,6 +14,8 @@ import java.util.Map;
 import java.util.Set;
 import net.instant.api.RequestHook;
 import net.instant.api.RequestType;
+import net.instant.util.StringSigner;
+import net.instant.util.Util;
 import org.java_websocket.WebSocket;
 import org.java_websocket.WebSocketImpl;
 import org.java_websocket.drafts.Draft;
@@ -30,12 +33,19 @@ public class InstantWebSocketServer extends WebSocketServer
 
     public static final List<Draft> DEFAULT_DRAFTS;
 
+    public static final boolean INSECURE_COOKIES;
+    public static final File COOKIES_KEYFILE;
+
     static {
         List<Draft> l =  new ArrayList<Draft>();
         l.add(new Draft_SSE());
         l.add(new Draft_Raw());
         l.addAll(WebSocketImpl.defaultdraftlist);
         DEFAULT_DRAFTS = Collections.unmodifiableList(l);
+        INSECURE_COOKIES = Util.isTrue(
+            Util.getConfiguration("instant.cookies.insecure"));
+        COOKIES_KEYFILE = new File(
+            Util.getConfiguration("instant.cookies.keyfile"));
     }
 
     private final Set<RequestHook> hooks;
@@ -53,8 +63,7 @@ public class InstantWebSocketServer extends WebSocketServer
             new HashMap<WebSocket, RequestHook>());
         collector = new InformationCollector(this);
         gc = new ConnectionGC();
-        // TODO: Get a StringSigner instance here.
-        cookies = new CookieHandler();
+        cookies = new CookieHandler(makeStringSigner());
         for (Draft d : getDraft()) {
             if (d instanceof DraftWrapper) {
                 ((DraftWrapper) d).setHook(this);
@@ -239,6 +248,16 @@ public class InstantWebSocketServer extends WebSocketServer
             ret.put(name, dat.getFieldValue(name));
         }
         return ret;
+    }
+
+    public static StringSigner makeStringSigner() {
+        if (INSECURE_COOKIES) {
+            return null;
+        } else if (COOKIES_KEYFILE != null) {
+            return StringSigner.getInstance(COOKIES_KEYFILE);
+        } else {
+            return StringSigner.getInstance(Util.getRandomness(64));
+        }
     }
 
 }
