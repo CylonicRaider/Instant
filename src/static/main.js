@@ -3801,7 +3801,7 @@ this.Instant = function() {
           }
           Instant.popups.add(popup);
         });
-        if (update) Instant.privmsg._update();
+        Instant.privmsg._update();
         Instant.animation.unflash(msgUnread);
         Instant.animation.unflash(msgOthers);
       },
