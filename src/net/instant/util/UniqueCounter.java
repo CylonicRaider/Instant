@@ -34,11 +34,13 @@ public class UniqueCounter implements Counter {
      */
     public synchronized long get() {
         long curTime = System.currentTimeMillis();
-        if (curTime != lastTime) {
-            sequence = (sequence > 0x400) ? sequence - 0x400 : 0;
-        } else {
-            /* Intentionally overflowing */
+        if ((curTime - lastTime) / 1000 == 0) {
             sequence++;
+        } else if (sequence < 1024000) {
+            sequence = 0;
+        } else {
+            // Avoid ussing the same ID twice.
+            sequence -= 1024000 - 1;
         }
         lastTime = curTime;
         return (curTime << 10) + sequence;
