@@ -143,6 +143,8 @@ public class InformationCollector {
         public void respond(int code, String message, long length) {
             response.setHttpStatus((short) code);
             response.setHttpStatusMessage(message);
+            if (length != -1)
+                response.put("Content-Length", String.valueOf(length));
             respLength = length;
         }
 
