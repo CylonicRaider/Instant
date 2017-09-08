@@ -2,14 +2,23 @@ package net.instant;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.InetSocketAddress;
 import java.net.URL;
 import java.util.jar.Manifest;
 import java.util.logging.Logger;
+import net.instant.hooks.CodeHook;
 import net.instant.util.Formats;
 import net.instant.util.Logging;
+import net.instant.util.argparse.ArgumentParser;
+import net.instant.util.argparse.BaseOption;
+import net.instant.util.argparse.ParseException;
+import net.instant.util.argparse.ParseResult;
+import net.instant.util.argparse.ValueOption;
+import net.instant.ws.InstantWebSocketServer;
 
 public class Main implements Runnable {
 
+    public static final String APPNAME = "Instant";
     public static final String VERSION = "1.4.3";
     public static final String ROOM_RE =
         "[a-zA-Z](?:[a-zA-Z0-9_-]*[a-zA-Z0-9])?";
@@ -44,6 +53,8 @@ public class Main implements Runnable {
     }
 
     private final String[] args;
+    private String host;
+    private int port;
 
     public Main(String[] args) {
         this.args = args;
@@ -59,8 +70,34 @@ public class Main implements Runnable {
         return args[i];
     }
 
+    protected ParseResult parseArguments(ArgumentParser p) {
+        p.addHelp();
+        BaseOption<String> optHost = p.add(ValueOption.of(String.class,
+            "host", 'h', "Address to bind to").defaultsTo("*"));
+        BaseOption<Integer> optPort = p.add(ValueOption.of(Integer.class,
+            "port", 'p', "Port to bind to").defaultsTo(8080));
+        ParseResult r = parseArgumentsInner(p);
+        host = r.get(optHost);
+        port = r.get(optPort);
+        if (host.equals("*")) host = null;
+        return r;
+    }
+    protected ParseResult parseArgumentsInner(ArgumentParser p) {
+        try {
+            return p.parse(args);
+        } catch (ParseException exc) {
+            System.err.println(exc.getMessage());
+            System.exit(1);
+            return null;
+        }
+    }
+
     public void run() {
-        /* NYI */
+        parseArguments(new ArgumentParser(APPNAME));
+        InstantWebSocketServer srv = new InstantWebSocketServer(
+            new InetSocketAddress(host, port));
+        srv.addHook(CodeHook.NOT_FOUND);
+        srv.run();
     }
 
 }
