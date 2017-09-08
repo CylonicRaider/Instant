@@ -27,7 +27,10 @@ public class CodeHook extends HookAdapter {
     }
 
     public void onOpen(ClientConnection conn) {
-        conn.getConnection().send(response);
+        synchronized (this) {
+            conn.getConnection().send(response);
+            response.rewind();
+        }
         conn.getConnection().close();
     }
 

@@ -79,7 +79,7 @@ public class Main implements Runnable {
         ParseResult r = parseArgumentsInner(p);
         host = r.get(optHost);
         port = r.get(optPort);
-        if (host.equals("*")) host = null;
+        if (host.equals("*")) host = "";
         return r;
     }
     protected ParseResult parseArgumentsInner(ArgumentParser p) {
