@@ -109,8 +109,8 @@ public class Main implements Runnable {
         pf.whitelist("/static/.*");
         pr.whitelist("/pages/.*");
         pr.whitelist("/static/.*");
-        p.addChild(pf);
-        p.addChild(pr);
+        p.add(pf);
+        p.add(pr);
         srv.addHook(new StaticFileHook(p));
         srv.addHook(CodeHook.NOT_FOUND);
         srv.run();

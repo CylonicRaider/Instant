@@ -11,19 +11,18 @@ public class ListProducer implements Producer {
         children = new ArrayList<Producer>();
     }
 
-    public synchronized List<Producer> getChildren() {
-        return new ArrayList<Producer>(children);
+    public synchronized Producer[] getChildren() {
+        return children.toArray(new Producer[children.size()]);
     }
-    public synchronized void addChild(Producer p) {
+    public synchronized void add(Producer p) {
         children.add(p);
     }
-    public synchronized void removeChild(Producer p) {
+    public synchronized void remove(Producer p) {
         children.remove(p);
     }
 
     public ProducerJob produce(String name) {
-        List<Producer> ch = getChildren();
-        for (Producer p : ch) {
+        for (Producer p : getChildren()) {
             ProducerJob res = p.produce(name);
             if (res != null) return res;
         }
