@@ -6,6 +6,7 @@ import java.util.HashMap;
 import java.util.Map;
 import net.instant.api.ClientConnection;
 import net.instant.api.RequestData;
+import net.instant.api.RequestType;
 import net.instant.api.ResponseBuilder;
 import net.instant.util.ListStringMatcher;
 import net.instant.util.fileprod.FileCell;
@@ -48,7 +49,9 @@ public class StaticFileHook extends HookAdapter {
     }
 
     public boolean evaluateRequest(RequestData req, ResponseBuilder resp) {
-        if (producer == null) return false;
+        if (producer == null || req.getRequestType() != RequestType.HTTP ||
+                ! req.getMethod().equals("GET"))
+            return false;
         String path = aliases.match(req.getPath());
         if (path == null) path = req.getPath();
         FileCell ent;
