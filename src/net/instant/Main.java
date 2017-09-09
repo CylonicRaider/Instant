@@ -1,5 +1,6 @@
 package net.instant;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.InetSocketAddress;
@@ -7,6 +8,7 @@ import java.net.URL;
 import java.util.jar.Manifest;
 import java.util.logging.Logger;
 import net.instant.hooks.CodeHook;
+import net.instant.hooks.StaticFileHook;
 import net.instant.util.Formats;
 import net.instant.util.Logging;
 import net.instant.util.argparse.ArgumentParser;
@@ -14,6 +16,9 @@ import net.instant.util.argparse.BaseOption;
 import net.instant.util.argparse.ParseException;
 import net.instant.util.argparse.ParseResult;
 import net.instant.util.argparse.ValueOption;
+import net.instant.util.fileprod.FilesystemProducer;
+import net.instant.util.fileprod.ListProducer;
+import net.instant.util.fileprod.ResourceProducer;
 import net.instant.ws.InstantWebSocketServer;
 
 public class Main implements Runnable {
@@ -96,6 +101,17 @@ public class Main implements Runnable {
         parseArguments(new ArgumentParser(APPNAME));
         InstantWebSocketServer srv = new InstantWebSocketServer(
             new InetSocketAddress(host, port));
+        ListProducer p = new ListProducer();
+        FilesystemProducer pf = new FilesystemProducer(
+            new File("").getAbsolutePath(), "/");
+        ResourceProducer pr = new ResourceProducer();
+        pf.whitelist("/pages/.*");
+        pf.whitelist("/static/.*");
+        pr.whitelist("/pages/.*");
+        pr.whitelist("/static/.*");
+        p.addChild(pf);
+        p.addChild(pr);
+        srv.addHook(new StaticFileHook(p));
         srv.addHook(CodeHook.NOT_FOUND);
         srv.run();
     }

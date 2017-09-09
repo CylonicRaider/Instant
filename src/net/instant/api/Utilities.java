@@ -46,6 +46,15 @@ public final class Utilities {
     }
 
     /**
+     * Extract the requested path from a HTTP request line.
+     * The query string is discarded; to retrieve the path along with the
+     * query string, partition the request line manually.
+     */
+    public static String getHTTPPath(String requestLine) {
+        return requestLine.split("\\s+", 3)[1].split("\\?", 2)[0];
+    }
+
+    /**
      * Construct a JSONObject from the given key-value pairs.
      * The variadic argument array consists of pairs of strings and arbitrary
      * objects (in that order), which are added to the newly-made object. To
