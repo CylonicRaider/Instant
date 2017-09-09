@@ -53,7 +53,7 @@ public class RedirectHook extends HookAdapter {
 
     public interface Redirect extends StringMatcher {
 
-        public RedirectType getRedirectType();
+        RedirectType getRedirectType();
 
     }
 
