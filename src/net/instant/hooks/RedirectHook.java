@@ -57,7 +57,7 @@ public class RedirectHook extends HookAdapter {
 
     }
 
-    public class DefaultRedirect extends DefaultStringMatcher
+    public static class DefaultRedirect extends DefaultStringMatcher
             implements Redirect {
 
         private final RedirectType type;
