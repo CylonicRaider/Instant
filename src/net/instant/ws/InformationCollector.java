@@ -29,7 +29,9 @@ public class InformationCollector {
         private String rfc1413Ident;
         private String authIdent;
         private long timestamp;
-        private String reqLine;
+        private String reqMethod;
+        private String reqPath;
+        private String reqVersion;
         private RequestType reqType;
         private long respLength;
         private List<Cookie> cookies;
@@ -67,8 +69,16 @@ public class InformationCollector {
             return timestamp;
         }
 
-        public String getRequestLine() {
-            return reqLine;
+        public String getMethod() {
+            return reqMethod;
+        }
+
+        public String getPath() {
+            return reqPath;
+        }
+
+        public String getHTTPVersion() {
+            return reqVersion;
         }
 
         public String getReferrer() {
@@ -165,7 +175,11 @@ public class InformationCollector {
         }
 
         protected void initRequestLine(String line) {
-            reqLine = line;
+            String[] parts = line.split("\\s+");
+            assert (parts.length == 3) : "Bad HTTP request line?!";
+            reqMethod = parts[0];
+            reqPath = parts[1];
+            reqVersion = parts[2];
         }
         protected void initRequest(WebSocket conn, Draft draft,
                                    ClientHandshake handshake) {

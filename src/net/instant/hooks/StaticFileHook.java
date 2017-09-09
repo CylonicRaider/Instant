@@ -6,7 +6,6 @@ import java.util.Map;
 import net.instant.api.ClientConnection;
 import net.instant.api.RequestData;
 import net.instant.api.ResponseBuilder;
-import net.instant.util.Util;
 import net.instant.util.fileprod.FileCell;
 import net.instant.util.fileprod.Producer;
 import net.instant.util.fileprod.ProducerJob;
@@ -34,8 +33,7 @@ public class StaticFileHook extends HookAdapter {
 
     public boolean evaluateRequest(RequestData req, ResponseBuilder resp) {
         if (producer == null) return false;
-        String path = Util.getHTTPPath(req.getRequestLine());
-        ProducerJob job = producer.produce(path);
+        ProducerJob job = producer.produce(req.getPath());
         if (job == null) return false;
         resp.respond(200, "OK", -1);
         pending.put(req, job);

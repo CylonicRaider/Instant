@@ -33,10 +33,6 @@ public final class Util {
         return false;
     }
 
-    public static String getHTTPPath(String requestLine) {
-        return Utilities.getHTTPPath(requestLine);
-    }
-
     public static JSONObject createJSONObject(Object... params) {
         return Utilities.createJSONObject(params);
     }

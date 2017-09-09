@@ -35,12 +35,19 @@ public interface RequestData {
     long getTimestamp();
 
     /**
-     * The HTTP request line.
-     * Since standard-abiding lines should be trivial to parse, a more
-     * detailed view is not provided to reduce the interface size.
-     * E.g. "GET / HTTP/1.1".
+     * The HTTP request method.
      */
-    String getRequestLine();
+    String getMethod();
+
+    /**
+     * The HTTP request path.
+     */
+    String getPath();
+
+    /**
+     * The HTTP request version.
+     */
+    String getHTTPVersion();
 
     /**
      * The value of the HTTP Referer header.
