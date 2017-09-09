@@ -7,6 +7,7 @@ import java.net.InetSocketAddress;
 import java.net.URL;
 import java.util.jar.Manifest;
 import java.util.logging.Logger;
+import java.util.regex.Pattern;
 import net.instant.hooks.CodeHook;
 import net.instant.hooks.StaticFileHook;
 import net.instant.util.Formats;
@@ -16,6 +17,8 @@ import net.instant.util.argparse.BaseOption;
 import net.instant.util.argparse.ParseException;
 import net.instant.util.argparse.ParseResult;
 import net.instant.util.argparse.ValueOption;
+import net.instant.util.fileprod.FileCache;
+import net.instant.util.fileprod.FileProducer;
 import net.instant.util.fileprod.FilesystemProducer;
 import net.instant.util.fileprod.ListProducer;
 import net.instant.util.fileprod.ResourceProducer;
@@ -111,7 +114,14 @@ public class Main implements Runnable {
         pr.whitelist("/static/.*");
         p.add(pf);
         p.add(pr);
-        srv.addHook(new StaticFileHook(p));
+        StaticFileHook h = new StaticFileHook(new FileProducer(
+            new FileCache(), p));
+        h.getAliases().add("/", "/pages/main.html");
+        h.getAliases().add("/favicon.ico",
+                           "/static/logo-static_128x128.ico");
+        h.getAliases().add(Pattern.compile("/([^/]+)\\.html"),
+                           "/pages/\\1.html", true);
+        srv.addHook(h);
         srv.addHook(CodeHook.NOT_FOUND);
         srv.run();
     }

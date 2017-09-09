@@ -2,41 +2,43 @@ package net.instant.util.fileprod;
 
 import java.io.FileNotFoundException;
 import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 
 public class FileProducer {
 
-    private final FileCache cache;
-    private final List<Producer> producers;
     private final Map<String, ProducerJob> pending;
     private final Executor pool;
+    private FileCache cache;
+    private Producer producer;
 
-    public FileProducer(FileCache cache) {
-        this.cache = cache;
-        this.producers = new LinkedList<Producer>();
+    public FileProducer(FileCache cache, Producer producer) {
         this.pending = new HashMap<String, ProducerJob>();
         this.pool = Executors.newCachedThreadPool();
+        this.cache = cache;
+        this.producer = producer;
     }
     public FileProducer() {
-        this(new FileCache());
+        this(new FileCache(), null);
+    }
+
+    public Executor getPool() {
+        return pool;
     }
 
     public FileCache getCache() {
         return cache;
     }
-    public Executor getPool() {
-        return pool;
+    public void setCache(FileCache c) {
+        cache = c;
     }
 
-    public synchronized void addProducer(Producer p) {
-        producers.add(p);
+    public Producer getProducer() {
+        return producer;
     }
-    public synchronized Producer[] getProducers() {
-        return producers.toArray(new Producer[producers.size()]);
+    public void setProducer(Producer p) {
+        producer = p;
     }
 
     protected synchronized ProducerJob produce(String name,
@@ -46,32 +48,36 @@ public class FileProducer {
             if (cb != null) job.callback(cb);
             return job;
         }
-        for (Producer p : producers) {
-            job = p.produce(name);
-            if (job == null) continue;
-            job.callback(new ProducerJob.Callback() {
-                public void fileProduced(String name, FileCell f) {
-                    synchronized (FileProducer.this) {
-                        getCache().add(f);
-                        pending.remove(name);
-                    }
+        if (producer == null) return null;
+        job = producer.produce(name);
+        if (job == null) return null;
+        job.callback(new ProducerJob.Callback() {
+            public void fileProduced(String name, FileCell f) {
+                synchronized (FileProducer.this) {
+                    getCache().add(f);
+                    pending.remove(name);
                 }
-            });
-            if (cb != null) job.callback(cb);
-            pending.put(name, job);
-            getPool().execute(job);
-            return job;
-        }
-        return null;
+            }
+        });
+        if (cb != null) job.callback(cb);
+        pending.put(name, job);
+        getPool().execute(job);
+        return job;
     }
 
-    public synchronized FileCell get(String name, ProducerJob.Callback cb)
+    public FileCell get(String name, ProducerJob.Callback cb)
             throws FileNotFoundException {
-        FileCell res = cache.get(name);
-        if (res == null) {
-            if (produce(name, cb) == null)
-                throw new FileNotFoundException("Path not found: " + name);
+        FileCell res;
+        synchronized (this) {
+            res = cache.get(name);
+            if (res == null) {
+                if (produce(name, cb) == null)
+                    throw new FileNotFoundException("Path not found: " +
+                        name);
+            }
         }
+        if (cb != null && res != null)
+            cb.fileProduced(name, res);
         return res;
     }
     public FileCell get(String name) throws FileNotFoundException {
