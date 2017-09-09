@@ -16,29 +16,20 @@ public class ListStringMatcher implements StringMatcher {
         return children.toArray(new StringMatcher[children.size()]);
     }
 
-    public void add(StringMatcher child) {
+    public StringMatcher add(StringMatcher child) {
         children.add(child);
+        return child;
     }
     public void remove(StringMatcher child) {
         children.remove(child);
     }
 
-    public StringMatcher add(Pattern pattern, String replacement,
-                             boolean dynamic) {
-        StringMatcher ret = new DefaultStringMatcher(pattern, replacement,
-                                                     dynamic);
-        add(ret);
-        return ret;
-    }
     public StringMatcher add(Pattern pattern, String replacement) {
-        StringMatcher ret = new DefaultStringMatcher(pattern, replacement);
-        add(ret);
-        return ret;
+        return add(new DefaultStringMatcher(pattern, replacement, true));
     }
     public StringMatcher add(String pattern, String replacement) {
-        StringMatcher ret = new DefaultStringMatcher(pattern, replacement);
-        add(ret);
-        return ret;
+        return add(new DefaultStringMatcher(
+            Pattern.compile(Pattern.quote(pattern)), replacement, false));
     }
 
     public String match(String input) {

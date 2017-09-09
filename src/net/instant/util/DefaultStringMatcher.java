@@ -18,12 +18,6 @@ public class DefaultStringMatcher implements StringMatcher {
         this.replacement = replacement;
         this.dynamic = dynamic;
     }
-    public DefaultStringMatcher(Pattern pattern, String replacement) {
-        this(pattern, replacement, true);
-    }
-    public DefaultStringMatcher(String pattern, String replacement) {
-        this(Pattern.compile(Pattern.quote(pattern)), replacement, false);
-    }
 
     public Pattern getPattern() {
         return pattern;

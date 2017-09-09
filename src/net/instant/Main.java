@@ -120,7 +120,7 @@ public class Main implements Runnable {
         h.getAliases().add("/favicon.ico",
                            "/static/logo-static_128x128.ico");
         h.getAliases().add(Pattern.compile("/([^/]+)\\.html"),
-                           "/pages/\\1.html", true);
+                           "/pages/\\1.html");
         srv.addHook(h);
         srv.addHook(CodeHook.NOT_FOUND);
         srv.run();
