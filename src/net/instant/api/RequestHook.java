@@ -5,7 +5,7 @@ import java.nio.ByteBuffer;
 /**
  * A hook intercepting HTTP requests (of any kind).
  * Whether WebSocket requests technically count as HTTP or not, they are
- * treated equalls as far as the backend is concerned.
+ * treated equally as far as the backend is concerned.
  */
 public interface RequestHook {
 
