@@ -21,14 +21,6 @@ import org.java_websocket.util.Charsetfunctions;
  */
 public class Draft_Raw extends Draft {
 
-    public interface ConnectionVerifier {
-
-        boolean verifyConnection(ClientHandshake handshakedata, boolean guess);
-
-    }
-
-    private ConnectionVerifier verifier;
-
     @Override
     public HandshakeState acceptHandshakeAsClient(ClientHandshake request, ServerHandshake response) {
         /* Explicitly disallow WebSockets... */
@@ -41,7 +33,6 @@ public class Draft_Raw extends Draft {
     public HandshakeState acceptHandshakeAsServer(ClientHandshake handshakedata) {
         /* Still explicitly disallow WebSockets... */
         boolean r = handshakedata.hasFieldValue("Sec-WebSocket-Version");
-        if (verifier != null) r = verifier.verifyConnection(handshakedata, r);
         return (r) ? HandshakeState.NOT_MATCHED : HandshakeState.MATCHED;
     }
 
@@ -121,13 +112,6 @@ public class Draft_Raw extends Draft {
     @Override
     public Draft copyInstance() {
         return new Draft_Raw();
-    }
-
-    public ConnectionVerifier getVerifier() {
-        return verifier;
-    }
-    public void setVerifier(ConnectionVerifier v) {
-        verifier = v;
     }
 
 }

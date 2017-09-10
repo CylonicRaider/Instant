@@ -29,7 +29,7 @@ import org.java_websocket.handshake.ServerHandshakeBuilder;
 import org.java_websocket.server.WebSocketServer;
 
 public class InstantWebSocketServer extends WebSocketServer
-        implements Draft_Raw.ConnectionVerifier, DraftWrapper.Hook {
+        implements DraftWrapper.Hook {
 
     public static final List<Draft> DEFAULT_DRAFTS;
 
@@ -65,13 +65,8 @@ public class InstantWebSocketServer extends WebSocketServer
         gc = new ConnectionGC();
         cookies = new CookieHandler(makeStringSigner());
         for (Draft d : getDraft()) {
-            if (d instanceof DraftWrapper) {
+            if (d instanceof DraftWrapper)
                 ((DraftWrapper) d).setHook(this);
-                Draft w = ((DraftWrapper) d).getWrapped();
-                if (w instanceof Draft_Raw) {
-                    ((Draft_Raw) w).setVerifier(this);
-                }
-            }
         }
     }
     public InstantWebSocketServer(int port) {
@@ -90,11 +85,6 @@ public class InstantWebSocketServer extends WebSocketServer
     }
     public void setConnectionGC(ConnectionGC g) {
         gc = g;
-    }
-
-    public boolean verifyConnection(ClientHandshake handshakedata,
-                                    boolean guess) {
-        return guess;
     }
 
     /* Calling order:
