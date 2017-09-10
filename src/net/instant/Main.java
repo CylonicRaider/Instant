@@ -123,6 +123,7 @@ public class Main implements Runnable {
                            "/pages/\\1.html");
         srv.addHook(h);
         srv.addHook(CodeHook.NOT_FOUND);
+        srv.addHook(CodeHook.METHOD_NOT_ALLOWED);
         srv.run();
     }
 
