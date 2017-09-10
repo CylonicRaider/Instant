@@ -36,6 +36,7 @@ public class Draft_SSE extends Draft_Raw {
         response.put("Cache-Control", "no-cache");
         return ret;
     }
+
     @Override
     public Draft copyInstance() {
         return new Draft_SSE();
