@@ -15,10 +15,18 @@ public class RedirectHook extends HookAdapter {
 
     public enum RedirectType {
 
+        /* This and all future requests shall continue to the given new
+         * location. */
         MOVED(301, "Moved Permanently"),
+        /* Continue with a GET to the given location (or repeat the request
+         * to the given new location [HTTP/1.0]). */
         FOUND(302, "Found"),
+        /* Continue with a GET of the given location. */
         SEE_OTHER(303, "See Other"),
+        /* Repeat the request with the same method to the given location. */
         TEMPORARY(307, "Temporary Redirect"),
+        /* This and all future requests shall continue to the given new
+         * location, and the request method may not change. */
         PERMANENT(308, "Permanent Redirect");
 
         private static final Map<Integer, RedirectType> BY_CODE;
