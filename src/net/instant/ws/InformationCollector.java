@@ -7,6 +7,7 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.WeakHashMap;
 import net.instant.api.ClientConnection;
 import net.instant.api.Cookie;
 import net.instant.api.RequestType;
@@ -203,7 +204,7 @@ public class InformationCollector {
 
     public InformationCollector(InstantWebSocketServer parent) {
         this.parent = parent;
-        this.requests = new HashMap<Handshakedata, Datum>();
+        this.requests = new WeakHashMap<Handshakedata, Datum>();
         this.connections = new HashMap<WebSocket, Datum>();
     }
 
