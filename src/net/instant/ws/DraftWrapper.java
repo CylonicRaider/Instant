@@ -126,6 +126,4 @@ public class DraftWrapper extends Draft {
         }
     }
 
-
-
 }
