@@ -186,7 +186,7 @@ public class InformationCollector {
                                    ClientHandshake handshake) {
             ws = conn;
             request = handshake;
-            reqType = InstantWebSocketServer.getRequestType(draft);
+            reqType = DraftWrapper.getRequestType(draft);
             cookies = parent.getCookieHandler().extractCookies(handshake);
         }
         protected void initResponse(ServerHandshakeBuilder handshake) {
@@ -242,6 +242,9 @@ public class InformationCollector {
     }
     public synchronized Datum remove(WebSocket ws) {
         return connections.remove(ws);
+    }
+    public synchronized Datum remove(ClientHandshake request) {
+        return connections.remove(request);
     }
 
 }

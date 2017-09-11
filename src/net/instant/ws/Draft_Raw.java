@@ -17,7 +17,7 @@ import org.java_websocket.handshake.ServerHandshakeBuilder;
 import org.java_websocket.util.Charsetfunctions;
 
 /**
- * This is actually a hack implementing raw HTTP transfers. :P
+ * A hack implementing raw HTTP transfers.
  */
 public class Draft_Raw extends Draft {
 

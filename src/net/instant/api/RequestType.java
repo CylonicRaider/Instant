@@ -11,13 +11,19 @@ public enum RequestType {
     HTTP,
 
     /**
+     * A server-sent event stream.
+     */
+    SSE,
+
+    /**
      * A WebSocket connection.
      */
     WS,
 
     /**
-     * A server-sent event stream.
+     * A request that was not accepted by any hook.
+     * Used internally to deliver error messages without WebSocket framing.
      */
-    SSE
+    ERROR
 
 }

@@ -8,7 +8,7 @@ import org.java_websocket.handshake.HandshakeBuilder;
 import org.java_websocket.handshake.ServerHandshakeBuilder;
 
 /**
- * This is actually a hack implementing server-sent events. :P
+ * A hack implementing server-sent events.
  */
 public class Draft_SSE extends Draft_Raw {
 

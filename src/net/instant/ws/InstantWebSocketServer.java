@@ -13,13 +13,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import net.instant.api.RequestHook;
-import net.instant.api.RequestType;
 import net.instant.util.StringSigner;
 import net.instant.util.Util;
 import org.java_websocket.WebSocket;
 import org.java_websocket.WebSocketImpl;
 import org.java_websocket.drafts.Draft;
 import org.java_websocket.exceptions.InvalidDataException;
+import org.java_websocket.exceptions.InvalidHandshakeException;
 import org.java_websocket.framing.CloseFrame;
 import org.java_websocket.handshake.ClientHandshake;
 import org.java_websocket.handshake.HandshakeBuilder;
@@ -41,6 +41,7 @@ public class InstantWebSocketServer extends WebSocketServer
         l.add(new Draft_SSE());
         l.add(new Draft_Raw());
         l.addAll(WebSocketImpl.defaultdraftlist);
+        l.add(new Draft_Error());
         DEFAULT_DRAFTS = Collections.unmodifiableList(l);
         INSECURE_COOKIES = Util.isTrue(
             Util.getConfiguration("instant.cookies.insecure"));
@@ -107,17 +108,19 @@ public class InstantWebSocketServer extends WebSocketServer
     }
 
     public void postProcess(ClientHandshake request,
-                            ServerHandshakeBuilder response,
-                            HandshakeBuilder result) {
+            ServerHandshakeBuilder response, HandshakeBuilder result)
+            throws InvalidHandshakeException {
         InformationCollector.Datum d = collector.addResponse(
             request, response, result);
         for (RequestHook h : getAllHooks()) {
             if (h.evaluateRequest(d, d)) {
                 assignments.put(d.getConnection(), h);
-                break;
+                collector.postProcess(d);
+                return;
             }
         }
-        collector.postProcess(d);
+        collector.remove(request);
+        throw new InvalidHandshakeException("try another draft");
     }
 
     public void onOpen(WebSocket conn, ClientHandshake handshake) {
@@ -216,18 +219,6 @@ public class InstantWebSocketServer extends WebSocketServer
             }
         }
         return out;
-    }
-
-    protected static RequestType getRequestType(Draft draft) {
-        if (draft instanceof DraftWrapper) {
-            return getRequestType(((DraftWrapper) draft).getWrapped());
-        } else if (draft instanceof Draft_SSE) {
-            return RequestType.SSE;
-        } else if (draft instanceof Draft_Raw) {
-            return RequestType.HTTP;
-        } else {
-            return RequestType.WS;
-        }
     }
 
     protected static Map<String, String> headerMap(Handshakedata dat) {

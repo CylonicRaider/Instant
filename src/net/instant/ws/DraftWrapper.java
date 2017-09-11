@@ -2,6 +2,7 @@ package net.instant.ws;
 
 import java.nio.ByteBuffer;
 import java.util.List;
+import net.instant.api.RequestType;
 import org.java_websocket.drafts.Draft;
 import org.java_websocket.exceptions.InvalidDataException;
 import org.java_websocket.exceptions.InvalidHandshakeException;
@@ -18,7 +19,7 @@ public class DraftWrapper extends Draft {
 
     public interface Hook {
 
-        void postProcess(ClientHandshake request, ServerHandshakeBuilder response, HandshakeBuilder result);
+        void postProcess(ClientHandshake request, ServerHandshakeBuilder response, HandshakeBuilder result) throws InvalidHandshakeException;
 
         void handleRequestLine(Handshakedata handshake, String line);
 
@@ -110,5 +111,21 @@ public class DraftWrapper extends Draft {
     public void setHook(Hook h) {
         hook = h;
     }
+
+    public static RequestType getRequestType(Draft draft) {
+        if (draft instanceof DraftWrapper) {
+            return getRequestType(((DraftWrapper) draft).getWrapped());
+        } else if (draft instanceof Draft_SSE) {
+            return RequestType.SSE;
+        } else if (draft instanceof Draft_Error) {
+            return RequestType.ERROR;
+        } else if (draft instanceof Draft_Raw) {
+            return RequestType.HTTP;
+        } else {
+            return RequestType.WS;
+        }
+    }
+
+
 
 }
