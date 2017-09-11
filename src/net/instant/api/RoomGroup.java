@@ -3,26 +3,32 @@ package net.instant.api;
 import java.util.Set;
 
 /**
- * The entirety of all rooms available as a non-static object.
+ * The entirety of all rooms and room-agnostic services.
  */
 public interface RoomGroup {
 
     /**
      * A set of all currently present Room instances.
-     * The special no-rooms instance (see getRoom(String)) is not included.
+     * The special no-rooms instance is not included.
      */
     Set<Room> getActiveRooms();
 
     /**
      * Get (and possibly create) a room for the given name.
-     * null returns the special no-rooms instance.
+     * If null is given, the special no-rooms instance is returned.
      */
     Room getRoom(String name);
 
     /**
      * Get the room the client is connected to, if any.
-     * If a client is in no room, null is returned.
+     * If the client is in no room, the special no-rooms instance is
+     * returned.
      */
     Room getRoom(ClientConnection client);
+
+    /**
+     * Return the client with the given ID.
+     */
+    ClientConnection getClient(String id);
 
 }

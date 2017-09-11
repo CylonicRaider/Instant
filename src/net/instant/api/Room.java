@@ -8,9 +8,8 @@ import java.util.Set;
  * connected to a room.
  * A special (unique) instance is maintained for clients that are not members
  * of "proper" rooms. For it, getName() returns null; broadcasting to it
- * fails with an exception; all methods that would reference it return null
- * instead (see RoomGroup for exceptions) or pretend that it doesn't exist
- * otherwise.
+ * fails with an exception; see also RoomGroup for the behavior of the
+ * methods declared there.
  */
 public interface Room {
 
