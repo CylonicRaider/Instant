@@ -119,7 +119,6 @@ public class InstantWebSocketServer extends WebSocketServer
                 return;
             }
         }
-        collector.remove(request);
         throw new InvalidHandshakeException("try another draft");
     }
 

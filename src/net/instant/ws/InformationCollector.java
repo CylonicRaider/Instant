@@ -3,7 +3,6 @@ package net.instant.ws;
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -205,7 +204,7 @@ public class InformationCollector {
     public InformationCollector(InstantWebSocketServer parent) {
         this.parent = parent;
         this.requests = new WeakHashMap<Handshakedata, Datum>();
-        this.connections = new HashMap<WebSocket, Datum>();
+        this.connections = new WeakHashMap<WebSocket, Datum>();
     }
 
     public InstantWebSocketServer getParent() {
@@ -239,12 +238,6 @@ public class InformationCollector {
 
     public synchronized Datum get(WebSocket ws) {
         return connections.get(ws);
-    }
-    public synchronized Datum remove(WebSocket ws) {
-        return connections.remove(ws);
-    }
-    public synchronized Datum remove(ClientHandshake request) {
-        return connections.remove(request);
     }
 
 }
