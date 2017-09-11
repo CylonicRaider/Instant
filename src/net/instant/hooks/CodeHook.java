@@ -15,15 +15,16 @@ public class CodeHook extends HookAdapter {
 
     }
 
-    public static final CodeHook NOT_FOUND = new CodeHook(404, "Not Found",
-        new Filter() {
+    public static final CodeHook NOT_FOUND = new CodeHook(
+        404, "Not Found", new Filter() {
             public boolean admit(RequestData req) {
                 return (req.getRequestType() == RequestType.ERROR &&
                     req.getMethod().equals("GET"));
             }
         });
-    public static final CodeHook METHOD_NOT_ALLOWED = new CodeHook(405,
-        "Method Not Allowed", new Filter() {
+
+    public static final CodeHook METHOD_NOT_ALLOWED = new CodeHook(
+        405, "Method Not Allowed", new Filter() {
             public boolean admit(RequestData req) {
                 return (req.getRequestType() == RequestType.ERROR &&
                     ! req.getMethod().equals("GET"));
