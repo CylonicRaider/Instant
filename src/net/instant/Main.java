@@ -9,7 +9,9 @@ import java.util.jar.Manifest;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
 import net.instant.hooks.CodeHook;
+import net.instant.hooks.RedirectHook;
 import net.instant.hooks.StaticFileHook;
+import net.instant.hooks.WebSocketHook;
 import net.instant.util.Formats;
 import net.instant.util.Logging;
 import net.instant.util.argparse.ArgumentParser;
@@ -104,6 +106,9 @@ public class Main implements Runnable {
         parseArguments(new ArgumentParser(APPNAME));
         InstantWebSocketServer srv = new InstantWebSocketServer(
             new InetSocketAddress(host, port));
+        RedirectHook r = new RedirectHook();
+        r.add(Pattern.compile("/room/" + ROOM_RE), "\\0/", 301);
+        srv.addHook(r);
         ListProducer p = new ListProducer();
         FilesystemProducer pf = new FilesystemProducer(
             new File("").getAbsolutePath(), "/");
@@ -114,14 +119,19 @@ public class Main implements Runnable {
         pr.whitelist("/static/.*");
         p.add(pf);
         p.add(pr);
-        StaticFileHook h = new StaticFileHook(new FileProducer(
+        StaticFileHook f = new StaticFileHook(new FileProducer(
             new FileCache(), p));
-        h.getAliases().add("/", "/pages/main.html");
-        h.getAliases().add("/favicon.ico",
+        f.getAliases().add("/", "/pages/main.html");
+        f.getAliases().add("/favicon.ico",
                            "/static/logo-static_128x128.ico");
-        h.getAliases().add(Pattern.compile("/([^/]+)\\.html"),
+        f.getAliases().add(Pattern.compile("/([^/]+)\\.html"),
                            "/pages/\\1.html");
-        srv.addHook(h);
+        f.getAliases().add(Pattern.compile("/room/" + ROOM_RE + "/"),
+                           "/static/room.html");
+        srv.addHook(f);
+        WebSocketHook w = new WebSocketHook();
+        w.whitelist(Pattern.compile("/room/" + ROOM_RE + "/ws"));
+        srv.addHook(w);
         srv.addHook(CodeHook.NOT_FOUND);
         srv.addHook(CodeHook.METHOD_NOT_ALLOWED);
         srv.run();
