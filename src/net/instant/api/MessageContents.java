@@ -62,6 +62,16 @@ public interface MessageContents {
     void setData(Object data);
 
     /**
+     * Populate the payload with the given key/value pairs.
+     * pairs must have an even number of entries, with the first entry of
+     * each pair being a String key, and the second an arbitrary object.
+     * If the payload is a JSONObject, it is (non-recursively) amended with
+     * the given pairs, otherwise (in particular if it is null), it is
+     * replaced.
+     */
+    void updateData(Object... params);
+
+    /**
      * Message UNIX timestamp.
      * Filled in by the core; should normally not be changed.
      */
