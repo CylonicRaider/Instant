@@ -75,17 +75,9 @@ public class APIWebSocketHook extends WebSocketHook {
                            Room room) throws JSONException {
             this.rawData = rawData;
             this.parsedData = new JSONObject(rawData);
-            this.data = new MessageData();
+            this.data = new MessageData(parsedData);
             this.source = source;
             this.room = room;
-            this.data.setID(parsedData.getString("id"));
-            this.data.setSequence(parsedData.get("seq"));
-            this.data.setType(parsedData.getString("type"));
-            this.data.setFrom(parsedData.getString("from"));
-            this.data.setTo(parsedData.getString("to"));
-            this.data.setData(parsedData.get("data"));
-            Long ts = parsedData.optLong("timestamp");
-            if (ts != null) this.data.setTimestamp(ts);
        }
 
         public String getRawData() {
@@ -122,10 +114,14 @@ public class APIWebSocketHook extends WebSocketHook {
     private final Map<RequestData, String> tags;
     private MessageDistributor distr;
 
-    public APIWebSocketHook() {
+    public APIWebSocketHook(MessageDistributor distributor) {
         hooks = new ArrayList<MessageHook>();
         tags = Collections.synchronizedMap(
             new HashMap<RequestData, String>());
+        distr = distributor;
+    }
+    public APIWebSocketHook() {
+        this(null);
     }
 
     public MessageDistributor getDistributor() {
@@ -178,7 +174,8 @@ public class APIWebSocketHook extends WebSocketHook {
         UUID uuid = (UUID) conn.getExtraData().get("uuid");
         String roomName = tags.remove(conn);
         if (roomName.equals("")) roomName = null;
-        RoomDistributor room = distr.getRoom(roomName);
+        RoomDistributor room;
+        room = distr.getRoom(roomName);
         MessageData identity = new MessageData("identity");
         identity.updateData("id", id, "uuid", uuid,
             "version", Main.VERSION, "revision", Main.FINE_VERSION);
@@ -198,7 +195,13 @@ public class APIWebSocketHook extends WebSocketHook {
 
     public void onInput(ClientConnection conn, String data) {
         RoomDistributor room = distr.getRoom(conn);
-        Message event = new MessageImpl(data, conn, room);
+        Message event;
+        try {
+            event = new MessageImpl(data, conn, room);
+        } catch (JSONException exc) {
+            conn.getConnection().send(ProtocolError.INVALID_JSON.toString());
+            return;
+        }
         for (MessageHook h : hooks) {
             if (h.onMessage(event)) break;
         }

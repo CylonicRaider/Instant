@@ -33,6 +33,14 @@ public final class Util {
         return false;
     }
 
+    public static String escapeStringJS(String data, boolean full) {
+        return Utilities.escapeStringJS(data, full);
+    }
+
+    public static String trimQuery(String fullPath) {
+        return Utilities.trimQuery(fullPath);
+    }
+
     public static JSONObject createJSONObject(Object... params) {
         return Utilities.createJSONObject(params);
     }

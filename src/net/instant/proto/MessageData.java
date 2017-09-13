@@ -2,6 +2,7 @@ package net.instant.proto;
 
 import net.instant.api.MessageContents;
 import net.instant.util.Util;
+import org.json.JSONException;
 import org.json.JSONObject;
 
 public class MessageData implements MessageContents {
@@ -14,6 +15,17 @@ public class MessageData implements MessageContents {
     private Object data;
     private long timestamp;
 
+    public MessageData(JSONObject source) throws JSONException {
+        id = source.optString("id");
+        seq = source.opt("seq");
+        type = source.getString("type");
+        from = source.optString("from");
+        to = source.optString("to");
+        data = source.opt("data");
+        Long ts = source.optLong("timestamp");
+        if (ts == null) ts = System.currentTimeMillis();
+        timestamp = ts;
+    }
     public MessageData(String id, String type) {
         this.id = id;
         this.type = type;

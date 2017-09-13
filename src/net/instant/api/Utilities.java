@@ -46,6 +46,13 @@ public final class Utilities {
     }
 
     /**
+     * Remove the query string from the given request path.
+     */
+    public static String trimQuery(String fullPath) {
+        return fullPath.replaceFirst("\\?.*$", "");
+    }
+
+    /**
      * Construct a JSONObject from the given key-value pairs.
      * The variadic argument array consists of pairs of strings and arbitrary
      * objects (in that order), which are added to the newly-made object. To
