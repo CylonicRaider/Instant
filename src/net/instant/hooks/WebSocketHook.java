@@ -1,40 +1,33 @@
 package net.instant.hooks;
 
-import java.util.LinkedList;
-import java.util.List;
-import java.util.regex.Pattern;
 import net.instant.api.RequestData;
+import net.instant.api.RequestHook;
 import net.instant.api.RequestType;
 import net.instant.api.ResponseBuilder;
-import net.instant.util.Util;
+import net.instant.util.ListStringMatcher;
 
-public class WebSocketHook extends HookAdapter {
+public abstract class WebSocketHook implements RequestHook {
 
-    private final List<Pattern> whitelist;
+    private final ListStringMatcher whitelist;
 
     public WebSocketHook() {
-        whitelist = new LinkedList<Pattern>();
+        whitelist = new ListStringMatcher();
     }
 
-    public List<Pattern> getWhitelist() {
+    public ListStringMatcher getWhitelist() {
         return whitelist;
-    }
-    public void whitelist(Pattern path) {
-        whitelist.add(path);
-    }
-    public void unwhitelist(Pattern path) {
-        whitelist.remove(path);
     }
 
     public boolean evaluateRequest(RequestData req, ResponseBuilder resp) {
         // Let the WS library create request/response.
-        if (req.getRequestType() != RequestType.WS ||
-                ! Util.matchWhitelist(
-                    req.getPath().replaceFirst("\\?.*", ""),
-                    whitelist))
-            return false;
+        if (req.getRequestType() != RequestType.WS) return false;
+        String tag = whitelist.match(req.getPath());
+        if (tag == null) return false;
         resp.respond(101, "Switching Protocols", -1);
-        return true;
+        return evaluateRequestInner(req, resp, tag);
     }
+
+    protected abstract boolean evaluateRequestInner(RequestData req,
+        ResponseBuilder resp, String tag);
 
 }

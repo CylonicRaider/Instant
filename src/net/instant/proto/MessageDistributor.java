@@ -30,7 +30,7 @@ public class MessageDistributor implements RoomGroup {
         return ret;
     }
 
-    public synchronized Room getRoom(String name) {
+    public synchronized RoomDistributor getRoom(String name) {
         RoomDistributor ret = rooms.get(name);
         if (ret == null) {
             ret = new RoomDistributor(this, name);
@@ -39,7 +39,7 @@ public class MessageDistributor implements RoomGroup {
         return ret;
     }
 
-    public synchronized Room getRoom(ClientConnection client) {
+    public synchronized RoomDistributor getRoom(ClientConnection client) {
         return clRooms.get(client);
     }
 
@@ -47,10 +47,17 @@ public class MessageDistributor implements RoomGroup {
         return clIndex.get(id);
     }
 
-    public synchronized void remove(ClientConnection conn) {
+    public synchronized void add(ClientConnection conn,
+                                 RoomDistributor room) {
+        room.add(conn);
+        clRooms.put(conn, room);
+        clIndex.put((String) conn.getExtraData().get("id"), conn);
+    }
+    public synchronized RoomDistributor remove(ClientConnection conn) {
         RoomDistributor r = clRooms.remove(conn);
         if (r != null) r.remove(conn);
         clIndex.remove((String) conn.getExtraData().get("id"));
+        return r;
     }
 
 }

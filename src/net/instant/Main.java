@@ -8,10 +8,10 @@ import java.net.URL;
 import java.util.jar.Manifest;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
+import net.instant.hooks.APIWebSocketHook;
 import net.instant.hooks.CodeHook;
 import net.instant.hooks.RedirectHook;
 import net.instant.hooks.StaticFileHook;
-import net.instant.hooks.WebSocketHook;
 import net.instant.util.Formats;
 import net.instant.util.Logging;
 import net.instant.util.argparse.ArgumentParser;
@@ -129,8 +129,9 @@ public class Main implements Runnable {
         f.getAliases().add(Pattern.compile("/room/" + ROOM_RE + "/"),
                            "/static/room.html");
         srv.addHook(f);
-        WebSocketHook w = new WebSocketHook();
-        w.whitelist(Pattern.compile("/room/" + ROOM_RE + "/ws"));
+        APIWebSocketHook w = new APIWebSocketHook();
+        w.getWhitelist().add(Pattern.compile("/room/(" + ROOM_RE + ")/ws"),
+                             "\\1");
         srv.addHook(w);
         srv.addHook(CodeHook.NOT_FOUND);
         srv.addHook(CodeHook.METHOD_NOT_ALLOWED);

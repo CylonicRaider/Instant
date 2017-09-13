@@ -64,6 +64,9 @@ public class RoomDistributor implements Room {
             UniqueCounter.INSTANCE.getString() : null), type);
     }
 
+    public synchronized void add(ClientConnection client) {
+        clients.add(client);
+    }
     public synchronized void remove(ClientConnection client) {
         clients.remove(client);
     }

@@ -19,6 +19,9 @@ public class MessageData implements MessageContents {
         this.type = type;
         this.timestamp = System.currentTimeMillis();
     }
+    public MessageData(String type) {
+        this(null, type);
+    }
     public MessageData() {
         this(null, null);
     }
