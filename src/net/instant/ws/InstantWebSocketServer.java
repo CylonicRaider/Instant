@@ -33,7 +33,9 @@ public class InstantWebSocketServer extends WebSocketServer
 
     public static final List<Draft> DEFAULT_DRAFTS;
 
+    /* Whether cookies should have the Secure attribute */
     public static final boolean INSECURE_COOKIES;
+    /* Key file for persistent cookie signing */
     public static final File COOKIES_KEYFILE;
 
     static {
@@ -231,9 +233,7 @@ public class InstantWebSocketServer extends WebSocketServer
     }
 
     public static StringSigner makeStringSigner() {
-        if (INSECURE_COOKIES) {
-            return null;
-        } else if (COOKIES_KEYFILE != null) {
+        if (COOKIES_KEYFILE != null) {
             return StringSigner.getInstance(COOKIES_KEYFILE);
         } else {
             return StringSigner.getInstance(Util.getRandomness(64));

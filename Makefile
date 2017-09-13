@@ -44,7 +44,8 @@ lint:
 	script/importlint.py $(SOURCES)
 
 run: Instant-run.jar cookie-key.bin
-	cd src && INSTANT_COOKIES_KEYFILE=../cookie-key.bin \
+	cd src && INSTANT_COOKIES_INSECURE=yes \
+	INSTANT_COOKIES_KEYFILE=../cookie-key.bin \
 	java -jar ../Instant-run.jar
 
 src/static/logo-static.svg: src/static/logo.svg
