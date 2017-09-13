@@ -105,6 +105,13 @@ public class InformationCollector {
             return Collections.unmodifiableList(cookies);
         }
 
+        public Cookie getCookie(String name) {
+            for (Cookie c : cookies) {
+                if (c.getName().equals(name)) return c;
+            }
+            return null;
+        }
+
         public Map<String, Object> getExtraData() {
             return extraData;
         }

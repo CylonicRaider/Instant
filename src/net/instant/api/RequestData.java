@@ -75,7 +75,7 @@ public interface RequestData {
     Map<String, String> getHeaders();
 
     /**
-     * Convenience function to obtain a single HTTP header.
+     * Convenience function to obtain a single HTTP header value.
      */
     String getHeader(String name);
 
@@ -85,6 +85,11 @@ public interface RequestData {
      * metadata may have to be amended when sending the cookie back.
      */
     List<Cookie> getCookies();
+
+    /**
+     * Convenience function to obtain a single cookie.
+     */
+    Cookie getCookie(String name);
 
     /**
      * Additional meta-data about the request.
