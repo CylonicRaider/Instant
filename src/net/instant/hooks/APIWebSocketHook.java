@@ -24,6 +24,7 @@ import net.instant.proto.ProtocolError;
 import net.instant.proto.RoomDistributor;
 import net.instant.util.Formats;
 import net.instant.util.UniqueCounter;
+import net.instant.util.Util;
 import net.instant.ws.InstantWebSocketServer;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -111,11 +112,13 @@ public class APIWebSocketHook extends WebSocketHook {
     public static final String COOKIE_NAME = "uid";
 
     private final List<MessageHook> hooks;
+    private final List<MessageHook> internalHooks;
     private final Map<RequestData, String> tags;
     private MessageDistributor distr;
 
     public APIWebSocketHook(MessageDistributor distributor) {
         hooks = new ArrayList<MessageHook>();
+        internalHooks = new ArrayList<MessageHook>();
         tags = Collections.synchronizedMap(
             new HashMap<RequestData, String>());
         distr = distributor;
@@ -131,11 +134,20 @@ public class APIWebSocketHook extends WebSocketHook {
         distr = d;
     }
 
+    public Iterable<MessageHook> getAllHooks() {
+        return Util.concat(hooks, internalHooks);
+    }
     public void addHook(MessageHook h) {
         hooks.add(h);
     }
     public void removeHook(MessageHook h) {
         hooks.remove(h);
+    }
+    public void addInternalHook(MessageHook h) {
+        internalHooks.add(h);
+    }
+    public void removeInternalHook(MessageHook h) {
+        internalHooks.remove(h);
     }
 
     protected boolean evaluateRequestInner(RequestData req,
@@ -181,7 +193,7 @@ public class APIWebSocketHook extends WebSocketHook {
             "version", Main.VERSION, "revision", Main.FINE_VERSION);
         PresenceChange event = new PresenceChangeImpl(true, conn, room);
         event.getMessage().updateData("id", id, "uuid", uuid);
-        for (MessageHook h : hooks)
+        for (MessageHook h : getAllHooks())
             h.onConnect(event, identity);
         conn.getConnection().send(identity.toString());
         distr.add(conn, room);
@@ -202,16 +214,15 @@ public class APIWebSocketHook extends WebSocketHook {
             conn.getConnection().send(ProtocolError.INVALID_JSON.toString());
             return;
         }
-        for (MessageHook h : hooks) {
+        for (MessageHook h : getAllHooks())
             if (h.onMessage(event)) break;
-        }
     }
 
     public void onClose(ClientConnection conn, boolean normal) {
         RoomDistributor room = distr.remove(conn);
         PresenceChange event = new PresenceChangeImpl(false, conn, room);
         event.getMessage().updateData("id", conn.getExtraData().get("id"));
-        for (MessageHook h : hooks)
+        for (MessageHook h : getAllHooks())
             h.onDisconnect(event);
         if (room.getName() != null)
             room.sendBroadcast(event.getMessage());
