@@ -162,36 +162,7 @@ public class InstantWebSocketServer extends WebSocketServer
     }
 
     public Iterable<RequestHook> getAllHooks() {
-        return new Iterable<RequestHook>() {
-            public Iterator<RequestHook> iterator() {
-                return new Iterator<RequestHook>() {
-
-                    private boolean atInternal = false;
-                    private Iterator<RequestHook> wrapped = hooks.iterator();
-
-                    public boolean hasNext() {
-                        boolean hn = wrapped.hasNext();
-                        if (! hn && ! atInternal) {
-                            atInternal = true;
-                            wrapped = internalHooks.iterator();
-                            hn = wrapped.hasNext();
-                        }
-                        return hn;
-                    }
-
-                    public RequestHook next() {
-                        // Swap iterator out if necessary.
-                        hasNext();
-                        return wrapped.next();
-                    }
-
-                    public void remove() {
-                        throw new UnsupportedOperationException();
-                    }
-
-                };
-            }
-        };
+        return Util.concat(hooks, internalHooks);
     }
     public Set<RequestHook> getHooks() {
         return Collections.unmodifiableSet(hooks);

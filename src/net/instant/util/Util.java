@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.security.SecureRandom;
+import java.util.Iterator;
 import java.util.List;
 import java.util.regex.Pattern;
 import net.instant.api.Utilities;
@@ -47,6 +48,46 @@ public final class Util {
 
     public static void mergeJSONObjects(JSONObject base, JSONObject add) {
         Utilities.mergeJSONObjects(base, add);
+    }
+
+    public static <E> Iterator<E> concat(final Iterator<E> a,
+                                         final Iterator<E> b) {
+        return new Iterator<E>() {
+
+            private Iterator<E> it = a;
+            private boolean atB = false;
+
+            public boolean hasNext() {
+                if (it.hasNext()) {
+                    return true;
+                } else if (! atB) {
+                    it = b;
+                    atB = true;
+                    return true;
+                } else {
+                    return false;
+                }
+            }
+
+            public E next() {
+                // Swap out iterator if necessary.
+                hasNext();
+                return it.next();
+            }
+
+            public void remove() {
+                it.remove();
+            }
+
+        };
+    }
+    public static <E> Iterable<E> concat(final Iterable<E> a,
+                                         final Iterable<E> b) {
+        return new Iterable<E>() {
+            public Iterator<E> iterator() {
+                return concat(a.iterator(), b.iterator());
+            }
+        };
     }
 
     public static ByteBuffer readInputStream(InputStream input)
