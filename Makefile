@@ -17,7 +17,7 @@ Instant.jar: .build.jar $(LIBRARIES) $(ASSETS) $(AUTOASSETS)
 	cp .build.jar Instant.jar
 	cd src && jar uf ../Instant.jar *
 
-# WARNING: This file is for Make bookkeeping only.
+# Avoid recompiling the backend on frontend changes.
 .INTERMEDIATE: .build.jar
 .SECONDARY: .build.jar
 .build.jar: $(SOURCES)
