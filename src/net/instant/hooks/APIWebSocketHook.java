@@ -185,8 +185,7 @@ public class APIWebSocketHook extends WebSocketHook {
         UUID uuid = (UUID) conn.getExtraData().get("uuid");
         String roomName = tags.remove(conn);
         if (roomName.equals("")) roomName = null;
-        RoomDistributor room;
-        room = distr.getRoom(roomName);
+        RoomDistributor room = distr.getRoom(roomName);
         MessageData identity = new MessageData("identity");
         identity.updateData("id", id, "uuid", uuid,
             "version", Main.VERSION, "revision", Main.FINE_VERSION);
@@ -194,14 +193,15 @@ public class APIWebSocketHook extends WebSocketHook {
         event.getMessage().updateData("id", id, "uuid", uuid);
         for (MessageHook h : getAllHooks())
             h.onConnect(event, identity);
-        conn.getConnection().send(identity.toString());
+        room.sendUnicast(conn, identity);
         distr.add(conn, room);
         if (roomName != null)
             room.sendBroadcast(event.getMessage());
     }
 
     public void onInput(ClientConnection conn, ByteBuffer data) {
-        conn.getConnection().send(ProtocolError.NOT_TEXT.toString());
+        distr.getRoom((String) null).sendUnicast(conn,
+            ProtocolError.NOT_TEXT.makeMessage());
     }
 
     public void onInput(ClientConnection conn, String data) {
@@ -210,7 +210,7 @@ public class APIWebSocketHook extends WebSocketHook {
         try {
             event = new MessageImpl(data, conn, room);
         } catch (JSONException exc) {
-            conn.getConnection().send(ProtocolError.INVALID_JSON.toString());
+            room.sendUnicast(conn, ProtocolError.INVALID_JSON.makeMessage());
             return;
         }
         for (MessageHook h : getAllHooks())

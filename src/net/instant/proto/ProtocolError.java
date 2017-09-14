@@ -1,6 +1,6 @@
 package net.instant.proto;
 
-import net.instant.api.MessageContents;
+import net.instant.util.Util;
 
 public class ProtocolError {
 
@@ -28,14 +28,11 @@ public class ProtocolError {
         return message;
     }
 
-    public MessageContents makeMessage(Object detail) {
-        MessageData ret = new MessageData("error");
-        ret.updateData("code", code, "message", message,
-                       "detail", detail);
-        return ret;
-    }
-    public MessageContents makeMessage() {
-        return makeMessage(null);
+    public MessageData makeMessage(Object... detail) {
+        Object packedDetail = (detail.length == 0) ? null :
+            Util.createJSONObject(detail);
+        return new MessageData("error").withData("code", code,
+            "message", message, "detail", packedDetail);
     }
 
 }
