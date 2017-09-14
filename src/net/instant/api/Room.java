@@ -25,15 +25,17 @@ public interface Room {
 
     /**
      * Send a message to a single client.
-     * Returns the ID of the message as filled in by the core.
+     * This is a convenience function; no membership in any concrete room is
+     * required.
      */
-    String sendUnicast(ClientConnection client, MessageContents msg);
+    void sendUnicast(ClientConnection client, MessageContents msg);
 
     /**
      * Send a message to all room members.
-     * Returns the ID of the message as filled in by the core.
+     * In contrast to sendUnicast(), this method *has* to be called on the
+     * correct Room instance.
      */
-    String sendBroadcast(MessageContents msg);
+    void sendBroadcast(MessageContents msg);
 
     /**
      * The (global) group the room belongs to.
@@ -44,6 +46,7 @@ public interface Room {
      * Construct a new message body.
      * If makeID is true, the message is assigned a new unique ID; the given
      * type is assigned to the corresponding field.
+     * This is a convenience function; no room-specific tasks are performed.
      */
     MessageContents makeMessage(boolean makeID, String type);
 

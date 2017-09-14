@@ -32,27 +32,19 @@ public class RoomDistributor implements Room {
         return new LinkedHashSet<ClientConnection>(clients);
     }
 
-    public String sendUnicast(ClientConnection client, MessageContents msg) {
-        String id = UniqueCounter.INSTANCE.getString();
-        msg.setID(id);
-        synchronized (this) {
-            client.getConnection().send(msg.toString());
-        }
-        return id;
+    public void sendUnicast(ClientConnection client, MessageContents msg) {
+        client.getConnection().send(msg.toString());
     }
 
-    public String sendBroadcast(MessageContents msg) {
+    public void sendBroadcast(MessageContents msg) {
         if (name == null)
             throw new UnsupportedOperationException(
                 "Trying to broadcast outside any room");
-        String id = UniqueCounter.INSTANCE.getString();
-        msg.setID(id);
         String s = msg.toString();
         synchronized (this) {
             for (ClientConnection conn : clients)
                 conn.getConnection().send(s);
         }
-        return id;
     }
 
     public RoomGroup getGroup() {

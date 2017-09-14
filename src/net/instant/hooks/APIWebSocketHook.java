@@ -101,10 +101,9 @@ public class APIWebSocketHook extends WebSocketHook {
             return room;
         }
 
-        public MessageContents makeResponse(String type) {
-            MessageContents ret = new MessageData(type);
-            ret.setSequence(data.getSequence());
-            return ret;
+        public void sendResponse(MessageContents resp) {
+            resp.setSequence(data.getSequence());
+            source.getConnection().send(resp.toString());
         }
 
     }

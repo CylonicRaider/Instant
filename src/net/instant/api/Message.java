@@ -40,12 +40,10 @@ public interface Message {
     Room getRoom();
 
     /**
-     * Construct a message to be sent back to the client.
-     * Differently to Room's constructMessage, ID auto-generation is not
-     * provided since responses should be sent to the client only; it can
-     * be produced via the API1 interface "manually" if necessary. The
-     * type argument tells which type to assign to the new message.
+     * Send a message back to the client.
+     * The sequence ID field is automatically adjusted to match this message;
+     * otherwise, resp is not modified.
      */
-    MessageContents makeResponse(String type);
+    void sendResponse(MessageContents resp);
 
 }
