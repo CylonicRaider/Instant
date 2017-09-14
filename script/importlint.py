@@ -134,9 +134,14 @@ def importlint(filename, warn=True, sort=False, prune=False,
                 writeback = True
         # Reomove excess ones.
         if prune:
+            seen = set()
             for n, ent in enumerate(imports):
                 if trailing_name(ent[1]) in remove:
                     imports[n] = None
+                elif ent[1] in seen:
+                    imports[n] = None
+                else:
+                    seen.add(ent[1])
             if None in imports:
                 sys.stderr.write('%s: note: removed superfluous imports\n' %
                                  filename)
