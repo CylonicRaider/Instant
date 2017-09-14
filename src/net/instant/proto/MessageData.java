@@ -26,6 +26,15 @@ public class MessageData implements MessageContents {
         if (ts == null) ts = System.currentTimeMillis();
         timestamp = ts;
     }
+    public MessageData(MessageContents source) {
+        id = source.getID();
+        seq = source.getSequence();
+        type = source.getType();
+        from = source.getFrom();
+        to = source.getTo();
+        data = source.getData();
+        timestamp = source.getTimestamp();
+    }
     public MessageData(String id, String type) {
         this.id = id;
         this.type = type;
@@ -50,12 +59,20 @@ public class MessageData implements MessageContents {
     public void setID(String id) {
         this.id = id;
     }
+    public MessageData id(String id) {
+        this.id = id;
+        return this;
+    }
 
     public Object getSequence() {
         return seq;
     }
     public void setSequence(Object seq) {
         this.seq = seq;
+    }
+    public MessageData sequence(Object seq) {
+        this.seq = seq;
+        return this;
     }
 
     public String getType() {
@@ -64,12 +81,20 @@ public class MessageData implements MessageContents {
     public void setType(String type) {
         this.type = type;
     }
+    public MessageData type(String type) {
+        this.type = type;
+        return this;
+    }
 
     public String getFrom() {
         return from;
     }
     public void setFrom(String from) {
         this.from = from;
+    }
+    public MessageData from(String from) {
+        this.from = from;
+        return this;
     }
 
     public String getTo() {
@@ -78,12 +103,20 @@ public class MessageData implements MessageContents {
     public void setTo(String to) {
         this.to = to;
     }
+    public MessageData to(String to) {
+        this.to = to;
+        return this;
+    }
 
     public Object getData() {
         return data;
     }
     public void setData(Object data) {
         this.data = data;
+    }
+    public MessageData data(Object data) {
+        this.data = data;
+        return this;
     }
 
     public void updateData(Object... params) {
@@ -94,12 +127,20 @@ public class MessageData implements MessageContents {
             data = Util.createJSONObject(params);
         }
     }
+    public MessageData withData(Object... params) {
+        updateData(params);
+        return this;
+    }
 
     public long getTimestamp() {
         return timestamp;
     }
     public void setTimestamp(long ts) {
         this.timestamp = ts;
+    }
+    public MessageData timestamp(long ts) {
+        this.timestamp = ts;
+        return this;
     }
 
 }
