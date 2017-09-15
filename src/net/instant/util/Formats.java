@@ -58,6 +58,10 @@ public final class Formats {
             if (s == null || s.isEmpty()) return "-";
             return s.replace("\\", "\\x5C").replace(" ", "\\x20");
         }
+        public static String escapeInner(String s) {
+            return s.replace("\\", "\\x5C").replace("\"", "\\x22")
+                    .replace(" ", "\\x20");
+        }
         public static String quote(String s) {
             if (s == null) return "-";
             return '"' + s.replace("\\", "\\x5C").replace("\"", "\\x22") + '"';
@@ -82,10 +86,10 @@ public final class Formats {
             StringBuilder sb = new StringBuilder("\"");
             for (Map.Entry<String, Object> ent : data.entrySet()) {
                 if (sb.length() != 1) sb.append(' ');
-                sb.append(escape(ent.getKey()));
+                sb.append(escapeInner(ent.getKey()));
                 if (ent.getValue() == null) continue;
                 sb.append('=');
-                sb.append(escape(String.valueOf(ent.getValue())));
+                sb.append(escapeInner(String.valueOf(ent.getValue())));
             }
             return sb.append("\"").toString();
         }
