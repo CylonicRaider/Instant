@@ -54,17 +54,20 @@ public final class Formats {
         // Prevent construction,
         private HTTPLog() {}
 
+        private static String prepare(String s) {
+            return s.replace("\\", "\\x5C").replace("\r", "\\x0D")
+                    .replace("\n", "\\x0A");
+        }
         public static String escape(String s) {
             if (s == null || s.isEmpty()) return "-";
-            return s.replace("\\", "\\x5C").replace(" ", "\\x20");
+            return prepare(s).replace(" ", "\\x20");
         }
         public static String escapeInner(String s) {
-            return s.replace("\\", "\\x5C").replace("\"", "\\x22")
-                    .replace(" ", "\\x20");
+            return prepare(s).replace(" ", "\\x20").replace("\"", "\\x22");
         }
         public static String quote(String s) {
             if (s == null) return "-";
-            return '"' + s.replace("\\", "\\x5C").replace("\"", "\\x22") + '"';
+            return '"' + prepare(s).replace("\"", "\\x22") + '"';
         }
 
         public static String formatAddress(InetSocketAddress a) {
