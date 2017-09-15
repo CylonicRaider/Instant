@@ -12,6 +12,7 @@ import net.instant.hooks.APIWebSocketHook;
 import net.instant.hooks.CodeHook;
 import net.instant.hooks.RedirectHook;
 import net.instant.hooks.StaticFileHook;
+import net.instant.proto.APIHook;
 import net.instant.proto.MessageDistributor;
 import net.instant.util.Formats;
 import net.instant.util.Logging;
@@ -133,6 +134,7 @@ public class Main implements Runnable {
         APIWebSocketHook w = new APIWebSocketHook(new MessageDistributor());
         w.getWhitelist().add(Pattern.compile("/room/(" + ROOM_RE + ")/ws"),
                              "\\1");
+        w.addHook(new APIHook());
         srv.addHook(w);
         srv.addHook(CodeHook.NOT_FOUND);
         srv.addHook(CodeHook.METHOD_NOT_ALLOWED);

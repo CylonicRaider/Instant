@@ -117,22 +117,22 @@ public class InstantWebSocketServer extends WebSocketServer
     public void postProcess(ClientHandshake request,
             ServerHandshakeBuilder response, HandshakeBuilder result)
             throws InvalidHandshakeException {
-        try {
-            Datum d = collector.addResponse(request, response, result);
-            for (RequestHook h : getAllHooks()) {
+        Datum d = collector.addResponse(request, response, result);
+        for (RequestHook h : getAllHooks()) {
+            try {
                 if (h.evaluateRequest(d, d)) {
                     assignments.put(d.getConnection(), h);
                     collector.postProcess(d);
                     System.err.println(Formats.formatHTTPLog(d));
                     return;
                 }
+            } catch (Exception exc) {
+                LOGGER.log(Level.SEVERE, "Exception while processing request",
+                           exc);
+                throw exc;
             }
-            throw new InvalidHandshakeException("try another draft");
-        } catch (Exception exc) {
-            LOGGER.log(Level.SEVERE, "Exception while processing request",
-                       exc);
-            throw exc;
         }
+        throw new InvalidHandshakeException("try another draft");
     }
 
     public void onOpen(WebSocket conn, ClientHandshake handshake) {

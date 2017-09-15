@@ -159,13 +159,15 @@ public class APIWebSocketHook extends WebSocketHook {
         } else {
             data = cookie.getData();
         }
+        long id = UniqueCounter.INSTANCE.get();
         UUID uuid;
         try {
             uuid = UUID.fromString(data.getString("uuid"));
         } catch (Exception exc) {
-            uuid = UniqueCounter.INSTANCE.getUUID();
+            uuid = UniqueCounter.INSTANCE.getUUID(id);
         }
         req.getExtraData().put("uuid", uuid);
+        req.getExtraData().put("id", UniqueCounter.INSTANCE.getString(id));
         data.put("uuid", uuid.toString());
         cookie = resp.makeCookie(COOKIE_NAME, data);
         cookie.put("Path", "/");
@@ -180,8 +182,7 @@ public class APIWebSocketHook extends WebSocketHook {
     }
 
     public void onOpen(ClientConnection conn) {
-        String id = UniqueCounter.INSTANCE.getString();
-        conn.getExtraData().put("id", id);
+        String id = (String) conn.getExtraData().get("id");
         UUID uuid = (UUID) conn.getExtraData().get("uuid");
         String roomName = tags.remove(conn);
         if (roomName.equals("")) roomName = null;

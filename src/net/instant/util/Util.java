@@ -63,7 +63,7 @@ public final class Util {
                 } else if (! atB) {
                     it = b;
                     atB = true;
-                    return true;
+                    return it.hasNext();
                 } else {
                     return false;
                 }
