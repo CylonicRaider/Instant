@@ -193,6 +193,9 @@ public class Datum implements ClientConnection, ResponseBuilder {
         request = handshake;
         reqType = DraftWrapper.getRequestType(draft);
         cookies = parent.getCookieHandler().extractCookies(handshake);
+        String fwd = handshake.getFieldValue("X-Forwarded-For");
+        if (! fwd.isEmpty())
+            extraData.put("real-ip", fwd.replace(" ", ""));
     }
     protected void initResponse(ServerHandshakeBuilder handshake) {
         response = handshake;
