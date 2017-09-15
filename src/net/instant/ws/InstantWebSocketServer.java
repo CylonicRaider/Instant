@@ -112,8 +112,7 @@ public class InstantWebSocketServer extends WebSocketServer
     public void postProcess(ClientHandshake request,
             ServerHandshakeBuilder response, HandshakeBuilder result)
             throws InvalidHandshakeException {
-        InformationCollector.Datum d = collector.addResponse(
-            request, response, result);
+        Datum d = collector.addResponse(request, response, result);
         for (RequestHook h : getAllHooks()) {
             if (h.evaluateRequest(d, d)) {
                 assignments.put(d.getConnection(), h);
@@ -126,26 +125,26 @@ public class InstantWebSocketServer extends WebSocketServer
 
     public void onOpen(WebSocket conn, ClientHandshake handshake) {
         RequestHook h = assignments.get(conn);
-        InformationCollector.Datum d = collector.get(conn);
+        Datum d = collector.get(conn);
         if (h != null) h.onOpen(d);
     }
 
     public void onMessage(WebSocket conn, String message) {
         RequestHook h = assignments.get(conn);
-        InformationCollector.Datum d = collector.get(conn);
+        Datum d = collector.get(conn);
         if (h != null) h.onInput(d, message);
     }
 
     public void onMessage(WebSocket conn, ByteBuffer message) {
         RequestHook h = assignments.get(conn);
-        InformationCollector.Datum d = collector.get(conn);
+        Datum d = collector.get(conn);
         if (h != null) h.onInput(d, message);
     }
 
     public void onClose(WebSocket conn, int code, String reason,
                         boolean remote) {
         RequestHook h = assignments.get(conn);
-        InformationCollector.Datum d = collector.get(conn);
+        Datum d = collector.get(conn);
         if (h != null)
             h.onClose(d, (code == CloseFrame.NORMAL ||
                           code == CloseFrame.GOING_AWAY));
@@ -157,7 +156,7 @@ public class InstantWebSocketServer extends WebSocketServer
             return;
         }
         RequestHook h = assignments.get(conn);
-        InformationCollector.Datum d = collector.get(conn);
+        Datum d = collector.get(conn);
         if (h != null) h.onError(d, ex);
     }
 
