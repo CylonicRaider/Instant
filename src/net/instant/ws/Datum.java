@@ -79,11 +79,11 @@ public class Datum implements ClientConnection, ResponseBuilder {
     }
 
     public String getReferrer() {
-        return request.getFieldValue("Referer");
+        return getHeader("Referer");
     }
 
     public String getUserAgent() {
-        return request.getFieldValue("User-Agent");
+        return getHeader("User-Agent");
     }
 
     public RequestType getRequestType() {
@@ -95,7 +95,8 @@ public class Datum implements ClientConnection, ResponseBuilder {
     }
 
     public String getHeader(String name) {
-        return request.getFieldValue(name);
+        String ret = request.getFieldValue(name);
+        return (ret.isEmpty()) ? null : ret;
     }
 
     public List<Cookie> getCookies() {
@@ -131,7 +132,8 @@ public class Datum implements ClientConnection, ResponseBuilder {
     }
 
     public String getResponseHeader(String name) {
-        return response.getFieldValue(name);
+        String ret = response.getFieldValue(name);
+        return (ret.isEmpty()) ? null : ret;
     }
 
     public List<Cookie> getResponseCookies() {
