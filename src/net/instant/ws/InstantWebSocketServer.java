@@ -13,6 +13,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import net.instant.api.RequestHook;
+import net.instant.util.Formats;
 import net.instant.util.StringSigner;
 import net.instant.util.Util;
 import org.java_websocket.WebSocket;
@@ -117,6 +118,7 @@ public class InstantWebSocketServer extends WebSocketServer
             if (h.evaluateRequest(d, d)) {
                 assignments.put(d.getConnection(), h);
                 collector.postProcess(d);
+                System.err.println(Formats.formatHTTPLog(d));
                 return;
             }
         }

@@ -1,6 +1,8 @@
 package net.instant.util;
 
 import java.io.UnsupportedEncodingException;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
 import java.net.URLDecoder;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -13,6 +15,7 @@ import java.util.Map;
 import java.util.TimeZone;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import net.instant.api.RequestResponseData;
 import net.instant.api.Utilities;
 
 public final class Formats {
@@ -42,6 +45,66 @@ public final class Formats {
                 if (attrs == null) return null;
             }
             return new HeaderEntry(name, attrs);
+        }
+
+    }
+
+    public static final class HTTPLog {
+
+        // Prevent construction,
+        private HTTPLog() {}
+
+        public static String escape(String s) {
+            if (s == null || s.isEmpty()) return "-";
+            return s.replace("\\", "\\x5C").replace(" ", "\\x20");
+        }
+        public static String quote(String s) {
+            if (s == null) return "-";
+            return '"' + s.replace("\\", "\\x5C").replace("\"", "\\x22") + '"';
+        }
+
+        public static String formatAddress(InetSocketAddress a) {
+            return (a == null) ? "-" : formatAddress(a.getAddress());
+        }
+        public static String formatAddress(InetAddress a) {
+            return (a == null) ? "-" : escape(a.getHostAddress());
+        }
+        public static String formatDatetime(long ts) {
+            // Obscure string formatting features FTW!
+            return String.format((Locale) null, "[%td/%<tb/%<tY:%<tT %<tz]", ts);
+        }
+        public static String formatLength(long l) {
+            return (l == -1) ? "-" : Long.toString(l);
+        }
+
+        public static String formatExtra(Map<String, Object> data) {
+            if (data == null || data.isEmpty()) return null;
+            StringBuilder sb = new StringBuilder("\"");
+            for (Map.Entry<String, Object> ent : data.entrySet()) {
+                if (sb.length() != 1) sb.append(' ');
+                sb.append(escape(ent.getKey()));
+                if (ent.getValue() == null) continue;
+                sb.append('=');
+                sb.append(escape(String.valueOf(ent.getValue())));
+            }
+            return sb.append("\"").toString();
+        }
+
+        public static String format(RequestResponseData req) {
+            String ret = String.format("%s %s %s %s %s %s %s %s %s",
+                formatAddress(req.getAddress()),
+                escape(req.getRFC1413Identity()),
+                escape(req.getAuthIdentity()),
+                formatDatetime(req.getTimestamp()),
+                quote(req.getMethod() + ' ' + req.getPath() + ' ' +
+                      req.getHTTPVersion()),
+                req.getStatusCode(),
+                formatLength(req.getResponseLength()),
+                quote(req.getReferrer()),
+                quote(req.getUserAgent()));
+            String extra = formatExtra(req.getExtraData());
+            if (extra != null) ret += ' ' + extra;
+            return ret;
         }
 
     }
@@ -160,6 +223,10 @@ public final class Formats {
             ret.put(key, value);
         }
         return ret;
+    }
+
+    public static String formatHTTPLog(RequestResponseData req) {
+        return HTTPLog.format(req);
     }
 
 }
