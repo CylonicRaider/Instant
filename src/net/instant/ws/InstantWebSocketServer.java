@@ -12,6 +12,8 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import net.instant.api.RequestHook;
 import net.instant.util.Formats;
 import net.instant.util.StringSigner;
@@ -31,6 +33,8 @@ import org.java_websocket.server.WebSocketServer;
 
 public class InstantWebSocketServer extends WebSocketServer
         implements DraftWrapper.Hook {
+
+    private static final Logger LOGGER = Logger.getLogger("IWSServer");
 
     public static final List<Draft> DEFAULT_DRAFTS;
 
@@ -113,16 +117,22 @@ public class InstantWebSocketServer extends WebSocketServer
     public void postProcess(ClientHandshake request,
             ServerHandshakeBuilder response, HandshakeBuilder result)
             throws InvalidHandshakeException {
-        Datum d = collector.addResponse(request, response, result);
-        for (RequestHook h : getAllHooks()) {
-            if (h.evaluateRequest(d, d)) {
-                assignments.put(d.getConnection(), h);
-                collector.postProcess(d);
-                System.err.println(Formats.formatHTTPLog(d));
-                return;
+        try {
+            Datum d = collector.addResponse(request, response, result);
+            for (RequestHook h : getAllHooks()) {
+                if (h.evaluateRequest(d, d)) {
+                    assignments.put(d.getConnection(), h);
+                    collector.postProcess(d);
+                    System.err.println(Formats.formatHTTPLog(d));
+                    return;
+                }
             }
+            throw new InvalidHandshakeException("try another draft");
+        } catch (Exception exc) {
+            LOGGER.log(Level.SEVERE, "Exception while processing request",
+                       exc);
+            throw exc;
         }
-        throw new InvalidHandshakeException("try another draft");
     }
 
     public void onOpen(WebSocket conn, ClientHandshake handshake) {
