@@ -33,7 +33,8 @@ public class PluginManager {
         Plugin ret = plugins.get(name);
         if (ret == null && fetcher != null) {
             ret = fetcher.fetch(name);
-            plugins.put(name, ret);
+            add(ret);
+            for (String n : ret.getRequirements()) get(n);
         }
         return ret;
     }

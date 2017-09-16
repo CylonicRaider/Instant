@@ -2,11 +2,22 @@ package net.instant.plugins;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Set;
 import java.util.jar.Attributes;
 import java.util.jar.JarFile;
 import java.util.jar.Manifest;
+import net.instant.util.Util;
 
 public class Plugin {
+
+    public static final PluginAttribute<Set<String>> DEPENDS =
+        new StringSetPluginAttribute("Depends");
+    public static final PluginAttribute<Set<String>> REQUIRES =
+        new StringSetPluginAttribute("Requires");
+    public static final PluginAttribute<Set<String>> BEFORE =
+        new StringSetPluginAttribute("Before");
+    public static final PluginAttribute<Set<String>> AFTER =
+        new StringSetPluginAttribute("After");
 
     private final String name;
     private final File path;
@@ -47,6 +58,11 @@ public class Plugin {
 
     public PluginAttributes getAttributes() {
         return attrs;
+    }
+
+    public Iterable<String> getRequirements() {
+        return Util.concat(getAttributes().get(REQUIRES),
+                           getAttributes().get(DEPENDS));
     }
 
 }
