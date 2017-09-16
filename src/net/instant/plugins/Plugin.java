@@ -11,13 +11,13 @@ import net.instant.util.Util;
 public class Plugin {
 
     public static final PluginAttribute<Set<String>> DEPENDS =
-        new StringSetPluginAttribute("Depends");
+        new StringSetAttribute("Depends");
     public static final PluginAttribute<Set<String>> REQUIRES =
-        new StringSetPluginAttribute("Requires");
+        new StringSetAttribute("Requires");
     public static final PluginAttribute<Set<String>> BEFORE =
-        new StringSetPluginAttribute("Before");
+        new StringSetAttribute("Before");
     public static final PluginAttribute<Set<String>> AFTER =
-        new StringSetPluginAttribute("After");
+        new StringSetAttribute("After");
 
     private final String name;
     private final File path;
