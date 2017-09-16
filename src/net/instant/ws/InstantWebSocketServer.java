@@ -163,6 +163,8 @@ public class InstantWebSocketServer extends WebSocketServer
     }
 
     public void onError(WebSocket conn, Exception ex) {
+        LOGGER.log(Level.SEVERE, "Exception while handling connection",
+                   ex);
         if (conn == null) {
             for (RequestHook h : getAllHooks()) h.onError(null, ex);
             return;
