@@ -71,6 +71,17 @@ public class PluginManager {
         order = null;
     }
 
+    public Object getData(String name) throws IllegalArgumentException,
+            IllegalStateException {
+        Plugin p = get(name);
+        if (p == null)
+            throw new IllegalArgumentException("No such plugin: " + name);
+        if (! p.isLoaded())
+            throw new IllegalStateException("Plugin " + name +
+                " not loaded yet");
+        return p.getData();
+    }
+
     public List<Plugin> getOrder() {
         return order;
     }

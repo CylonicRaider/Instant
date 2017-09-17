@@ -141,6 +141,8 @@ public class Plugin implements PluginData {
             throw new BadPluginException("Plugin initializer method is " +
                 "not public", exc);
         } catch (InvocationTargetException exc) {
+            // One could also rethrow the cause, at the loss of some
+            // transparency.
             throw new RuntimeException(exc);
         }
     }
