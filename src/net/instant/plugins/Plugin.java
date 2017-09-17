@@ -18,6 +18,8 @@ public class Plugin {
         new StringSetAttribute("Before");
     public static final PluginAttribute<Set<String>> AFTER =
         new StringSetAttribute("After");
+    public static final PluginAttribute<Set<String>> BREAKS =
+        new StringSetAttribute("Breaks");
 
     private final String name;
     private final File path;
