@@ -122,8 +122,13 @@ public class Plugin implements PluginData {
     public Object init() throws PluginException {
         if (loaded) return data;
         try {
-            Class<?> cls = Class.forName(getMainClassName(), true,
-                                         parent.getClassLoader());
+            Class<?> cls;
+            if (mainClass == null) {
+                cls = DefaultPlugin.class;
+            } else {
+                cls = Class.forName(mainClass, true,
+                                    parent.getClassLoader());
+            }
             Method init = cls.getMethod("initInstantPlugin1", API1.class,
                                         PluginData.class);
             if (! Modifier.isStatic(init.getModifiers()))
