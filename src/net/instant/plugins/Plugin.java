@@ -10,14 +10,19 @@ import net.instant.util.Util;
 
 public class Plugin {
 
+    // Required to be present, and this must be after those.
     public static final PluginAttribute<Set<String>> DEPENDS =
         new StringSetAttribute("Depends");
+    // Required to be present (may be mutual).
     public static final PluginAttribute<Set<String>> REQUIRES =
         new StringSetAttribute("Requires");
+    // This must be before those (if present).
     public static final PluginAttribute<Set<String>> BEFORE =
         new StringSetAttribute("Before");
+    // This must be after those (if present).
     public static final PluginAttribute<Set<String>> AFTER =
         new StringSetAttribute("After");
+    // Must not be present if this is.
     public static final PluginAttribute<Set<String>> BREAKS =
         new StringSetAttribute("Breaks");
 
