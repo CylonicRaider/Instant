@@ -20,12 +20,14 @@ public class PluginManager {
     private final Map<String, Plugin> plugins;
     private API1 api;
     private PluginFetcher fetcher;
+    private PluginClassLoader classLoader;
     private List<Plugin> order;
 
     public PluginManager(API1 api) {
         this.plugins = new LinkedHashMap<String, Plugin>();
         this.api = api;
         this.fetcher = new PluginFetcher(this);
+        this.classLoader = new PluginClassLoader();
     }
 
     public API1 getAPI() {
@@ -40,6 +42,13 @@ public class PluginManager {
     }
     public void setFetcher(PluginFetcher f) {
         fetcher = f;
+    }
+
+    public PluginClassLoader getClassLoader() {
+        return classLoader;
+    }
+    public void setClassLoader(PluginClassLoader l) {
+        classLoader = l;
     }
 
     public Collection<Plugin> getAll() {
@@ -126,6 +135,13 @@ public class PluginManager {
             traversePlugins(p, deps, stack, drain);
         drain.add(base);
         stack.remove(base);
+    }
+
+    public void load() throws PluginException {
+        for (Plugin p : computeOrder()) p.load();
+    }
+    public void init() throws PluginException {
+        for (Plugin p : computeOrder()) p.init();
     }
 
 }

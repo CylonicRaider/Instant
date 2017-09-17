@@ -14,11 +14,15 @@ public class PluginAttributes {
         this.cache = new HashMap<PluginAttribute<?>, Object>();
     }
 
+    public String getRaw(String name) {
+        return base.getValue(name);
+    }
+
     public <T> T get(PluginAttribute<T> attr) {
         @SuppressWarnings("unchecked")
         T ret = (T) cache.get(attr);
         if (ret == null) {
-            ret = attr.parse(base.getValue(attr.getName()));
+            ret = attr.parse(getRaw(attr.getName()));
             cache.put(attr, ret);
         }
         return ret;
