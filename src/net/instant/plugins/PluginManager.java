@@ -26,10 +26,10 @@ public class PluginManager {
     public Collection<Plugin> getAll() {
         return Collections.unmodifiableCollection(plugins.values());
     }
-    public Plugin getRaw(String name) {
+    public Plugin get(String name) {
         return plugins.get(name);
     }
-    public Plugin get(String name) throws BadPluginException, IOException {
+    public Plugin fetch(String name) throws BadPluginException, IOException {
         Plugin ret = plugins.get(name);
         if (ret == null && fetcher != null) {
             ret = fetcher.fetch(name);
@@ -45,12 +45,12 @@ public class PluginManager {
     public void checkIntegrity() throws IntegrityException {
         for (Plugin p : plugins.values()) {
             for (String n : p.getRequirements()) {
-                if (getRaw(n) == null)
+                if (get(n) == null)
                     throw new IntegrityException("Dependency " + n +
                         " of plugin " + p.getName() + " absent");
             }
             for (String n : p.getAttr(Plugin.BREAKS)) {
-                if (getRaw(n) != null)
+                if (get(n) != null)
                     throw new IntegrityException("Plugin " + p.getName() +
                         " conflicts with plugin " + n);
             }
