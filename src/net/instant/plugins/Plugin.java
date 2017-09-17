@@ -61,10 +61,12 @@ public class Plugin {
     public PluginAttributes getAttributes() {
         return attrs;
     }
+    public <T> T getAttr(PluginAttribute<T> attr) {
+        return getAttributes().get(attr);
+    }
 
     public Iterable<String> getRequirements() {
-        return Util.concat(getAttributes().get(REQUIRES),
-                           getAttributes().get(DEPENDS));
+        return Util.concat(getAttr(REQUIRES), getAttr(DEPENDS));
     }
 
 }

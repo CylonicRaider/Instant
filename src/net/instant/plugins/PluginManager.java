@@ -49,7 +49,7 @@ public class PluginManager {
                     throw new IntegrityException("Dependency " + n +
                         " of plugin " + p.getName() + " absent");
             }
-            for (String n : p.getAttributes().get(Plugin.BREAKS)) {
+            for (String n : p.getAttr(Plugin.BREAKS)) {
                 if (getRaw(n) != null)
                     throw new IntegrityException("Plugin " + p.getName() +
                         " conflicts with plugin " + n);
