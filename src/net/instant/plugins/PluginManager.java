@@ -85,12 +85,12 @@ public class PluginManager {
                     throw new IntegrityException("Dependency " + n +
                         " of plugin " + p.getName() + " absent");
             }
-            for (String n : Util.concat(p.getAttr(Plugin.BEFORE),
+            for (String n : Util.concat(p.getAttr(Plugin.AFTER),
                                         p.getAttr(Plugin.DEPENDS))) {
                 if (get(n) == null) continue;
                 deps.add(get(n));
             }
-            for (String n : p.getAttr(Plugin.AFTER)) {
+            for (String n : p.getAttr(Plugin.BEFORE)) {
                 Plugin o = get(n);
                 if (o == null) continue;
                 getDeps(ret, o).add(p);
