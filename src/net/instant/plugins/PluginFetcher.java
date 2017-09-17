@@ -7,12 +7,18 @@ import java.util.List;
 
 public class PluginFetcher {
 
+    private final PluginManager parent;
     private final List<File> singlePath;
     private final List<File> dirPath;
 
-    public PluginFetcher() {
-        singlePath = new ArrayList<File>();
-        dirPath = new ArrayList<File>();
+    public PluginFetcher(PluginManager parent) {
+        this.parent = parent;
+        this.singlePath = new ArrayList<File>();
+        this.dirPath = new ArrayList<File>();
+    }
+
+    public PluginManager getParent() {
+        return parent;
     }
 
     public void addPath(File ent) {
@@ -40,7 +46,7 @@ public class PluginFetcher {
         File path = getPath(name);
         if (path == null) return null;
         if (name.contains("/")) name = getName(name);
-        return new Plugin(name, path);
+        return new Plugin(parent, name, path);
     }
 
     public static String getName(String path) {

@@ -12,17 +12,27 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import net.instant.api.API1;
 import net.instant.util.Util;
 
 public class PluginManager {
 
     private final Map<String, Plugin> plugins;
+    private API1 api;
     private PluginFetcher fetcher;
     private List<Plugin> order;
 
-    public PluginManager() {
-        plugins = new LinkedHashMap<String, Plugin>();
-        fetcher = new PluginFetcher();
+    public PluginManager(API1 api) {
+        this.plugins = new LinkedHashMap<String, Plugin>();
+        this.api = api;
+        this.fetcher = new PluginFetcher(this);
+    }
+
+    public API1 getAPI() {
+        return api;
+    }
+    public void setAPI(API1 a) {
+        api = a;
     }
 
     public PluginFetcher getFetcher() {

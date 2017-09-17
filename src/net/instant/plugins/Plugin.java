@@ -26,14 +26,16 @@ public class Plugin {
     public static final PluginAttribute<Set<String>> BREAKS =
         new StringSetAttribute("Breaks");
 
+    private final PluginManager parent;
     private final String name;
     private final File path;
     private final JarFile file;
     private final String mainClass;
     private final PluginAttributes attrs;
 
-    public Plugin(String name, File path, JarFile file)
+    public Plugin(PluginManager parent, String name, File path, JarFile file)
             throws BadPluginException, IOException {
+        this.parent = parent;
         this.name = name;
         this.path = path;
         this.file = file;
@@ -46,9 +48,13 @@ public class Plugin {
         this.attrs = new PluginAttributes(
             mf.getAttributes("Instant-Plugin"));
     }
-    public Plugin(String name, File path) throws BadPluginException,
-            IOException {
-        this(name, path, new JarFile(path));
+    public Plugin(PluginManager parent, String name, File path)
+            throws BadPluginException, IOException {
+        this(parent, name, path, new JarFile(path));
+    }
+
+    public PluginManager getParent() {
+        return parent;
     }
 
     public String getName() {
