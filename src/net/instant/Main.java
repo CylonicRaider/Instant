@@ -21,10 +21,8 @@ import net.instant.util.argparse.BaseOption;
 import net.instant.util.argparse.ParseException;
 import net.instant.util.argparse.ParseResult;
 import net.instant.util.argparse.ValueOption;
-import net.instant.util.fileprod.FileCache;
 import net.instant.util.fileprod.FileProducer;
 import net.instant.util.fileprod.FilesystemProducer;
-import net.instant.util.fileprod.ListProducer;
 import net.instant.util.fileprod.ResourceProducer;
 import net.instant.ws.InstantWebSocketServer;
 
@@ -111,7 +109,7 @@ public class Main implements Runnable {
         RedirectHook r = new RedirectHook();
         r.add(Pattern.compile("/room/" + ROOM_RE), "\\0/", 301);
         srv.addHook(r);
-        ListProducer p = new ListProducer();
+        FileProducer p = new FileProducer();
         FilesystemProducer pf = new FilesystemProducer(
             new File("").getAbsolutePath(), "/");
         ResourceProducer pr = new ResourceProducer();
@@ -119,10 +117,9 @@ public class Main implements Runnable {
         pf.whitelist("/static/.*");
         pr.whitelist("/pages/.*");
         pr.whitelist("/static/.*");
-        p.add(pf);
-        p.add(pr);
-        StaticFileHook f = new StaticFileHook(new FileProducer(
-            new FileCache(), p));
+        p.getProducer().add(pf);
+        p.getProducer().add(pr);
+        StaticFileHook f = new StaticFileHook(p);
         f.getAliases().add("/", "/pages/main.html");
         f.getAliases().add("/favicon.ico",
                            "/static/logo-static_128x128.ico");
