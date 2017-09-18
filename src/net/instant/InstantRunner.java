@@ -38,6 +38,7 @@ public class InstantRunner implements API1 {
     private APIWebSocketHook wsAPI;
     private ListProducer pluginFiles;
     private StringProducer stringFiles;
+    private FSResourceProducer sourceFiles;
     private MessageDistributor distributor;
     private PluginManager plugins;
 
@@ -117,8 +118,7 @@ public class InstantRunner implements API1 {
             ListProducer l = files.getProducer().getProducer();
             l.add(makePluginFiles());
             l.add(makeStringFiles());
-            l.add(new FSResourceProducer(webroot,
-                makePlugins().getClassLoader()));
+            l.add(makeSourceFiles());
         }
         return files;
     }
@@ -161,8 +161,24 @@ public class InstantRunner implements API1 {
             stringFiles = new StringProducer();
             // Extended by plugins.
             stringFiles.addFile("/static/site.js", "\n");
+            // Added my Main.
+            stringFiles.addFile("/static/version.js", "");
         }
         return stringFiles;
+    }
+
+    public FSResourceProducer getSourceFiles() {
+        return sourceFiles;
+    }
+    public void setSourceFiles(FSResourceProducer prod) {
+        sourceFiles = prod;
+    }
+    public FSResourceProducer makeSourceFiles() {
+        if (sourceFiles == null) {
+            sourceFiles = new FSResourceProducer(webroot,
+                makePlugins().getClassLoader());
+        }
+        return sourceFiles;
     }
 
     public MessageDistributor getDistributor() {

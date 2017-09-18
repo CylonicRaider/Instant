@@ -3,17 +3,11 @@ package net.instant;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.InetSocketAddress;
 import java.net.URL;
 import java.util.jar.Manifest;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
 import net.instant.hooks.APIWebSocketHook;
-import net.instant.hooks.CodeHook;
-import net.instant.hooks.RedirectHook;
-import net.instant.hooks.StaticFileHook;
-import net.instant.proto.APIHook;
-import net.instant.proto.MessageDistributor;
 import net.instant.util.Formats;
 import net.instant.util.Logging;
 import net.instant.util.argparse.ArgumentParser;
@@ -22,7 +16,6 @@ import net.instant.util.argparse.ParseException;
 import net.instant.util.argparse.ParseResult;
 import net.instant.util.argparse.ValueOption;
 import net.instant.util.fileprod.FSResourceProducer;
-import net.instant.util.fileprod.FileProducer;
 import net.instant.ws.InstantWebSocketServer;
 
 public class Main implements Runnable {
@@ -62,11 +55,11 @@ public class Main implements Runnable {
     }
 
     private final String[] args;
-    private String host;
-    private int port;
+    private InstantRunner runner;
 
     public Main(String[] args) {
         this.args = args;
+        runner = new InstantRunner();
     }
 
     public int getArgumentCount() {
@@ -79,16 +72,28 @@ public class Main implements Runnable {
         return args[i];
     }
 
+    public InstantRunner getRunner() {
+        return runner;
+    }
+    public void setRunner(InstantRunner r) {
+        runner = r;
+    }
+
     protected ParseResult parseArguments(ArgumentParser p) {
         p.addHelp();
         BaseOption<String> optHost = p.add(ValueOption.of(String.class,
             "host", 'h', "Address to bind to").defaultsTo("*"));
         BaseOption<Integer> optPort = p.add(ValueOption.of(Integer.class,
             "port", 'p', "Port to bind to").defaultsTo(8080));
+        BaseOption<String> optWebroot = p.add(ValueOption.of(String.class,
+            "webroot", 'r', "Path containing static directories")
+            .defaultsTo("."));
         ParseResult r = parseArgumentsInner(p);
-        host = r.get(optHost);
-        port = r.get(optPort);
-        if (host.equals("*")) host = "";
+        String host = r.get(optHost);
+        if (host.equals("*")) host = null;
+        runner.setHost(host);
+        runner.setPort(r.get(optPort));
+        runner.setWebroot(new File(r.get(optWebroot)));
         return r;
     }
     protected ParseResult parseArgumentsInner(ArgumentParser p) {
@@ -103,34 +108,23 @@ public class Main implements Runnable {
 
     public void run() {
         parseArguments(new ArgumentParser(APPNAME));
-        InstantWebSocketServer srv = new InstantWebSocketServer(
-            new InetSocketAddress(host, port));
-        RedirectHook r = new RedirectHook();
-        r.add(Pattern.compile("/room/" + ROOM_RE), "\\0/", 301);
-        srv.addHook(r);
-        FileProducer p = new FileProducer();
-        FSResourceProducer pfr = new FSResourceProducer(
-            new File("").getAbsoluteFile(), new File("/"),
-            getClass().getClassLoader());
-        pfr.whitelist("/pages/.*");
-        pfr.whitelist("/static/.*");
-        p.getProducer().add(pfr);
-        StaticFileHook f = new StaticFileHook(p);
-        f.getAliases().add("/", "/pages/main.html");
-        f.getAliases().add("/favicon.ico",
-                           "/static/logo-static_128x128.ico");
-        f.getAliases().add(Pattern.compile("/([^/]+)\\.html"),
-                           "/pages/\\1.html");
-        f.getAliases().add(Pattern.compile("/room/" + ROOM_RE + "/"),
-                           "/static/room.html");
-        srv.addHook(f);
-        APIWebSocketHook w = new APIWebSocketHook(new MessageDistributor());
-        w.getWhitelist().add(Pattern.compile("/room/(" + ROOM_RE + ")/ws"),
-                             "\\1");
-        w.addHook(new APIHook());
-        srv.addHook(w);
-        srv.addHook(CodeHook.NOT_FOUND);
-        srv.addHook(CodeHook.METHOD_NOT_ALLOWED);
+        runner.addFileAlias("/", "/pages/main.html");
+        runner.addFileAlias("/favicon.ico",
+                            "/static/logo-static_128x128.ico");
+        runner.addFileAlias(Pattern.compile("/([^/]+)\\.html"),
+                            "/pages/\\1.html");
+        runner.addFileAlias(Pattern.compile("/room/" + ROOM_RE + "/"),
+                            "/static/room.html");
+        runner.addRedirect(Pattern.compile("/room/" + ROOM_RE), "\\0/", 301);
+        runner.addSyntheticFile("/static/version.js", VERSION_FILE);
+        FSResourceProducer prod = runner.makeSourceFiles();
+        prod.whitelist("/pages/.*");
+        prod.whitelist("/static/.*");
+        APIWebSocketHook ws = runner.makeAPIHook();
+        ws.getWhitelist().add(Pattern.compile("/room/(" + ROOM_RE + ")/ws"),
+                              "\\1");
+        ws.getWhitelist().add("/api/ws", "");
+        InstantWebSocketServer srv = runner.makeServer();
         srv.run();
     }
 
