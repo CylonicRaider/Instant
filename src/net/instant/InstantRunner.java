@@ -1,5 +1,6 @@
 package net.instant;
 
+import java.io.File;
 import java.net.InetSocketAddress;
 import java.util.regex.Pattern;
 import net.instant.api.API1;
@@ -21,6 +22,7 @@ import net.instant.util.DefaultStringMatcher;
 import net.instant.util.UniqueCounter;
 import net.instant.util.Util;
 import net.instant.util.fileprod.APIProducer;
+import net.instant.util.fileprod.FSResourceProducer;
 import net.instant.util.fileprod.ListProducer;
 import net.instant.util.fileprod.StringProducer;
 import net.instant.ws.InstantWebSocketServer;
@@ -29,6 +31,7 @@ public class InstantRunner implements API1 {
 
     private String host;
     private int port;
+    private File webroot;
     private InstantWebSocketServer server;
     private RedirectHook redirects;
     private StaticFileHook files;
@@ -41,6 +44,7 @@ public class InstantRunner implements API1 {
     public InstantRunner() {
         host = null;
         port = 8080;
+        webroot = null;
     }
 
     public String getHost() {
@@ -55,6 +59,13 @@ public class InstantRunner implements API1 {
     }
     public void setPort(int p) {
         port = p;
+    }
+
+    public File getWebroot() {
+        return webroot;
+    }
+    public void setWebroot(File p) {
+        webroot = p;
     }
 
     public InstantWebSocketServer getServer() {
@@ -103,9 +114,11 @@ public class InstantRunner implements API1 {
     public StaticFileHook makeFileHook() {
         if (files == null) {
             files = new StaticFileHook();
-            files.getProducer().getProducer().add(makePluginFiles());
-            files.getProducer().getProducer().add(makeStringFiles());
-            // TODO: FS and resource files
+            ListProducer l = files.getProducer().getProducer();
+            l.add(makePluginFiles());
+            l.add(makeStringFiles());
+            l.add(new FSResourceProducer(webroot,
+                makePlugins().getClassLoader()));
         }
         return files;
     }
@@ -148,8 +161,6 @@ public class InstantRunner implements API1 {
             stringFiles = new StringProducer();
             // Extended by plugins.
             stringFiles.addFile("/static/site.js", "\n");
-            // Added my Main.
-            stringFiles.addFile("/static/version.js", "");
         }
         return stringFiles;
     }

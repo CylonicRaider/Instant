@@ -11,6 +11,9 @@ public class FSResourceProducer extends AbstractWhitelistProducer {
         fs = new FilesystemProducer(chroot, workdir);
         rs = new ResourceProducer(cl);
     }
+    public FSResourceProducer(File chroot, ClassLoader cl) {
+        this(chroot, new File("/"), cl);
+    }
     public FSResourceProducer() {
         fs = null;
         rs = null;
