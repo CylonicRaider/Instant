@@ -1,5 +1,6 @@
 package net.instant;
 
+import java.net.InetSocketAddress;
 import java.util.regex.Pattern;
 import net.instant.api.API1;
 import net.instant.api.Counter;
@@ -9,67 +10,215 @@ import net.instant.api.PluginData;
 import net.instant.api.RequestHook;
 import net.instant.api.RoomGroup;
 import net.instant.hooks.APIWebSocketHook;
+import net.instant.hooks.CodeHook;
 import net.instant.hooks.RedirectHook;
 import net.instant.hooks.StaticFileHook;
 import net.instant.plugins.DefaultPlugin;
 import net.instant.plugins.PluginManager;
+import net.instant.proto.APIHook;
 import net.instant.proto.MessageDistributor;
 import net.instant.util.DefaultStringMatcher;
 import net.instant.util.UniqueCounter;
 import net.instant.util.Util;
 import net.instant.util.fileprod.APIProducer;
+import net.instant.util.fileprod.ListProducer;
 import net.instant.util.fileprod.StringProducer;
 import net.instant.ws.InstantWebSocketServer;
 
 public class InstantRunner implements API1 {
 
+    private String host;
+    private int port;
     private InstantWebSocketServer server;
     private RedirectHook redirects;
     private StaticFileHook files;
     private APIWebSocketHook wsAPI;
-    private StringProducer strings;
+    private ListProducer pluginFiles;
+    private StringProducer stringFiles;
     private MessageDistributor distributor;
     private PluginManager plugins;
 
+    public InstantRunner() {
+        host = null;
+        port = 8080;
+    }
+
+    public String getHost() {
+        return host;
+    }
+    public void setHost(String h) {
+        host = h;
+    }
+
+    public int getPort() {
+        return port;
+    }
+    public void setPort(int p) {
+        port = p;
+    }
+
+    public InstantWebSocketServer getServer() {
+        return server;
+    }
+    public void setServer(InstantWebSocketServer srv) {
+        server = srv;
+    }
+    public InstantWebSocketServer makeServer() {
+        if (server == null) {
+            InetSocketAddress addr;
+            if (host == null) {
+                addr = new InetSocketAddress(port);
+            } else {
+                addr = new InetSocketAddress(host, port);
+            }
+            server = new InstantWebSocketServer(addr);
+            server.addInternalHook(makeRedirectHook());
+            server.addInternalHook(makeFileHook());
+            server.addInternalHook(makeAPIHook());
+            server.addInternalHook(CodeHook.NOT_FOUND);
+            server.addInternalHook(CodeHook.METHOD_NOT_ALLOWED);
+        }
+        return server;
+    }
+
+    public RedirectHook getRedirectHook() {
+        return redirects;
+    }
+    public void setRedirectHook(RedirectHook hook) {
+        redirects = hook;
+    }
+    public RedirectHook makeRedirectHook() {
+        if (redirects == null) {
+            redirects = new RedirectHook();
+        }
+        return redirects;
+    }
+
+    public StaticFileHook getFileHook() {
+        return files;
+    }
+    public void setFileHook(StaticFileHook hook) {
+        files = hook;
+    }
+    public StaticFileHook makeFileHook() {
+        if (files == null) {
+            files = new StaticFileHook();
+            files.getProducer().getProducer().add(makePluginFiles());
+            files.getProducer().getProducer().add(makeStringFiles());
+            // TODO: FS and resource files
+        }
+        return files;
+    }
+
+    public APIWebSocketHook getAPIHook() {
+        return wsAPI;
+    }
+    public void setAPIHook(APIWebSocketHook hook) {
+        wsAPI = hook;
+    }
+    public APIWebSocketHook makeAPIHook() {
+        if (wsAPI == null) {
+            wsAPI = new APIWebSocketHook(makeDistributor());
+            wsAPI.addInternalHook(new APIHook());
+        }
+        return wsAPI;
+    }
+
+    public ListProducer getPluginFiles() {
+        return pluginFiles;
+    }
+    public void setPluginFiles(ListProducer prod) {
+        pluginFiles = prod;
+    }
+    public ListProducer makePluginFiles() {
+        if (pluginFiles == null) {
+            pluginFiles = new ListProducer();
+        }
+        return pluginFiles;
+    }
+
+    public StringProducer getStringFiles() {
+        return stringFiles;
+    }
+    public void setStringFiles(StringProducer prod) {
+        stringFiles = prod;
+    }
+    public StringProducer makeStringFiles() {
+        if (stringFiles == null) {
+            stringFiles = new StringProducer();
+            // Extended by plugins.
+            stringFiles.addFile("/static/site.js", "\n");
+            // Added my Main.
+            stringFiles.addFile("/static/version.js", "");
+        }
+        return stringFiles;
+    }
+
+    public MessageDistributor getDistributor() {
+        return distributor;
+    }
+    public void setDistributor(MessageDistributor distr) {
+        distributor = distr;
+    }
+    public MessageDistributor makeDistributor() {
+        if (distributor == null) {
+            distributor = new MessageDistributor();
+        }
+        return distributor;
+    }
+
+    public PluginManager getPlugins() {
+        return plugins;
+    }
+    public void setPlugins(PluginManager mgr) {
+        plugins = mgr;
+    }
+    public PluginManager makePlugins() {
+        if (plugins == null) {
+            plugins = new PluginManager(this);
+        }
+        return plugins;
+    }
+
     public void addRequestHook(RequestHook hook) {
-        server.addHook(hook);
+        makeServer().addHook(hook);
     }
 
     public void addFileGenerator(FileGenerator gen) {
-        files.getProducer().getProducer().add(new APIProducer(gen));
+        makePluginFiles().add(new APIProducer(gen));
     }
 
     public void addFileAlias(String from, String to) {
-        files.getAliases().add(from, to);
+        makeFileHook().getAliases().add(from, to);
     }
 
     public void addFileAlias(Pattern from, String to) {
-        files.getAliases().add(from, to);
+        makeFileHook().getAliases().add(from, to);
     }
 
     public void addContentType(String pattern, String type) {
-        files.getContentTypes().add(new DefaultStringMatcher(
+        makeFileHook().getContentTypes().add(new DefaultStringMatcher(
             Pattern.compile(pattern), type, false));
     }
 
     public void addRedirect(String from, String to, int code) {
-        redirects.add(from, to, code);
+        makeRedirectHook().add(from, to, code);
     }
 
     public void addRedirect(Pattern from, String to, int code) {
-        redirects.add(from, to, code);
+        makeRedirectHook().add(from, to, code);
     }
 
     public void addMessageHook(MessageHook hook) {
-        wsAPI.addHook(hook);
+        makeAPIHook().addHook(hook);
     }
 
     public void addSyntheticFile(String name, String content) {
-        strings.addFile(name, content);
+        makeStringFiles().addFile(name, content);
     }
 
     public void addSiteCode(String code) {
-        strings.appendFile("/static/site.js", code + "\n");
+        makeStringFiles().appendFile("/static/site.js", code + "\n");
     }
 
     public Counter getCounter() {
@@ -77,7 +226,7 @@ public class InstantRunner implements API1 {
     }
 
     public RoomGroup getRooms() {
-        return distributor;
+        return makeDistributor();
     }
 
     public Object handleDefault(PluginData data) {
@@ -90,7 +239,7 @@ public class InstantRunner implements API1 {
 
     public Object getPluginData(String name) throws IllegalArgumentException,
             IllegalStateException {
-        return plugins.getData(name);
+        return makePlugins().getData(name);
     }
 
 }
