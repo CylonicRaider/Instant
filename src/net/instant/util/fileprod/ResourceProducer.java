@@ -3,7 +3,7 @@ package net.instant.util.fileprod;
 import java.io.IOException;
 import java.io.InputStream;
 
-public class ResourceProducer extends WhitelistProducer {
+public class ResourceProducer implements Producer {
 
     private ClassLoader loader;
 
@@ -23,7 +23,7 @@ public class ResourceProducer extends WhitelistProducer {
         loader = cl;
     }
 
-    public ProducerJob produceInner(String name) {
+    public ProducerJob produce(String name) {
         final long pollTime = System.currentTimeMillis();
         final InputStream is = loader.getResourceAsStream(
             name.replaceFirst("^/", ""));

@@ -21,9 +21,8 @@ import net.instant.util.argparse.BaseOption;
 import net.instant.util.argparse.ParseException;
 import net.instant.util.argparse.ParseResult;
 import net.instant.util.argparse.ValueOption;
+import net.instant.util.fileprod.FSResourceProducer;
 import net.instant.util.fileprod.FileProducer;
-import net.instant.util.fileprod.FilesystemProducer;
-import net.instant.util.fileprod.ResourceProducer;
 import net.instant.ws.InstantWebSocketServer;
 
 public class Main implements Runnable {
@@ -110,15 +109,12 @@ public class Main implements Runnable {
         r.add(Pattern.compile("/room/" + ROOM_RE), "\\0/", 301);
         srv.addHook(r);
         FileProducer p = new FileProducer();
-        FilesystemProducer pf = new FilesystemProducer(
-            new File("").getAbsolutePath(), "/");
-        ResourceProducer pr = new ResourceProducer();
-        pf.whitelist("/pages/.*");
-        pf.whitelist("/static/.*");
-        pr.whitelist("/pages/.*");
-        pr.whitelist("/static/.*");
-        p.getProducer().add(pf);
-        p.getProducer().add(pr);
+        FSResourceProducer pfr = new FSResourceProducer(
+            new File("").getAbsoluteFile(), new File("/"),
+            getClass().getClassLoader());
+        pfr.whitelist("/pages/.*");
+        pfr.whitelist("/static/.*");
+        p.getProducer().add(pfr);
         StaticFileHook f = new StaticFileHook(p);
         f.getAliases().add("/", "/pages/main.html");
         f.getAliases().add("/favicon.ico",

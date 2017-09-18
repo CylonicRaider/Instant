@@ -1,36 +1,25 @@
 package net.instant.util.fileprod;
 
-import java.util.LinkedList;
-import java.util.List;
-import java.util.regex.Pattern;
-import net.instant.util.Util;
+public class WhitelistProducer extends AbstractWhitelistProducer {
 
-public abstract class WhitelistProducer implements Producer {
+    private Producer child;
 
-    private final List<Pattern> whitelist;
-
+    public WhitelistProducer(Producer child) {
+        this.child = child;
+    }
     public WhitelistProducer() {
-        whitelist = new LinkedList<Pattern>();
+        this(null);
     }
 
-    public synchronized void whitelist(Pattern p) {
-        whitelist.add(p);
+    public Producer getChild() {
+        return child;
     }
-    public void whitelist(String p) {
-        whitelist(Pattern.compile(p));
-    }
-    public synchronized Pattern[] getWhitelist() {
-        return whitelist.toArray(new Pattern[whitelist.size()]);
-    }
-    public synchronized boolean checkWhitelist(String name) {
-        return Util.matchWhitelist(name, whitelist);
+    public void setChild(Producer p) {
+        child = p;
     }
 
-    public ProducerJob produce(String name) {
-        if (! checkWhitelist(name)) return null;
-        return produceInner(name);
+    protected ProducerJob produceInner(String name) {
+        return child.produce(name);
     }
-
-    protected abstract ProducerJob produceInner(String name);
 
 }

@@ -3,7 +3,7 @@ package net.instant.util.fileprod;
 import java.io.File;
 import java.io.IOException;
 
-public class FilesystemProducer extends WhitelistProducer {
+public class FilesystemProducer implements Producer {
 
     private File chroot;
     private File workdir;
@@ -12,22 +12,19 @@ public class FilesystemProducer extends WhitelistProducer {
         this.chroot = chroot;
         this.workdir = workdir;
     }
-    public FilesystemProducer(String chroot, String workdir) {
-        this(new File(chroot), new File(workdir));
-    }
     public FilesystemProducer() {
-        this("/", "");
+        this(new File("/"), new File(""));
     }
 
     public File getChroot() {
         return chroot;
     }
-    public File getWorkdir() {
-        return workdir;
-    }
-
     public void setChroot(File f) {
         chroot = f;
+    }
+
+    public File getWorkdir() {
+        return workdir;
     }
     public void setWorkdir(File f) {
         workdir = f;
@@ -38,7 +35,7 @@ public class FilesystemProducer extends WhitelistProducer {
         return new File(chroot, adjustedPath.replaceFirst("^[/\\\\]+", ""));
     }
 
-    public ProducerJob produceInner(String name) {
+    public ProducerJob produce(String name) {
         final File path = convert(name);
         if (! path.isFile()) return null;
         return new ProducerJob(name) {
