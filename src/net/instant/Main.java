@@ -115,6 +115,13 @@ public class Main implements Runnable {
                             "/pages/\\1.html");
         runner.addFileAlias(Pattern.compile("/room/" + ROOM_RE + "/"),
                             "/static/room.html");
+        runner.addContentType(".*\\.html", "text/html; charset=utf-8");
+        runner.addContentType(".*\\.css", "text/css; charset=utf-8");
+        runner.addContentType(".*\\.js", "application/javascript; " +
+            "charset=utf-8");
+        runner.addContentType(".*\\.svg", "image/svg+xml; charset=utf-8");
+        runner.addContentType(".*\\.png", "image/png");
+        runner.addContentType(".*\\.ico", "image/vnd.microsoft.icon");
         runner.addRedirect(Pattern.compile("/room/" + ROOM_RE), "\\0/", 301);
         runner.addSyntheticFile("/static/version.js", VERSION_FILE);
         FSResourceProducer prod = runner.makeSourceFiles();

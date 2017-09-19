@@ -24,6 +24,7 @@ public abstract class WebSocketHook implements RequestHook {
         String tag = whitelist.match(req.getPath());
         if (tag == null) return false;
         resp.respond(101, "Switching Protocols", -1);
+        resp.addHeader("Content-Type", "application/x-websocket");
         return evaluateRequestInner(req, resp, tag);
     }
 
