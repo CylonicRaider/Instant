@@ -12,13 +12,13 @@ AUTOASSETS = src/static/logo-static.svg src/static/logo-static_32x32.png \
 _JAVA_SOURCES = $(patsubst src/%,%,$(SOURCES))
 
 .NOTPARALLEL:
-.PHONY: clean lint run pre-commit
+.PHONY: clean lint lint-ro run pre-commit
 
 Instant.jar: .build.jar $(LIBRARIES) $(ASSETS) $(AUTOASSETS)
 	cp .build.jar Instant.jar
 	cd src && jar uf ../Instant.jar *
 
-# WARNING: This file is for Make bookkeeping only.
+# Avoid recompiling the backend on frontend changes.
 .INTERMEDIATE: .build.jar
 .SECONDARY: .build.jar
 .build.jar: $(SOURCES)
@@ -41,6 +41,8 @@ clean:
 	rm -f .build.jar Instant.jar Instant-run.jar
 
 lint:
+	script/importlint.py --sort --prune --empty-lines $(SOURCES)
+lint-ro:
 	script/importlint.py $(SOURCES)
 
 run: Instant-run.jar cookie-key.bin

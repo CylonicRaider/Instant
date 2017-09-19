@@ -3673,7 +3673,7 @@ this.Instant = function() {
     var COLORS = {
       U: '#808000', /* Unread - important */
       I: '#008000', /* Read - okay */
-      D: '#0000c0', /* Draft - neutral */
+      D: '#0080ff', /* Draft - neutral */
       O: '#c00000'  /* Outbox - can be removed */
     };
     /* UI messages (unread/others) */
@@ -3685,6 +3685,8 @@ this.Instant = function() {
     /* Reload-safe cache of popups */
     var storage = null;
     return {
+      /* Export colors */
+      COLORS: COLORS,
       /* Initialize submodule */
       init: function() {
         function sh(u, i, d, o) {
@@ -3805,7 +3807,7 @@ this.Instant = function() {
           }
           Instant.popups.add(popup);
         });
-        if (update) Instant.privmsg._update();
+        Instant.privmsg._update();
         Instant.animation.unflash(msgUnread);
         Instant.animation.unflash(msgOthers);
       },
@@ -3864,6 +3866,8 @@ this.Instant = function() {
         var recipient = $cls('pm-to-id').textContent;
         Instant.connection.sendUnicast(recipient, data);
         Instant.privmsg._transformAfterview(popup, true);
+        Instant.privmsg._update();
+        Instant.popups.focus(popup);
       },
       /* Display the popup for an incoming message */
       _read: function(data, isNew) {

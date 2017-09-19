@@ -448,8 +448,6 @@ def read_posts_ex(src, maxlen=None):
         ret.append(values)
         if maxlen is not None and len(ret) >= 2 * maxlen:
             ret, uuids = truncate(ret, uuids)
-        else:
-            ret, uuids = prune(ret, uuids)
     if maxlen is not None:
         ret, uuids = truncate(ret, uuids)
     else:

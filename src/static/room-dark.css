@@ -42,6 +42,10 @@
   box-shadow: 0 0 2px white;
 }
 
+.dark .message-text .emph.emph-2, .dark .message-text .heading-line {
+  color: white;
+}
+
 .dark .spinner {
   -webkit-filter: invert(1);
   filter: invert(1);
