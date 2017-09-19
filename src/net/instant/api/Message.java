@@ -46,4 +46,11 @@ public interface Message {
      */
     void sendResponse(MessageContents resp);
 
+    /**
+     * Construct a new message body.
+     * The given type is assigned to the corresponding field.
+     * This is a convenience function; no specific tasks are performed.
+     */
+    MessageContents makeMessage(String type);
+
 }

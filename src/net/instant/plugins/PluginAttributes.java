@@ -15,6 +15,7 @@ public class PluginAttributes {
     }
 
     public String getRaw(String name) {
+        if (base == null) return null;
         return base.getValue(name);
     }
 

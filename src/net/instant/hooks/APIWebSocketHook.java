@@ -106,6 +106,10 @@ public class APIWebSocketHook extends WebSocketHook {
             source.getConnection().send(resp.toString());
         }
 
+        public MessageContents makeMessage(String type) {
+            return new MessageData(type);
+        }
+
     }
 
     public static final String COOKIE_NAME = "uid";

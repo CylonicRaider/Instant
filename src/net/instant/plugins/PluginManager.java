@@ -13,10 +13,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
+import java.util.logging.Logger;
 import net.instant.api.API1;
 import net.instant.util.Util;
 
 public class PluginManager {
+
+    private static final Logger LOGGER = Logger.getLogger("PluginManager");
 
     private final Map<String, Plugin> plugins;
     private final Queue<String> toLoad;
@@ -63,12 +66,16 @@ public class PluginManager {
     public Plugin fetch(String name) throws PluginException, IOException {
         Plugin ret = plugins.get(name);
         if (ret == null && fetcher != null) {
+            LOGGER.config("Fetching plugin " + name);
             ret = fetcher.fetch(name);
             if (ret == null)
                 throw new NoSuchPluginException("Plugin " + name +
                                                 " not found");
             add(ret);
-            for (String n : ret.getRequirements()) get(n);
+            for (String n : ret.getRequirements()) {
+                LOGGER.config("[" + name + "] -> requires " + n);
+                fetch(n);
+            }
         }
         return ret;
     }
@@ -122,7 +129,7 @@ public class PluginManager {
         for (Plugin p : plugins.values()) {
             Set<Plugin> deps = getDeps(ret, p);
             for (String n : p.getRequirements()) {
-                if (get(n) != null)
+                if (get(n) == null)
                     throw new IntegrityException("Dependency " + n +
                         " of plugin " + p.getName() + " absent");
             }
@@ -173,7 +180,10 @@ public class PluginManager {
         for (Plugin p : computeOrder()) p.load();
     }
     protected void init() throws PluginException {
-        for (Plugin p : computeOrder()) p.init();
+        for (Plugin p : computeOrder()) {
+            LOGGER.info("Loading plugin " + p.getName() + "...");
+            p.init();
+        }
     }
 
     public void setup() throws PluginException {
