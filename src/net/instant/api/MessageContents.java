@@ -15,6 +15,7 @@ public interface MessageContents {
      */
     String getID();
     void setID(String id);
+    MessageContents id(String id);
 
     /**
      * The client-assigned sequence identifier.
@@ -23,6 +24,7 @@ public interface MessageContents {
      */
     Object getSequence();
     void setSequence(Object seq);
+    MessageContents sequence(Object seq);
 
     /**
      * The message type.
@@ -36,6 +38,7 @@ public interface MessageContents {
      */
     String getType();
     void setType(String type);
+    MessageContents type(String type);
 
     /**
      * The message's source.
@@ -45,6 +48,7 @@ public interface MessageContents {
      */
     String getFrom();
     void setFrom(String from);
+    MessageContents from(String from);
 
     /**
      * The message's destination.
@@ -53,6 +57,7 @@ public interface MessageContents {
      */
     String getTo();
     void setTo(String to);
+    MessageContents to(String to);
 
     /**
      * The message's payload.
@@ -60,6 +65,7 @@ public interface MessageContents {
      */
     Object getData();
     void setData(Object data);
+    MessageContents data(Object data);
 
     /**
      * Populate the payload with the given key/value pairs.
@@ -70,6 +76,7 @@ public interface MessageContents {
      * replaced.
      */
     void updateData(Object... params);
+    MessageContents withData(Object... params);
 
     /**
      * Message UNIX timestamp.
@@ -77,5 +84,6 @@ public interface MessageContents {
      */
     long getTimestamp();
     void setTimestamp(long ts);
+    MessageContents timestamp(long ts);
 
 }
