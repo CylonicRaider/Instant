@@ -7,11 +7,14 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintStream;
 import java.net.URL;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.jar.Manifest;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
 import net.instant.hooks.APIWebSocketHook;
+import net.instant.plugins.PluginException;
 import net.instant.util.Formats;
 import net.instant.util.Logging;
 import net.instant.util.argparse.ArgumentParser;
@@ -102,6 +105,14 @@ public class Main implements Runnable {
             .withPlaceholder("<path>"));
         ValueOption<String> logLevel = p.add(ValueOption.of(String.class,
             "log-level", 'L', "Logging level").defaultsTo("INFO"));
+        ValueOption<List<File>> plugPath = p.add(ValueOption.ofList(
+            File.class, "plugin-path", 'P',
+            "Path to search for plugins in")
+            .defaultsTo(new ArrayList<File>()));
+        ValueOption<List<String>> plugList = p.add(ValueOption.ofList(
+            String.class, "plugins", 'p',
+            "List of plugins to load")
+            .defaultsTo(new ArrayList<String>()));
         ValueOption<String> cmd = p.add(ValueOption.of(String.class,
             "startup-cmd", 'c', "OS command to run before entering " +
             "main loop"));
@@ -114,6 +125,8 @@ public class Main implements Runnable {
         runner.setHTTPLog(resolveLogFile(r.get(httpLog)));
         Logging.redirectToStream(resolveLogFile(r.get(debugLog)));
         Logging.setLevel(Level.parse(r.get(logLevel)));
+        for (File f : r.get(plugPath)) runner.addPluginPath(f);
+        for (String s : r.get(plugList)) runner.addPlugin(s);
         startupCmd = r.get(cmd);
         return r;
     }
@@ -156,6 +169,12 @@ public class Main implements Runnable {
         ws.getWhitelist().add(Pattern.compile("/room/(" + ROOM_RE + ")/ws"),
                               "\\1");
         ws.getWhitelist().add("/api/ws", "");
+        try {
+            runner.setupPlugins();
+        } catch (PluginException exc) {
+            System.err.println(exc);
+            System.exit(2);
+        }
         if (startupCmd != null) runCommand(startupCmd);
         LOGGER.info("Running...");
         InstantWebSocketServer srv = runner.makeServer();

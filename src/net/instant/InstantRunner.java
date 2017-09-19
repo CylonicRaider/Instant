@@ -16,6 +16,7 @@ import net.instant.hooks.CodeHook;
 import net.instant.hooks.RedirectHook;
 import net.instant.hooks.StaticFileHook;
 import net.instant.plugins.DefaultPlugin;
+import net.instant.plugins.PluginException;
 import net.instant.plugins.PluginManager;
 import net.instant.proto.APIHook;
 import net.instant.proto.MessageDistributor;
@@ -277,6 +278,18 @@ public class InstantRunner implements API1 {
     public Object getPluginData(String name) throws IllegalArgumentException,
             IllegalStateException {
         return makePlugins().getData(name);
+    }
+
+    public void addPluginPath(File path) {
+        makePlugins().getFetcher().addPath(path);
+    }
+
+    public void addPlugin(String name) {
+        makePlugins().queueFetch(name);
+    }
+
+    public void setupPlugins() throws PluginException {
+        makePlugins().setup();
     }
 
 }

@@ -47,7 +47,7 @@ public final class Logging {
             new Thread.UncaughtExceptionHandler() {
                 public void uncaughtException(Thread t, Throwable e) {
                     logger.log(Level.SEVERE, "Uncaught exception in " +
-                        "thread " + t, e);
+                        "thread " + t.getName() + " (" + t.getId() + ")", e);
                 }
             }
         );

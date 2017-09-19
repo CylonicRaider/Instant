@@ -11,6 +11,7 @@ import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Queue;
 import java.util.Set;
 import net.instant.api.API1;
 import net.instant.util.Util;
@@ -18,6 +19,7 @@ import net.instant.util.Util;
 public class PluginManager {
 
     private final Map<String, Plugin> plugins;
+    private final Queue<String> toLoad;
     private API1 api;
     private PluginFetcher fetcher;
     private PluginClassLoader classLoader;
@@ -25,6 +27,7 @@ public class PluginManager {
 
     public PluginManager(API1 api) {
         this.plugins = new LinkedHashMap<String, Plugin>();
+        this.toLoad = new LinkedList<String>();
         this.api = api;
         this.fetcher = new PluginFetcher(this);
         this.classLoader = new PluginClassLoader();
@@ -69,6 +72,11 @@ public class PluginManager {
     public void add(Plugin p) {
         plugins.put(p.getName(), p);
         order = null;
+    }
+
+    public void queueFetch(String name) {
+        if (name == null) throw new NullPointerException();
+        toLoad.add(name);
     }
 
     public Object getData(String name) throws IllegalArgumentException,
@@ -148,11 +156,26 @@ public class PluginManager {
         stack.remove(base);
     }
 
-    public void load() throws PluginException {
+    protected void load() throws PluginException {
+        for (;;) {
+            String name = toLoad.poll();
+            if (name == null) break;
+            try {
+                fetch(name);
+            } catch (IOException exc) {
+                throw new PluginException("Could not fetch plugin " + name,
+                                          exc);
+            }
+        }
         for (Plugin p : computeOrder()) p.load();
     }
-    public void init() throws PluginException {
+    protected void init() throws PluginException {
         for (Plugin p : computeOrder()) p.init();
+    }
+
+    public void setup() throws PluginException {
+        load();
+        init();
     }
 
 }
