@@ -5351,11 +5351,11 @@ this.Instant = function() {
           ['div', 'popup-header', [
             ['span', 'popup-title'],
             co && ['span', 'popup-title-sep'],
-            co && ['a', 'button popup-button popup-collapse', {href: '#'}, [
+            co && ['button', 'button popup-button popup-collapse', [
               ['img', {src: collapseURL}]
             ]],
             cl && ['span', 'popup-title-sep'],
-            cl && ['a', 'button popup-button popup-close', {href: '#'}, [
+            cl && ['button', 'button popup-button popup-close', [
               ['img', {src: closeURL}]
             ]]
           ]],
