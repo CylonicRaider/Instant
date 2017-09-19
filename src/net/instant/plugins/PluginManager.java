@@ -60,10 +60,13 @@ public class PluginManager {
     public Plugin get(String name) {
         return plugins.get(name);
     }
-    public Plugin fetch(String name) throws BadPluginException, IOException {
+    public Plugin fetch(String name) throws PluginException, IOException {
         Plugin ret = plugins.get(name);
         if (ret == null && fetcher != null) {
             ret = fetcher.fetch(name);
+            if (ret == null)
+                throw new NoSuchPluginException("Plugin " + name +
+                                                " not found");
             add(ret);
             for (String n : ret.getRequirements()) get(n);
         }
