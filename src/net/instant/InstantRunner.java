@@ -1,6 +1,7 @@
 package net.instant;
 
 import java.io.File;
+import java.io.PrintStream;
 import java.net.InetSocketAddress;
 import java.util.regex.Pattern;
 import net.instant.api.API1;
@@ -32,6 +33,7 @@ public class InstantRunner implements API1 {
     private String host;
     private int port;
     private File webroot;
+    private PrintStream httpLog;
     private InstantWebSocketServer server;
     private RedirectHook redirects;
     private StaticFileHook files;
@@ -69,6 +71,13 @@ public class InstantRunner implements API1 {
         webroot = p;
     }
 
+    public PrintStream getHTTPLog() {
+        return httpLog;
+    }
+    public void setHTTPLog(PrintStream s) {
+        httpLog = s;
+    }
+
     public InstantWebSocketServer getServer() {
         return server;
     }
@@ -84,6 +93,7 @@ public class InstantRunner implements API1 {
                 addr = new InetSocketAddress(host, port);
             }
             server = new InstantWebSocketServer(addr);
+            server.setHTTPLog(httpLog);
             server.addInternalHook(makeRedirectHook());
             server.addInternalHook(makeFileHook());
             server.addInternalHook(makeAPIHook());

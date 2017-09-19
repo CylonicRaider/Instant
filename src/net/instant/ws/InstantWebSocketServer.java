@@ -1,6 +1,7 @@
 package net.instant.ws;
 
 import java.io.File;
+import java.io.PrintStream;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
@@ -52,8 +53,12 @@ public class InstantWebSocketServer extends WebSocketServer
         DEFAULT_DRAFTS = Collections.unmodifiableList(l);
         INSECURE_COOKIES = Util.isTrue(
             Util.getConfiguration("instant.cookies.insecure"));
-        COOKIES_KEYFILE = new File(
-            Util.getConfiguration("instant.cookies.keyfile"));
+        String keyfile = Util.getConfiguration("instant.cookies.keyfile");
+        if (keyfile != null) {
+            COOKIES_KEYFILE = new File(keyfile);
+        } else {
+            COOKIES_KEYFILE = null;
+        }
     }
 
     private final Set<RequestHook> hooks;
@@ -62,6 +67,7 @@ public class InstantWebSocketServer extends WebSocketServer
     private InformationCollector collector;
     private CookieHandler cookies;
     private ConnectionGC gc;
+    private PrintStream httpLog;
 
     public InstantWebSocketServer(InetSocketAddress addr) {
         super(addr, wrapDrafts(DEFAULT_DRAFTS));
@@ -72,6 +78,7 @@ public class InstantWebSocketServer extends WebSocketServer
         collector = new InformationCollector(this);
         gc = new ConnectionGC();
         cookies = new CookieHandler(makeStringSigner());
+        httpLog = System.err;
         for (Draft d : getDraft()) {
             if (d instanceof DraftWrapper)
                 ((DraftWrapper) d).setHook(this);
@@ -93,6 +100,13 @@ public class InstantWebSocketServer extends WebSocketServer
     }
     public void setConnectionGC(ConnectionGC g) {
         gc = g;
+    }
+
+    public PrintStream getHTTPLog() {
+        return httpLog;
+    }
+    public void setHTTPLog(PrintStream s) {
+        httpLog = s;
     }
 
     /* Calling order:
@@ -123,7 +137,7 @@ public class InstantWebSocketServer extends WebSocketServer
                 if (h.evaluateRequest(d, d)) {
                     assignments.put(d.getConnection(), h);
                     collector.postProcess(d);
-                    System.err.println(Formats.formatHTTPLog(d));
+                    httpLog.println(Formats.formatHTTPLog(d));
                     return;
                 }
             } catch (Exception exc) {
@@ -193,6 +207,11 @@ public class InstantWebSocketServer extends WebSocketServer
     public void removeHook(RequestHook hook) {
         hooks.remove(hook);
         internalHooks.remove(hook);
+    }
+
+    public void spawn() {
+        gc.start();
+        run();
     }
 
     protected static List<Draft> wrapDrafts(List<Draft> in) {

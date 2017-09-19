@@ -39,7 +39,7 @@ public class ConnectionGC implements Runnable {
     }
 
     public void cleanup(ClientConnection r) {
-        LOGGER.info("Cleaned up connection (" + r.getConnection() + ")");
+        LOGGER.info("Cleaned up connection " + r);
         r.getConnection().close();
     }
 
@@ -58,6 +58,10 @@ public class ConnectionGC implements Runnable {
                 break;
             }
         }
+    }
+
+    public void start() {
+        new Thread(this, "Connection GC").start();
     }
 
 }

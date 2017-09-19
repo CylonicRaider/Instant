@@ -36,7 +36,7 @@ public class FSResourceProducer extends AbstractWhitelistProducer {
     protected ProducerJob produceInner(String name) {
         ProducerJob ret = null;
         if (fs != null) ret = fs.produce(name);
-        if (rs != null && ret != null) ret = rs.produce(name);
+        if (rs != null && ret == null) ret = rs.produce(name);
         return ret;
     }
 

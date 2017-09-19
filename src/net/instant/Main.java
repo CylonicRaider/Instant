@@ -1,10 +1,14 @@
 package net.instant;
 
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.PrintStream;
 import java.net.URL;
 import java.util.jar.Manifest;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
 import net.instant.hooks.APIWebSocketHook;
@@ -14,6 +18,7 @@ import net.instant.util.argparse.ArgumentParser;
 import net.instant.util.argparse.BaseOption;
 import net.instant.util.argparse.ParseException;
 import net.instant.util.argparse.ParseResult;
+import net.instant.util.argparse.ValueArgument;
 import net.instant.util.argparse.ValueOption;
 import net.instant.util.fileprod.FSResourceProducer;
 import net.instant.ws.InstantWebSocketServer;
@@ -82,18 +87,27 @@ public class Main implements Runnable {
     protected ParseResult parseArguments(ArgumentParser p) {
         p.addHelp();
         BaseOption<String> optHost = p.add(ValueOption.of(String.class,
-            "host", 'h', "Address to bind to").defaultsTo("*"));
-        BaseOption<Integer> optPort = p.add(ValueOption.of(Integer.class,
-            "port", 'p', "Port to bind to").defaultsTo(8080));
+            "host", 'h', "Host to bind to").defaultsTo("*"));
+        BaseOption<Integer> optPort = p.add(ValueArgument.of(Integer.class,
+            "port", "Port to bind to").defaultsTo(8080));
         BaseOption<String> optWebroot = p.add(ValueOption.of(String.class,
             "webroot", 'r', "Path containing static directories")
             .defaultsTo("."));
+        BaseOption<String> optHTTPLog = p.add(ValueOption.of(String.class,
+            "http-log", null, "Log file for HTTP requests").defaultsTo("-"));
+        BaseOption<String> optDebugLog = p.add(ValueOption.of(String.class,
+            "debug-log", null, "Log file for debugging").defaultsTo("-"));
+        BaseOption<String> optLogLevel = p.add(ValueOption.of(String.class,
+            "log-level", 'L', "Logging level").defaultsTo("INFO"));
         ParseResult r = parseArgumentsInner(p);
         String host = r.get(optHost);
         if (host.equals("*")) host = null;
         runner.setHost(host);
         runner.setPort(r.get(optPort));
         runner.setWebroot(new File(r.get(optWebroot)));
+        runner.setHTTPLog(resolveLogFile(r.get(optHTTPLog)));
+        Logging.redirectToStream(resolveLogFile(r.get(optDebugLog)));
+        Logging.setLevel(Level.parse(r.get(optLogLevel)));
         return r;
     }
     protected ParseResult parseArgumentsInner(ArgumentParser p) {
@@ -132,7 +146,21 @@ public class Main implements Runnable {
                               "\\1");
         ws.getWhitelist().add("/api/ws", "");
         InstantWebSocketServer srv = runner.makeServer();
-        srv.run();
+        srv.spawn();
+    }
+
+    private static PrintStream resolveLogFile(String path) {
+        if (path == null || path.equals("-")) {
+            return System.err;
+        } else {
+            try {
+                return new PrintStream(new FileOutputStream(path, true),
+                                       true);
+            } catch (FileNotFoundException exc) {
+                // Should not happen.
+                throw new RuntimeException(exc);
+            }
+        }
     }
 
 }
