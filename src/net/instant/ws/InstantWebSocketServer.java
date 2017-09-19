@@ -127,8 +127,8 @@ public class InstantWebSocketServer extends WebSocketServer
                     return;
                 }
             } catch (Exception exc) {
-                LOGGER.log(Level.SEVERE, "Exception while processing request",
-                           exc);
+                LOGGER.log(Level.SEVERE, "Exception while processing " +
+                    "request " + d, exc);
                 throw exc;
             }
         }
@@ -163,14 +163,15 @@ public class InstantWebSocketServer extends WebSocketServer
     }
 
     public void onError(WebSocket conn, Exception ex) {
-        LOGGER.log(Level.SEVERE, "Exception while handling connection",
-                   ex);
         if (conn == null) {
+            LOGGER.log(Level.SEVERE, "Backend exception", ex);
             for (RequestHook h : getAllHooks()) h.onError(null, ex);
             return;
         }
         RequestHook h = assignments.get(conn);
         Datum d = collector.get(conn);
+        LOGGER.log(Level.SEVERE, "Exception while handling connection " + d,
+                   ex);
         if (h != null) h.onError(d, ex);
     }
 

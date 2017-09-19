@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import net.instant.api.ClientConnection;
 import net.instant.api.Cookie;
@@ -42,6 +43,11 @@ public class Datum implements ClientConnection, ResponseBuilder {
     }
     public Datum(InstantWebSocketServer parent) {
         this(parent, System.currentTimeMillis());
+    }
+
+    public String toString() {
+        return String.format((Locale) null, "%s[of %s at %tF %<tT %<tZ]",
+                             super.toString(), reqPath, timestamp);
     }
 
     public InetSocketAddress getAddress() {
