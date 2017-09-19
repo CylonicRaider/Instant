@@ -24,7 +24,7 @@ so.
 
 ### Running an own clone
 
-Refer to [`docs/running.md`](docs/running.md) for an extensive guide on how
+Refer to [`docs/RUNNING.md`](docs/RUNNING.md) for an extensive guide on how
 to run Instant.
 
 **TL;DR**: The stock backend (as provided in every commit, unless someone
