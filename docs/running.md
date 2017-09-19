@@ -15,6 +15,28 @@ it up).
 The backend accepts the following command-line arguments (the `--help` option
 can be used to report a summary):
 
+- `--host` *host* — *Hostname to bind to*: Can be used on machines with
+  multiple network interfaces; `localhost` can be used to accept local
+  connections only. Defaults to `*` (the asterisk), which is translated
+  to *all interfaces*.
+
+- `--webroot` *path* — *Location of static files*: Location of a directory
+  where to look for the `pages/` and `static/` subdirectories for static
+  files. If a static file is absent, Instant falls back to a version bundled
+  with the backend. Defaults to `.` (the current directory).
+
+- `--http-log` *file* — *HTTP log location*: Either a file name where to
+  append the HTTP log to, or the `-` character to write to standard error.
+  Output is entry-buffered (i.e. flushed after every entry). Defaults to `-`.
+
+- `--debug-log` *file* — *Debugging log location*: Similarly to `--http-log`,
+  this is either a file name or a `-`. This is used for logging anything that
+  does not belong into the HTTP log. The default is, again, `-`.
+
+- `--log-level` *str* — *Logging level*: The string representation of a level
+  as recognized by `java.util.loogging`; used for the debugging log. Defaults
+  to `INFO`.
+
 - `--plugin-path` *paths* — *Plugin path*: A list of directory or file paths
   where to search for plugins. Separated by the platform-specific path list
   separator (i.e. `:` on UNIX-like OS-es, and `;` on Windows).
@@ -26,18 +48,14 @@ can be used to report a summary):
   like that?). To be interpreted as a path, an entry must contain a slash
   (`/`) character (regardless of platform).
 
-- `--http-log` *str* — *HTTP log location*: Either a file name where to
-  append the HTTP log to, or the `-` character to write to standard error.
-  Output is entry-buffered (i.e. flushed after every entry). Defaults to `-`.
-
-- `--debug-log` *str* — *Debugging log location*: Similarly to `--http-log`,
-  this is either a file name or a `-`. This is used for logging anything that
-  does not belong into the HTTP log. The default is, again, `-`.
-
-- `--host` *host* — *Hostname to bind to*: Can be used on machines with
-  multiple network interfaces; `localhost` can be used to accept local
-  connections only. Defaults to `*` (the asterisk), which is translated
-  to *all interfaces*.
+- `--startup-cmd` *str* — *Command to run at startup*: A file to be executed
+  with certain parameters just before the backend attempts to listen for
+  requests. The command is *not* interpreted by the shell; rather, it is
+  split on spaces and then executed as-is (in particular, neither the program
+  path nor the arguments may contain spaces themselves). The backend waits
+  for the command to finish before it proceeds. Can be used to reduce
+  downtime during updates by starting a new backend in the "background" and
+  letting it shut down the "old" one before taking over.
 
 - *port* — *Port to bind to*: As a single optional positional argument, this
   specifies the TCP port to listen on. Defaults to `8080`.
