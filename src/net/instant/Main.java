@@ -15,7 +15,6 @@ import net.instant.hooks.APIWebSocketHook;
 import net.instant.util.Formats;
 import net.instant.util.Logging;
 import net.instant.util.argparse.ArgumentParser;
-import net.instant.util.argparse.BaseOption;
 import net.instant.util.argparse.ParseException;
 import net.instant.util.argparse.ParseResult;
 import net.instant.util.argparse.ValueArgument;
@@ -87,28 +86,30 @@ public class Main implements Runnable {
 
     protected ParseResult parseArguments(ArgumentParser p) {
         p.addStandardOptions();
-        BaseOption<String> optHost = p.add(ValueOption.of(String.class,
+        ValueOption<String> host = p.add(ValueOption.of(String.class,
             "host", 'h', "Host to bind to").defaultsTo("*"));
-        BaseOption<Integer> optPort = p.add(ValueArgument.of(Integer.class,
+        ValueArgument<Integer> port = p.add(ValueArgument.of(Integer.class,
             "port", "Port to bind to").defaultsTo(8080));
-        BaseOption<String> optWebroot = p.add(ValueOption.of(String.class,
+        ValueOption<File> webroot = p.add(ValueOption.of(File.class,
             "webroot", 'r', "Path containing static directories")
-            .defaultsTo("."));
-        BaseOption<String> optHTTPLog = p.add(ValueOption.of(String.class,
-            "http-log", null, "Log file for HTTP requests").defaultsTo("-"));
-        BaseOption<String> optDebugLog = p.add(ValueOption.of(String.class,
-            "debug-log", null, "Log file for debugging").defaultsTo("-"));
-        BaseOption<String> optLogLevel = p.add(ValueOption.of(String.class,
+            .defaultsTo(new File(".")));
+        ValueOption<String> httpLog = p.add(ValueOption.of(String.class,
+            "http-log", null, "Log file for HTTP requests").defaultsTo("-")
+            .withPlaceholder("<path>"));
+        ValueOption<String> debugLog = p.add(ValueOption.of(String.class,
+            "debug-log", null, "Log file for debugging").defaultsTo("-")
+            .withPlaceholder("<path>"));
+        ValueOption<String> logLevel = p.add(ValueOption.of(String.class,
             "log-level", 'L', "Logging level").defaultsTo("INFO"));
         ParseResult r = parseArgumentsInner(p);
-        String host = r.get(optHost);
-        if (host.equals("*")) host = null;
-        runner.setHost(host);
-        runner.setPort(r.get(optPort));
-        runner.setWebroot(new File(r.get(optWebroot)));
-        runner.setHTTPLog(resolveLogFile(r.get(optHTTPLog)));
-        Logging.redirectToStream(resolveLogFile(r.get(optDebugLog)));
-        Logging.setLevel(Level.parse(r.get(optLogLevel)));
+        String hostval = r.get(host);
+        if (hostval.equals("*")) hostval = null;
+        runner.setHost(hostval);
+        runner.setPort(r.get(port));
+        runner.setWebroot(r.get(webroot));
+        runner.setHTTPLog(resolveLogFile(r.get(httpLog)));
+        Logging.redirectToStream(resolveLogFile(r.get(debugLog)));
+        Logging.setLevel(Level.parse(r.get(logLevel)));
         return r;
     }
     protected ParseResult parseArgumentsInner(ArgumentParser p) {

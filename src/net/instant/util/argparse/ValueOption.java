@@ -25,6 +25,10 @@ public class ValueOption<X> extends Option<X> {
         converter = c;
         return this;
     }
+    public ValueOption<X> withPlaceholder(String placeholder) {
+        converter = converter.withPlaceholder(placeholder);
+        return this;
+    }
 
     public X getDefault() {
         return defaultValue;

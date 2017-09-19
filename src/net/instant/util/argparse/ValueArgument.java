@@ -22,6 +22,10 @@ public class ValueArgument<X> extends Argument<X> {
         converter = c;
         return this;
     }
+    public ValueArgument<X> withPlaceholder(String placeholder) {
+        converter = converter.withPlaceholder(placeholder);
+        return this;
+    }
 
     public X getDefault() {
         return defaultValue;
