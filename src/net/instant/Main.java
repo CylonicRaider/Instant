@@ -123,6 +123,7 @@ public class Main implements Runnable {
     }
 
     public void run() {
+        Logging.captureExceptions(LOGGER);
         String version = VERSION;
         if (FINE_VERSION != null) version += " (" + FINE_VERSION + ")";
         parseArguments(new ArgumentParser(APPNAME, version));

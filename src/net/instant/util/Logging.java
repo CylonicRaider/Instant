@@ -42,4 +42,15 @@ public final class Logging {
         }
     }
 
+    public static void captureExceptions(final Logger logger) {
+        Thread.setDefaultUncaughtExceptionHandler(
+            new Thread.UncaughtExceptionHandler() {
+                public void uncaughtException(Thread t, Throwable e) {
+                    logger.log(Level.SEVERE, "Uncaught exception in " +
+                        "thread " + t, e);
+                }
+            }
+        );
+    }
+
 }
