@@ -61,6 +61,7 @@ public class Main implements Runnable {
 
     private final String[] args;
     private InstantRunner runner;
+    private String startupCmd;
 
     public Main(String[] args) {
         this.args = args;
@@ -101,6 +102,9 @@ public class Main implements Runnable {
             .withPlaceholder("<path>"));
         ValueOption<String> logLevel = p.add(ValueOption.of(String.class,
             "log-level", 'L', "Logging level").defaultsTo("INFO"));
+        ValueOption<String> cmd = p.add(ValueOption.of(String.class,
+            "startup-cmd", 'c', "OS command to run before entering " +
+            "main loop"));
         ParseResult r = parseArgumentsInner(p);
         String hostval = r.get(host);
         if (hostval.equals("*")) hostval = null;
@@ -110,6 +114,7 @@ public class Main implements Runnable {
         runner.setHTTPLog(resolveLogFile(r.get(httpLog)));
         Logging.redirectToStream(resolveLogFile(r.get(debugLog)));
         Logging.setLevel(Level.parse(r.get(logLevel)));
+        startupCmd = r.get(cmd);
         return r;
     }
     protected ParseResult parseArgumentsInner(ArgumentParser p) {
@@ -127,6 +132,7 @@ public class Main implements Runnable {
         String version = VERSION;
         if (FINE_VERSION != null) version += " (" + FINE_VERSION + ")";
         parseArguments(new ArgumentParser(APPNAME, version));
+        LOGGER.info(APPNAME + " " + version);
         runner.addFileAlias("/", "/pages/main.html");
         runner.addFileAlias("/favicon.ico",
                             "/static/logo-static_128x128.ico");
@@ -150,6 +156,8 @@ public class Main implements Runnable {
         ws.getWhitelist().add(Pattern.compile("/room/(" + ROOM_RE + ")/ws"),
                               "\\1");
         ws.getWhitelist().add("/api/ws", "");
+        if (startupCmd != null) runCommand(startupCmd);
+        LOGGER.info("Running...");
         InstantWebSocketServer srv = runner.makeServer();
         srv.spawn();
     }
@@ -165,6 +173,22 @@ public class Main implements Runnable {
                 // Should not happen.
                 throw new RuntimeException(exc);
             }
+        }
+    }
+
+    private static int runCommand(String cmdline) {
+        ProcessBuilder pb = new ProcessBuilder(cmdline.trim().split("\\s+"));
+        pb.redirectInput(ProcessBuilder.Redirect.INHERIT);
+        pb.redirectOutput(ProcessBuilder.Redirect.INHERIT);
+        pb.redirectError(ProcessBuilder.Redirect.INHERIT);
+        try {
+            Process p = pb.start();
+            return p.waitFor();
+        } catch (IOException exc) {
+            return Integer.MIN_VALUE;
+        } catch (InterruptedException exc) {
+            Thread.currentThread().interrupt();
+            return Integer.MIN_VALUE + 1;
         }
     }
 
