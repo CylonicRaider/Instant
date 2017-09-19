@@ -17,9 +17,11 @@ public class ArgumentParser {
     private final Map<String, BaseOption<?>> options;
     private final Map<Character, BaseOption<?>> shortOptions;
     private String progname;
+    private String version;
 
-    public ArgumentParser(String progname) {
+    public ArgumentParser(String progname, String version) {
         this.progname = progname;
+        this.version = version;
         this.options = new LinkedHashMap<String, BaseOption<?>>();
         this.shortOptions = new LinkedHashMap<Character, BaseOption<?>>();
     }
@@ -29,6 +31,13 @@ public class ArgumentParser {
     }
     public void setProgName(String name) {
         progname = name;
+    }
+
+    public String getVersion() {
+        return version;
+    }
+    public void setVersion(String ver) {
+        version = ver;
     }
 
     public Collection<BaseOption<?>> getAllOptions() {
@@ -49,7 +58,7 @@ public class ArgumentParser {
         return getOptions(new ArrayList<BaseOption<?>>(), true);
     }
 
-    public <X> BaseOption<X> add(BaseOption<X> opt) {
+    public <X extends BaseOption<?>> X add(X opt) {
         options.put(opt.getName(), opt);
         if (opt.getShortName() != null)
             shortOptions.put(opt.getShortName(), opt);
@@ -60,8 +69,9 @@ public class ArgumentParser {
         return (options.remove(opt.getName()) != null);
     }
 
-    public void addHelp() {
+    public void addStandardOptions() {
         add(new HelpOption());
+        if (version != null) add(new VersionOption());
     }
 
     public BaseOption<?> getOption(ArgumentValue val) {

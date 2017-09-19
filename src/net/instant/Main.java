@@ -27,10 +27,11 @@ public class Main implements Runnable {
 
     public static final String APPNAME = "Instant";
     public static final String VERSION = "1.4.3";
+    public static final String FINE_VERSION;
+
     public static final String ROOM_RE =
         "[a-zA-Z](?:[a-zA-Z0-9_-]*[a-zA-Z0-9])?";
     public static final String STAGING_RE = "dev/[a-zA-Z0-9-]+";
-    public static final String FINE_VERSION;
 
     private static final String VERSION_FILE;
     private static final Logger LOGGER;
@@ -85,7 +86,7 @@ public class Main implements Runnable {
     }
 
     protected ParseResult parseArguments(ArgumentParser p) {
-        p.addHelp();
+        p.addStandardOptions();
         BaseOption<String> optHost = p.add(ValueOption.of(String.class,
             "host", 'h', "Host to bind to").defaultsTo("*"));
         BaseOption<Integer> optPort = p.add(ValueArgument.of(Integer.class,
@@ -121,7 +122,9 @@ public class Main implements Runnable {
     }
 
     public void run() {
-        parseArguments(new ArgumentParser(APPNAME));
+        String version = VERSION;
+        if (FINE_VERSION != null) version += " (" + FINE_VERSION + ")";
+        parseArguments(new ArgumentParser(APPNAME, version));
         runner.addFileAlias("/", "/pages/main.html");
         runner.addFileAlias("/favicon.ico",
                             "/static/logo-static_128x128.ico");
