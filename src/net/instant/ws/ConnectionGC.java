@@ -61,7 +61,9 @@ public class ConnectionGC implements Runnable {
     }
 
     public void start() {
-        new Thread(this, "Connection GC").start();
+        Thread t = new Thread(this, "Connection GC");
+        t.setDaemon(true);
+        t.start();
     }
 
 }
