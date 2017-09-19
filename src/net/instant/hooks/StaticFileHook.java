@@ -63,6 +63,7 @@ public class StaticFileHook extends HookAdapter {
         }
         if (ent == null) {
             resp.respond(200, "OK", -1);
+            paths.put(req, path);
         } else {
             boolean cached = false;
             if (ent.getETag() != null) {
@@ -74,20 +75,26 @@ public class StaticFileHook extends HookAdapter {
             }
             if (cached) {
                 resp.respond(304, "Not Modified", ent.getSize());
+                // Not registering path to not send response body.
             } else {
                 resp.respond(200, "OK", ent.getSize());
+                paths.put(req, path);
             }
         }
         String contentType = contentTypes.match(path);
         if (contentType != null)
             resp.addHeader("Content-Type", contentType);
-        paths.put(req, path);
         return true;
     }
 
     public void onOpen(final ClientConnection conn) {
         try {
-            producer.get(paths.remove(conn), new ProducerJob.Callback() {
+            String path = paths.remove(conn);
+            if (path == null) {
+                conn.getConnection().close();
+                return;
+            }
+            producer.get(path, new ProducerJob.Callback() {
                 public void fileProduced(String name, FileCell result) {
                     // Cannot do anything about failure now...
                     if (result != null)
