@@ -18,7 +18,7 @@ public class MessageData implements MessageContents {
     public MessageData(JSONObject source) throws JSONException {
         id = source.optString("id");
         seq = source.opt("seq");
-        type = source.getString("type");
+        type = source.optString("type");
         from = source.optString("from");
         to = source.optString("to");
         data = source.opt("data");

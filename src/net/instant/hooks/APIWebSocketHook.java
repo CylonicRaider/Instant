@@ -214,6 +214,10 @@ public class APIWebSocketHook extends WebSocketHook {
             room.sendUnicast(conn, ProtocolError.INVALID_JSON.makeMessage());
             return;
         }
+        if (event.getData().getType() == null) {
+            event.sendResponse(ProtocolError.INVALID_TYPE.makeMessage());
+            return;
+        }
         for (MessageHook h : getAllHooks()) {
             if (h.onMessage(event)) return;
         }
