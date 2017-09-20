@@ -4079,8 +4079,7 @@ this.Instant = function() {
         var node = $cls('pm-error', popup);
         if (node == null) {
           node = $makeNode('div', 'pm-error', [
-            ['b', null, 'Error'],
-            ': ',
+            ['b', null, 'Error: '],
             ['span', 'error-content']
           ]);
         } else {
