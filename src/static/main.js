@@ -329,6 +329,8 @@ this.Instant = function() {
     var overridden = false;
     /* Message handlers */
     var rawHandlers = {}, handlers = {};
+    /* Callbacks for individual messages */
+    var callbacks = {};
     /* Send regular pings
      * lastPong is a [local time, server time] array (or null). */
     var lastPong = null;
@@ -446,6 +448,10 @@ this.Instant = function() {
           console.warn('Cannot parse message:', e);
           return;
         }
+        /* Invoke individual handler */
+        var cb = callbacks[msg.seq];
+        delete callbacks[msg.seq];
+        if (cb) cb(msg);
         /* Invoke handlers */
         var handled = false;
         if (msg.type && rawHandlers[msg.type]) {
@@ -588,6 +594,7 @@ this.Instant = function() {
         var wasConnected = connected;
         connected = false;
         lastPong = null;
+        callbacks = {};
         /* Inform logs */
         Instant.logs.pull._disconnected();
         /* Send event */
@@ -628,34 +635,44 @@ this.Instant = function() {
       },
       /* Send an object whilst adding a sequence ID (in-place); return the
        * sequence ID */
-      sendSeq: function(data) {
+      sendSeq: function(data, cb) {
         data.seq = seqid++;
+        if (cb) callbacks[data.seq] = cb;
         Instant.connection.sendRaw(JSON.stringify(data));
         return data.seq;
       },
+      /* Send an object and log the response when it arrives */
+      sendDbg: function(data, cb) {
+        Instant.connection.sendSeq(data, function(response) {
+          console['log'](response);
+          if (cb) cb(response);
+        });
+        /* Returning to avoid the browser logging an "undefined". */
+        return data;
+      },
       /* Send a ping with the given payload (or none at all) to the server */
-      sendPing: function(data) {
+      sendPing: function(data, cb) {
         var msg = {type: 'ping'};
         if (data !== undefined) msg.data = data;
-        return Instant.connection.sendSeq(msg);
+        return Instant.connection.sendSeq(msg, cb);
       },
       /* Send an unicast message to the given participant with the given
        * payload */
-      sendUnicast: function(to, data) {
+      sendUnicast: function(to, data, cb) {
         return Instant.connection.sendSeq({type: 'unicast', to: to,
-                                           data: data});
+                                           data: data}, cb);
       },
       /* Send a broadcast message with the given payload */
-      sendBroadcast: function(data) {
+      sendBroadcast: function(data, cb) {
         return Instant.connection.sendSeq({type: 'broadcast',
-                                           data: data});
+                                           data: data}, cb);
       },
       /* Send either a unicast or a broadcast */
-      send: function(to, data) {
+      send: function(to, data, cb) {
         if (to) {
-          return Instant.connection.sendUnicast(to, data);
+          return Instant.connection.sendUnicast(to, data, cb);
         } else {
-          return Instant.connection.sendBroadcast(data);
+          return Instant.connection.sendBroadcast(data, cb);
         }
       },
       /* Add a handler for "raw" message types */
