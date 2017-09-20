@@ -2145,8 +2145,8 @@ this.Instant = function() {
         /* Important regexes */
         var URL_RE = '((?!javascript:)[a-zA-Z]+://)?' +
           '([a-zA-Z0-9._~-]+@)?([a-zA-Z0-9.-]+)(:[0-9]+)?(/[^>]*)?';
-        var MENTION_RE = '[^.,:;!?()\s]+' +
-          '(?:\([^.,:;!?()\s]*\)[^.,:;!?()\s]*)*';
+        var MENTION_RE = ('%MC%+(?:\\(%MC%*\\)%MC%*)*').replace(/%MC%/g,
+          '[^.,:;!?()\\s]');
         /* Smiley table */
         var SMILIES = {
           '+1'  : '#008000', '-1'  : '#c00000',
