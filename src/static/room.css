@@ -1005,6 +1005,10 @@ body {
   outline: none;
   resize: both;
 }
+.pm-popup .pm-error {
+  color: #c00000;
+  padding: 0 5px 5px 5px;
+}
 
 img.turn-right {
   -webkit-transform: rotate(90deg);
