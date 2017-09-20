@@ -29,7 +29,6 @@ import org.java_websocket.handshake.ClientHandshake;
 import org.java_websocket.handshake.HandshakeBuilder;
 import org.java_websocket.handshake.Handshakedata;
 import org.java_websocket.handshake.ServerHandshakeBuilder;
-import org.java_websocket.handshake.ServerHandshakeBuilder;
 import org.java_websocket.server.WebSocketServer;
 
 public class InstantWebSocketServer extends WebSocketServer
@@ -174,6 +173,7 @@ public class InstantWebSocketServer extends WebSocketServer
         if (h != null)
             h.onClose(d, (code == CloseFrame.NORMAL ||
                           code == CloseFrame.GOING_AWAY));
+        gc.removeDeadline(d);
     }
 
     public void onError(WebSocket conn, Exception ex) {
