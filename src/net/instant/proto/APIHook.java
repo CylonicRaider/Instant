@@ -78,6 +78,7 @@ public class APIHook implements MessageHook {
     }
 
     protected boolean handleWho(Message msg) {
+        if (msg.getRoom().getName() == null) return false;
         JSONObject rdata = new JSONObject();
         Room room = msg.getRoom();
         synchronized (room) {
