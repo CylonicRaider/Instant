@@ -2142,6 +2142,11 @@ this.Instant = function() {
       },
       /* Message parsing -- has an own namespace to avoid pollution */
       parser: function() {
+        /* Important regexes */
+        var URL_RE = '((?!javascript:)[a-zA-Z]+://)?' +
+          '([a-zA-Z0-9._~-]+@)?([a-zA-Z0-9.-]+)(:[0-9]+)?(/[^>]*)?';
+        var MENTION_RE = '[^.,:;!?()\s]+' +
+          '(?:\([^.,:;!?()\s]*\)[^.,:;!?()\s]*)*';
         /* Smiley table */
         var SMILIES = {
           '+1'  : '#008000', '-1'  : '#c00000',
@@ -2208,8 +2213,7 @@ this.Instant = function() {
           },
           { /* Hyperlinks */
             name: 'link',
-            re: new RegExp('<(((?!javascript:)[a-zA-Z]+://)?' +
-              '([a-zA-Z0-9._~-]+@)?([a-zA-Z0-9.-]+)(:[0-9]+)?(/[^>]*)?)>'),
+            re: new RegExp('<(' + URL_RE + ')>'),
             cb: function(m, out) {
               /* Hyperlink (must contain non-word character) */
               if (! /\W/.test(m[1])) {
@@ -2229,7 +2233,7 @@ this.Instant = function() {
           },
           { /* @-mentions */
             name: 'mention',
-            re: /@[^.,:;!?()\s]+(?:\([^.,:;!?()\s]*\)[^.,:;!?()\s]*)*/,
+            re: new RegExp('@' + MENTION_RE),
             bef: /\W|^$/, aft: /\W|^$/,
             cb: function(m, out) {
               out.push(Instant.nick.makeMention(m[0]));
@@ -2384,6 +2388,9 @@ this.Instant = function() {
           }
         ];
         return {
+          /* Export constants */
+          URL_RE: URL_RE,
+          MENTION_RE: MENTION_RE,
           /* Helper: Quickly create a DOM node */
           makeNode: makeNode,
           /* Helper: Quickly create a sigil node */
