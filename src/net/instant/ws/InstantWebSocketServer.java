@@ -170,10 +170,13 @@ public class InstantWebSocketServer extends WebSocketServer
                         boolean remote) {
         RequestHook h = assignments.get(conn);
         Datum d = collector.get(conn);
-        if (h != null)
-            h.onClose(d, (code == CloseFrame.NORMAL ||
-                          code == CloseFrame.GOING_AWAY));
-        gc.removeDeadline(d);
+        try {
+            if (h != null)
+                h.onClose(d, (code == CloseFrame.NORMAL ||
+                              code == CloseFrame.GOING_AWAY));
+        } finally {
+            gc.removeDeadline(d);
+        }
     }
 
     public void onError(WebSocket conn, Exception ex) {
