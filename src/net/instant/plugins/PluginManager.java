@@ -133,17 +133,17 @@ public class PluginManager {
                     throw new IntegrityException("Dependency " + n +
                         " of plugin " + p.getName() + " absent");
             }
-            for (String n : Util.concat(p.getAttr(Plugin.AFTER),
-                                        p.getAttr(Plugin.DEPENDS))) {
+            for (String n : Util.concat(p.getAttribute(Plugin.AFTER),
+                                        p.getAttribute(Plugin.DEPENDS))) {
                 if (get(n) == null) continue;
                 deps.add(get(n));
             }
-            for (String n : p.getAttr(Plugin.BEFORE)) {
+            for (String n : p.getAttribute(Plugin.BEFORE)) {
                 Plugin o = get(n);
                 if (o == null) continue;
                 getDeps(ret, o).add(p);
             }
-            for (String n : p.getAttr(Plugin.BREAKS)) {
+            for (String n : p.getAttribute(Plugin.BREAKS)) {
                 if (get(n) != null)
                     throw new IntegrityException("Plugin " + p.getName() +
                         " conflicts with plugin " + n);

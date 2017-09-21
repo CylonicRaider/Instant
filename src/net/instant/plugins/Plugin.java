@@ -38,8 +38,8 @@ public class Plugin implements PluginData {
     private final String name;
     private final File path;
     private final JarFile file;
-    private final String mainClass;
     private final PluginAttributes attrs;
+    private final String mainClass;
     private boolean loaded;
     private Object data;
 
@@ -53,10 +53,9 @@ public class Plugin implements PluginData {
         if (mf == null)
             throw new BadPluginException("Plugin " + name +
                 " has no manifest");
-        this.mainClass = mf.getMainAttributes().getValue(
-            Attributes.Name.MAIN_CLASS);
-        this.attrs = new PluginAttributes(
-            mf.getAttributes("Instant-Plugin"));
+        this.attrs = new PluginAttributes(mf.getAttributes("Instant-Plugin"),
+            mf.getMainAttributes());
+        this.mainClass = this.attrs.getRaw(Attributes.Name.MAIN_CLASS);
         this.loaded = false;
     }
     public Plugin(PluginManager parent, String name, File path)
@@ -80,18 +79,18 @@ public class Plugin implements PluginData {
         return file;
     }
 
-    public String getMainClassName() {
-        return mainClass;
-    }
-
     public PluginAttributes getAttributes() {
         return attrs;
     }
-    public <T> T getAttr(PluginAttribute<T> attr) {
+    public <T> T getAttribute(PluginAttribute<T> attr) {
         return getAttributes().get(attr);
     }
     public String getAttribute(String name) {
         return attrs.getRaw(name);
+    }
+
+    public String getMainClassName() {
+        return mainClass;
     }
 
     public boolean isLoaded() {
@@ -103,7 +102,7 @@ public class Plugin implements PluginData {
     }
 
     public Iterable<String> getRequirements() {
-        return Util.concat(getAttr(REQUIRES), getAttr(DEPENDS));
+        return Util.concat(getAttribute(REQUIRES), getAttribute(DEPENDS));
     }
     public Set<String> getDependencies() {
         Set<String> ret = new LinkedHashSet<String>();
