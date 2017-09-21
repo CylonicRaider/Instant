@@ -2142,11 +2142,15 @@ this.Instant = function() {
       },
       /* Message parsing -- has an own namespace to avoid pollution */
       parser: function() {
+        function smc(s) {
+          return s.replace(/%MC%/g, mc);
+        }
         /* Important regexes */
         var URL_RE = '((?!javascript:)[a-zA-Z]+://)?' +
           '([a-zA-Z0-9._~-]+@)?([a-zA-Z0-9.-]+)(:[0-9]+)?(/[^>]*)?';
-        var MENTION_RE = ('%MC%+(?:\\(%MC%*\\)%MC%*)*').replace(/%MC%/g,
-          '[^.,:;!?()\\s]');
+        var mc = '[^.,:;!?()\\s]';
+        var MENTION_RE = smc('%MC%+(?:\\(%MC%*\\)%MC%*)*');
+        var PARTIAL_MENTION = MENTION_RE + smc('(?:\\(%MC%*)?');
         /* Smiley table */
         var SMILIES = {
           '+1'  : '#008000', '-1'  : '#c00000',
@@ -2391,6 +2395,7 @@ this.Instant = function() {
           /* Export constants */
           URL_RE: URL_RE,
           MENTION_RE: MENTION_RE,
+          PARTIAL_MENTION: PARTIAL_MENTION,
           /* Helper: Quickly create a DOM node */
           makeNode: makeNode,
           /* Helper: Quickly create a sigil node */
@@ -2570,11 +2575,9 @@ this.Instant = function() {
   }();
   /* Input bar management */
   Instant.input = function () {
-    /* Match @-mentions with arbitrary text before
-     * Keep in sync with mention matching in Instant.message. */
-    var MENTION_BEFORE = new RegExp(
-        ('(?:\\W|^)\\B@(%MC%*(?:\\(%MC%*\\)%MC%*)*' +
-         '(?:\\(%MC%*)?)$').replace(/%MC%/g, '[^.,:;!?()\\s]'));
+    /* Match @-mentions with arbitrary text before */
+    var MENTION_BEFORE = new RegExp('(?:\\W|^)\\B@(' +
+      Instant.message.parser.PARTIAL_MENTION + ')?$');
     /* The DOM node containing the input bar */
     var inputNode = null;
     /* The sub-node currently focused */
@@ -2949,7 +2952,7 @@ this.Instant = function() {
           /* No tabbing beyond this point */
           event.preventDefault();
           /* Perform actual completion */
-          var res = Instant.userList.complete(m[1]);
+          var res = Instant.userList.complete(m[1] || '');
           /* No completion -- no action */
           if (res == null) return;
           /* Insert completed text */
