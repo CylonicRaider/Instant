@@ -2143,14 +2143,15 @@ this.Instant = function() {
       /* Message parsing -- has an own namespace to avoid pollution */
       parser: function() {
         function smc(s) {
-          return s.replace(/%MC%/g, mc);
+          return s.replace(/%PM%/g, pm).replace(/%ME%/g, me);
         }
         /* Important regexes */
         var URL_RE = '((?!javascript:)[a-zA-Z]+://)?' +
           '([a-zA-Z0-9._~-]+@)?([a-zA-Z0-9.-]+)(:[0-9]+)?(/[^>]*)?';
-        var mc = '[^.,:;!?()\\s]';
-        var MENTION_RE = smc('%MC%+(?:\\(%MC%*\\)%MC%*)*');
-        var PARTIAL_MENTION = MENTION_RE + smc('(?:\\(%MC%*)?');
+        var pm = '[^()\\s]*', me = '[^.,:;!?()\\s]';
+        var MENTION_RE = smc('%PM%(?:\\(%PM%\\)%PM%)*(?:\\(%PM%\\)|%ME%)');
+        // Avoid messing up syntax highlighting with the parenthesis.
+        var PARTIAL_MENTION = smc('%PM%(?:\\(%PM%\\)%PM%)*(?:\\\x28%PM%)?');
         /* Smiley table */
         var SMILIES = {
           '+1'  : '#008000', '-1'  : '#c00000',
