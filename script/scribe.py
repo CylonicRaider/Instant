@@ -569,6 +569,14 @@ class Scribe(instabot.Bot):
         if verbose:
             log('SEND content=%r' % (rawmsg,))
         return instabot.Bot.send_raw(self, rawmsg)
+    def run(self):
+        try:
+            instabot.Bot.run(self)
+        except Exception:
+            sys.stderr.write('\n***EXCEPTION*** at %s\n' %
+                time.strftime('%Y-%m-%d %H:%M:%S Z', time.gmtime()))
+            sys.stderr.flush()
+            raise
     def process_logs(self, rawlogs, uuids):
         logs = []
         for e in rawlogs:
