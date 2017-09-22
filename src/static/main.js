@@ -5373,6 +5373,40 @@ this.Instant = function() {
           Instant.popups._update();
         }
       },
+      /* Create a message to be embedded into a popup */
+      makeMessage: function(options) {
+        var ret = $makeNode('div', 'popup-message', [
+          ! options.noClose && ['span', 'popup-message-close-wrapper', [
+            ['button', 'button button-noborder popup-message-close', [
+              ['img', {src: closeURL}]
+            ]]
+          ]]
+        ]);
+        if (options.id) ret.id = id;
+        if (options.className) ret.className += options.className;
+        if (typeof options.content == 'string') {
+          ret.appendChild(document.createTextNode(options.content));
+        } else if (options.content) {
+          ret.appendChild(options.content);
+        }
+        if (options.color) ret.style.color = options.color;
+        if (options.background) ret.style.background = options.background;
+        var close = $cls('popup-message-close', ret);
+        if (close)
+          close.addEventListener('click',
+            Instant.popups.removeMessage.bind(Instant.popups.removeMessage,
+                                              ret));
+        return ret;
+      },
+      /* Add a message to a popup */
+      addMessage: function(msgnode, popup) {
+        var bottom = $cls('popup-bottom', popup);
+        popup.insertBefore(msgnode, bottom);
+      },
+      /* Remove a message from a popup */
+      removeMessage: function(msgnode) {
+        msgnode.parentNode.removeChild(msgnode);
+      },
       /* Check whether a popup is already shown */
       isShown: function(node) {
         return stack.contains(node);

@@ -552,6 +552,11 @@ body {
   border: 0;
   padding: 0;
 }
+.button.button-noborder {
+  border: 0;
+  padding: 0;
+  outline-offset: -1px;
+}
 .button, #main .button, .settings, #main .settings, .close-all,
 #main .close-all {
   -webkit-transition: none;
@@ -867,6 +872,7 @@ body {
   background: white;
   word-wrap: break-word;
 }
+
 .popup .popup-header {
   display: -webkit-flex;
   display: flex;
@@ -897,11 +903,9 @@ body {
   height: 1.2em;
   margin: 5px;
 }
+
 .popup .popup-content {
   padding: 5px;
-}
-.popup .popup-content:empty {
-  padding-top: 0;
 }
 .popup .popup-content hr {
   margin: 5px 0;
@@ -910,15 +914,44 @@ body {
   height: 1px;
   background: black;
 }
+.popup .popup-content:empty {
+  padding-top: 0;
+}
+.popup .popup-content:empty + .popup-bottom,
+.popup .popup-content:empty + .popup-message {
+  margin-top: 5px;
+}
+
+.popup .popup-message {
+  margin: 0 5px 5px 5px;
+}
+.popup .popup-message-close-wrapper {
+  float: right;
+}
+.popup .popup-message-close {
+  display: inline-block;
+  border: 0;
+  padding: 0;
+  width: 1em;
+  height: 1em;
+  vertical-align: baseline;
+  line-height: 0;
+}
+.popup .popup-message-close img {
+  display: inline-block;
+  width: 1em;
+  height: 1em;
+}
+
 .popup .popup-bottom {
   display: -webkit-flex;
   display: flex;
   justify-content: flex-end;
   flex-wrap: wrap;
-  padding: 0 5px 5px 5px;
+  margin: 0 5px 5px 5px;
 }
 .popup .popup-bottom:empty {
-  padding-bottom: 0;
+  margin-bottom: 0;
 }
 .popup .popup-bottom > * {
   margin-left: 0.25em;
