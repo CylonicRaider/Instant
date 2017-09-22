@@ -5383,7 +5383,7 @@ this.Instant = function() {
           ]]
         ]);
         if (options.id) ret.id = id;
-        if (options.className) ret.className += options.className;
+        if (options.className) ret.className += ' ' + options.className;
         if (typeof options.content == 'string') {
           ret.appendChild(document.createTextNode(options.content));
         } else if (options.content) {
