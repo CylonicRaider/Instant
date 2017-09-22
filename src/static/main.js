@@ -3888,7 +3888,11 @@ this.Instant = function() {
       _send: function(popup) {
         function callback(resp) {
           if (resp.type == 'error') {
-            Instant.privmsg._showError(popup, resp.data.message);
+            var node = Instant.popups.makeMessage({content: $makeFrag(
+              ['strong', null, 'Error: '],
+              resp.data.message
+            ), className: 'popup-message-error'});
+            Instant.popups.addMessage(node, popup);
           } else {
             Instant.privmsg._transformAfterview(popup, true);
             Instant.privmsg._update();
@@ -4084,23 +4088,6 @@ this.Instant = function() {
         popup.setAttribute('data-focus', '.first');
         if (isNew)
           Instant.privmsg._save(popup);
-      },
-      /* Display an error message just above the button bar */
-      _showError: function(popup, text) {
-        var node = $cls('pm-error', popup);
-        if (node == null) {
-          node = $makeNode('div', 'pm-error', [
-            ['b', null, 'Error: '],
-            ['span', 'error-content']
-          ]);
-        } else {
-          node.parentNode.removeChild(node);
-        }
-        if (text) {
-          $cls('error-content', node).textContent = text;
-          var bottom = $cls('popup-bottom', popup);
-          bottom.parentNode.insertBefore(node, bottom);
-        }
       },
       /* Determine which of the four classes the popup belongs to */
       _getPopupClass: function(popup) {
