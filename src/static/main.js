@@ -2340,7 +2340,7 @@ this.Instant = function() {
           },
           { /* Subheadings */
             name: 'heading',
-            re: /^(#\s*)+/m,
+            re: /^#+\s+/m,
             cb: function(m, out) {
               out.push(makeSigil(m[0], 'heading-marker'));
               out.push({line: 'heading'});
@@ -2361,7 +2361,7 @@ this.Instant = function() {
           },
           { /* Quoted lines */
             name: 'quote',
-            re: /^(>\s*)+/m,
+            re: /^>+\s+/m,
             cb: function(m, out) {
               out.push(makeSigil(m[0], 'quote-marker'));
               out.push({line: 'quote'});
@@ -2382,7 +2382,7 @@ this.Instant = function() {
           },
           { /* Monospace line */
             name: 'term',
-            re: /^\$\s*/m,
+            re: /^\$\s+/m,
             cb: function(m, out) {
               out.push(makeSigil(m[0], 'term-marker'));
               out.push({line: 'term'});
