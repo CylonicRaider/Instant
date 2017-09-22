@@ -229,7 +229,8 @@ class InstantClient(object):
                 self.close()
             except Exception as exc:
                 self.on_error(exc)
-            self.on_close()
+            finally:
+                self.on_close()
     def start(self):
         thr = threading.Thread(target=self.run)
         thr.setDaemon(True)
