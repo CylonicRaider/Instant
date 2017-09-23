@@ -35,7 +35,7 @@ Instant-run.jar: Instant.jar
 
 cookie-key.bin:
 	head -c64 /dev/random > cookie-key.bin
-	chmod 0400 cookie-key.bin
+	chmod 0600 cookie-key.bin
 
 clean:
 	rm -f .build.jar Instant.jar Instant-run.jar

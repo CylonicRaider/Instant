@@ -2,6 +2,7 @@ package net.instant.util;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.nio.ByteBuffer;
 import java.security.SecureRandom;
 import java.util.Iterator;
@@ -22,6 +23,9 @@ public final class Util {
         byte[] buf = new byte[len];
         RNG.nextBytes(buf);
         return buf;
+    }
+    public static byte[] getStrongRandomness(int len) {
+        return RNG.generateSeed(len);
     }
     public static void clear(byte[] arr) {
         for (int i = 0; i < arr.length; i++) arr[i] = 0;
@@ -115,6 +119,27 @@ public final class Util {
         }
     }
 
+    public static void writeOutputStream(OutputStream output,
+            ByteBuffer data) throws IOException {
+        byte[] buf = new byte[BUFFER_SIZE];
+        for (;;) {
+            int rem = data.remaining();
+            if (rem == 0) break;
+            if (rem > buf.length) rem = buf.length;
+            data.get(buf, 0, rem);
+            output.write(buf, 0, rem);
+        }
+    }
+    public static void writeOutputStreamClosing(OutputStream output,
+            ByteBuffer data) throws IOException {
+        try {
+            writeOutputStream(output, data);
+        } finally {
+            output.close();
+        }
+    }
+
+    // Use ByteBuffer.wrap() to reverse.
     public static byte[] extractBytes(ByteBuffer buf) {
         byte[] ret = new byte[buf.limit()];
         buf.get(ret);

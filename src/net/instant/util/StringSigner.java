@@ -2,8 +2,10 @@ package net.instant.util;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.ByteBuffer;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
@@ -12,7 +14,8 @@ import javax.crypto.spec.SecretKeySpec;
 
 public class StringSigner {
 
-    private final String ALGORITHM = "HmacSHA1";
+    public static final String ALGORITHM = "HmacSHA1";
+    public static final int KEYSIZE = 64;
 
     private final Mac impl;
 
@@ -46,18 +49,25 @@ public class StringSigner {
 
     public static StringSigner getInstance(byte[] key) {
         try {
+            if (key == null) key = Util.getStrongRandomness(KEYSIZE);
             return new StringSigner(key);
         } catch (Exception exc) {
-            exc.printStackTrace();
-            return null;
+            throw new RuntimeException(exc);
         }
     }
-    public static StringSigner getInstance(File f) {
+    public static StringSigner getInstance(File f, boolean create) {
         try {
-            return new StringSigner(f);
+            // Assuming KEYSIZE is not zero.
+            if (create && f.length() != KEYSIZE) {
+                byte[] data = Util.getStrongRandomness(KEYSIZE);
+                FileOutputStream os = new FileOutputStream(f);
+                Util.writeOutputStreamClosing(os, ByteBuffer.wrap(data));
+                return new StringSigner(data);
+            } else {
+                return new StringSigner(f);
+            }
         } catch (Exception exc) {
-            exc.printStackTrace();
-            return null;
+            throw new RuntimeException(exc);
         }
     }
 

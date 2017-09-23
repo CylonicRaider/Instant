@@ -42,6 +42,8 @@ public class InstantWebSocketServer extends WebSocketServer
     public static final boolean INSECURE_COOKIES;
     /* Key file for persistent cookie signing */
     public static final File COOKIES_KEYFILE;
+    /* Whether to create the cookie key file */
+    public static final boolean COOKIES_KEYFILE_CREATE;
 
     static {
         List<Draft> l =  new ArrayList<Draft>();
@@ -58,6 +60,8 @@ public class InstantWebSocketServer extends WebSocketServer
         } else {
             COOKIES_KEYFILE = null;
         }
+        COOKIES_KEYFILE_CREATE = Util.isTrue(
+            Util.getConfiguration("instant.cookies.keyfile.create"));
     }
 
     private final Set<RequestHook> hooks;
@@ -241,9 +245,10 @@ public class InstantWebSocketServer extends WebSocketServer
 
     public static StringSigner makeStringSigner() {
         if (COOKIES_KEYFILE != null) {
-            return StringSigner.getInstance(COOKIES_KEYFILE);
+            return StringSigner.getInstance(COOKIES_KEYFILE,
+                                            COOKIES_KEYFILE_CREATE);
         } else {
-            return StringSigner.getInstance(Util.getRandomness(64));
+            return StringSigner.getInstance(null);
         }
     }
 
