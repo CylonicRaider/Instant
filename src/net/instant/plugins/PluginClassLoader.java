@@ -5,8 +5,8 @@ import java.net.URLClassLoader;
 
 public class PluginClassLoader extends URLClassLoader {
 
-    public PluginClassLoader() {
-        super(new URL[0]);
+    public PluginClassLoader(ClassLoader parent) {
+        super(new URL[0], parent);
     }
 
     // Re-exporting as public.

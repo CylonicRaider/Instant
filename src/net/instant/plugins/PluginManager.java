@@ -33,7 +33,8 @@ public class PluginManager {
         this.toLoad = new LinkedList<String>();
         this.api = api;
         this.fetcher = new PluginFetcher(this);
-        this.classLoader = new PluginClassLoader();
+        this.classLoader = new PluginClassLoader(
+            getClass().getClassLoader());
     }
 
     public API1 getAPI() {
@@ -73,7 +74,7 @@ public class PluginManager {
                                                 " not found");
             add(ret);
             for (String n : ret.getRequirements()) {
-                LOGGER.config("[" + name + "] -> requires " + n);
+                LOGGER.config(name + " requires " + n);
                 fetch(n);
             }
         }

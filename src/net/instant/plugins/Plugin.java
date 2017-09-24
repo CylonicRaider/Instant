@@ -18,36 +18,36 @@ import net.instant.util.Util;
 
 public class Plugin implements PluginData {
 
-    // Required to be present, and this must be after those.
+    // Plugins required to be present, and this must be after them.
     public static final PluginAttribute<Set<String>> DEPENDS =
         new StringSetAttribute("Depends");
-    // Required to be present (may be mutual).
+    // Plugins required to be present (may be mutual).
     public static final PluginAttribute<Set<String>> REQUIRES =
         new StringSetAttribute("Requires");
-    // This must be before those (if present).
+    // This must be before those plugins (if present).
     public static final PluginAttribute<Set<String>> BEFORE =
         new StringSetAttribute("Before");
-    // This must be after those (if present).
+    // This must be after those plugins (if present).
     public static final PluginAttribute<Set<String>> AFTER =
         new StringSetAttribute("After");
-    // Must not be present if this is.
+    // Plugins that must not be present if this is.
     public static final PluginAttribute<Set<String>> BREAKS =
         new StringSetAttribute("Breaks");
 
     private final PluginManager parent;
     private final String name;
-    private final File path;
+    private final File source;
     private final JarFile file;
     private final PluginAttributes attrs;
     private final String mainClass;
     private boolean loaded;
     private Object data;
 
-    public Plugin(PluginManager parent, String name, File path, JarFile file)
+    public Plugin(PluginManager parent, String name, File source, JarFile file)
             throws BadPluginException, IOException {
         this.parent = parent;
         this.name = name;
-        this.path = path;
+        this.source = source;
         this.file = file;
         Manifest mf = file.getManifest();
         if (mf == null)
@@ -58,9 +58,9 @@ public class Plugin implements PluginData {
         this.mainClass = this.attrs.getRaw(Attributes.Name.MAIN_CLASS);
         this.loaded = false;
     }
-    public Plugin(PluginManager parent, String name, File path)
+    public Plugin(PluginManager parent, String name, File source)
             throws BadPluginException, IOException {
-        this(parent, name, path, new JarFile(path));
+        this(parent, name, source, new JarFile(source));
     }
 
     public PluginManager getParent() {
@@ -71,8 +71,8 @@ public class Plugin implements PluginData {
         return name;
     }
 
-    public File getPath() {
-        return path;
+    public File getSource() {
+        return source;
     }
 
     public JarFile getFile() {
@@ -112,7 +112,7 @@ public class Plugin implements PluginData {
 
     public void load() {
         try {
-            parent.getClassLoader().addURL(path.toURI().toURL());
+            parent.getClassLoader().addURL(source.toURI().toURL());
         } catch (MalformedURLException exc) {
             // *Should* not happen...
             throw new RuntimeException(exc);

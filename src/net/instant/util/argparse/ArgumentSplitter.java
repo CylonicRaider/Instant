@@ -15,8 +15,7 @@ public class ArgumentSplitter implements Iterable<String> {
     protected String value;
     /* Zero -- nothing consumed; grab new value
      * Positive -- parsing short options; next at this index
-     * Negative -- parsing long option; next at negative of this index
-     */
+     * Negative -- parsing long option; next at negative of this index */
     protected int index;
     protected ArgumentValue pushbackValue;
 
@@ -37,6 +36,8 @@ public class ArgumentSplitter implements Iterable<String> {
             }
 
             public void remove() {
+                // While we *could* remove from the underlying iterator,
+                // it is not clear how this should interact with pushback.
                 throw new UnsupportedOperationException("Cannot remove " +
                     "from ArgumentSplitter");
             }

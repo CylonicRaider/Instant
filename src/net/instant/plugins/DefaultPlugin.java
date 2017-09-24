@@ -106,6 +106,8 @@ public class DefaultPlugin {
         public abstract String parse(PluginData data);
 
         // HACK: Default implementation of parse().
+        // However semantically appropriate an enum is, some abstract classes
+        // would be handier...
         private static String parseSet(PluginData data,
                                        PluginAttribute<Set<String>> attr) {
             Set<String> values = attr.get(data);
