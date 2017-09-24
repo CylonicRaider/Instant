@@ -1,12 +1,14 @@
 package net.instant;
 
 import java.io.File;
+import java.io.IOException;
 import java.io.PrintStream;
 import java.net.InetSocketAddress;
 import java.util.regex.Pattern;
 import net.instant.api.API1;
 import net.instant.api.Counter;
 import net.instant.api.FileGenerator;
+import net.instant.api.FileInfo;
 import net.instant.api.MessageHook;
 import net.instant.api.PluginData;
 import net.instant.api.RequestHook;
@@ -23,13 +25,55 @@ import net.instant.proto.MessageDistributor;
 import net.instant.util.DefaultStringMatcher;
 import net.instant.util.UniqueCounter;
 import net.instant.util.Util;
-import net.instant.util.fileprod.APIProducer;
 import net.instant.util.fileprod.FSResourceProducer;
+import net.instant.util.fileprod.FileCell;
 import net.instant.util.fileprod.ListProducer;
+import net.instant.util.fileprod.Producer;
+import net.instant.util.fileprod.ProducerJob;
 import net.instant.util.fileprod.StringProducer;
 import net.instant.ws.InstantWebSocketServer;
 
 public class InstantRunner implements API1 {
+
+    public static class APIFileCell extends FileCell {
+
+        private final FileInfo wrapped;
+
+        public APIFileCell(FileInfo i) {
+            super(i.getName(), i.getData(), i.getCreated());
+            wrapped = i;
+        }
+
+        public boolean isValid() {
+            return wrapped.isValid();
+        }
+
+    }
+
+    public static class APIFileProducer implements Producer {
+
+        private final FileGenerator wrapped;
+
+        public APIFileProducer(FileGenerator g) {
+            wrapped = g;
+        }
+
+        public ProducerJob produce(String path) {
+            try {
+                if (! wrapped.hasFile(path)) return null;
+            } catch (IOException exc) {
+                exc.printStackTrace();
+                return null;
+            }
+            final String name = path;
+            return new ProducerJob(name) {
+                public FileCell produce() throws IOException {
+                    return new APIFileCell(wrapped.generateFile(name));
+                }
+            };
+        }
+
+    }
 
     private String host;
     private int port;
@@ -223,7 +267,7 @@ public class InstantRunner implements API1 {
     }
 
     public void addFileGenerator(FileGenerator gen) {
-        makePluginFiles().add(new APIProducer(gen));
+        makePluginFiles().add(new APIFileProducer(gen));
     }
 
     public void addFileAlias(String from, String to) {

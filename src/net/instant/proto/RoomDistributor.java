@@ -1,14 +1,10 @@
 package net.instant.proto;
 
 import java.util.LinkedHashSet;
-import java.util.LinkedHashSet;
 import java.util.Set;
-import java.util.Set;
-import net.instant.api.ClientConnection;
 import net.instant.api.ClientConnection;
 import net.instant.api.MessageContents;
 import net.instant.api.Room;
-import net.instant.api.RoomGroup;
 import net.instant.api.RoomGroup;
 import net.instant.util.UniqueCounter;
 
