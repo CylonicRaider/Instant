@@ -75,6 +75,9 @@ public class InstantRunner implements API1 {
 
     }
 
+    public static final String SITE_FILE = "/static/site.js";
+    public static final String VERSION_FILE = "/static/version.js";
+
     private String host;
     private int port;
     private File webroot;
@@ -215,9 +218,9 @@ public class InstantRunner implements API1 {
         if (stringFiles == null) {
             stringFiles = new StringProducer();
             // Extended by plugins.
-            stringFiles.addFile("/static/site.js", "\n");
+            stringFiles.addFile(SITE_FILE, "\n");
             // Added my Main.
-            stringFiles.addFile("/static/version.js", "");
+            stringFiles.addFile(VERSION_FILE, "");
         }
         return stringFiles;
     }

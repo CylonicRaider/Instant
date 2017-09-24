@@ -68,7 +68,7 @@ public class Main implements Runnable {
 
     public Main(String[] args) {
         this.args = args;
-        runner = new InstantRunner();
+        this.runner = new InstantRunner();
     }
 
     public int getArgumentCount() {
@@ -149,19 +149,27 @@ public class Main implements Runnable {
         runner.addFileAlias("/", "/pages/main.html");
         runner.addFileAlias("/favicon.ico",
                             "/static/logo-static_128x128.ico");
-        runner.addFileAlias(Pattern.compile("/([^/]+)\\.html"),
-                            "/pages/\\1.html");
+        runner.addFileAlias(Pattern.compile("/([^/]+\\.html)"),
+                            "/pages/\\1");
         runner.addFileAlias(Pattern.compile("/room/" + ROOM_RE + "/"),
                             "/static/room.html");
+        runner.addFileAlias(Pattern.compile("/(" + STAGING_RE + ")/"),
+                            "/static/\\1/main.html");
+        runner.addFileAlias(Pattern.compile("/(" + STAGING_RE + ")/room/" +
+                            ROOM_RE + "/"), "/static/\\1/room.html");
         runner.addContentType(".*\\.html", "text/html; charset=utf-8");
         runner.addContentType(".*\\.css", "text/css; charset=utf-8");
         runner.addContentType(".*\\.js", "application/javascript; " +
-            "charset=utf-8");
+                              "charset=utf-8");
         runner.addContentType(".*\\.svg", "image/svg+xml; charset=utf-8");
         runner.addContentType(".*\\.png", "image/png");
         runner.addContentType(".*\\.ico", "image/vnd.microsoft.icon");
         runner.addRedirect(Pattern.compile("/room/" + ROOM_RE), "\\0/", 301);
-        runner.addSyntheticFile("/static/version.js", VERSION_FILE);
+        runner.addRedirect(Pattern.compile("/(" + STAGING_RE + ")"), "/\\1/",
+                           301);
+        runner.addRedirect(Pattern.compile("/(" + STAGING_RE + ")/room/(" +
+                           ROOM_RE + ")"), "/\\1/room/\\2/", 301);
+        runner.addSyntheticFile(InstantRunner.VERSION_FILE, VERSION_FILE);
         FSResourceProducer prod = runner.makeSourceFiles();
         prod.whitelist("/pages/.*");
         prod.whitelist("/static/.*");
@@ -175,9 +183,10 @@ public class Main implements Runnable {
             System.err.println(exc);
             System.exit(2);
         }
+        // Socket is only bound in run(), so we can create the server here.
+        InstantWebSocketServer srv = runner.makeServer();
         if (startupCmd != null) runCommand(startupCmd);
         LOGGER.info("Running...");
-        InstantWebSocketServer srv = runner.makeServer();
         srv.spawn();
     }
 
