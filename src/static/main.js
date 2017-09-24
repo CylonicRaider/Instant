@@ -176,8 +176,9 @@ function $evalIn() {
   }
 }
 
-// The latter method is used for ephemeral debugging statements and scanned
-// for through the source code aggressively.
+// The method aliased from is used for ephemeral debugging statements and
+// scanned aggressively scanned for through the source code by the
+// developer's environment, which is why its name must not be mentioned.
 if (! console.debug) console.debug = console['log'];
 
 /* Early preparation; define most of the functionality */
@@ -1582,7 +1583,7 @@ this.Instant = function() {
       },
       /* Generate a DOM node for the specified message parameters */
       makeMessage: function(params) {
-        /* Filter out emotes and whitespace; parse (remaining) content */
+        /* Filter out emotes; parse (remaining) content */
         var emote = /^\/me(?=\s|$)/.test(params.text);
         var text = (emote) ? params.text.substr(3) : params.text;
         var content = Instant.message.parseContent(text);
@@ -2142,16 +2143,16 @@ this.Instant = function() {
       },
       /* Message parsing -- has an own namespace to avoid pollution */
       parser: function() {
-        function smc(s) {
+        function sm(s) {
           return s.replace(/%PM%/g, pm).replace(/%ME%/g, me);
         }
         /* Important regexes */
         var URL_RE = '((?!javascript:)[a-zA-Z]+://)?' +
           '([a-zA-Z0-9._~-]+@)?([a-zA-Z0-9.-]+)(:[0-9]+)?(/[^>]*)?';
         var pm = '[^()\\s]*', me = '[^.,:;!?()\\s]';
-        var MENTION_RE = smc('%PM%(?:\\(%PM%\\)%PM%)*(?:\\(%PM%\\)|%ME%)');
+        var MENTION_RE = sm('%PM%(?:\\(%PM%\\)%PM%)*(?:\\(%PM%\\)|%ME%)');
         // Avoid messing up syntax highlighting with the parenthesis.
-        var PARTIAL_MENTION = smc('%PM%(?:\\(%PM%\\)%PM%)*(?:\\\x28%PM%)?');
+        var PARTIAL_MENTION = sm('%PM%(?:\\(%PM%\\)%PM%)*(?:\\\x28%PM%)?');
         /* Smiley table */
         var SMILIES = {
           '+1'  : '#008000', '-1'  : '#c00000',
@@ -3767,7 +3768,7 @@ this.Instant = function() {
           counts[Instant.privmsg._getPopupClass(popup)]++;
         });
         /* Update signage
-         * HACK: Pasting together HTML to levery Array.prototype.join(). */
+         * HACK: Pasting HTML together to leverage Array.prototype.join(). */
         var text = ['I', 'D', 'O'].filter(function(l) {
           return counts[l];
         }).map(function(l) {
