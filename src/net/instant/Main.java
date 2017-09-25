@@ -165,10 +165,9 @@ public class Main implements Runnable {
         runner.addContentType(".*\\.png", "image/png");
         runner.addContentType(".*\\.ico", "image/vnd.microsoft.icon");
         runner.addRedirect(Pattern.compile("/room/" + ROOM_RE), "\\0/", 301);
-        runner.addRedirect(Pattern.compile("/(" + STAGING_RE + ")"), "/\\1/",
-                           301);
-        runner.addRedirect(Pattern.compile("/(" + STAGING_RE + ")/room/(" +
-                           ROOM_RE + ")"), "/\\1/room/\\2/", 301);
+        runner.addRedirect(Pattern.compile("/" + STAGING_RE), "\\0/", 301);
+        runner.addRedirect(Pattern.compile("/" + STAGING_RE + "/room/" +
+                           ROOM_RE), "\\0/", 301);
         runner.addSyntheticFile(InstantRunner.VERSION_FILE, VERSION_FILE);
         FSResourceProducer prod = runner.makeSourceFiles();
         prod.whitelist("/pages/.*");
