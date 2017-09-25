@@ -3838,7 +3838,6 @@ this.Instant = function() {
         });
         Instant.privmsg._update();
         Instant.animation.unflash(msgUnread);
-        Instant.animation.unflash(msgOthers);
       },
       /* Start writing a message to uid */
       write: function(uid, nick, text, parent) {
