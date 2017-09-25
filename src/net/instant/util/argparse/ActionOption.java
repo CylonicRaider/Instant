@@ -7,7 +7,12 @@ public abstract class ActionOption extends Option<Void> {
     }
 
     public OptionValue<Void> process(ArgumentParser p, ArgumentValue v,
-                                     ArgumentSplitter s) {
+            ArgumentSplitter s) throws ParseException {
+        ArgumentValue n = s.next(ArgumentSplitter.Mode.OPTIONS);
+        if (n != null && n.getType() == ArgumentValue.Type.VALUE)
+            throw new ParseException("Option --" + getName() +
+                " does not take arguments");
+        s.pushback(n);
         run(p);
         return null;
     }
