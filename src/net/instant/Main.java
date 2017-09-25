@@ -164,6 +164,7 @@ public class Main implements Runnable {
         runner.addContentType(".*\\.svg", "image/svg+xml; charset=utf-8");
         runner.addContentType(".*\\.png", "image/png");
         runner.addContentType(".*\\.ico", "image/vnd.microsoft.icon");
+        runner.addContentType(".*\\.txt", "text/plain; charset=utf-8");
         runner.addRedirect(Pattern.compile("/room/" + ROOM_RE), "\\0/", 301);
         runner.addRedirect(Pattern.compile("/" + STAGING_RE), "\\0/", 301);
         runner.addRedirect(Pattern.compile("/" + STAGING_RE + "/room/" +
