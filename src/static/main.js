@@ -1008,16 +1008,16 @@ this.Instant = function() {
            */
           upto: function(msgid) {
             /* Check if goal already reached; otherwise set it */
-            if (keys.length && keys[0] < msgid) {
+            if (keys.length && keys[0] <= msgid) {
               goal = null;
-              var msg = Instant.message.get(msgid);
-              if (msg) Instant.animation.goToMessage(msg);
+              // Should not cause an infinite mutual recursion
+              Instant.animation.navigateToMessage(msgid);
             } else {
               goal = msgid;
-              /* Initiate new pull */
-              if (Instant.connection.isConnected())
-                Instant.logs.pull.more();
             }
+            /* Initiate new pull if necessary */
+            if (goal && Instant.connection.isConnected())
+                Instant.logs.pull.more();
           },
           /* Collect log information */
           _check: function() {
@@ -1551,7 +1551,7 @@ this.Instant = function() {
         $cls('permalink', msgNode).addEventListener('click', function(evt) {
           var msgid = msgNode.getAttribute('data-id');
           var fragment = '#message-' + msgid;
-          Instant.animation.goToMessage(msgNode);
+          Instant.animation.navigateToMessage(msgid);
           /* Have to simulate history entry addition to avoid the browser
            * happily finding the message and scrolling it to the very top
            * of the viewport. */
@@ -1646,6 +1646,12 @@ this.Instant = function() {
       isMessage: function(node) {
         return (node && node.classList &&
                 node.classList.contains('message'));
+      },
+      /* Check whether a node is a fake message */
+      isFakeMessage: function(node) {
+        return (node && node.classList &&
+                node.classList.contains('message') &&
+                node.classList.contains('message-fake'));
       },
       /* Get the message node containing the given node */
       getMessageNode: function(node) {
@@ -4388,6 +4394,8 @@ this.Instant = function() {
         var msg = Instant.message.get(msgid);
         if (msg) {
           Instant.animation.goToMessage(msg);
+          if (Instant.message.isFakeMessage(msg))
+            Instant.logs.pull.upto(msgid);
         } else {
           Instant.logs.pull.upto(msgid);
         }
