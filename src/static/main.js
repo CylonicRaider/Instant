@@ -2151,12 +2151,17 @@ this.Instant = function() {
           '([a-zA-Z0-9._~-]+@)?([a-zA-Z0-9.-]+)(:[0-9]+)?(/[^>]*)?';
         var pm = '[^()\\s]*', me = '[^.,:;!?()\\s]';
         var MENTION_RE = sm('%PM%(?:\\(%PM%\\)%PM%)*(?:\\(%PM%\\)|%ME%)');
-        // Avoid messing up syntax highlighting with the parenthesis.
-        var PARTIAL_MENTION = sm('%PM%(?:\\(%PM%\\)%PM%)*(?:\\\x28%PM%)?');
+        var PARTIAL_MENTION = sm('%PM%(?:\\(%PM%\\)%PM%)*(?:\\(%PM%)?');
+        var SMILEY_RE = new RegExp('[+-]1|<[/\\\\]?3|><>|<><|' +
+          '>?[:;=][\',]?[D)\\]}|{\\[/\\\\(cCsSPoO3]|' +
+          '[sSD)\\\\/\\]}|{\\[(cCoO][\',]?[:=]<?|' +
+          '([\\^o0O~><])(\\.|_+)\\1|>(\\.|_*)<|;(-|_*);|\\._+\\.|' +
+          '\\^\\^|\\\\o/');
         /* Smiley table */
         var SMILIES = {
           '+1'  : '#008000', '-1'  : '#c00000',
           '<3'  : '#c00080', '</3' : '#c00080', '<\\3': '#c00080',
+          '<><' : '#0080c0', '><>' : '#0080c0',
           '>:)' : '#c00000', '>:]' : '#c00000', '>:}' : '#c00000',
           '>:D' : '#c00000',
           '>;)' : '#c00000', '>;]' : '#c00000', '>;}' : '#c00000',
@@ -2247,11 +2252,7 @@ this.Instant = function() {
           },
           { /* Smilies */
             name: 'smiley',
-            re: new RegExp('[+-]1|<[/\\\\]?3|' +
-              '>?[:;=]\'?[D)\\]}|{\\[/\\\\(cCSPoO3]|' +
-              '[SD)\\\\/\\]}|{\\[(cCoO]\'?[:=]<?|' +
-              '\\^\\^|([\\^oO~])[._]\\1|>[._]?<|;[_-];|\\._\\.|' +
-              '\\\\o/'),
+            re: SMILEY_RE,
             bef: /[\s(]|^$/, aft: /[\s.,:;!?)]|^$/,
             cb: function(m, out) {
               var c = SMILIES[m[0]] || SMILEY_DEFAULT;
@@ -2398,6 +2399,7 @@ this.Instant = function() {
           URL_RE: URL_RE,
           MENTION_RE: MENTION_RE,
           PARTIAL_MENTION: PARTIAL_MENTION,
+          SMILEY_RE: SMILEY_RE,
           /* Helper: Quickly create a DOM node */
           makeNode: makeNode,
           /* Helper: Quickly create a sigil node */
