@@ -62,11 +62,14 @@ public class ArgumentParser {
         options.put(opt.getName(), opt);
         if (opt.getShortName() != null)
             shortOptions.put(opt.getShortName(), opt);
+        opt.setParser(this);
         return opt;
     }
     public boolean remove(BaseOption<?> opt) {
         shortOptions.remove(opt.getShortName());
-        return (options.remove(opt.getName()) != null);
+        boolean ret = (options.remove(opt.getName()) != null);
+        opt.setParser(null);
+        return ret;
     }
 
     public void addStandardOptions() {
@@ -123,7 +126,7 @@ public class ArgumentParser {
                             opt.getName() + "> as option");
                     }
                     missing.remove(opt);
-                    results.add(opt.process(this, v, splitter));
+                    results.add(opt.process(v, splitter));
                     break;
                 case VALUE:
                     throw new ParseException("Superfluous option value: " +
@@ -140,7 +143,7 @@ public class ArgumentParser {
                         break main;
                     }
                     opt = argiter.next();
-                    results.add(opt.process(this, v, splitter));
+                    results.add(opt.process(v, splitter));
                     break;
                 default:
                     throw new RuntimeException("Unknown ArgumentValue " +
@@ -148,11 +151,11 @@ public class ArgumentParser {
             }
         }
         for (BaseOption<?> o : missing) {
-            results.add(o.processOmitted(this));
+            results.add(o.processOmitted());
         }
         while (argiter.hasNext()) {
             BaseOption<?> o = argiter.next();
-            results.add(o.processOmitted(this));
+            results.add(o.processOmitted());
         }
         return new ParseResult(results);
     }

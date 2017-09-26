@@ -9,8 +9,11 @@ public class VersionOption extends ActionOption {
         this("version", 'V', "Display version");
     }
 
-    protected void run(ArgumentParser p) {
-        displayVersion(p, 0);
+    public void run() {
+        if (getParser() == null)
+            throw new NullPointerException("Cannot display version " +
+                                           "without parser");
+        displayVersion(getParser(), 0);
     }
 
     public static String formatVersion(ArgumentParser p) {

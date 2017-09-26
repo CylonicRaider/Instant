@@ -12,8 +12,11 @@ public class HelpOption extends ActionOption {
         this("help", '?', "Display help");
     }
 
-    protected void run(ArgumentParser p) {
-        displayHelp(p, 0);
+    public void run() {
+        if (getParser() == null)
+            throw new NullPointerException("Cannot display help " +
+                                           "without parser");
+        displayHelp(getParser(), 0);
     }
 
     private static List<BaseOption<?>> sortedOptions(ArgumentParser p) {

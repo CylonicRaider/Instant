@@ -74,8 +74,8 @@ public class ValueOption<X> extends Option<X> {
         return ret;
     }
 
-    public OptionValue<X> process(ArgumentParser p, ArgumentValue v,
-                                  ArgumentSplitter s) throws ParseException {
+    public OptionValue<X> process(ArgumentValue v, ArgumentSplitter s)
+            throws ParseException {
         ArgumentValue a = s.next((isOptional()) ?
             ArgumentSplitter.Mode.ARGUMENTS :
             ArgumentSplitter.Mode.FORCE_ARGUMENTS);
@@ -93,9 +93,8 @@ public class ValueOption<X> extends Option<X> {
                 "option --" + getName());
         return converter.wrap(this, getOptionalDefault());
     }
-    public OptionValue<X> processOmitted(ArgumentParser p)
-            throws ParseException {
-        super.processOmitted(p);
+    public OptionValue<X> processOmitted() throws ParseException {
+        super.processOmitted();
         if (getDefault() != null)
             return converter.wrap(this, getDefault());
         return null;

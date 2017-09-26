@@ -48,13 +48,12 @@ public class ValueArgument<X> extends Argument<X> {
         return ret;
     }
 
-    public OptionValue<X> process(ArgumentParser p, ArgumentValue v,
-                                  ArgumentSplitter s) throws ParseException {
+    public OptionValue<X> process(ArgumentValue v, ArgumentSplitter s)
+        throws ParseException {
         return converter.wrap(this, converter.convert(v.getValue()));
     }
-    public OptionValue<X> processOmitted(ArgumentParser p)
-            throws ParseException {
-        super.processOmitted(p);
+    public OptionValue<X> processOmitted() throws ParseException {
+        super.processOmitted();
         if (getDefault() != null)
             return converter.wrap(this, getDefault());
         return null;

@@ -23,8 +23,8 @@ public class FlagOption<X> extends Option<X> {
         return null;
     }
 
-    public OptionValue<X> process(ArgumentParser p, ArgumentValue v,
-                                  ArgumentSplitter s) throws ParseException {
+    public OptionValue<X> process(ArgumentValue v, ArgumentSplitter s)
+            throws ParseException {
         ArgumentValue n = s.next(ArgumentSplitter.Mode.OPTIONS);
         if (n != null && n.getType() == ArgumentValue.Type.VALUE)
             throw new ParseException("Option --" + getName() +

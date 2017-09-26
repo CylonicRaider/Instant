@@ -2,6 +2,7 @@ package net.instant.util.argparse;
 
 public abstract class BaseOption<X> {
 
+    private ArgumentParser parser;
     private String name;
     private Character shortname;
     private String help;
@@ -11,6 +12,13 @@ public abstract class BaseOption<X> {
         this.name = name;
         this.shortname = shortname;
         this.help = help;
+    }
+
+    public ArgumentParser getParser() {
+        return parser;
+    }
+    protected void setParser(ArgumentParser p) {
+        parser = p;
     }
 
     public String getName() {
@@ -76,10 +84,9 @@ public abstract class BaseOption<X> {
         return getHelp();
     }
 
-    public abstract OptionValue<X> process(ArgumentParser p, ArgumentValue v,
+    public abstract OptionValue<X> process(ArgumentValue v,
         ArgumentSplitter s) throws ParseException;
-    public OptionValue<X> processOmitted(ArgumentParser p)
-            throws ParseException {
+    public OptionValue<X> processOmitted() throws ParseException {
         if (isRequired())
             throw new ParseException((isPositional()) ?
                 "Missing required argument <" + getName() + ">" :
