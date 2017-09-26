@@ -2216,6 +2216,13 @@ this.Instant = function() {
               out.push(makeNode(m[0], 'hidden'));
             }
           },
+          { /* Line-trailing whitespace */
+            name: 'whitespaceLE',
+            re: /\s+$/m,
+            cb: function(m, out) {
+              out.push(makeNode(m[0], 'hidden'));
+            }
+          },
           { /* Room/message links */
             name: 'room',
             re: /\B&([a-zA-Z]([\w-]*[a-zA-Z0-9])?)(#([a-zA-Z0-9]+))?\b/,
