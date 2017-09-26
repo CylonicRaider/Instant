@@ -219,6 +219,8 @@ body {
 }
 .message-text .monospace.monospace-block {
   display: block;
+  white-space: pre;
+  overflow: auto;
 }
 
 .message > .replies {
