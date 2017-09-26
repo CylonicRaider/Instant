@@ -125,13 +125,6 @@ def importlint(filename, warn=True, sort=False, prune=False,
                 redundant.add(n[1])
         excess = imported.difference(used)
         remove = excess.union(trailing_name(n) for n in redundant)
-        # Sort them.
-        if sort:
-            oi = list(imports)
-            imports.sort(key=sortkey)
-            if imports != oi:
-                sys.stderr.write('%s: note: rearranged imports\n' % filename)
-                writeback = True
         # Reomove excess ones.
         if prune:
             seen = set()
@@ -145,6 +138,20 @@ def importlint(filename, warn=True, sort=False, prune=False,
             if None in imports:
                 sys.stderr.write('%s: note: removed superfluous imports\n' %
                                  filename)
+                writeback = True
+        # Sort them.
+        if sort:
+            oi = list(imports)
+            if None in imports:
+                indices = [n for n, i in enumerate(imports) if i]
+                indices.sort(key=lambda n: sortkey(imports[n]))
+                it = iter(indices)
+                for n, i in enumerate(imports):
+                    if i: imports[n] = oi[next(it)]
+            else:
+                imports.sort(key=sortkey)
+            if imports != oi:
+                sys.stderr.write('%s: note: rearranged imports\n' % filename)
                 writeback = True
         # Overwrite file.
         if writeback:
