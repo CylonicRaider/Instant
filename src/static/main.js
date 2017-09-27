@@ -3909,6 +3909,18 @@ this.Instant = function() {
             ), className: 'popup-message-error'});
             Instant.popups.addMessage(node, popup);
           } else {
+            /* Re-assign ID
+             * An actually well-tested corner case is sending messages to
+             * oneself; in that case, there will be two popups for the same
+             * message. The received message is to be preferred to the
+             * afterview. */
+            storage.del(popup.getAttribute('data-id'));
+            var toNode = $cls('pm-to-id', popup);
+            if (toNode.textContent == Instant.identity.id) {
+              popup.setAttribute('data-id', 'sent-' + resp.data.id);
+            } else {
+              popup.setAttribute('data-id', resp.data.id);
+            }
             Instant.privmsg._transformAfterview(popup, true);
             Instant.privmsg._update();
             Instant.popups.focus(popup);
