@@ -3999,7 +3999,7 @@ this.Instant = function() {
           ]],
           ['hr'],
           ['div', 'pm-body', [
-            draft && ['textarea', 'pm-editor', {'data-hidden': ''}],
+            draft && ['textarea', 'pm-editor'],
             ! draft && Instant.message.parseContent(data.text || '')
           ]]
         );
