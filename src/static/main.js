@@ -3677,7 +3677,7 @@ this.Instant = function() {
         if (curParent) {
           var curChild = curParent.firstElementChild;
           if (curChild.getAttribute('data-id') == id) {
-            return;
+            return true;
           } else {
             curParent.classList.remove('selected');
             curParent.removeChild(menu);
@@ -3687,13 +3687,15 @@ this.Instant = function() {
         if (id) newChild = Instant.userList.get(id);
         if (! newChild) {
           Instant.userList.update();
-          return;
+          return false;
         }
         var newParent = newChild.parentNode;
         newParent.classList.add('selected');
         newParent.appendChild(menu);
         Instant.userList.update();
         Instant.sidebar.scrollIntoView(newParent);
+        newChild.focus();
+        return true;
       },
       /* Return the ID of the currently selected user */
       getSelectedUser: function() {
@@ -3836,23 +3838,39 @@ this.Instant = function() {
         }
         popups.forEach(Instant.privmsg._updateNicks.bind(Instant.privmsg));
       },
-      /* Show the requested popups */
+      /* Show the requested class(es) popups */
       show: function(unread, inbox, drafts, outbox) {
         var flags = {U: unread, I: inbox, D: drafts, O: outbox};
-        var update = false;
         popups.forEach(function(popup) {
-          if (Instant.popups.isShown(popup)) return;
-          var cls = Instant.privmsg._getPopupClass(popup);
-          if (! flags[cls]) return;
-          if (cls == 'U') {
-            popup.classList.remove('pm-unread');
-            Instant.privmsg._save(popup);
-            update = true;
-          }
-          Instant.popups.add(popup);
+          Instant.privmsg.showOne(popup, flags);
         });
         Instant.privmsg._update();
         Instant.animation.unflash(msgUnread);
+      },
+      /* Show the single requested popup */
+      showOne: function(popup, classFlags) {
+        if (Instant.popups.isShown(popup)) return;
+        var cls = Instant.privmsg._getPopupClass(popup);
+        if (classFlags && ! classFlags[cls]) return;
+        if (cls == 'U') {
+          popup.classList.remove('pm-unread');
+          Instant.privmsg._save(popup);
+        }
+        Instant.popups.add(popup);
+      },
+      /* Obtain the private message DOM node with the given ID */
+      get: function(id, allowAlternate) {
+        if (allowAlternate) {
+          var ret = $sel('[data-id="' + id + '"]');
+          if (ret != null) return ret;
+        }
+        var sentID = 'sent-' + id;
+        for (var i = 0; i < popups.length; i++) {
+          var elID = popups[i].getAttribute('data-id');
+          if (elID == id || allowAlternate && elID == sentID)
+            return popups[i];
+        }
+        return null;
       },
       /* Start writing a message to uid */
       write: function(uid, nick, text, parent) {
@@ -3969,6 +3987,23 @@ this.Instant = function() {
        * (I -- applies to incoming messages; O -- applies to outgoing
        * messages; A -- applies to all messages.) */
       _makePopup: function(data) {
+        function goToPM(event) {
+          var pmID = this.textContent;
+          var popup = Instant.privmsg.get(pmID, true);
+          Instant.privmsg.showOne(popup);
+          Instant.popups.focus(popup);
+          event.preventDefault();
+        }
+        function goToUser(event) {
+          var userID = this.textContent;
+          if (Instant.userList.showMenu(userID)) {
+            // delAll focuses the input bar.
+            var focused = document.activeElement;
+            Instant.popups.delAll();
+            focused.focus();
+            event.preventDefault();
+          }
+        }
         /* Pre-computed variables */
         var draft = (data.type == 'pm-draft' || data.type == 'pm-afterview');
         var nick = (draft) ? data.tonick : data.nick;
@@ -3983,26 +4018,26 @@ this.Instant = function() {
               ['span', 'monospace pm-message-id'],
               data.parent && ' ',
               data.parent && ['i', [
-                '(reply to ', ['span', 'monospace pm-parent-id'], ')'
+                '(reply to ', ['a', 'monospace pm-parent-id'], ')'
               ]]
             ]]
           ]],
           draft && data.parent && ['div', 'pm-header', [
             ['strong', null, 'Reply-to: '],
-            ['span', 'monospace pm-parent-id']
+            ['span', [['a', 'monospace pm-parent-id']]]
           ]],
           ! draft && ['div', 'pm-header', [
             ['strong', null, 'From: '],
             ['span', [
               nickNode, ' ',
-              ['i', ['(user ID ', ['span', 'monospace pm-from-id'], ')']]
+              ['i', ['(user ID ', ['a', 'monospace pm-from-id'], ')']]
             ]]
           ]],
           draft && ['div', 'pm-header', [
             ['strong', null, 'To: '],
             ['span', [
               nickNode, ' ',
-              ['i', ['(user ID ', ['span', 'monospace pm-to-id'], ')']]
+              ['i', ['(user ID ', ['a', 'monospace pm-to-id'], ')']]
             ]]
           ]],
           (data.timestamp != null) && ['div', 'pm-header', [
@@ -4073,19 +4108,29 @@ this.Instant = function() {
         });
         /* Distribute remaining data into attributes */
         popup.setAttribute('data-id', data.id);
-        if (data.parent)
-          $cls('pm-parent-id', popup).textContent = data.parent;
+        if (data.parent) {
+          var parentNode = $cls('pm-parent-id', popup);
+          parentNode.textContent = data.parent;
+          parentNode.href = '#pm-' + data.parent;
+          parentNode.addEventListener('click', goToPM);
+        }
         if (draft) {
           if (data.from != null)
             popup.setAttribute('data-from', data.from);
           if (data.nick != null)
             popup.setAttribute('data-from-nick', data.nick);
-          $cls('pm-to-id', popup).textContent = data.to;
+          var toNode = $cls('pm-to-id', popup);
+          toNode.textContent = data.to;
+          toNode.href = '#user-' + data.to;
+          toNode.addEventListener('click', goToUser);
           $cls('pm-to-nick', popup).setAttribute('data-uid', data.to);
           $cls('pm-editor', popup).value = data.text || '';
         } else {
           $cls('pm-message-id', popup).textContent = data.id;
-          $cls('pm-from-id', popup).textContent = data.from;
+          var fromNode = $cls('pm-from-id', popup);
+          fromNode.textContent = data.from;
+          fromNode.href = '#user-' + data.from;
+          fromNode.addEventListener('click', goToUser);
           $cls('pm-from-nick', popup).setAttribute('data-uid', data.from);
           if (data.to != null)
             popup.setAttribute('data-to', data.to);
