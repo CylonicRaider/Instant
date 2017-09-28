@@ -3104,13 +3104,13 @@ this.Instant = function() {
        * The dist parameter specifies which minimal distance to maintain from
        * the pane's boundaries */
       scrollIntoView: function(node, dist) {
-        if (dist === null || dist === undefined) dist = OUTER_DIST;
         var pane = Instant.pane.getPane(node);
         Instant.pane.scrollIntoViewEx(node, pane, dist);
       },
       /* Scroll pane (vertically) such that node is no less than dist pixels
        * off a margin */
       scrollIntoViewEx: function(node, pane, dist) {
+        if (dist === null || dist === undefined) dist = OUTER_DIST;
         var nodeRect = node.getBoundingClientRect();
         var paneRect = pane.getBoundingClientRect();
         if (nodeRect.top < paneRect.top + dist) {
@@ -5437,8 +5437,7 @@ this.Instant = function() {
       },
       /* Scroll the given popup into view */
       scrollIntoView: function(node) {
-        Instant.pane.scrollIntoViewEx(node, $cls('popups-content', wrapper),
-                                      0);
+        Instant.pane.scrollIntoViewEx(node, $cls('popups-content', wrapper));
       },
       /* Create a message to be embedded into a popup */
       makeMessage: function(options) {
