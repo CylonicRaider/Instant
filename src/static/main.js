@@ -3921,11 +3921,10 @@ this.Instant = function() {
       _send: function(popup) {
         function callback(resp) {
           if (resp.type == 'error') {
-            var node = Instant.popups.makeMessage({content: $makeFrag(
+            Instant.popups.addNewMessage(popup, {content: $makeFrag(
               ['strong', null, 'Error: '],
               resp.data.message
             ), className: 'popup-message-error'});
-            Instant.popups.addMessage(node, popup);
           } else {
             /* Re-assign ID
              * An actually well-tested corner case is sending messages to
@@ -5573,7 +5572,7 @@ this.Instant = function() {
         return ret;
       },
       /* Add a message to a popup */
-      addMessage: function(msgnode, popup) {
+      addMessage: function(popup, msgnode) {
         var bottom = $cls('popup-bottom', popup);
         popup.insertBefore(msgnode, bottom);
       },
