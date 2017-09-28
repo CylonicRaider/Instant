@@ -3992,6 +3992,7 @@ this.Instant = function() {
           var popup = Instant.privmsg.get(pmID, true);
           Instant.privmsg.showOne(popup);
           Instant.popups.focus(popup);
+          Instant.popups.scrollIntoView(popup);
           event.preventDefault();
         }
         function goToUser(event) {
@@ -5433,6 +5434,11 @@ this.Instant = function() {
         if (node.parentNode == stack) {
           Instant.popups._update();
         }
+      },
+      /* Scroll the given popup into view */
+      scrollIntoView: function(node) {
+        Instant.pane.scrollIntoViewEx(node, $cls('popups-content', wrapper),
+                                      0);
       },
       /* Create a message to be embedded into a popup */
       makeMessage: function(options) {
