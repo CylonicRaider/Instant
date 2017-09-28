@@ -5390,99 +5390,6 @@ this.Instant = function() {
         });
         return stack;
       },
-      /* Add a node to the popup stack */
-      add: function(node, onTop) {
-        if (onTop) {
-          stack.insertBefore(node, stack.firstElementChild);
-        } else {
-          stack.appendChild(node);
-        }
-        if ($sel('.popup:not(.popup-weak)', stack)) {
-          wrapper.style.display = 'block';
-          Instant.popups._update();
-          Instant.popups.focus(node);
-        }
-      },
-      /* Remove a node from the popup stack */
-      del: function(node) {
-        var next = node.nextElementSibling || node.previousElementSibling;
-        try {
-          stack.removeChild(node);
-        } catch (e) {
-          return;
-        }
-        if (! $sel('.popup:not(.popup-weak)', stack)) {
-          wrapper.style.display = '';
-          Instant.input.focus();
-        } else {
-          Instant.popups._update();
-          Instant.popups.focus(next);
-        }
-      },
-      /* Collapse or expand a popup */
-      collapse: function(node, force) {
-        if (force == null) {
-          force = (! node.classList.contains('collapsed'));
-        }
-        if (force) {
-          node.classList.add('collapsed');
-          $sel('.popup-collapse img', node).src = expandURL;
-        } else {
-          node.classList.remove('collapsed');
-          $sel('.popup-collapse img', node).src = collapseURL;
-        }
-        if (node.parentNode == stack) {
-          Instant.popups._update();
-        }
-      },
-      /* Scroll the given popup into view */
-      scrollIntoView: function(node) {
-        Instant.pane.scrollIntoViewEx(node, $cls('popups-content', wrapper));
-      },
-      /* Create a message to be embedded into a popup */
-      makeMessage: function(options) {
-        var ret = $makeNode('div', 'popup-message', [
-          ! options.noClose && ['span', 'popup-message-close-wrapper', [
-            ['button', 'button button-noborder popup-message-close', [
-              ['img', {src: closeURL}]
-            ]]
-          ]]
-        ]);
-        if (options.id) ret.id = id;
-        if (options.className) ret.className += ' ' + options.className;
-        if (typeof options.content == 'string') {
-          ret.appendChild(document.createTextNode(options.content));
-        } else if (options.content) {
-          ret.appendChild(options.content);
-        }
-        if (options.color) ret.style.color = options.color;
-        if (options.background) ret.style.background = options.background;
-        var close = $cls('popup-message-close', ret);
-        if (close)
-          close.addEventListener('click',
-            Instant.popups.removeMessage.bind(Instant.popups.removeMessage,
-                                              ret));
-        return ret;
-      },
-      /* Add a message to a popup */
-      addMessage: function(msgnode, popup) {
-        var bottom = $cls('popup-bottom', popup);
-        popup.insertBefore(msgnode, bottom);
-      },
-      /* Remove a message from a popup */
-      removeMessage: function(msgnode) {
-        msgnode.parentNode.removeChild(msgnode);
-      },
-      /* Check whether a popup is already shown */
-      isShown: function(node) {
-        return stack.contains(node);
-      },
-      /* Remove all popups */
-      delAll: function() {
-        while (stack.firstChild) stack.removeChild(stack.firstChild);
-        wrapper.style.display = '';
-        Instant.input.focus();
-      },
       /* Adjust the position of the "close all" button */
       _update: function() {
         Instant.util.adjustScrollbar($cls('close-all', wrapper),
@@ -5568,6 +5475,51 @@ this.Instant = function() {
         Instant.popups.add(ret);
         return ret;
       },
+      /* Add a node to the popup stack */
+      add: function(node, onTop) {
+        if (onTop) {
+          stack.insertBefore(node, stack.firstElementChild);
+        } else {
+          stack.appendChild(node);
+        }
+        if ($sel('.popup:not(.popup-weak)', stack)) {
+          wrapper.style.display = 'block';
+          Instant.popups._update();
+          Instant.popups.focus(node);
+        }
+      },
+      /* Remove a node from the popup stack */
+      del: function(node) {
+        var next = node.nextElementSibling || node.previousElementSibling;
+        try {
+          stack.removeChild(node);
+        } catch (e) {
+          return;
+        }
+        if (! $sel('.popup:not(.popup-weak)', stack)) {
+          wrapper.style.display = '';
+          Instant.input.focus();
+        } else {
+          Instant.popups._update();
+          Instant.popups.focus(next);
+        }
+      },
+      /* Collapse or expand a popup */
+      collapse: function(node, force) {
+        if (force == null) {
+          force = (! node.classList.contains('collapsed'));
+        }
+        if (force) {
+          node.classList.add('collapsed');
+          $sel('.popup-collapse img', node).src = expandURL;
+        } else {
+          node.classList.remove('collapsed');
+          $sel('.popup-collapse img', node).src = collapseURL;
+        }
+        if (node.parentNode == stack) {
+          Instant.popups._update();
+        }
+      },
       /* Focus a concrete popup or anything */
       focus: function(node) {
         if (node == null) {
@@ -5584,6 +5536,60 @@ this.Instant = function() {
             node.focus();
           }
         }
+      },
+      /* Remove all popups */
+      delAll: function() {
+        while (stack.firstChild) stack.removeChild(stack.firstChild);
+        wrapper.style.display = '';
+        Instant.input.focus();
+      },
+      /* Scroll the given popup into view */
+      scrollIntoView: function(node) {
+        Instant.pane.scrollIntoViewEx(node, $cls('popups-content', wrapper));
+      },
+      /* Create a message to be embedded into a popup */
+      makeMessage: function(options) {
+        var ret = $makeNode('div', 'popup-message', [
+          ! options.noClose && ['span', 'popup-message-close-wrapper', [
+            ['button', 'button button-noborder popup-message-close', [
+              ['img', {src: closeURL}]
+            ]]
+          ]]
+        ]);
+        if (options.id) ret.id = id;
+        if (options.className) ret.className += ' ' + options.className;
+        if (typeof options.content == 'string') {
+          ret.appendChild(document.createTextNode(options.content));
+        } else if (options.content) {
+          ret.appendChild(options.content);
+        }
+        if (options.color) ret.style.color = options.color;
+        if (options.background) ret.style.background = options.background;
+        var close = $cls('popup-message-close', ret);
+        if (close)
+          close.addEventListener('click',
+            Instant.popups.removeMessage.bind(Instant.popups.removeMessage,
+                                              ret));
+        return ret;
+      },
+      /* Add a message to a popup */
+      addMessage: function(msgnode, popup) {
+        var bottom = $cls('popup-bottom', popup);
+        popup.insertBefore(msgnode, bottom);
+      },
+      /* Add a newly-created message to a popup */
+      addNewMessage: function(popup, options) {
+        var msgnode = Instant.popups.makeMessage(options);
+        Instant.popups.addMessage(msgnode, popup);
+        return msgnode;
+      },
+      /* Remove a message from a popup */
+      removeMessage: function(msgnode) {
+        msgnode.parentNode.removeChild(msgnode);
+      },
+      /* Check whether a popup is already shown */
+      isShown: function(node) {
+        return stack.contains(node);
       },
       /* Returns the internal node containing the popups */
       getNode: function() {
