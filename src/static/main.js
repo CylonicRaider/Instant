@@ -1555,8 +1555,7 @@ this.Instant = function() {
           /* Have to simulate history entry addition to avoid the browser
            * happily finding the message and scrolling it to the very top
            * of the viewport. */
-          if (document.location.hash != fragment)
-            history.pushState({}, '', fragment);
+          Instant.query.hash._updateHistory(fragment);
           evt.preventDefault();
           evt.stopPropagation();
         });
@@ -5678,6 +5677,8 @@ this.Instant = function() {
       },
       /* Managing the fragment identifier and navigating to things */
       hash: function() {
+        /* DOM node used for URL resolution */
+        var probe = document.createElement('a');
         return {
           /* Navigate to something */
           navigateEx: function(hash) {
@@ -5706,11 +5707,22 @@ this.Instant = function() {
               hash = url.hash;
             }
             try {
+              Instant.query.hash._updateHistory(hash);
               return Instant.query.hash.navigateEx(hash);
             } catch (e) {
               console.warn('Error while navigating to item', e);
               return false;
             }
+          },
+          /* Update the location bar and the browsing history
+           * ...Avoiding the scroll-things-to-the-very-top side effect. */
+          _updateHistory: function(newURL) {
+            probe.href = newURL;
+            // URL resolution is a side effect.
+            var needsUpdate = (probe.href != location.href);
+            if (needsUpdate)
+              history.pushState({}, '', newURL);
+            return needsUpdate;
           }
         };
       }()
