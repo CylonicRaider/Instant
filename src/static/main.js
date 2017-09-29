@@ -3904,19 +3904,6 @@ this.Instant = function() {
         }
         return popup;
       },
-      /* Save the current state of the popup into storage */
-      _save: function(popup) {
-        var data = Instant.privmsg._extractPopupData(popup);
-        storage.set(data.id, data);
-      },
-      /* Remove a PM draft or reader */
-      _remove: function(popup) {
-        storage.del(popup.getAttribute('data-id'));
-        var idx = popups.indexOf(popup);
-        if (idx != -1) popups.splice(idx, 1);
-        Instant.popups.del(popup);
-        Instant.privmsg._update();
-      },
       /* Send a PM draft */
       _send: function(popup) {
         function callback(resp) {
@@ -3971,6 +3958,19 @@ this.Instant = function() {
           });
         }
         return popup;
+      },
+      /* Remove a PM draft or reader */
+      _remove: function(popup) {
+        storage.del(popup.getAttribute('data-id'));
+        var idx = popups.indexOf(popup);
+        if (idx != -1) popups.splice(idx, 1);
+        Instant.popups.del(popup);
+        Instant.privmsg._update();
+      },
+      /* Save the current state of the popup into storage */
+      _save: function(popup) {
+        var data = Instant.privmsg._extractPopupData(popup);
+        storage.set(data.id, data);
       },
       /* Produce a DOM node corresponding to the given description
        * data has the following attributes:
