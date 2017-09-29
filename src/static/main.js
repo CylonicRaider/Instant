@@ -2082,7 +2082,7 @@ this.Instant = function() {
       /* Check if the given fragment identifier is a valid message
        * identifier */
       checkFragment: function(url) {
-        return (/^#message-.+$/.test(url));
+        return /^#message-.+$/.test(url);
       },
       /* Extract a message ID out of a fragment identifier or return it
        * unchanged */
@@ -3858,6 +3858,15 @@ this.Instant = function() {
         }
         Instant.popups.add(popup);
       },
+      /* Navigate to the given PM */
+      navigateTo: function(id) {
+        var popup = Instant.privmsg.get(pmID, true);
+        if (! popup) return false;
+        Instant.privmsg.showOne(popup);
+        Instant.popups.focus(popup);
+        Instant.popups.scrollIntoView(popup);
+        return true;
+      },
       /* Obtain the private message DOM node with the given ID */
       get: function(id, allowAlternate) {
         if (allowAlternate) {
@@ -3987,11 +3996,7 @@ this.Instant = function() {
        * messages; A -- applies to all messages.) */
       _makePopup: function(data) {
         function goToPM(event) {
-          var pmID = this.textContent;
-          var popup = Instant.privmsg.get(pmID, true);
-          Instant.privmsg.showOne(popup);
-          Instant.popups.focus(popup);
-          Instant.popups.scrollIntoView(popup);
+          Instant.privmsg.navigateTo(this.textContent);
           event.preventDefault();
         }
         function goToUser(event) {
@@ -5651,9 +5656,9 @@ this.Instant = function() {
       }()
     };
   }();
-  /* Query string parameters
-   * The backend does not parse them (as of now), and even if it did,
-   * some of those are only relevant to the frontend. */
+  /* Query string and other URL parameters
+   * The backend does not parse the query string (as of now), and even if it
+   * did, some of those values are only relevant to the frontend. */
   Instant.query = function() {
     /* The actual data */
     var data = null;
@@ -5670,7 +5675,37 @@ this.Instant = function() {
       /* Return the internal storage object */
       getData: function() {
         return data;
-      }
+      },
+      /* Managing the fragment identifier and navigating to things. */
+      hash: function() {
+        return {
+          /* Navigate to something */
+          navigateEx: function(hash) {
+            var m = /^#?(\w+)-(\w+)$/.exec(hash);
+            if (! m)
+              throw new Error('Invalid object identifier');
+            var type = m[1], id = m[2];
+            switch (type) {
+              case 'message':
+                return Instant.animation.navigateToMessage(id);
+              case 'user':
+                return Instant.userList.showMenu(id);
+              case 'pm':
+                return Instant.privmsg.navigateTo(id);
+            }
+            throw new Error('Invalid object type');
+          },
+          /* Navigate to something, ignoring errors */
+          navigate: function(hash) {
+            try {
+              return Instant.query.hash.navigateEx(hash);
+            } catch (e) {
+              console.warn('Error while navigating to item', e);
+              return false;
+            }
+          }
+        };
+      }()
     };
   }();
   /* Offline storage */
