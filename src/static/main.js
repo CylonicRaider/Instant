@@ -5676,7 +5676,7 @@ this.Instant = function() {
       getData: function() {
         return data;
       },
-      /* Managing the fragment identifier and navigating to things. */
+      /* Managing the fragment identifier and navigating to things */
       hash: function() {
         return {
           /* Navigate to something */
@@ -5696,7 +5696,15 @@ this.Instant = function() {
             throw new Error('Invalid object type');
           },
           /* Navigate to something, ignoring errors */
-          navigate: function(hash) {
+          navigate: function(url) {
+            var hash;
+            if (typeof url == 'string') {
+              var m = /#\w+-\w+/.exec(url);
+              if (! m) return false;
+              hash = m[0];
+            } else if (url.hash) {
+              hash = url.hash;
+            }
             try {
               return Instant.query.hash.navigateEx(hash);
             } catch (e) {
