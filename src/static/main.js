@@ -2151,7 +2151,7 @@ this.Instant = function() {
           return s.replace(/%PM%/g, pm).replace(/%ME%/g, me);
         }
         /* Important regexes */
-        var URL_RE = '((?!javascript:)[a-zA-Z]+://)?' +
+        var URL_RE = '((?!javascript:)[a-zA-Z]+:(//)?)?' +
           '([a-zA-Z0-9._~-]+@)?([a-zA-Z0-9.-]+)(:[0-9]+)?(/[^>]*)?';
         var pm = '[^()\\s]*', me = '[^.,:;!?()\\s]';
         var MENTION_RE = sm('%PM%(?:\\(%PM%\\)%PM%)*(?:\\(%PM%\\)|%ME%)');
