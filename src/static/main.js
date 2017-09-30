@@ -1548,7 +1548,16 @@ this.Instant = function() {
           if (doScroll) Instant.pane.scrollIntoView(msgNode);
           evt.stopPropagation();
         });
+        /* Clicking a permalink moves to its parent message, in a slightly
+         * different way */
         Instant.hash.listenOn($cls('permalink', msgNode));
+        /* Clicking on internal links handles them smoothly */
+        var locationTrunk = location.href.replace(/#[^#]*$/, '');
+        var msgs = $clsAll('room-link', msgNode);
+        Array.prototype.forEach.call(msgs, function(el) {
+          if (el.href.replace(/#[^#]*$/, '') == locationTrunk)
+            Instant.hash.listenOn(el);
+        });
       },
       /* Generate a fake message node */
       makeFakeMessage: function(id) {
