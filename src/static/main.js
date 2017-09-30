@@ -1550,12 +1550,7 @@ this.Instant = function() {
         });
         $cls('permalink', msgNode).addEventListener('click', function(evt) {
           var msgid = msgNode.getAttribute('data-id');
-          var fragment = '#message-' + msgid;
-          Instant.animation.navigateToMessage(msgid);
-          /* Have to simulate history entry addition to avoid the browser
-           * happily finding the message and scrolling it to the very top
-           * of the viewport. */
-          Instant.hash._updateHistory(fragment);
+          Instant.hash.navigate('#message-' + msgid);
           evt.preventDefault();
           evt.stopPropagation();
         });
@@ -4407,15 +4402,6 @@ this.Instant = function() {
     return {
       /* Initialize the submodule */
       init: function(msgNode) {
-        function updateHash(event) {
-          if (/^#?$/.test(location.hash)) {
-            Instant.input.navigate('root');
-            Instant.input.focus();
-            Instant.pane.scrollIntoView(Instant.input.getNode());
-          } else if (Instant.message.checkFragment(location.hash)) {
-            Instant.animation.navigateToMessage(location.hash);
-          }
-        }
         messageBox = msgNode;
         var pane = Instant.pane.getPane(messageBox);
         /* Pull more logs when scrolled to top */
@@ -4423,9 +4409,6 @@ this.Instant = function() {
           if (pane.scrollTop == 0) Instant.logs.pull.more();
           Instant.animation.offscreen.checkVisible();
         });
-        /* Navigate to linked messages */
-        window.addEventListener('hashchange', updateHash);
-        updateHash();
       },
       /* Flash something */
       flash: function(node) {
@@ -4450,6 +4433,12 @@ this.Instant = function() {
         Instant.input.jumpTo(msg);
         Instant.input.focus();
         Instant.pane.scrollIntoView(msg);
+      },
+      /* Navigate the input bar to the threading root */
+      navigateToRoot: function() {
+        Instant.input.navigate('root');
+        Instant.pane.scrollIntoView(Instant.input.getNode());
+        Instant.input.focus();
       },
       /* Navigate to a message as identified by the given ID or fragment
        * identifier
@@ -5684,12 +5673,23 @@ this.Instant = function() {
     /* DOM node used for URL resolution */
     var probe = document.createElement('a');
     return {
+      /* Initialize submodule */
+      init: function() {
+        var handler = Instant.hash._onhashchange.bind(Instant.hash);
+        window.addEventListener('hashchange', handler);
+        // Delaying until all other modules are loaded.
+        setTimeout(function() {
+          Instant.hash.navigateEx(location.hash);
+        }, 0);
+      },
       /* Navigate to an object identifier */
       navigateEx: function(hash) {
-        var m = /^#?(\w+)-(\w+)$/.exec(hash);
+        var m = /^#?(?:(\w+)(?:-(\w+))?)?$/.exec(hash);
         if (! m) return null;
-        var type = m[1], id = m[2];
+        var type = m[1] || 'root', id = m[2] || null;
         switch (type) {
+          case 'root':
+            return Instant.animation.navigateToRoot(id);
           case 'message':
             return Instant.animation.navigateToMessage(id);
           case 'user':
@@ -5706,7 +5706,7 @@ this.Instant = function() {
       navigate: function(url) {
         var hash;
         if (typeof url == 'string') {
-          var m = /#\w+-\w+$/.exec(url);
+          var m = /#(\w+(-\w+)?)?$/.exec(url);
           if (! m) return null;
           hash = m[0];
         } else if (url.hash) {
@@ -5716,6 +5716,11 @@ this.Instant = function() {
         }
         Instant.hash._updateHistory(hash);
         return Instant.hash.navigateEx(hash);
+      },
+      /* Handle a hashchange event */
+      _onhashchange: function(event) {
+        Instant.hash.navigateEx(location.hash);
+        event.preventDefault();
       },
       /* Update the location bar and the browsing history
        * ...Avoiding the scroll-things-to-the-very-top side effect. */
@@ -6276,6 +6281,7 @@ this.Instant = function() {
   Instant.init = function(main, loadWrapper, navigation) {
     Instant._fireListeners('init.early');
     Instant.query.init();
+    Instant.hash.init();
     Instant.storage.init();
     Instant.message.init();
     Instant.input.init();
