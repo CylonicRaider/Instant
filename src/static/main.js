@@ -4458,14 +4458,16 @@ this.Instant = function() {
        * asynchronously. */
       navigateToMessage: function(target) {
         var msgid = Instant.message.parseFragment(target);
-        if (! msgid) return;
+        if (! msgid) return null;
         var msg = Instant.message.get(msgid);
         if (msg) {
           Instant.animation.goToMessage(msg);
           if (Instant.message.isFakeMessage(msg))
             Instant.logs.pull.upto(msgid);
+          return true;
         } else {
           Instant.logs.pull.upto(msgid);
+          return false;
         }
       },
       /* Check if more logs should be loaded */
@@ -5682,11 +5684,10 @@ this.Instant = function() {
     /* DOM node used for URL resolution */
     var probe = document.createElement('a');
     return {
-      /* Navigate to something */
+      /* Navigate to an object identifier */
       navigateEx: function(hash) {
         var m = /^#?(\w+)-(\w+)$/.exec(hash);
-        if (! m)
-          throw new Error('Invalid object identifier');
+        if (! m) return null;
         var type = m[1], id = m[2];
         switch (type) {
           case 'message':
@@ -5696,25 +5697,25 @@ this.Instant = function() {
           case 'pm':
             return Instant.privmsg.navigateTo(id);
         }
-        throw new Error('Invalid object type');
+        return null;
       },
-      /* Navigate to something, ignoring errors */
+      /* Update the browsring history and navigate to something
+       * The "something" can be an object identifier as for navigateEx(),
+       * or something wuth a "hash" property (such as a hyperlink HTML
+       * element). */
       navigate: function(url) {
         var hash;
         if (typeof url == 'string') {
-          var m = /#\w+-\w+/.exec(url);
-          if (! m) return false;
+          var m = /#\w+-\w+$/.exec(url);
+          if (! m) return null;
           hash = m[0];
         } else if (url.hash) {
           hash = url.hash;
+        } else  {
+          return null;
         }
-        try {
-          Instant.hash._updateHistory(hash);
-          return Instant.hash.navigateEx(hash);
-        } catch (e) {
-          console.warn('Error while navigating to item', e);
-          return false;
-        }
+        Instant.hash._updateHistory(hash);
+        return Instant.hash.navigateEx(hash);
       },
       /* Update the location bar and the browsing history
        * ...Avoiding the scroll-things-to-the-very-top side effect. */
