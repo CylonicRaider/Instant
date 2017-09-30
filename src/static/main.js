@@ -2237,8 +2237,8 @@ this.Instant = function() {
             name: 'link',
             re: new RegExp('<(' + URL_RE + ')>'),
             cb: function(m, out) {
-              /* Hyperlink (must contain non-word character) */
-              if (! /\W/.test(m[1])) {
+              /* Must contain word and non-word characters */
+              if (! /\w/.test(m[1]) || ! /\W/.test(m[1])) {
                 out.push(m[0]);
                 return;
               }
