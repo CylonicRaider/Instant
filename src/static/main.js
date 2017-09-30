@@ -1555,7 +1555,7 @@ this.Instant = function() {
           /* Have to simulate history entry addition to avoid the browser
            * happily finding the message and scrolling it to the very top
            * of the viewport. */
-          Instant.query.hash._updateHistory(fragment);
+          Instant.hash._updateHistory(fragment);
           evt.preventDefault();
           evt.stopPropagation();
         });
@@ -5674,58 +5674,58 @@ this.Instant = function() {
       /* Return the internal storage object */
       getData: function() {
         return data;
+      }
+    };
+  }();
+  /* Managing the fragment identifier and navigating to things */
+  Instant.hash = function() {
+    /* DOM node used for URL resolution */
+    var probe = document.createElement('a');
+    return {
+      /* Navigate to something */
+      navigateEx: function(hash) {
+        var m = /^#?(\w+)-(\w+)$/.exec(hash);
+        if (! m)
+          throw new Error('Invalid object identifier');
+        var type = m[1], id = m[2];
+        switch (type) {
+          case 'message':
+            return Instant.animation.navigateToMessage(id);
+          case 'user':
+            return Instant.userList.showMenu(id);
+          case 'pm':
+            return Instant.privmsg.navigateTo(id);
+        }
+        throw new Error('Invalid object type');
       },
-      /* Managing the fragment identifier and navigating to things */
-      hash: function() {
-        /* DOM node used for URL resolution */
-        var probe = document.createElement('a');
-        return {
-          /* Navigate to something */
-          navigateEx: function(hash) {
-            var m = /^#?(\w+)-(\w+)$/.exec(hash);
-            if (! m)
-              throw new Error('Invalid object identifier');
-            var type = m[1], id = m[2];
-            switch (type) {
-              case 'message':
-                return Instant.animation.navigateToMessage(id);
-              case 'user':
-                return Instant.userList.showMenu(id);
-              case 'pm':
-                return Instant.privmsg.navigateTo(id);
-            }
-            throw new Error('Invalid object type');
-          },
-          /* Navigate to something, ignoring errors */
-          navigate: function(url) {
-            var hash;
-            if (typeof url == 'string') {
-              var m = /#\w+-\w+/.exec(url);
-              if (! m) return false;
-              hash = m[0];
-            } else if (url.hash) {
-              hash = url.hash;
-            }
-            try {
-              Instant.query.hash._updateHistory(hash);
-              return Instant.query.hash.navigateEx(hash);
-            } catch (e) {
-              console.warn('Error while navigating to item', e);
-              return false;
-            }
-          },
-          /* Update the location bar and the browsing history
-           * ...Avoiding the scroll-things-to-the-very-top side effect. */
-          _updateHistory: function(newURL) {
-            probe.href = newURL;
-            // URL resolution is a side effect.
-            var needsUpdate = (probe.href != location.href);
-            if (needsUpdate)
-              history.pushState({}, '', newURL);
-            return needsUpdate;
-          }
-        };
-      }()
+      /* Navigate to something, ignoring errors */
+      navigate: function(url) {
+        var hash;
+        if (typeof url == 'string') {
+          var m = /#\w+-\w+/.exec(url);
+          if (! m) return false;
+          hash = m[0];
+        } else if (url.hash) {
+          hash = url.hash;
+        }
+        try {
+          Instant.hash._updateHistory(hash);
+          return Instant.hash.navigateEx(hash);
+        } catch (e) {
+          console.warn('Error while navigating to item', e);
+          return false;
+        }
+      },
+      /* Update the location bar and the browsing history
+       * ...Avoiding the scroll-things-to-the-very-top side effect. */
+      _updateHistory: function(newURL) {
+        probe.href = newURL;
+        // URL resolution is a side effect.
+        var needsUpdate = (probe.href != location.href);
+        if (needsUpdate)
+          history.pushState({}, '', newURL);
+        return needsUpdate;
+      }
     };
   }();
   /* Offline storage */
