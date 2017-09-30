@@ -1529,7 +1529,7 @@ this.Instant = function() {
           clickPos = [evt.clientX, evt.clientY];
           inputWasFocused = Instant.input.isFocused();
         });
-        /* Clicking to a messages moves to it */
+        /* Clicking a message moves to it */
         $cls('line', msgNode).addEventListener('click', function(evt) {
           /* Filter out mouse drags */
           if (clickPos && $hypot(evt.clientX - clickPos[0],
@@ -1548,12 +1548,7 @@ this.Instant = function() {
           if (doScroll) Instant.pane.scrollIntoView(msgNode);
           evt.stopPropagation();
         });
-        $cls('permalink', msgNode).addEventListener('click', function(evt) {
-          var msgid = msgNode.getAttribute('data-id');
-          Instant.hash.navigate('#message-' + msgid);
-          evt.preventDefault();
-          evt.stopPropagation();
-        });
+        Instant.hash.listenOn($cls('permalink', msgNode));
       },
       /* Generate a fake message node */
       makeFakeMessage: function(id) {
@@ -5717,10 +5712,22 @@ this.Instant = function() {
         Instant.hash._updateHistory(hash);
         return Instant.hash.navigateEx(hash);
       },
+      /* Listen on click events from node and handle them using navigate() */
+      listenOn: function(node) {
+        var handler = Instant.hash._onclick.bind(Instant.hash);
+        node.addEventListener('click', handler);
+        return handler;
+      },
       /* Handle a hashchange event */
       _onhashchange: function(event) {
         Instant.hash.navigateEx(location.hash);
         event.preventDefault();
+      },
+      /* Handle a click event */
+      _onclick: function(event) {
+        Instant.hash.navigate(event.target.hash);
+        event.preventDefault();
+        event.stopPropagation();
       },
       /* Update the location bar and the browsing history
        * ...Avoiding the scroll-things-to-the-very-top side effect. */
