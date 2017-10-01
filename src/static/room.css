@@ -559,8 +559,7 @@ body {
   padding: 0;
   outline-offset: -1px;
 }
-.button, #main .button, .settings, #main .settings, .close-all,
-#main .close-all {
+.button, #main .button, .settings, #main .settings {
   -webkit-transition: none;
   transition: none;
 }
@@ -789,7 +788,6 @@ body {
   left: 0;
   width: 100%;
   height: 100%;
-  display: none;
 }
 .windows-wrapper {
   pointer-events: none;
@@ -797,22 +795,36 @@ body {
 .windows-wrapper > * {
   pointer-events: auto;
 }
+.popups-wrapper.empty, .popups-wrapper.hidden,
+.windows-wrapper.empty {
+  display: none;
+}
 
-.popups-wrapper .close-all {
+.popups-wrapper .popups-controls {
   position: absolute;
   top: 0;
   right: 0;
-  width: 2em;
-  height: 2em;
   border: 1px solid black;
-  background: white;
-  outline-offset: -2px;
   z-index: 1100;
 }
-.popups-wrapper .close-all:hover {
+.popups-wrapper .popups-controls * {
+  vertical-align: top;
+}
+.popups-wrapper .popups-controls .button {
+  width: 2em;
+  height: 2em;
+  background: white;
+}
+.popups-wrapper .popups-controls .separator {
+  display: inline-block;
+  width: 1px;
+  height: 2em;
+  background: black;
+}
+.popups-wrapper .popups-controls .button:hover {
   background: #c0c0c0;
 }
-.popups-wrapper .close-all:active {
+.popups-wrapper .popups-controls .button:active {
   background: #808080;
 }
 

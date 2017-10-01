@@ -5337,6 +5337,8 @@ this.Instant = function() {
   Instant.popups = function() {
     /* The main node wrapper and the main node itself */
     var wrapper = null, stack = null;
+    /* A UI message shown when there are hidden popups */
+    var hiddenMsg = null;
     /* URL-s for the icons
      * Replaced by data URI-s as soon as the images are preloaded. */
     var closeURL = '/static/close.svg';
@@ -5365,17 +5367,29 @@ this.Instant = function() {
             document.head.appendChild(obj);
           });
         }
-        wrapper = $makeNode('div', 'popups-wrapper', [
+        wrapper = $makeNode('div', 'popups-wrapper empty', [
           ['div', 'popups-content', [
             ['div', 'popups']
           ]],
-          ['a', 'close-all', {href: '#'}, [
-            ['img', {src: closeURL}]
+          ['div', 'popups-controls', [
+            ['button', 'button button-noborder hide-all', [
+              ['img', {src: collapseURL}]
+            ]],
+            ['span', 'separator'],
+            ['button', 'button button-noborder close-all', [
+              ['img', {src: closeURL}]
+            ]]
           ]]
         ]);
         stack = $cls('popups', wrapper);
+        $cls('hide-all', wrapper).addEventListener('click',
+          Instant.popups.hideAll.bind(Instant.popups));
         $cls('close-all', wrapper).addEventListener('click',
           Instant.popups.delAll.bind(Instant.popups));
+        hiddenMsg = Instant.sidebar.makeMessage({content: 'Hidden popups',
+          onclick: function() {
+            Instant.popups.hideAll(false);
+          }});
         /* Preload images */
         preloadImage(closeURL).then(function(res) {
           closeURL = res;
@@ -5390,8 +5404,21 @@ this.Instant = function() {
       },
       /* Adjust the position of the "close all" button */
       _update: function() {
-        Instant.util.adjustScrollbar($cls('close-all', wrapper),
+        Instant.util.adjustScrollbar($cls('popups-controls', wrapper),
                                      $cls('popups-content', wrapper));
+      },
+      /* Adjust the "hidden popups" UI message */
+      _updateHidden: function(display, flash) {
+        var count = $selAll('.popup', stack).length;
+        hiddenMsg.textContent = 'Hidden popups (' + count + ')';
+        if (display) {
+          if (wrapper.classList.contains('hidden')) {
+            Instant.sidebar.showMessage(hiddenMsg);
+          } else {
+            Instant.sidebar.hideMessage(hiddenMsg);
+          }
+        }
+        if (flash) Instant.animation.flash(hiddenMsg);
       },
       /* Create a new popup */
       make: function(options) {
@@ -5480,8 +5507,13 @@ this.Instant = function() {
         } else {
           stack.appendChild(node);
         }
-        if ($sel('.popup:not(.popup-weak)', stack)) {
-          wrapper.style.display = 'block';
+        var hasPopups = (!! $sel('.popup:not(.popup-weak)', stack));
+        if (hasPopups) {
+          wrapper.classList.remove('empty');
+        }
+        if (wrapper.classList.contains('hidden')) {
+          Instant.popups._updateHidden(false, true);
+        } else if (hasPopups) {
           Instant.popups._update();
           Instant.popups.focus(node);
         }
@@ -5495,7 +5527,7 @@ this.Instant = function() {
           return;
         }
         if (! $sel('.popup:not(.popup-weak)', stack)) {
-          wrapper.style.display = '';
+          wrapper.classList.add('empty');
           Instant.input.focus();
         } else {
           Instant.popups._update();
@@ -5520,6 +5552,8 @@ this.Instant = function() {
       },
       /* Focus a concrete popup or anything */
       focus: function(node) {
+        if (node === undefined)
+          node = $sel('.popup:not(.popup-weak)', stack) || stack.firstChild;
         if (node == null) {
           $cls('close-all', wrapper).focus();
         } else if (node.classList.contains('collapsed')) {
@@ -5535,15 +5569,29 @@ this.Instant = function() {
           }
         }
       },
-      /* Remove all popups */
-      delAll: function() {
-        while (stack.firstChild) stack.removeChild(stack.firstChild);
-        wrapper.style.display = '';
-        Instant.input.focus();
-      },
       /* Scroll the given popup into view */
       scrollIntoView: function(node) {
         Instant.pane.scrollIntoViewEx(node, $cls('popups-content', wrapper));
+      },
+      /* Remove all popups */
+      delAll: function() {
+        while (stack.firstChild) stack.removeChild(stack.firstChild);
+        wrapper.classList.add('empty');
+        Instant.input.focus();
+      },
+      /* Hide/unhide all popups */
+      hideAll: function(force) {
+        if (force == null) {
+          force = (! wrapper.classList.contains('hidden'));
+        }
+        if (force) {
+          wrapper.classList.add('hidden');
+        } else {
+          wrapper.classList.remove('hidden');
+          Instant.popups._update();
+          Instant.popups.focus();
+        }
+        Instant.popups._updateHidden(true, false);
       },
       /* Create a message to be embedded into a popup */
       makeMessage: function(options) {
@@ -5604,7 +5652,7 @@ this.Instant = function() {
         return {
           /* Initialize submodule */
           init: function() {
-            winnode = $makeNode('div', 'windows-wrapper', [
+            winnode = $makeNode('div', 'windows-wrapper empty', [
               ['div', 'windows']
             ]);
             return winnode;
@@ -5613,7 +5661,7 @@ this.Instant = function() {
           add: function(wnd) {
             var cont = $cls('windows', winnode);
             cont.appendChild(wnd);
-            winnode.style.display = 'block';
+            winnode.classList.remove('hidden');
           },
           /* Hide the given window */
           del: function(wnd) {
@@ -5622,7 +5670,7 @@ this.Instant = function() {
               cont.removeChild(wnd);
             } catch (e) {}
             if (cont.children.length == 0)
-              winnode.style.display = '';
+              winnode.classList.add('hidden');
           },
           /* Collapse (iconify) the given window */
           collapse: function(wnd, force) {
