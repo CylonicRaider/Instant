@@ -5746,10 +5746,13 @@ this.Instant = function() {
         var type = m[1] || 'root', id = m[2] || null;
         switch (type) {
           case 'root':
+            Instant.popups.hideAll(true);
             return Instant.animation.navigateToRoot(id);
           case 'message':
+            Instant.popups.hideAll(true);
             return Instant.animation.navigateToMessage(id);
           case 'user':
+            Instant.popups.hideAll(true);
             return Instant.userList.showMenu(id);
           case 'pm':
             return Instant.privmsg.navigateTo(id);
