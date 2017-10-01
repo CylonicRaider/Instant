@@ -3299,7 +3299,7 @@ this.Instant = function() {
         return msgnode;
       },
       /* Show a UI message */
-      showMessage: function(msgnode, id) {
+      showMessage: function(msgnode, id, resort) {
         var msgbox = $cls('ui-message-box', node);
         if (id) {
           if (shownUIMessages[id])
@@ -3307,7 +3307,8 @@ this.Instant = function() {
           shownUIMessages[id] = msgnode;
           msgnode.setAttribute('data-msgid', id);
         }
-        msgbox.appendChild(msgnode);
+        if (resort || msgnode.parentNode != msgbox)
+          msgbox.appendChild(msgnode);
         Instant.sidebar.updateWidth();
       },
       /* Hide a UI message */
