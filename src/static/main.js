@@ -3327,12 +3327,12 @@ this.Instant = function() {
         return {
           /* Initialize submodule */
           init: function() {
-            node = $makeNode('a', 'room-name', {href: ''});
-            /* Clickable UI messages are a bit too close to this one,
-             * and one can still drag-and-drop it, or use the context menu.
-             */
-            node.addEventListener('click', function(event) {
-              event.preventDefault();
+            node = $makeNode('a', 'room-name', {href: '#'});
+            /* The link is dangerously close to possibly clickable UI
+             * messages, so we "ignore" single clicks and reload on
+             * double clicks instead. */
+            node.addEventListener('dblclick', function() {
+              location.reload(false);
             });
             if (Instant.roomName) {
               node.appendChild(document.createTextNode('&' +
@@ -3340,6 +3340,10 @@ this.Instant = function() {
             } else {
               node.appendChild($makeNode('i', null, 'local'));
             }
+            return node;
+          },
+          /* Obtain the wrapped node */
+          getNode: function() {
             return node;
           }
         };
