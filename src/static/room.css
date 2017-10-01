@@ -1123,8 +1123,8 @@ img.inline {
 @keyframes bgfade { to { background: transparent; } }
 
 .flash {
-  -webkit-animation: bgflash 4s step-end;
-  animation: bgflash 4s step-end;
+  -webkit-animation: bgflash 4s step-start;
+  animation: bgflash 4s step-start;
 }
 .flash.flash-done {
   animation-name: none;
