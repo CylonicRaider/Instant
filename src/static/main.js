@@ -1738,11 +1738,16 @@ this.Instant = function() {
           if (! message) return null;
         }
       },
-      /* Get the message this is a comment to, i.e., the precedessor, or the
-       * parent if none, or null if neither exists */
+      /* Get the message this is a comment to
+       * I.e., null if this is not a reply message, or the precedessor, or
+       * the parent, or null if neither exists. */
       getCommentParent: function(message) {
+        if (! message.parentNode ||
+            ! message.parentNode.classList.contains('replies'))
+          return null;
         var prec = Instant.message.getPrecedessor(message);
-        if (prec) return prec;
+        if (prec)
+          return prec;
         return Instant.message.getParent(message);
       },
       /* Compare the messages (which incidentally can be arbitrary DOM nodes)
@@ -3955,6 +3960,7 @@ this.Instant = function() {
         var popup = Instant.privmsg._makePopup(data);
         popups.push(popup);
         if (isNew) {
+          Instant.privmsg._updateNicks(popup);
           Instant.privmsg._save(popup);
           Instant.privmsg._update();
           Instant.animation.flash(msgUnread);
@@ -3963,6 +3969,7 @@ this.Instant = function() {
             btntext: 'View',
             onclick: function() {
               popup.classList.remove('pm-unread');
+              Instant.privmsg._save(popup);
               Instant.popups.add(popup);
               Instant.privmsg._update();
               Instant.animation.unflash(msgUnread);
@@ -5399,15 +5406,14 @@ this.Instant = function() {
                                      $cls('popups-content', wrapper));
       },
       /* Adjust the "hidden popups" UI message */
-      _updateHidden: function(display, flash) {
+      _updateHidden: function(flash) {
         var count = $selAll('.popup', stack).length;
         hiddenMsg.textContent = 'Hidden popups (' + count + ')';
-        if (display) {
-          if (wrapper.classList.contains('hidden')) {
-            Instant.sidebar.showMessage(hiddenMsg);
-          } else {
-            Instant.sidebar.hideMessage(hiddenMsg);
-          }
+        if (wrapper.classList.contains('hidden') &&
+            Instant.popups.hasPopups()) {
+          Instant.sidebar.showMessage(hiddenMsg);
+        } else {
+          Instant.sidebar.hideMessage(hiddenMsg);
         }
         if (flash) Instant.animation.flash(hiddenMsg);
       },
@@ -5498,12 +5504,12 @@ this.Instant = function() {
         } else {
           stack.appendChild(node);
         }
-        var hasPopups = (!! $sel('.popup:not(.popup-weak)', stack));
+        var hasPopups = Instant.popups.hasPopups();
         if (hasPopups) {
           wrapper.classList.remove('empty');
         }
         if (wrapper.classList.contains('hidden')) {
-          Instant.popups._updateHidden(false, true);
+          Instant.popups._updateHidden(true);
         } else if (hasPopups) {
           Instant.popups._update();
           Instant.popups.focus(node);
@@ -5517,8 +5523,9 @@ this.Instant = function() {
         } catch (e) {
           return;
         }
-        if (! $sel('.popup:not(.popup-weak)', stack)) {
+        if (! Instant.popups.hasPopups()) {
           wrapper.classList.add('empty');
+          Instant.popups._updateHidden();
           Instant.input.focus();
         } else {
           Instant.popups._update();
@@ -5571,18 +5578,20 @@ this.Instant = function() {
         Instant.input.focus();
       },
       /* Hide/unhide all popups */
-      hideAll: function(force) {
+      hideAll: function(force, nonempty) {
         if (force == null) {
           force = (! wrapper.classList.contains('hidden'));
         }
         if (force) {
+          if (! nonempty && ! Instant.popups.hasPopups())
+            return;
           wrapper.classList.add('hidden');
         } else {
           wrapper.classList.remove('hidden');
           Instant.popups._update();
           Instant.popups.focus();
         }
-        Instant.popups._updateHidden(true, false);
+        Instant.popups._updateHidden();
       },
       /* Create a message to be embedded into a popup */
       makeMessage: function(options) {
@@ -5623,6 +5632,10 @@ this.Instant = function() {
       /* Remove a message from a popup */
       removeMessage: function(msgnode) {
         msgnode.parentNode.removeChild(msgnode);
+      },
+      /* Check whether any non-weak popups are shown */
+      hasPopups: function() {
+        return (!! $sel('.popup:not(.popup-weak)', stack));
       },
       /* Check whether a popup is already shown */
       isShown: function(node) {
