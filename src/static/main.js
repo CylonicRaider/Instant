@@ -3998,20 +3998,6 @@ this.Instant = function() {
        * (I -- applies to incoming messages; O -- applies to outgoing
        * messages; A -- applies to all messages.) */
       _makePopup: function(data) {
-        function goToPM(event) {
-          Instant.privmsg.navigateTo(this.textContent);
-          event.preventDefault();
-        }
-        function goToUser(event) {
-          var userID = this.textContent;
-          if (Instant.userList.showMenu(userID)) {
-            // delAll focuses the input bar.
-            var focused = document.activeElement;
-            Instant.popups.delAll();
-            focused.focus();
-            event.preventDefault();
-          }
-        }
         /* Pre-computed variables */
         var draft = (data.type == 'pm-draft' || data.type == 'pm-afterview');
         var nick = (draft) ? data.tonick : data.nick;
@@ -4120,7 +4106,7 @@ this.Instant = function() {
           var parentNode = $cls('pm-parent-id', popup);
           parentNode.textContent = data.parent;
           parentNode.href = '#pm-' + data.parent;
-          parentNode.addEventListener('click', goToPM);
+          Instant.hash.listenOn(parentNode);
         }
         if (draft) {
           if (data.from != null)
@@ -4130,7 +4116,7 @@ this.Instant = function() {
           var toNode = $cls('pm-to-id', popup);
           toNode.textContent = data.to;
           toNode.href = '#user-' + data.to;
-          toNode.addEventListener('click', goToUser);
+          Instant.hash.listenOn(toNode);
           $cls('pm-to-nick', popup).setAttribute('data-uid', data.to);
           $cls('pm-editor', popup).value = data.text || '';
         } else {
@@ -4138,7 +4124,7 @@ this.Instant = function() {
           var fromNode = $cls('pm-from-id', popup);
           fromNode.textContent = data.from;
           fromNode.href = '#user-' + data.from;
-          fromNode.addEventListener('click', goToUser);
+          Instant.hash.listenOn(fromNode);
           $cls('pm-from-nick', popup).setAttribute('data-uid', data.from);
           if (data.to != null)
             popup.setAttribute('data-to', data.to);
