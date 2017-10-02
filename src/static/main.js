@@ -3388,10 +3388,11 @@ this.Instant = function() {
             ['span', ['...']]
           ]]
         ]);
+        var showInfo = Instant.storage.get('show-user-info');
         menu = $makeNode('div', 'user-list-menu', [
           ['h2', ['Actions:']],
           ['div', 'clear'],
-          ['button', 'button action-info', 'Info'], ' ',
+          showInfo && ['button', 'button action-info', 'Info'], ' ',
           ['button', 'button action-ping', 'Insert ping'], ' ',
           ['button', 'button action-pm', 'PM']
         ]);
@@ -3423,13 +3424,14 @@ this.Instant = function() {
             Instant.userList._updateDecay();
         });
         /* Context menu actions */
-        $cls('action-info', menu).addEventListener('click', function() {
-          var parent = menu.parentNode;
-          if (! parent) return;
-          var nickNode = parent.firstElementChild;
-          var uid = nickNode.getAttribute('data-id');
-          Instant.userList.showInfo(uid);
-        });
+        if (showInfo)
+          $cls('action-info', menu).addEventListener('click', function() {
+            var parent = menu.parentNode;
+            if (! parent) return;
+            var nickNode = parent.firstElementChild;
+            var uid = nickNode.getAttribute('data-id');
+            Instant.userList.showInfo(uid);
+          });
         $cls('action-ping', menu).addEventListener('click', function() {
           var parent = menu.parentNode;
           if (! parent) return;
