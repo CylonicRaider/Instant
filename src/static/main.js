@@ -3381,7 +3381,6 @@ this.Instant = function() {
     return {
       /* Initialize state */
       init: function() {
-        /* Helper */
         node = $makeNode('div', 'user-list');
         collapser = $makeNode('div', 'user-list-counter', [
           ['a', {href: '#'}, [
@@ -3392,8 +3391,9 @@ this.Instant = function() {
         menu = $makeNode('div', 'user-list-menu', [
           ['h2', ['Actions:']],
           ['div', 'clear'],
-          ['button', 'button action-ping', ['Insert ping']], ' ',
-          ['button', 'button action-pm', ['PM']]
+          ['button', 'button action-info', 'Info'], ' ',
+          ['button', 'button action-ping', 'Insert ping'], ' ',
+          ['button', 'button action-pm', 'PM']
         ]);
         /* Maintain focus state of input bar */
         var inputWasFocused = false;
@@ -3423,6 +3423,13 @@ this.Instant = function() {
             Instant.userList._updateDecay();
         });
         /* Context menu actions */
+        $cls('action-info', menu).addEventListener('click', function() {
+          var parent = menu.parentNode;
+          if (! parent) return;
+          var nickNode = parent.firstElementChild;
+          var uid = nickNode.getAttribute('data-id');
+          Instant.userList.showInfo(uid);
+        });
         $cls('action-ping', menu).addEventListener('click', function() {
           var parent = menu.parentNode;
           if (! parent) return;
@@ -3715,6 +3722,42 @@ this.Instant = function() {
         Instant.sidebar.scrollIntoView(newParent);
         newChild.focus();
         return true;
+      },
+      /* Show information about the given user */
+      showInfo: function(uid) {
+        var node = nicks[uid];
+        var uuid = node.getAttribute('data-uuid');
+        var lastActive = +node.getAttribute('data-last-active');
+        var popup = Instant.popups.addNew({title: 'User information',
+          content: $makeFrag(
+            ['div', 'popup-grid', [
+              ['b', null, 'Name: '],
+              ['span', 'userinfo-nick', [
+                Instant.nick.makeNode(node.textContent)
+              ]]
+            ]],
+            ['div', 'popup-grid', [
+              ['b', null, 'ID: '],
+              ['span', 'monospace userinfo-id']
+            ]],
+            ['div', 'popup-grid', [
+              ['b', null, 'UUID: '],
+              ['span', 'monospace userinfo-uuid']
+            ]],
+            ['div', 'popup-grid', [
+              ['b', null, 'Active: '],
+              ['span', 'userinfo-active', [
+                formatDateNode(new Date(lastActive))
+              ]]
+            ]]
+          ),
+          buttons: [{text: 'Close', onclick: function() {
+            Instant.popups.del(popup);
+          }, className: 'first'}],
+          focusSel: '.first'
+        });
+        $sel('.userinfo-id', popup).textContent = uid;
+        $sel('.userinfo-uuid', popup).textContent = uuid;
       },
       /* Return the ID of the currently selected user */
       getSelectedUser: function() {
