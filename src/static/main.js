@@ -4908,7 +4908,8 @@ this.Instant = function() {
       }()
     };
   }();
-  /* Settings control */
+  /* Settings UI
+   * For the actual data storage, see Instant.storage. */
   Instant.settings = function() {
     /* The outer node containing all the nice stuff */
     var wrapperNode = null;
