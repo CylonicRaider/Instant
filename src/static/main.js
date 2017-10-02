@@ -227,6 +227,8 @@ this.Instant = function() {
     function zpad(n, l) {
       return leftpad(n, l, '0');
     }
+    /* Polymorphism */
+    if (typeof date == 'number') date = new Date(date);
     /* Compose result */
     return (zpad(date.getFullYear(), 4) + '-' +
       MONTH_NAMES[date.getMonth() + 1] + '-' +
@@ -237,6 +239,7 @@ this.Instant = function() {
   }
   /* Format a Date object into a DOM node sensibly */
   function formatDateNode(date) {
+    if (typeof date == 'number') date = new Date(date);
     return $makeNode('time', {datetime: date.toISOString(),
       'data-timestamp': date.getTime()}, formatDate(date));
   }
@@ -3749,7 +3752,7 @@ this.Instant = function() {
             ['div', 'popup-grid', [
               ['b', null, 'Active: '],
               ['span', 'userinfo-active', [
-                formatDateNode(new Date(lastActive))
+                formatDateNode(lastActive)
               ]]
             ]]
           ),
@@ -4099,7 +4102,7 @@ this.Instant = function() {
           ]],
           (data.timestamp != null) && ['div', 'popup-grid', [
             ['b', null, 'Date: '],
-            ['span', 'pm-date', [formatDateNode(new Date(data.timestamp))]]
+            ['span', 'pm-date', [formatDateNode(data.timestamp)]]
           ]],
           ['hr'],
           ['div', 'pm-body', [
