@@ -1459,7 +1459,7 @@ this.Instant = function() {
             top = stack[stack.length - 1];
           }
           /* Insert an omission mark if necessary */
-          if (prev && prev != Instant.message.getDocumentPrecedessor(m)) {
+          if (prev && prev != Instant.message.getDocumentPredecessor(m)) {
             var d = top[2] + 1;
             top[1].appendChild($makeNode('p', {'data-depth': d}, '...'));
             if (d < minDepth) minDepth = d;
@@ -1707,7 +1707,7 @@ this.Instant = function() {
         return ret;
       },
       /* Get the message immediately preceding the given one */
-      getPrecedessor: function(message) {
+      getPredecessor: function(message) {
         var prev = message.previousElementSibling;
         if (! prev || ! Instant.message.isMessage(prev))
           return null;
@@ -1721,12 +1721,12 @@ this.Instant = function() {
         return next;
       },
       /* Get the message preceding the given one in document order */
-      getDocumentPrecedessor: function(message) {
-        var prec = Instant.message.getPrecedessor(message);
-        if (prec) {
-          while (Instant.message.hasReplies(prec))
-            prec = Instant.message.getLastReply(prec);
-          return prec;
+      getDocumentPredecessor: function(message) {
+        var pred = Instant.message.getPredecessor(message);
+        if (pred) {
+          while (Instant.message.hasReplies(pred))
+            pred = Instant.message.getLastReply(pred);
+          return pred;
         }
         return Instant.message.getParentMessage(message);
       },
@@ -1742,15 +1742,15 @@ this.Instant = function() {
         }
       },
       /* Get the message this is a comment to
-       * I.e., null if this is not a reply message, or the precedessor, or
+       * I.e., null if this is not a reply message, or the predecessor, or
        * the parent, or null if neither exists. */
       getCommentParent: function(message) {
         if (! message.parentNode ||
             ! message.parentNode.classList.contains('replies'))
           return null;
-        var prec = Instant.message.getPrecedessor(message);
-        if (prec)
-          return prec;
+        var pred = Instant.message.getPredecessor(message);
+        if (pred)
+          return pred;
         return Instant.message.getParent(message);
       },
       /* Compare the messages (which incidentally can be arbitrary DOM nodes)
@@ -1762,7 +1762,7 @@ this.Instant = function() {
       },
       /* Obtain a document-ordered array of the messages covered by the given
        * range
-       * If reverseEmpty is true and b is a precedessor of a, returns an
+       * If reverseEmpty is true and b is a predecessor of a, returns an
        * empty array. If a and b are equal, returns (in any case) that
        * message as the only element. If includeFakes is true, fake messages
        * are included, otherwise not. */
@@ -2031,9 +2031,9 @@ this.Instant = function() {
        * bitmask of the following values:
        *  1: Predicate matches; message in question be returned.
        *  2: Children of the message should be scanned.
-       *  4: The direct precedessor of the message should be scanned.
+       *  4: The direct predecessor of the message should be scanned.
        *  8: The direct successor of the message should be scanned.
-       * 16: A faraway precedessor of the message should be scanned (for
+       * 16: A faraway predecessor of the message should be scanned (for
        *     bisection).
        * 32: A faraway successor of the message should be scanned.
        */
@@ -2062,7 +2062,7 @@ this.Instant = function() {
           if (res & 1) ret.push(n);
           /* Scan children */
           if (res & 2) search.push([n]);
-          /* Scan precedessor */
+          /* Scan predecessor */
           if (res & 4 && top[3] > top[2]) {
             search.push([null, top[1], top[2], before, before]);
             before--;
@@ -2072,7 +2072,7 @@ this.Instant = function() {
             search.push([null, top[1], after, after, top[4]]);
             after++;
           }
-          /* Scan far precedessor */
+          /* Scan far predecessor */
           if (res & 16 && top[3] > top[2]) {
             search.push([null, top[1], top[2], (top[2] + before) >> 1,
                         before]);
@@ -2770,7 +2770,7 @@ this.Instant = function() {
         if (Instant.message.isMessage(message)) {
           var replies = Instant.message._getReplyNode(message);
           if (inputNode.parentNode == replies ||
-              Instant.message.getPrecedessor(inputNode) != message &&
+              Instant.message.getPredecessor(inputNode) != message &&
               ! Instant.message.hasReplies(message) &&
               ! Instant.message.getSuccessor(message)) {
             return Instant.input.jumpTo(Instant.message.getParent(message));
@@ -2790,14 +2790,14 @@ this.Instant = function() {
         var root = Instant.message.getRoot(inputNode);
         switch (direction) {
           case 'up':
-            /* Traverse parents until we have a precedessor */
+            /* Traverse parents until we have a predecessor */
             var par = inputNode, prev;
             while (par) {
-              prev = Instant.message.getPrecedessor(par);
+              prev = Instant.message.getPredecessor(par);
               if (prev) break;
               par = Instant.message.getParentMessage(par);
             }
-            /* If no parent has a precedessor, cannot do anything */
+            /* If no parent has a predecessor, cannot do anything */
             if (! prev) return false;
             par = prev;
             /* Descend into its children until we find one with no replies;
@@ -4825,15 +4825,15 @@ this.Instant = function() {
               }
               if (rescanUA || rescanUB || rescanMA || rescanMB) {
                 var im = Instant.message;
-                var prec = im.getDocumentPrecedessor.bind(im);
+                var pred = im.getDocumentPredecessor.bind(im);
                 var succ = im.getDocumentSuccessor.bind(im);
                 if (rescanUA)
-                  unreadAbove = scanMessages(unreadAbove, isUnread, prec);
+                  unreadAbove = scanMessages(unreadAbove, isUnread, pred);
                 if (rescanUB)
                   unreadBelow = scanMessages(unreadBelow, isUnread, succ);
                 if (rescanUA)
                   mentionAbove = scanMessages(mentionAbove, isUnreadMention,
-                                              prec);
+                                              pred);
                 if (rescanUB)
                   mentionBelow = scanMessages(mentionBelow, isUnreadMention,
                                               succ);
