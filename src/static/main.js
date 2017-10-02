@@ -5638,7 +5638,7 @@ this.Instant = function() {
       /* Add a newly-created message to a popup */
       addNewMessage: function(popup, options) {
         var msgnode = Instant.popups.makeMessage(options);
-        Instant.popups.addMessage(msgnode, popup);
+        Instant.popups.addMessage(popup, msgnode);
         return msgnode;
       },
       /* Remove a message from a popup */
