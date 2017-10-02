@@ -3849,7 +3849,7 @@ this.Instant = function() {
       /* Update the gray-out status of all popups */
       _updateNicks: function(popup) {
         if (popup) {
-          var nick = $sel('.pm-header .nick', popup);
+          var nick = $sel('.popup-grid .nick', popup);
           if (! Instant.userList.get(nick.getAttribute('data-uid')) &&
               nick.style.backgroundColor)
             nick.style.backgroundColor = '';
@@ -3937,7 +3937,7 @@ this.Instant = function() {
         function callback(resp) {
           if (resp.type == 'error') {
             Instant.popups.addNewMessage(popup, {content: $makeFrag(
-              ['strong', null, 'Error: '],
+              ['b', null, 'Error: '],
               resp.data.message
             ), className: 'popup-message-error'});
           } else {
@@ -4024,8 +4024,8 @@ this.Instant = function() {
         nickNode.classList.add((draft) ? 'pm-to-nick' : 'pm-from-nick');
         /* Create structure skeleton */
         var body = $makeFrag(
-          ! draft && data.id && ['div', 'pm-header', [
-            ['strong', null, 'ID: '],
+          ! draft && data.id && ['div', 'popup-grid', [
+            ['b', null, 'ID: '],
             ['span', [
               ['span', 'monospace pm-message-id'],
               data.parent && ' ',
@@ -4034,26 +4034,26 @@ this.Instant = function() {
               ]]
             ]]
           ]],
-          draft && data.parent && ['div', 'pm-header', [
-            ['strong', null, 'Reply-to: '],
+          draft && data.parent && ['div', 'popup-grid', [
+            ['b', null, 'Reply-to: '],
             ['span', [['a', 'monospace pm-parent-id']]]
           ]],
-          ! draft && ['div', 'pm-header', [
-            ['strong', null, 'From: '],
+          ! draft && ['div', 'popup-grid', [
+            ['b', null, 'From: '],
             ['span', [
               nickNode, ' ',
               ['i', ['(user ID ', ['a', 'monospace pm-from-id'], ')']]
             ]]
           ]],
-          draft && ['div', 'pm-header', [
-            ['strong', null, 'To: '],
+          draft && ['div', 'popup-grid', [
+            ['b', null, 'To: '],
             ['span', [
               nickNode, ' ',
               ['i', ['(user ID ', ['a', 'monospace pm-to-id'], ')']]
             ]]
           ]],
-          (data.timestamp != null) && ['div', 'pm-header', [
-            ['strong', null, 'Date: '],
+          (data.timestamp != null) && ['div', 'popup-grid', [
+            ['b', null, 'Date: '],
             ['span', 'pm-date', [formatDateNode(new Date(data.timestamp))]]
           ]],
           ['hr'],

@@ -1040,18 +1040,19 @@ body {
   box-shadow: 0 0 5px black;
 }
 
-.pm-popup .pm-header {
+.popup .popup-grid {
   display: table-row;
 }
-.pm-popup .pm-header > * {
+.popup .popup-grid > * {
   display: table-cell;
 }
-.pm-popup .pm-header > strong {
+.popup .popup-grid > b {
   white-space: pre;
 }
-.pm-popup .pm-header i {
+.popup .popup-grid i {
   font-size: smaller;
 }
+
 .pm-popup .pm-editor {
   margin: 0;
   border: 0;
