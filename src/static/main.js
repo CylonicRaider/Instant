@@ -422,6 +422,8 @@ this.Instant = function() {
         /* Update flags */
         connected = true;
         wasConnected = true;
+        /* Inform other modules */
+        Instant.input._setOnline(true);
         /* Send event */
         Instant._fireListeners('connection.open', {source: event});
         /* Send notification */
@@ -596,8 +598,9 @@ this.Instant = function() {
         connected = false;
         lastPong = null;
         callbacks = {};
-        /* Inform logs */
+        /* Inform others */
         Instant.logs.pull._disconnected();
+        Instant.input._setOnline(false);
         /* Send event */
         Instant._fireListeners('connection.close', {source: event});
         /* Send a notification */
@@ -610,7 +613,7 @@ this.Instant = function() {
       },
       /* Handle an auxillary error */
       _error: function(event) {
-        /* Update flag */
+        /* Update flags */
         var wasConnected = connected;
         connected = false;
         /* Send event */
@@ -3000,6 +3003,14 @@ this.Instant = function() {
             if (text.indexOf('\n') == -1 || curs == inputMsg.value.length)
               navigate('down');
           }
+        }
+      },
+      /* Update the online status for display purposes */
+      _setOnline: function(status) {
+        if (status) {
+          inputNode.classList.remove('offline');
+        } else {
+          inputNode.classList.add('offline');
         }
       },
       /* Insert text at the current editing position (if any) */

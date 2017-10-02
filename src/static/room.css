@@ -719,6 +719,9 @@ body {
   visibility: hidden;
 }
 
+.input-bar.offline .input-message-cell {
+  background: rgba(128, 128, 128, 0.3);
+}
 .input-bar input, .input-bar textarea {
   outline: none;
 }
