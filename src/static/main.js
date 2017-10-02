@@ -6034,9 +6034,7 @@ this.Instant = function() {
         Instant._fireListeners('storage.save');
         data.save();
       },
-      /* Obtain a reference to the underlying storage object
-       * NOTE that the reference might silently become invalid, and remember
-       *      to save regularly. */
+      /* Obtain a reference to the underlying storage object */
       getStorage: function() {
         return data;
       }
