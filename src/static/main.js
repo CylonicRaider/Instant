@@ -161,6 +161,10 @@ function $makeFrag() {
   }
   return ret;
 }
+/* Create a text node */
+function $text(t) {
+  return document.createTextNode(t);
+}
 
 /* Evaluate some code and return the results
  * This is literally what one should normally not do.
@@ -3743,11 +3747,11 @@ this.Instant = function() {
             ]],
             ['div', 'popup-grid', [
               ['b', null, 'ID: '],
-              ['span', 'monospace userinfo-id']
+              ['span', 'monospace userinfo-id', [$text(uid)]]
             ]],
             ['div', 'popup-grid', [
               ['b', null, 'UUID: '],
-              ['span', 'monospace userinfo-uuid']
+              ['span', 'monospace userinfo-uuid', [$text(uuid)]]
             ]],
             ['div', 'popup-grid', [
               ['b', null, 'Active: '],
@@ -3761,8 +3765,6 @@ this.Instant = function() {
           }, className: 'first'}],
           focusSel: '.first'
         });
-        $sel('.userinfo-id', popup).textContent = uid;
-        $sel('.userinfo-uuid', popup).textContent = uuid;
       },
       /* Return the ID of the currently selected user */
       getSelectedUser: function() {
