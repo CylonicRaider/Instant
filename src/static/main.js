@@ -3929,7 +3929,7 @@ this.Instant = function() {
       },
       /* Navigate to the given PM */
       navigateTo: function(id) {
-        var popup = Instant.privmsg.get(pmID, true);
+        var popup = Instant.privmsg.get(id, true);
         if (! popup) return false;
         Instant.privmsg.showOne(popup);
         Instant.popups.focus(popup);
