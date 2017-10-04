@@ -384,7 +384,7 @@ this.Instant = function() {
         }
         /* Update related modules */
         Instant.animation.onlineStatus.update();
-        Instant.userList.update();
+        Instant.userList._update();
       },
       /* Actually connect */
       connect: function() {
@@ -484,8 +484,7 @@ this.Instant = function() {
             /* Say hello */
             Instant.identity.sendNick();
             /* Reset user list */
-            Instant.userList.clear();
-            Instant.connection.sendBroadcast({type: 'who'});
+            Instant.userList.refresh();
             /* Update UUID cache */
             Instant.logs.addUUID(Instant.identity.id, Instant.identity.uuid);
             /* Initiate log pull */
@@ -498,11 +497,10 @@ this.Instant = function() {
             /* Nothing to do */
             break;
           case 'joined': /* New user joined (might be ourself) */
-            Instant.userList.add(msg.data.id, '', msg.data.uuid);
-            Instant.logs.addUUID(msg.data.id, msg.data.uuid);
+            Instant.userList._onmessage(msg);
             break;
           case 'left': /* User left */
-            Instant.userList.remove(msg.data.id);
+            Instant.userList._onmessage(msg);
             Instant.logs.pull._onmessage(msg);
             Instant.privmsg._onmessage(msg);
             break;
@@ -568,8 +566,7 @@ this.Instant = function() {
                 }
                 break;
               case 'nick': /* Someone informs us about their nick */
-                Instant.userList.add(msg.from, data.nick, data.uuid);
-                if (data.uuid) Instant.logs.addUUID(msg.from, data.uuid);
+                Instant.userList._onmessage(msg);
                 break;
               case 'who': /* Someone asks about others' nicks */
                 Instant.identity.sendNick(msg.from);
@@ -1041,8 +1038,6 @@ this.Instant = function() {
             pullStarted = null;
             lastUpdate = null;
             timer = null;
-            /* Notify other submodules */
-            Instant.logs.pull._gatherDone();
             /* Request logs! */
             var sentBefore = false, sentAfter = false;
             if (! keys.length) {
@@ -1079,15 +1074,13 @@ this.Instant = function() {
               console.debug('[LogPull]', 'Sent requests (B/A):', sentBefore,
                             sentAfter);
           },
-          /* Notify other submodules that we are done gathering log
-           * advertisements */
-          _gatherDone: function() {
-            /* Now, most of the user list should have been enumerated */
-            Instant.privmsg._updateNicks();
-          },
           /* Handler for messages */
           _onmessage: function(msg) {
-            if (msg.type == 'left') {
+            if (msg.type == 'joined') {
+              /* Someone joined */
+              Instant.userList.add(msg.data.id, '', msg.data.uuid);
+              Instant.logs.addUUID(msg.data.id, msg.data.uuid);
+            } else if (msg.type == 'left') {
               /* Someone left */
               var upd = false;
               if (oldestPeer && oldestPeer.id == msg.data.id) {
@@ -1102,6 +1095,9 @@ this.Instant = function() {
                 Instant.connection.sendBroadcast({type: 'log-query'});
                 lastUpdate = Date.now();
               }
+              return;
+            } else if (msg.type != 'unicast' && msg.type != 'broadcast') {
+              /* Not interesting */
               return;
             }
             var response = null, respondTo = msg.from;
@@ -3375,6 +3371,11 @@ this.Instant = function() {
   }();
   /* User list handling */
   Instant.userList = function() {
+    /* Time to wait since the last update before considering the list
+     * complete */
+    var PEER_TIMEOUT = 1000;
+    /* When to check for updates */
+    var POLL_INTERVAL = 100;
     /* ID -> node */
     var nicks = {};
     /* The actual user list. Wrapper is retrieved automatically. */
@@ -3385,6 +3386,8 @@ this.Instant = function() {
     var menu = null;
     /* Whether the list was previously collapsed */
     var lastCollapsed = false;
+    /* When the last new entry arrived; ID of the update timer */
+    var lastUpdate = null, timer = null;
     return {
       /* Initialize state */
       init: function() {
@@ -3552,7 +3555,7 @@ this.Instant = function() {
         /* Insert node into list */
         node.insertBefore(newWrapper, insBefore);
         /* Maintain consistency */
-        Instant.userList.update();
+        Instant.userList._update();
         /* Return something sensible */
         return newNode;
       },
@@ -3563,13 +3566,13 @@ this.Instant = function() {
           node.removeChild(nicks[id].parentNode);
         } catch (e) {}
         delete nicks[id];
-        Instant.userList.update();
+        Instant.userList._update();
       },
       /* Remove everything from list */
       clear: function() {
         nicks = {};
         if (node) while (node.firstChild) node.removeChild(node.firstChild);
-        Instant.userList.update();
+        Instant.userList._update();
       },
       /* Obtain data for a certain (set of) users in a convenient format
        * The user list is filtered by entries that match all parameters of
@@ -3600,6 +3603,31 @@ this.Instant = function() {
                   nick: el.getAttribute('data-nick')};
         });
       },
+      /* Perform a full online refresh of the user list */
+      refresh: function() {
+        Instant.userList.clear();
+        Instant.connection.sendBroadcast({type: 'who'});
+        lastUpdate = Date.now();
+        if (timer == null) {
+          timer = setInterval(function() {
+            var now = Date.now();
+            if (now < lastUpdate + PEER_TIMEOUT)
+              return;
+            lastUpdate = null;
+            clearInterval(timer);
+            timer = null;
+            Instant.userList._refreshDone();
+          }, POLL_INTERVAL);
+        }
+        Instant._fireListeners('userList.refresh');
+      },
+      /* Finished a full refresh */
+      _refreshDone: function() {
+        /* Update other submodules */
+        Instant.privmsg._updateNicks();
+        /* Inform listeners */
+        Instant._fireListeners('userList.refresh.done');
+      },
       /* Update the collapsing state */
       _updateCollapse: function() {
         var newState = (document.documentElement.offsetWidth <= 400 ||
@@ -3621,7 +3649,7 @@ this.Instant = function() {
         });
       },
       /* Update some CSS properties */
-      update: function() {
+      _update: function() {
         /* Update counter */
         if (node && collapser) {
           var c = $sel('span', collapser);
@@ -3651,7 +3679,7 @@ this.Instant = function() {
           /* Update animations */
           Instant.userList._updateDecay();
         }
-        Instant.userList.update();
+        Instant.userList._update();
       },
       /* Return whether the user list is currently collapsed */
       isCollapsed: function() {
@@ -3722,13 +3750,13 @@ this.Instant = function() {
         var newChild = null;
         if (id) newChild = Instant.userList.get(id);
         if (! newChild) {
-          Instant.userList.update();
+          Instant.userList._update();
           return false;
         }
         var newParent = newChild.parentNode;
         newParent.classList.add('selected');
         newParent.appendChild(menu);
-        Instant.userList.update();
+        Instant.userList._update();
         Instant.sidebar.scrollIntoView(newParent);
         newChild.focus();
         return true;
@@ -3772,6 +3800,23 @@ this.Instant = function() {
           ],
           focusSel: '.first'
         });
+      },
+      /* Process an incoming remote message */
+      _onmessage: function(msg) {
+        if (msg.type == 'left') {
+          /* Someone left */
+          Instant.userList.remove(msg.data.id);
+          return;
+        } else if (msg.type != 'unicast' && msg.type != 'broadcast') {
+          /* Not interesting */
+          return;
+        }
+        var data = msg.data;
+        if (data.type != 'nick') return;
+        Instant.userList.add(msg.from, data.nick, data.uuid);
+        if (data.uuid) Instant.logs.addUUID(msg.from, data.uuid);
+        /* Keep refresh logic up to date */
+        lastUpdate = Date.now();
       },
       /* Return the ID of the currently selected user */
       getSelectedUser: function() {
@@ -4283,22 +4328,19 @@ this.Instant = function() {
       },
       /* Handle incoming remote messages */
       _onmessage: function(msg) {
-        switch (msg.type) {
-          case 'left':
-            Instant.privmsg._updateNicks();
-            break;
+        if (msg.type == 'left') {
+          Instant.privmsg._updateNicks();
+          return;
+        } else if (msg.type != 'unicast' && msg.type != 'broadcast') {
           // Dunno why someone should broadcast a PM, but, sure, why not.
-          case 'unicast': case 'broadcast':
-            var data = msg.data;
-            switch (data.type) {
-              case 'privmsg':
-                Instant.privmsg._read({id: msg.id, parent: data.parent,
-                  from: msg.from, nick: data.nick, text: data.text,
-                  timestamp: msg.timestamp, type: 'privmsg', unread: true},
-                  true);
-                break;
-          }
+          return;
         }
+        var data = msg.data;
+        if (data.type != 'privmsg') return;
+        Instant.privmsg._read({id: msg.id, parent: data.parent,
+          from: msg.from, nick: data.nick, text: data.text,
+          timestamp: msg.timestamp, type: 'privmsg', unread: true},
+          true);
       },
       /* Return the amount of unread private messages */
       countUnread: function() {
