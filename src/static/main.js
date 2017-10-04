@@ -4015,6 +4015,7 @@ this.Instant = function() {
           data.parent = parentNode.textContent;
         var recipient = $cls('pm-to-id').textContent;
         Instant.connection.sendUnicast(recipient, data, callback);
+        $cls('pm-send', popup).disabled = true;
       },
       /* Display the popup for an incoming message */
       _read: function(data, isNew) {
