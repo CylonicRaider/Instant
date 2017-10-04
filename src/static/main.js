@@ -3437,6 +3437,7 @@ this.Instant = function() {
             if (! parent) return;
             var nickNode = parent.firstElementChild;
             var uid = nickNode.getAttribute('data-id');
+            Instant.userList.showMenu(null);
             Instant.userList.showInfo(uid);
           });
         $cls('action-ping', menu).addEventListener('click', function() {
@@ -3760,9 +3761,15 @@ this.Instant = function() {
               ]]
             ]]
           ),
-          buttons: [{text: 'Close', onclick: function() {
-            Instant.popups.del(popup);
-          }, className: 'first'}],
+          buttons: [
+            {text: 'Back', onclick: function() {
+              Instant.popups.del(popup);
+              Instant.userList.showMenu(uid);
+            }, className: 'first'},
+            {text: 'Close', onclick: function() {
+              Instant.popups.del(popup);
+            }}
+          ],
           focusSel: '.first'
         });
       },
