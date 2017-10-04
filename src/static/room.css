@@ -559,6 +559,14 @@ body {
   padding: 0;
   outline-offset: -1px;
 }
+.button:disabled {
+  /* Override dynamic color coding */
+  color: rgba(128, 128, 128) !important;
+  background: none;
+  text-decoration: none;
+  cursor: default;
+  outline: none;
+}
 .button, #main .button, .settings, #main .settings {
   -webkit-transition: none;
   transition: none;
