@@ -509,12 +509,12 @@ class Scribe(instabot.Bot):
         instabot.Bot.handle_pong(self, content, rawmsg)
         self._last_pong = time.time()
     def handle_identity(self, content, rawmsg):
+        self._send_ping()
         instabot.Bot.handle_identity(self, content, rawmsg)
         self.send_broadcast({'type': 'who'})
         self._execute(self._push_logs)
         if not self.dont_pull:
             self._logs_begin()
-        self._send_ping()
         self.scheduler.set_forever(False)
     def handle_joined(self, content, rawmsg):
         instabot.Bot.handle_joined(self, content, rawmsg)
