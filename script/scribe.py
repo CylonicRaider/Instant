@@ -642,7 +642,7 @@ class Scribe(instabot.Bot):
         if (self._cur_candidate is None or
                 data['from'] < self._cur_candidate['from']):
             dbfrom = self.db.bounds()[0]
-            if data['from'] < dbfrom:
+            if dbfrom is not None and data['from'] < dbfrom:
                 data['reqto'] = dbfrom
             elif uid in self._already_loaded:
                 data['reqto'] = self._already_loaded[uid]
