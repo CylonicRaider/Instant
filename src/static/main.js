@@ -3478,7 +3478,7 @@ this.Instant = function() {
           }
           // Middle index and text.
           var m = (b + e) >> 1;
-          var t = children[m].firstElementChild.textContent;
+          var t = children[m].firstElementChild.getAttribute('data-nick');
           var i = children[m].firstElementChild.getAttribute('data-id');
           // Test which half to engage.
           if (name < t) {
@@ -3771,7 +3771,7 @@ this.Instant = function() {
             ['div', 'popup-grid', [
               ['b', null, 'Name: '],
               ['span', 'userinfo-nick', [
-                Instant.nick.makeNode(node.textContent)
+                Instant.nick.makeNode(node.getAttribute('data-nick'))
               ]]
             ]],
             ['div', 'popup-grid', [
