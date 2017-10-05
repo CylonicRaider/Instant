@@ -1013,12 +1013,12 @@ this.Instant = function() {
           /* Pull logs until the given message is fetched; then go to it
            * This is asynchronous, and can potentially take *much* time.
            */
-          upto: function(msgid) {
+          upto: function(msgid, done) {
             /* Check if goal already reached; otherwise set it */
             if (keys.length && keys[0] <= msgid) {
               goal = null;
-              // Should not cause an infinite mutual recursion
-              Instant.animation.navigateToMessage(msgid);
+              if (done)
+                Instant.animation.navigateToMessage(msgid);
             } else {
               goal = msgid;
             }
@@ -1224,7 +1224,7 @@ this.Instant = function() {
               }
             }
             /* Restart pull if necessary */
-            if (goal) Instant.logs.pull.upto(goal);
+            if (goal) Instant.logs.pull.upto(goal, true);
           },
           /* Handler for disconnects */
           _disconnected: function() {
