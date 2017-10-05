@@ -10,7 +10,7 @@ public class UniqueCounter implements Counter {
 
     public static final UniqueCounter INSTANCE = new UniqueCounter();
 
-    private long lastTime;
+    private long lastSeconds;
     private int sequence;
     private final long nodeID;
 
@@ -34,7 +34,8 @@ public class UniqueCounter implements Counter {
      */
     public synchronized long get() {
         long curTime = System.currentTimeMillis();
-        if ((curTime - lastTime) / 1000 == 0) {
+        long curSeconds = curTime / 1000;
+        if (curSeconds <= lastSeconds) {
             sequence++;
         } else if (sequence < 1024000) {
             sequence = 0;
@@ -42,7 +43,7 @@ public class UniqueCounter implements Counter {
             // Avoid ussing the same ID twice.
             sequence -= 1024000 - 1;
         }
-        lastTime = curTime;
+        lastSeconds = curSeconds;
         return (curTime << 10) + sequence;
     }
 
