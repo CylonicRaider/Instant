@@ -550,7 +550,8 @@ class Scribe(instabot.Bot):
             self._execute(self._process_log, data=data, uid=content['from'])
         elif tp == 'delete':
             # Message deletion request.
-            self._execute(self._delete, ids=data.get('ids', ()))
+            self._execute(self._delete, ids=data.get('ids', ()),
+                          cause=content['from'])
         elif tp == 'log-inquiry':
             # Inquiry about whether we are done loading logs.
             if self._logs_done:
@@ -676,16 +677,16 @@ class Scribe(instabot.Bot):
                 self._logs_begin()
             else:
                 self._logs_finish()
-    def _delete(self, ids):
+    def _delete(self, ids, cause=None):
         handled = set()
         for msg in self.db.delete(ids):
             handled.add(msg['id'])
-            log('DELETE id=%r parent=%r from=%r nick=%r text=%r' %
-                (msg['id'], msg['parent'], msg['from'], msg['nick'],
+            log('DELETE by=%r id=%r parent=%r from=%r nick=%r text=%r' %
+                (cause, msg['id'], msg['parent'], msg['from'], msg['nick'],
                  msg['text']))
         for i in ids:
             if i in handled: continue
-            log('DELETE id=%r' % (i,))
+            log('DELETE by=%r id=%r' % (cause, i))
     def _push_logs(self, peer=None):
         if peer is None:
             if not self.push_logs: return
