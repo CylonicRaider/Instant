@@ -377,8 +377,6 @@ class LogDBSQLite(LogDB):
             if uuid is not None: ret[u] = uuid
         return ret
     def close(self):
-        pass
-    def close(self):
         self.conn.close()
 
 def read_posts_ex(src, maxlen=None):
