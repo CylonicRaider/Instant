@@ -560,7 +560,7 @@ class Scribe(instabot.Bot):
             if self.dont_stay and self.dont_pull:
                 self.close()
         elif tp == 'privmsg':
-            # Someone is PM-ing me.
+            # Someone is PM-ing us.
             # Just log it.
             log('PRIVMSG id=%r parent=%r from=%r nick=%r text=%r' %
                 (content['id'], data.get('parent'), content['from'],
@@ -642,10 +642,10 @@ class Scribe(instabot.Bot):
             self._cur_candidate = data
             self.scheduler.add(1, lambda: self._send_request(data, uid))
     def _send_request(self, data, uid=None):
-        if data is None or uid is None:
-            self._logs_finish()
-            return
         if self._cur_candidate is not data:
+            return
+        elif data is None or uid is None:
+            self._logs_finish()
             return
         self.send_unicast(uid, {'type': 'log-request', 'to': data['reqto']})
     def _process_log_request(self, data, uid):
@@ -697,8 +697,9 @@ class Scribe(instabot.Bot):
         self.send_broadcast({'type': 'log-query'})
         self.scheduler.add(1, lambda: self._send_request(None))
     def _logs_finish(self):
+        if not self._logs_done:
+            self.send_broadcast({'type': 'log-done'})
         self._logs_done = True
-        self.send_broadcast({'type': 'log-done'})
         if self.dont_stay: self.close()
     def _send_ping(self):
         now = time.time()
