@@ -473,6 +473,7 @@ class Scribe(instabot.Bot):
         self.max_pings = kwds.get('max_pings', MAX_PINGS)
         self.push_logs = kwds.get('push_logs', [])
         self._cur_candidate = None
+        self._already_loaded = {}
         self._logs_done = False
         self._ping_job = None
         self._last_pong = None
@@ -640,6 +641,8 @@ class Scribe(instabot.Bot):
             dbfrom = self.db.bounds()[0]
             if data['from'] < dbfrom:
                 data['reqto'] = dbfrom
+            elif uid in self._already_loaded:
+                data['reqto'] = self._already_loaded[uid]
             else:
                 data['reqto'] = data['to']
             self._cur_candidate = data
@@ -665,6 +668,8 @@ class Scribe(instabot.Bot):
             if u: uuids[k] = u
         res = self.process_logs(rawlogs, uuids)
         if not self.dont_pull:
+            if rawlogs:
+                self._already_loaded[uid] = min(i['id'] for i in rawlogs)
             if res[0] or res[1]:
                 self._logs_begin()
             else:
