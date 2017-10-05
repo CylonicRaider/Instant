@@ -472,6 +472,7 @@ class Scribe(instabot.Bot):
         self.ping_delay = kwds.get('ping_delay', PING_DELAY)
         self.max_pings = kwds.get('max_pings', MAX_PINGS)
         self.push_logs = kwds.get('push_logs', [])
+        self.reconnect = True
         self._cur_candidate = None
         self._already_loaded = {}
         self._logs_done = False
@@ -557,6 +558,7 @@ class Scribe(instabot.Bot):
         elif tp == 'log-done':
             # Someone is done loading logs.
             if self.dont_stay and self.dont_pull:
+                self.reconnect = False
                 self.close()
         elif tp == 'privmsg':
             # Someone is PM-ing us.
@@ -708,7 +710,9 @@ class Scribe(instabot.Bot):
         if not self._logs_done:
             self.send_broadcast({'type': 'log-done'})
         self._logs_done = True
-        if self.dont_stay: self.close()
+        if self.dont_stay:
+            self.reconnect = False
+            self.close()
     def _send_ping(self):
         now = time.time()
         if (self._last_pong is not None and now >= self._last_pong +
@@ -800,6 +804,7 @@ def main():
             sched.clear()
             ws.close_now()
             thr.join(1)
+            if not bot.reconnect: break
             time.sleep(1)
     except (KeyboardInterrupt, SystemExit) as e:
         bot.close()
