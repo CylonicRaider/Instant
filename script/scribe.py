@@ -635,10 +635,15 @@ class Scribe(instabot.Bot):
             self.send_unicast(uid, {'type': 'log-info', 'from': bounds[0],
                 'to': bounds[1], 'length': bounds[2]})
     def _process_log_info(self, data, uid):
-        if not data.get('from'): return
+        if not data.get('from') or uid == self.identity['id']:
+            return
         if (self._cur_candidate is None or
                 data['from'] < self._cur_candidate['from']):
-            data['reqto'] = self.db.bounds()[0]
+            dbfrom = self.db.bounds()[0]
+            if data['from'] < dbfrom:
+                data['reqto'] = dbfrom
+            else:
+                data['reqto'] = data['to']
             self._cur_candidate = data
             self.scheduler.add(1, lambda: self._send_request(data, uid))
     def _send_request(self, data, uid=None):
