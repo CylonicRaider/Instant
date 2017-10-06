@@ -2815,8 +2815,9 @@ this.Instant = function() {
       },
       /* Move the input bar relative to its current position */
       navigate: function(direction) {
-        /* Find root */
-        var root = Instant.message.getRoot(inputNode);
+        /* Find roots */
+        var troot = Instant.message.getThreadRoot(inputNode);
+        var root = Instant.message.getRoot(troot || inputNode);
         switch (direction) {
           case 'up':
             /* Traverse parents until we have a predecessor */
@@ -2885,6 +2886,44 @@ this.Instant = function() {
               return true;
             }
             return false;
+          case 'threadUp':
+            /* Locate latest message in the current thread */
+            var latest = Instant.message.get(
+              Instant.message.getLatestMessage(troot));
+            if (latest == null ||
+                Instant.message.documentCmp(inputNode, latest) < 0 ||
+                latest == Instant.message.getParentMessage(inputNode) ||
+                latest == Instant.message.getPredecessor(inputNode)) {
+              /* If we are in the main thread, or before the latest message
+               * or at it, move to the predecessor thread */
+              var prevThread = Instant.message.getPredecessor(troot);
+              if (prevThread == null) return false;
+              latest = Instant.message.get(
+                Instant.message.getLatestMessage(prevThread));
+            }
+            /* Jump to the selected message */
+            Instant.input.moveTo(latest);
+            return true;
+          case 'threadDown':
+            /* Locate the latest message in the current thread */
+            var latest = Instant.message.get(
+              Instant.message.getLatestMessage(troot));
+            /* Do nothing if at main thread */
+            if (latest == null) return false;
+            /* If we are after the message, move to the successor thread */
+            if (Instant.message.documentCmp(inputNode, latest) > 0) {
+              var nextThread = Instant.message.getSuccessor(troot);
+              if (nextThread == null) {
+                /* Special case: return to root */
+                Instant.input.jumpTo(root);
+                return true;
+              }
+              latest = Instant.message.get(
+                Instant.message.getLatestMessage(nextThread));
+            }
+            /* Jump to the selected message */
+            Instant.input.moveTo(latest);
+            return true;
           case 'root':
             /* Just return to the root */
             Instant.input.jumpTo(root);
@@ -3015,22 +3054,37 @@ this.Instant = function() {
           inputMsg.setSelectionRange(newpos, newpos);
           /* Update bar size */
           Instant.input._updateMessage(event);
-        } else if (event.keyCode >= 37 && event.keyCode <= 40) {
+        } else if (event.keyCode == 33 || event.keyCode == 34 ||
+                   event.keyCode >= 37 && event.keyCode <= 40) {
           if (inputMsg.selectionStart != inputMsg.selectionEnd) return;
           var curs = inputMsg.selectionStart;
-          if (event.keyCode == 37) { // Left
-            if (! text || curs == 0)
-              navigate('left');
-          } else if (event.keyCode == 38) { // Up
-            /* Special case: Get more logs */
-            if (text.indexOf('\n') == -1 || curs == 0)
-              if (! navigate('up')) Instant.logs.pull.more();
-          } else if (event.keyCode == 39) { // Right
-            if (! text || curs == inputMsg.value.length)
-              navigate('right');
-          } else if (event.keyCode == 40) { // Down
-            if (text.indexOf('\n') == -1 || curs == inputMsg.value.length)
-              navigate('down');
+          switch (event.keyCode) {
+            case 33: // PageUp
+              /* Special case: Get more logs */
+              if (text.indexOf('\n') == -1 || curs == 0)
+                if (! navigate('threadUp')) Instant.logs.pull.more();
+              break;
+            case 34: // PageDown
+              if (text.indexOf('\n') == -1 || curs == inputMsg.value.length)
+                navigate('threadDown');
+              break;
+            case 37: // Left
+              if (! text || curs == 0)
+                navigate('left');
+              break;
+            case 38: // Up
+              /* (duplicated from PageUp) */
+              if (text.indexOf('\n') == -1 || curs == 0)
+                if (! navigate('up')) Instant.logs.pull.more();
+              break;
+            case 39: // Right
+              if (! text || curs == inputMsg.value.length)
+                navigate('right');
+              break;
+            case 40: // Down
+              if (text.indexOf('\n') == -1 || curs == inputMsg.value.length)
+                navigate('down');
+              break;
           }
         }
       },
