@@ -897,6 +897,9 @@ body {
   background: white;
   word-wrap: break-word;
 }
+.popup:target {
+  box-shadow: 0 0 10px #808080;
+}
 
 .popup .popup-header {
   display: -webkit-flex;

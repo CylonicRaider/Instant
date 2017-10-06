@@ -4215,6 +4215,7 @@ this.Instant = function() {
         /* Create actual popup */
         var popup = Instant.popups.make({
           title: 'Private message' + ((draft) ? ' editor' : ''),
+          id: (draft) ? null : 'pm-' + data.id,
           className: 'pm-popup ' + ((data.unread) ? 'pm-unread ' : '') +
             ((draft) ? 'pm-draft' : 'pm-viewer'),
           content: body,
