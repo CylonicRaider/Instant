@@ -260,7 +260,7 @@ this.Instant = function() {
       try {
         list[i].apply(this, args);
       } catch (e) {
-        console.error('Cannot run callback:', e);
+        console.error('Could not run callback:', e);
       }
     }
   }
