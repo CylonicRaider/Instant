@@ -1321,8 +1321,9 @@ this.Instant = function() {
   /* Message handling */
   Instant.message = function() {
     /* Message ID -> DOM node */
-    var messages = {};
-    var fakeMessages = {};
+    var messages = {}, fakeMessages = {};
+    /* ID of thread root -> ID of latest message in thread */
+    var threadLatest = {};
     /* Message pane */
     var msgPane = null;
     /* Pixel distance that differentiates a click from a drag */
@@ -1690,6 +1691,17 @@ this.Instant = function() {
           return null;
         return Instant.message.getParent(message);
       },
+      /* Get the root of the thread the message is in
+       * I.e. the closest (transitive) parent of the message (or the message
+       * itself) whose parent is not a message. */
+      getThreadRoot: function(message) {
+        for (;;) {
+          var par = Instant.message.getParentMessage(message);
+          if (par == null) break;
+          message = par;
+        }
+        return message;
+      },
       /* Get the root of a message tree */
       getRoot: function(message) {
         var cur = Instant.message.getParent(message), root;
@@ -1989,6 +2001,13 @@ this.Instant = function() {
         if (old) delete messages[msgid];
         /* Add message to parent */
         Instant.message.addReply(message, parent);
+        /* Update thread index */
+        var troot = Instant.message.getThreadRoot(message);
+        if (troot) {
+          var rid = troot.getAttribute('data-id');
+          if (threadLatest[rid] == null || msgid > threadLatest[rid])
+            threadLatest[rid] = msgid;
+        }
         /* Update indents */
         Instant.message.updateIndents(message);
         /* Done */
@@ -2087,6 +2106,13 @@ this.Instant = function() {
           }
         }
         return ret;
+      },
+      /* Retrieve the ID of the latest message in a thread
+       * thread may be either a message ID of DOM node of a thread root. */
+      getLatestMessage: function(thread) {
+        if (typeof thread == 'object')
+          thread = thread.getAttribute('data-id');
+        return threadLatest[thread];
       },
       /* Check if the given fragment identifier is a valid message
        * identifier */
