@@ -2980,6 +2980,14 @@ this.Instant = function() {
           inputMsg.focus();
           return ret;
         }
+        function navigateDirect(msg) {
+          Instant.input.moveTo(msg);
+          Instant.pane.scrollIntoView(inputNode);
+          event.preventDefault();
+          Instant.input._updateMessage(event);
+          inputMsg.focus();
+          return true;
+        }
         Instant._fireListeners('input.keydown', {source: event,
           _cancel: event.preventDefault.bind(event)});
         if (event.defaultPrevented) return;
@@ -3061,12 +3069,24 @@ this.Instant = function() {
           switch (event.keyCode) {
             case 33: // PageUp
               /* Special case: Get more logs */
-              if (text.indexOf('\n') == -1 || curs == 0)
-                if (! navigate('threadUp')) Instant.logs.pull.more();
+              if (text.indexOf('\n') == -1 || curs == 0) {
+                var unread = Instant.animation.offscreen.getUnreadAbove();
+                if (unread) {
+                  navigateDirect(unread);
+                } else if (! navigate('threadUp')) {
+                  Instant.logs.pull.more();
+                }
+              }
               break;
             case 34: // PageDown
-              if (text.indexOf('\n') == -1 || curs == inputMsg.value.length)
-                navigate('threadDown');
+              if (text.indexOf('\n') == -1 || curs == inputMsg.value.length) {
+                var unread = Instant.animation.offscreen.getUnreadBelow();
+                if (unread) {
+                  navigateDirect(unread);
+                } else {
+                  navigate('threadDown');
+                }
+              }
               break;
             case 37: // Left
               if (! text || curs == 0)
