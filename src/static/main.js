@@ -3947,6 +3947,16 @@ this.Instant = function() {
           list.push(cb);
         }
       },
+      /* Remove the leaving listener defined by uid and cb
+       * A listener can potentially carry references to heavy objects (e.g.
+       * a closure referending a complex DOM node), so care should be taken
+       * to remove listeners as early as possible. */
+      _stopListeningLeave: function(uid, cb) {
+        var list = leaveListeners[uid];
+        if (! list) return;
+        var idx = list.indexOf(cb);
+        if (idx != -1) list.splice(idx, 1);
+      },
       /* Process an incoming remote message */
       _onmessage: function(msg) {
         if (msg.type == 'left') {
