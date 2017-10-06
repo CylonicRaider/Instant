@@ -5600,6 +5600,10 @@ this.Instant = function() {
     var wrapper = null, stack = null;
     /* A UI message shown when there are hidden popups */
     var hiddenMsg = null;
+    /* Counter for popup ID-s */
+    var curID = 0;
+    /* Popup ID -> listener for removal of popup */
+    var removeListeners = {};
     /* URL-s for the icons
      * Replaced by data URI-s as soon as the images are preloaded. */
     var closeURL = '/static/close.svg';
@@ -5705,6 +5709,7 @@ this.Instant = function() {
           ['div', 'popup-content'],
           ['div', 'popup-bottom']
         ]);
+        ret.setAttribute('data-popup-id', ++curID);
         if (options.id) ret.id = options.id;
         if (options.className) ret.className += ' ' + options.className;
         addContent('.popup-title', options.title);
@@ -5752,6 +5757,11 @@ this.Instant = function() {
               Instant.popups.del(ret);
             }
           });
+        // The ID is not supposed to exist until this function call,
+        // so we can avoid the look-and-then-add-if-not-present
+        // dance.
+        if (options.onremove)
+          removeListeners[curID] = [options.onremove];
         return ret;
       },
       /* Create a new popup and show it */
@@ -5785,6 +5795,13 @@ this.Instant = function() {
           stack.removeChild(node);
         } catch (e) {
           return;
+        } finally {
+          var id = node.getAttribute('data-popup-id');
+          if (id) {
+            var list = removeListeners[id];
+            delete removeListeners[id];
+            runList(list, node);
+          }
         }
         if (! Instant.popups.hasPopups()) {
           wrapper.classList.add('empty');
@@ -5895,6 +5912,18 @@ this.Instant = function() {
       /* Remove a message from a popup */
       removeMessage: function(msgnode) {
         msgnode.parentNode.removeChild(msgnode);
+      },
+      /* Listen for the removal of a popup */
+      _listenRemove: function(popup, cb) {
+        var id = popup.getAttribute('data-popup-id');
+        if (! id) throw new Error('Cannot listen on unidentifiable popup');
+        var list = removeListeners[id];
+        if (! list) {
+          list = [cb];
+          removeListeners[id] = list;
+        } else {
+          list.push(cb);
+        }
       },
       /* Check whether any non-weak popups are shown */
       hasPopups: function() {
