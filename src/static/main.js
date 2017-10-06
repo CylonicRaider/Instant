@@ -3488,6 +3488,10 @@ this.Instant = function() {
     var lastCollapsed = false;
     /* When the last new entry arrived; ID of the update timer */
     var lastUpdate = null, timer = null;
+    /* Whether the user list is up-to-date (i.e. not refreshing) */
+    var upToDate = false;
+    /* Listeners for people leaving */
+    var leaveListeners = {};
     return {
       /* Initialize state */
       init: function() {
@@ -3666,12 +3670,23 @@ this.Instant = function() {
           node.removeChild(nicks[id].parentNode);
         } catch (e) {}
         delete nicks[id];
+        var l = leaveListeners[id];
+        delete leaveListeners[id];
+        if (l) runList(l, id, false);
         Instant.userList._update();
       },
       /* Remove everything from list */
-      clear: function() {
+      clear: function(_noListeners) {
         nicks = {};
         if (node) while (node.firstChild) node.removeChild(node.firstChild);
+        if (_noListeners) {
+          for (var k in leaveListeners) {
+            if (! leaveListeners.hasOwnProperty(k)) continue;
+            var l = leaveListeners[k];
+            delete leaveListeners[k];
+            runList(l, k, true);
+          }
+        }
         Instant.userList._update();
       },
       /* Obtain data for a certain (set of) users in a convenient format
@@ -3705,8 +3720,9 @@ this.Instant = function() {
       },
       /* Perform a full online refresh of the user list */
       refresh: function() {
-        Instant.userList.clear();
+        Instant.userList.clear(true);
         Instant.connection.sendBroadcast({type: 'who'});
+        upToDate = false;
         lastUpdate = Date.now();
         if (timer == null) {
           timer = setInterval(function() {
@@ -3723,6 +3739,14 @@ this.Instant = function() {
       },
       /* Finished a full refresh */
       _refreshDone: function() {
+        upToDate = true;
+        /* Invoke listeners */
+        for (var k in leaveListeners) {
+          if (! leaveListeners.hasOwnProperty(k) || nicks[k]) continue;
+          var l = leaveListeners[k];
+          delete leaveListeners[k];
+          runList(l, k, true);
+        }
         /* Update other submodules */
         Instant.privmsg._updateNicks();
         /* Inform listeners */
@@ -3901,6 +3925,25 @@ this.Instant = function() {
           focusSel: '.first'
         });
       },
+      /* Wait for the disappearance of a user
+       * The callback is "level-triggered", i.e., if a client is already
+       * absent, the listener fires immediately (but asynchronously); an
+       * explicit status check does not need to be made.
+       * The callback receives two arguments, namely the ID of the user
+       * who is assumed to be absent and whether the callback was invoked
+       * "immediately". */
+      _listenLeave: function(uid, cb) {
+        if (upToDate && ! nicks[uid]) {
+          setTimeout(cb, 0, uid, true);
+        } else {
+          var list = leaveListeners[uid];
+          if (list == null) {
+            list = [];
+            leaveListeners[uid] = list;
+          }
+          list.push(cb);
+        }
+      },
       /* Process an incoming remote message */
       _onmessage: function(msg) {
         if (msg.type == 'left') {
@@ -3931,6 +3974,10 @@ this.Instant = function() {
       /* Get the collapser node */
       getCollapserNode: function() {
         return collapser;
+      },
+      /* Whether the contents of the user list are more-or-less reliable */
+      isUpToDate: function() {
+        return upToDate;
       }
     };
   }();
