@@ -3924,6 +3924,9 @@ this.Instant = function() {
           ],
           focusSel: '.first'
         });
+        Instant.userList._listenLeave(uid, function() {
+          $sel('.popup-grid .nick', popup).style.backgroundColor = '';
+        });
       },
       /* Wait for the disappearance of a user
        * The callback is "level-triggered", i.e., if a client is already
