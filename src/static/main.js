@@ -3922,11 +3922,15 @@ this.Instant = function() {
               Instant.popups.del(popup);
             }}
           ],
-          focusSel: '.first'
+          focusSel: '.first',
+          onremove: function() {
+            Instant.userList._stopListeningLeave(uid, leaveListener);
+          }
         });
-        Instant.userList._listenLeave(uid, function() {
+        var leaveListener = function() {
           $sel('.popup-grid .nick', popup).style.backgroundColor = '';
-        });
+        };
+        Instant.userList._listenLeave(uid, leaveListener);
       },
       /* Wait for the disappearance of a user
        * The callback is "level-triggered", i.e., if a client is already
