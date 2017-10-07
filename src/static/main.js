@@ -4416,7 +4416,11 @@ this.Instant = function() {
             var target = preferredReply[data.from];
             if (! target) return;
             var editor = $cls('pm-editor', target);
-            editor.value += '\n\n' + makeQuote(data.text);
+            if (editor.value) {
+              editor.value += '\n\n' + makeQuote(data.text);
+            } else {
+              editor.value = makeQuote(data.text);
+            }
             editor.setSelectionRange(editor.value.length,
                                      editor.value.length);
             editor.focus();
