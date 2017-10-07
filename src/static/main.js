@@ -502,7 +502,6 @@ this.Instant = function() {
           case 'left': /* User left */
             Instant.userList._onmessage(msg);
             Instant.logs.pull._onmessage(msg);
-            Instant.privmsg._onmessage(msg);
             break;
           case 'who': /* Active connection enumeration */
             /* Nothing to do */
@@ -3747,8 +3746,6 @@ this.Instant = function() {
           delete leaveListeners[k];
           runList(l, k, true);
         }
-        /* Update other submodules */
-        Instant.privmsg._updateNicks();
         /* Inform listeners */
         Instant._fireListeners('userList.refresh.done');
       },
@@ -4011,6 +4008,9 @@ this.Instant = function() {
     var msgUnread = null, msgOthers = null;
     /* Popup storage */
     var popups = [];
+    /* User ID -> list of relevant popups
+     * If an entry is present, a disappearance handler has been installed. */
+    var popupsByUser = {};
     /* Message opening popup */
     var accessPopup = null;
     /* Reload-safe cache of popups */
@@ -4112,16 +4112,13 @@ this.Instant = function() {
         }
         Instant.title.update();
       },
-      /* Update the gray-out status of all popups */
+      /* Update the gray-out status of the given popup */
       _updateNicks: function(popup) {
-        if (popup) {
-          var nick = $sel('.popup-grid .nick', popup);
-          if (! Instant.userList.get(nick.getAttribute('data-uid')) &&
-              nick.style.backgroundColor)
-            nick.style.backgroundColor = '';
-          return;
-        }
-        popups.forEach(Instant.privmsg._updateNicks.bind(Instant.privmsg));
+        var nick = $sel('.popup-grid .nick', popup);
+        if (! Instant.userList.get(nick.getAttribute('data-uid')) &&
+            nick.style.backgroundColor)
+          nick.style.backgroundColor = '';
+        return;
       },
       /* Show the requested class(es) popups */
       show: function(unread, inbox, drafts, outbox) {
@@ -4188,7 +4185,7 @@ this.Instant = function() {
           Instant.privmsg._save(popup);
         });
         editor.setSelectionRange(editor.value.length, editor.value.length);
-        popups.push(popup);
+        Instant.privmsg._add(popup);
         if (isNew) {
           Instant.privmsg._save(popup);
           Instant.privmsg._updateNicks(popup);
@@ -4236,7 +4233,7 @@ this.Instant = function() {
       /* Display the popup for an incoming message */
       _read: function(data, isNew) {
         var popup = Instant.privmsg._makePopup(data);
-        popups.push(popup);
+        Instant.privmsg._add(popup);
         if (isNew) {
           Instant.privmsg._updateNicks(popup);
           Instant.privmsg._save(popup);
@@ -4256,10 +4253,30 @@ this.Instant = function() {
         }
         return popup;
       },
+      /* Add a PM popup to the runtime state and update relevant indexes */
+      _add: function(popup) {
+        var uid = $sel('.popup-grid .nick', popup).getAttribute('data-uid');
+        var list = popupsByUser[uid];
+        if (list == null) {
+          list = [popup];
+          popupsByUser[uid] = list;
+          Instant.userList._listenLeave(uid, Instant.privmsg._onleave);
+        } else {
+          popupsByUser[uid].push(popup);
+        }
+        popups.push(popup);
+      },
       /* Remove a PM draft or reader */
       _remove: function(popup) {
         storage.del(popup.getAttribute('data-id'));
-        var idx = popups.indexOf(popup);
+        var uid = $sel('.popup-grid .nick', popup).getAttribute('data-uid');
+        var list = popupsByUser[uid];
+        var idx;
+        if (list) {
+          idx = list.indexOf(popup);
+          if (idx != -1) list.splice(idx, 1);
+        }
+        idx = popups.indexOf(popup);
         if (idx != -1) popups.splice(idx, 1);
         Instant.popups.del(popup);
         Instant.privmsg._update();
@@ -4493,10 +4510,7 @@ this.Instant = function() {
       },
       /* Handle incoming remote messages */
       _onmessage: function(msg) {
-        if (msg.type == 'left') {
-          Instant.privmsg._updateNicks();
-          return;
-        } else if (msg.type != 'unicast' && msg.type != 'broadcast') {
+        if (msg.type != 'unicast' && msg.type != 'broadcast') {
           // Dunno why someone should broadcast a PM, but, sure, why not.
           return;
         }
@@ -4506,6 +4520,15 @@ this.Instant = function() {
           from: msg.from, nick: data.nick, text: data.text,
           timestamp: msg.timestamp, type: 'privmsg', unread: true},
           true);
+      },
+      /* Handle disappearing users */
+      _onleave: function(uid) {
+        var list = popupsByUser[uid];
+        if (list) {
+          list.forEach(function(popup) {
+            Instant.privmsg._updateNicks(popup);
+          });
+        }
       },
       /* Return the amount of unread private messages */
       countUnread: function() {
