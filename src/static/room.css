@@ -1081,6 +1081,12 @@ body {
   outline: none;
   resize: both;
 }
+.pm-popup:not(.reply-present) .pm-quote-add {
+  display: none;
+}
+.pm-popup.reply-present .pm-quote-reply {
+  display: none;
+}
 
 img.turn-right {
   -webkit-transform: rotate(90deg);

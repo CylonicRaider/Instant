@@ -4011,6 +4011,8 @@ this.Instant = function() {
     /* User ID -> list of relevant popups
      * If an entry is present, a disappearance handler has been installed. */
     var popupsByUser = {};
+    /* User ID -> popup to append additional quotes to */
+    var preferredReply = {};
     /* Message opening popup */
     var accessPopup = null;
     /* Reload-safe cache of popups */
@@ -4120,6 +4122,21 @@ this.Instant = function() {
           nick.style.backgroundColor = '';
         return;
       },
+      /* Update the preferred reply for the given user */
+      _updatePreferredReply: function(uid, popup) {
+        (popupsByUser[uid] || []).forEach(function(p) {
+          if (popup) {
+            p.classList.add('reply-present');
+          } else {
+            p.classList.remove('reply-present');
+          }
+        });
+        if (popup) {
+          preferredReply[uid] = popup;
+        } else {
+          delete preferredReply[uid];
+        }
+      },
       /* Show the requested class(es) popups */
       show: function(unread, inbox, drafts, outbox) {
         var flags = {U: unread, I: inbox, D: drafts, O: outbox};
@@ -4166,8 +4183,10 @@ this.Instant = function() {
       /* Start writing a message to uid */
       write: function(uid, nick, text, parent) {
         var now = Date.now();
-        Instant.privmsg._write({id: 'draft-' + now, parent: parent, to: uid,
-          tonick: nick, text: text, timestamp: now, type: 'pm-draft'}, true);
+        return Instant.privmsg._write({id: 'draft-' + now, parent: parent,
+            to: uid, tonick: nick, text: text, timestamp: now,
+            type: 'pm-draft'},
+          true);
       },
       /* Actually start writing a message with the given parameters */
       _write: function(data, isNew) {
@@ -4186,6 +4205,7 @@ this.Instant = function() {
         });
         editor.setSelectionRange(editor.value.length, editor.value.length);
         Instant.privmsg._add(popup);
+        Instant.privmsg._updatePreferredReply(data.to, popup);
         if (isNew) {
           Instant.privmsg._save(popup);
           Instant.privmsg._updateNicks(popup);
@@ -4276,6 +4296,8 @@ this.Instant = function() {
           idx = list.indexOf(popup);
           if (idx != -1) list.splice(idx, 1);
         }
+        if (popup == preferredReply[uid])
+          Instant.privmsg._updatePreferredReply(uid, null);
         idx = popups.indexOf(popup);
         if (idx != -1) popups.splice(idx, 1);
         Instant.popups.del(popup);
@@ -4300,6 +4322,11 @@ this.Instant = function() {
        * (I -- applies to incoming messages; O -- applies to outgoing
        * messages; A -- applies to all messages.) */
       _makePopup: function(data) {
+        function makeQuote(text) {
+          return text.replace(/^(.)?/mg, function(char) {
+            return ((char) ? '> ' + char : '>');
+          }) + '\n';
+        }
         /* Pre-computed variables */
         var draft = (data.type == 'pm-draft' || data.type == 'pm-afterview');
         var nick = (draft) ? data.tonick : data.nick;
@@ -4382,11 +4409,18 @@ this.Instant = function() {
           {text: 'Quote & Reply', color: '#008000', onclick: function() {
             var nick = data.nick;
             if (nick == undefined) nick = null;
-            var text = data.text.replace(/^(.)?/mg, function(char) {
-              return ((char) ? '> ' + char : '>');
-            }) + '\n';
-            Instant.privmsg.write(data.from, nick, text, data.id);
-          }},
+            Instant.privmsg.write(data.from, nick, makeQuote(data.text),
+                                  data.id);
+          }, className: 'pm-quote-reply'},
+          {text: 'Add quote', color: '#008000', onclick: function() {
+            var target = preferredReply[data.from];
+            if (! target) return;
+            var editor = $cls('pm-editor', target);
+            editor.value += '\n\n' + makeQuote(data.text);
+            editor.setSelectionRange(editor.value.length,
+                                     editor.value.length);
+            editor.focus();
+          }, className: 'pm-quote-add'},
           {text: 'Reply', color: '#008000', onclick: function() {
             var nick = data.nick;
             if (nick == undefined) nick = null;
@@ -4457,6 +4491,8 @@ this.Instant = function() {
         popup.setAttribute('data-focus', '.first');
         if (isNew)
           Instant.privmsg._save(popup);
+        var uid = $sel('.popup-grid .nick').getAttribute('data-uid');
+        Instant.privmsg._updatePreferredReply(uid, null);
       },
       /* Determine which of the four classes the popup belongs to */
       _getPopupClass: function(popup) {
