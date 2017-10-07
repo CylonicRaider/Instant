@@ -6785,7 +6785,7 @@ function init() {
         Instant.settings.hide();
       if (Instant.userList.getSelectedUser() != null)
         Instant.userList.showMenu(null);
-      Instant.input.focus();
+      Instant.hash.navigate('#');
       event.preventDefault();
     }
   });
