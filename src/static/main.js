@@ -2251,8 +2251,8 @@ this.Instant = function() {
             }
           },
           { /* Line-trailing whitespace */
-            name: 'whitespaceLE',
-            re: /\s+$/m,
+            name: 'trailingWhitespace',
+            re: /(?!\n)\s+$/m,
             cb: function(m, out) {
               out.push(makeNode(m[0], 'hidden'));
             }
