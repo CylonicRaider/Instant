@@ -4122,8 +4122,18 @@ this.Instant = function() {
           nick.style.backgroundColor = '';
         return;
       },
-      /* Update the preferred reply for the given user */
+      /* Update the preferred reply status for the given user or popup */
       _updatePreferredReply: function(uid, popup) {
+        if (uid == null) {
+          var nickNode = $sel('.popup-grid .nick', popup);
+          var uid = nickNode.getAttribute('data-uid');
+          if (preferredReply[uid]) {
+            popup.classList.add('reply-present');
+          } else {
+            popup.classList.remove('reply-present');
+          }
+          return;
+        }
         (popupsByUser[uid] || []).forEach(function(p) {
           if (popup) {
             p.classList.add('reply-present');
@@ -4254,6 +4264,7 @@ this.Instant = function() {
       _read: function(data, isNew) {
         var popup = Instant.privmsg._makePopup(data);
         Instant.privmsg._add(popup);
+        Instant.privmsg._updatePreferredReply(null, popup);
         if (isNew) {
           Instant.privmsg._updateNicks(popup);
           Instant.privmsg._save(popup);
