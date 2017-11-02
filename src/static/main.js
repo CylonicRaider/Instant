@@ -2793,14 +2793,18 @@ this.Instant = function() {
         return true;
       },
       /* Move the input bar to the given message, or to its parent if the
-       * bar is already there. */
-      moveTo: function(message) {
+       * bar is already there.
+       * If rootsReply is true and message is a thread root, it will be
+       * replied to in favor of its parent. */
+      moveTo: function(message, rootsReply) {
         if (Instant.message.isMessage(message)) {
           var replies = Instant.message._getReplyNode(message);
           if (inputNode.parentNode == replies ||
               Instant.message.getPredecessor(inputNode) != message &&
               ! Instant.message.hasReplies(message) &&
-              ! Instant.message.getSuccessor(message)) {
+              ! Instant.message.getSuccessor(message) &&
+              (! rootsReply ||
+               Instant.message.getParentMessage(message) != null)) {
             return Instant.input.jumpTo(Instant.message.getParent(message));
           }
         }
@@ -2901,7 +2905,7 @@ this.Instant = function() {
                 Instant.message.getLatestMessage(prevThread));
             }
             /* Jump to the selected message */
-            Instant.input.moveTo(latest);
+            Instant.input.moveTo(latest, true);
             return true;
           case 'threadDown':
             /* Locate the latest message in the current thread */
@@ -2921,7 +2925,7 @@ this.Instant = function() {
                 Instant.message.getLatestMessage(nextThread));
             }
             /* Jump to the selected message */
-            Instant.input.moveTo(latest);
+            Instant.input.moveTo(latest, true);
             return true;
           case 'root':
             /* Just return to the root */
