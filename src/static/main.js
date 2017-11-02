@@ -1465,7 +1465,6 @@ this.Instant = function() {
           if (prev && prev != Instant.message.getDocumentPredecessor(m)) {
             var d = top[2] + 1;
             top[1].appendChild($makeNode('p', {'data-depth': d}, '...'));
-            if (d < minDepth) minDepth = d;
           }
           /* Create the in-copy representation of the message */
           var copy = $makeNode('div', {'data-depth': depth,
@@ -1486,8 +1485,15 @@ this.Instant = function() {
         if (isFinite(minDepth)) {
           var nodes = $selAll('[data-depth]', stack[0][1]);
           Array.prototype.forEach.call(nodes, function(el) {
-            el.setAttribute('data-depth', el.getAttribute('data-depth') -
-              minDepth);
+            /* Omission marks can have a negative depth
+             * NOTE: To position them with absolute accuracy (for any
+             *       definition of that), one would have to evaluate messages
+             *       that are not included by the selection. Instead,
+             *       omission marks that have no message to be rooted at are
+             *       now prevented from "pusing" the remainder of the
+             *       selection to the right. */
+            var nd = el.getAttribute('data-depth') - minDepth;
+            el.setAttribute('data-depth', Math.max(nd, 0));
           });
         }
         /* Done */
