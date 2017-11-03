@@ -4652,9 +4652,11 @@ this.Instant = function() {
       },
       /* Process a notification object from Instant.notifications */
       _notify: function(notify) {
-        unreadMessages += notify.data.unreadMessages || 0;
-        unreadReplies  += notify.data.unreadReplies  || 0;
-        unreadMentions += notify.data.unreadMentions || 0;
+        if (blurred) {
+          unreadMessages += notify.data.unreadMessages || 0;
+          unreadReplies  += notify.data.unreadReplies  || 0;
+          unreadMentions += notify.data.unreadMentions || 0;
+        }
         if (notify.data.updateAvailable != null)
           updateAvailable = notify.data.updateAvailable;
         Instant.title.update();
