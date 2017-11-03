@@ -4652,11 +4652,12 @@ this.Instant = function() {
       },
       /* Process a notification object from Instant.notifications */
       _notify: function(notify) {
-        Instant.title.addUnread(notify.data.unreadMessages || 0,
-                                notify.data.unreadReplies || 0,
-                                notify.data.unreadMentions || 0);
+        unreadMessages += notify.data.unreadMessages || 0;
+        unreadReplies  += notify.data.unreadReplies  || 0;
+        unreadMentions += notify.data.unreadMentions || 0;
         if (notify.data.updateAvailable != null)
-          Instant.title.setUpdateAvailable(notify.data.updateAvailable);
+          updateAvailable = notify.data.updateAvailable;
+        Instant.title.update();
       },
       /* Update the window title and the favicon */
       update: function() {
