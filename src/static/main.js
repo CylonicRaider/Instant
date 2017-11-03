@@ -350,13 +350,13 @@ this.Instant = function() {
       if (lastPong) {
         var now = Date.now();
         var delta = lastPong[1] - lastPong[0];
-        if (lastPong[0] <= now - 60000) {
+        if (lastPong[0] <= now - 35000) {
           console.warn('Last ping response too far in the past; ' +
               'reconnecting...');
           Instant.connection.reconnect();
           return;
         } else {
-          payload = {next: Date.now() + delta + 60000};
+          payload = {next: Date.now() + delta + 35000};
         }
       }
       Instant.connection.sendPing(payload);
