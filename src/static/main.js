@@ -3688,7 +3688,7 @@ this.Instant = function() {
       clear: function(_noListeners) {
         nicks = {};
         if (node) while (node.firstChild) node.removeChild(node.firstChild);
-        if (_noListeners) {
+        if (! _noListeners) {
           for (var k in leaveListeners) {
             if (! leaveListeners.hasOwnProperty(k)) continue;
             var l = leaveListeners[k];
@@ -4157,7 +4157,7 @@ this.Instant = function() {
           delete preferredReply[uid];
         }
       },
-      /* Show the requested class(es) popups */
+      /* Show the requested class(es) of popups */
       show: function(unread, inbox, drafts, outbox) {
         var flags = {U: unread, I: inbox, D: drafts, O: outbox};
         popups.forEach(function(popup) {
