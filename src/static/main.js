@@ -596,11 +596,12 @@ this.Instant = function() {
       },
       /* Handle a dead connection */
       _closed: function(event) {
-        /* Update flags */
+        /* Update variables */
         var wasConnected = connected;
         connected = false;
         lastPong = null;
         callbacks = {};
+        ws = null;
         /* Inform others */
         Instant.logs.pull._disconnected();
         Instant.input._setOnline(false);
