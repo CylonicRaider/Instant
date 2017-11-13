@@ -615,7 +615,7 @@ this.Instant = function() {
         if (event)
           Instant.connection.reconnect();
       },
-      /* Handle an auxillary error */
+      /* Handle an auxiliary error */
       _error: function(event) {
         /* Update flags */
         var wasConnected = connected;
