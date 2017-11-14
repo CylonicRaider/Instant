@@ -639,6 +639,11 @@ this.Instant = function() {
         if (window.logInstantMessages)
           console.debug('[Sending]', data);
         /* Actual sending */
+        if (ws == null) {
+          var e = new Error('WebSocket not connected');
+          e.name = 'WebSocketError';
+          throw e;
+        }
         return ws.send(data);
       },
       /* Send an object whilst adding a sequence ID (in-place); return the
