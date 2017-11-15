@@ -4273,7 +4273,15 @@ this.Instant = function() {
         if (parentNode)
           data.parent = parentNode.textContent;
         var recipient = $cls('pm-to-id').textContent;
-        Instant.connection.sendUnicast(recipient, data, callback);
+        try {
+          Instant.connection.sendUnicast(recipient, data, callback);
+        } catch (e) {
+          Instant.popups.addNewMessage(popup, {content: $makeFrag(
+            ['b', null, 'Error: '],
+            e.message
+          ), className: 'popup-message-error'});
+          return;
+        }
         $cls('pm-send', popup).disabled = true;
       },
       /* Display the popup for an incoming message */
