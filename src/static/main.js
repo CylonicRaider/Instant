@@ -640,8 +640,8 @@ this.Instant = function() {
           console.debug('[Sending]', data);
         /* Actual sending */
         if (ws == null) {
-          var e = new Error('WebSocket not connected');
-          e.name = 'WebSocketError';
+          var e = new Error('Not connected');
+          e.name = 'ConnectionError';
           throw e;
         }
         return ws.send(data);
