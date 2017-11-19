@@ -639,7 +639,7 @@ this.Instant = function() {
         if (window.logInstantMessages)
           console.debug('[Sending]', data);
         /* Actual sending */
-        if (ws == null) {
+        if (ws == null || ws.readyState != WebSocket.OPEN) {
           var e = new Error('Not connected');
           e.name = 'ConnectionError';
           throw e;
