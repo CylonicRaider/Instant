@@ -47,6 +47,7 @@ public class ListConverter<E> extends Converter<List<E>> {
     }
 
     public String format(List<E> list) {
+        if (list == null || list.isEmpty()) return null;
         StringBuilder sb = new StringBuilder();
         boolean first = true;
         for (E item : list) {

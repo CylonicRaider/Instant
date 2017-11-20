@@ -56,6 +56,7 @@ public abstract class Converter<T> {
     }
 
     public String format(T item) {
+        if (item == null) return null;
         return String.valueOf(item);
     }
 

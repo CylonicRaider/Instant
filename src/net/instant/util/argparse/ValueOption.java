@@ -69,8 +69,8 @@ public class ValueOption<X> extends Option<X> {
     }
     public String formatHelp() {
         String ret = super.formatHelp();
-        if (getDefault() != null)
-            ret += " (default " + getConverter().format(getDefault()) + ")";
+        String fmtDef = getConverter().format(getDefault());
+        if (fmtDef != null) ret += " (default " + fmtDef + ")";
         return ret;
     }
 
