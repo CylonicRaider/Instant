@@ -106,12 +106,10 @@ public class Main implements Runnable {
         ValueOption<String> logLevel = p.add(ValueOption.of(String.class,
             "log-level", 'L', "Logging level").defaultsTo("INFO"));
         ValueOption<List<File>> plugPath = p.add(ValueOption.ofList(
-            File.class, "plugin-path", 'P',
-            "Path to search for plugins in")
+            File.class, "plugin-path", 'P', "Path to search for plugins in")
             .defaultsTo(new ArrayList<File>()));
         ValueOption<List<String>> plugList = p.add(ValueOption.ofList(
-            String.class, "plugins", 'p',
-            "List of plugins to load")
+            String.class, "plugins", 'p', "List of plugins to load")
             .defaultsTo(new ArrayList<String>()));
         ValueOption<String> cmd = p.add(ValueOption.of(String.class,
             "startup-cmd", 'c', "OS command to run before entering " +
