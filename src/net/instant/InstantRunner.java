@@ -4,6 +4,8 @@ import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.net.InetSocketAddress;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.regex.Pattern;
 import net.instant.api.API1;
 import net.instant.api.Counter;
@@ -78,6 +80,8 @@ public class InstantRunner implements API1 {
     public static final String SITE_FILE = "/static/site.js";
     public static final String VERSION_FILE = "/static/version.js";
 
+    public static final int THREAD_POOL_CORE_SIZE = 1;
+
     private String host;
     private int port;
     private File webroot;
@@ -90,6 +94,7 @@ public class InstantRunner implements API1 {
     private StringProducer stringFiles;
     private FSResourceProducer sourceFiles;
     private MessageDistributor distributor;
+    private ScheduledExecutorService jobScheduler;
     private PluginManager plugins;
 
     public InstantRunner() {
@@ -265,6 +270,20 @@ public class InstantRunner implements API1 {
         return plugins;
     }
 
+    public ScheduledExecutorService getJobScheduler() {
+        return jobScheduler;
+    }
+    public void setJobScheduler(ScheduledExecutorService sched) {
+        jobScheduler = sched;
+    }
+    public ScheduledExecutorService makeJobScheduler() {
+        if (jobScheduler == null) {
+            jobScheduler = Executors.newScheduledThreadPool(
+                THREAD_POOL_CORE_SIZE);
+        }
+        return jobScheduler;
+    }
+
     public void addRequestHook(RequestHook hook) {
         makeServer().addHook(hook);
     }
@@ -312,6 +331,10 @@ public class InstantRunner implements API1 {
 
     public RoomGroup getRooms() {
         return makeDistributor();
+    }
+
+    public ScheduledExecutorService getExecutor() {
+        return makeJobScheduler();
     }
 
     public Object handleDefault(PluginData data) {

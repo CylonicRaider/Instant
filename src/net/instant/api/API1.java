@@ -1,5 +1,6 @@
 package net.instant.api;
 
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.regex.Pattern;
 
 /**
@@ -107,6 +108,13 @@ public interface API1 {
      * room already present.
      */
     RoomGroup getRooms();
+
+    /**
+     * Return the central job scheduler instance.
+     * Can be used to perform e.g. regular cleanup without having to create a
+     * dedicated thread.
+     */
+    ScheduledExecutorService getExecutor();
 
     /**
      * Invoke the default plugin initializer.
