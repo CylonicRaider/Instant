@@ -1,5 +1,6 @@
 package net.instant.api;
 
+import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.regex.Pattern;
 
@@ -108,6 +109,18 @@ public interface API1 {
      * room already present.
      */
     RoomGroup getRooms();
+
+    /**
+     * Schedule the given Runnable to be run once or regularly.
+     * callback is the Runnable to invoke.
+     * delay specifies the time to wait for before the first invocation; it
+     * may be zero to denote "immediately". period may be -1 to denote "no
+     * repetitions", or the amount of milliseconds between subsequent
+     * invocations (note that this is independent of how long callback takes
+     * to run).
+     * Use the return value to cancel execution.
+     */
+    Future<?> scheduleJob(Runnable callback, long delay, long period);
 
     /**
      * Return the central job scheduler instance.

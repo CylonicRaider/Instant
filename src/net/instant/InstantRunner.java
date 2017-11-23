@@ -5,7 +5,9 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.net.InetSocketAddress;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 import net.instant.api.API1;
 import net.instant.api.Counter;
@@ -331,6 +333,17 @@ public class InstantRunner implements API1 {
 
     public RoomGroup getRooms() {
         return makeDistributor();
+    }
+
+    public Future<?> scheduleJob(Runnable callback, long delay,
+                                 long period) {
+        if (period == -1) {
+            return makeJobScheduler().scheduleAtFixedRate(callback, delay,
+                period, TimeUnit.MILLISECONDS);
+        } else {
+            return makeJobScheduler().schedule(callback, delay,
+                                               TimeUnit.MILLISECONDS);
+        }
     }
 
     public ScheduledExecutorService getExecutor() {
