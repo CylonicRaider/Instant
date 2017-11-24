@@ -147,7 +147,7 @@ public class InstantRunner implements API1 {
             } else {
                 addr = new InetSocketAddress(host, port);
             }
-            server = new InstantWebSocketServer(addr);
+            server = new InstantWebSocketServer(this, addr);
             server.setHTTPLog(httpLog);
             server.addInternalHook(makeRedirectHook());
             server.addInternalHook(makeFileHook());
@@ -337,7 +337,7 @@ public class InstantRunner implements API1 {
 
     public Future<?> scheduleJob(Runnable callback, long delay,
                                  long period) {
-        if (period == -1) {
+        if (period != -1) {
             return makeJobScheduler().scheduleAtFixedRate(callback, delay,
                 period, TimeUnit.MILLISECONDS);
         } else {
@@ -373,6 +373,9 @@ public class InstantRunner implements API1 {
 
     public void setupPlugins() throws PluginException {
         makePlugins().setup();
+    }
+    public void setupJobScheduler() {
+        makeJobScheduler();
     }
 
 }

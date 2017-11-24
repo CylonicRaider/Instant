@@ -15,6 +15,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import net.instant.api.API1;
 import net.instant.api.RequestHook;
 import net.instant.util.Formats;
 import net.instant.util.StringSigner;
@@ -72,14 +73,14 @@ public class InstantWebSocketServer extends WebSocketServer
     private ConnectionGC gc;
     private PrintStream httpLog;
 
-    public InstantWebSocketServer(InetSocketAddress addr) {
+    public InstantWebSocketServer(API1 api, InetSocketAddress addr) {
         super(addr, wrapDrafts(DEFAULT_DRAFTS));
         hooks = new LinkedHashSet<RequestHook>();
         internalHooks = new LinkedHashSet<RequestHook>();
         assignments = Collections.synchronizedMap(
             new HashMap<WebSocket, RequestHook>());
         collector = new InformationCollector(this);
-        gc = new ConnectionGC();
+        gc = new ConnectionGC(api);
         cookies = new CookieHandler(makeStringSigner());
         httpLog = System.err;
         for (Draft d : getDraft()) {
@@ -87,8 +88,8 @@ public class InstantWebSocketServer extends WebSocketServer
                 ((DraftWrapper) d).setHook(this);
         }
     }
-    public InstantWebSocketServer(int port) {
-        this(new InetSocketAddress(port));
+    public InstantWebSocketServer(API1 api, int port) {
+        this(api, new InetSocketAddress(port));
     }
 
     public CookieHandler getCookieHandler() {

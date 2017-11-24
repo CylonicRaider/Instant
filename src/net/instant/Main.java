@@ -181,6 +181,7 @@ public class Main implements Runnable {
             System.err.println(exc);
             System.exit(2);
         }
+        runner.setupJobScheduler();
         // Socket is only bound in run(), so we can create the server here.
         InstantWebSocketServer srv = runner.makeServer();
         if (startupCmd != null) runCommand(startupCmd);

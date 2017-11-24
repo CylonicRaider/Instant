@@ -4,6 +4,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.logging.Logger;
+import net.instant.api.API1;
 import net.instant.api.ClientConnection;
 
 public class ConnectionGC implements Runnable {
@@ -13,9 +14,11 @@ public class ConnectionGC implements Runnable {
     public static final long INTERVAL = 10000;
     public static final long GRACE_TIME = 5000;
 
+    private final API1 parent;
     private final Map<ClientConnection, Long> deadlines;
 
-    public ConnectionGC() {
+    public ConnectionGC(API1 parent) {
+        this.parent = parent;
         this.deadlines = Collections.synchronizedMap(
             new HashMap<ClientConnection, Long>());
     }
@@ -44,26 +47,17 @@ public class ConnectionGC implements Runnable {
     }
 
     public void run() {
-        for (;;) {
-            long now = System.currentTimeMillis();
-            for (Map.Entry<ClientConnection, Long> e :
-                 getDeadlines().entrySet()) {
-                if (e.getValue() != null && e.getValue() < now) {
-                    cleanup(e.getKey());
-                }
-            }
-            try {
-                Thread.sleep(INTERVAL);
-            } catch (InterruptedException exc) {
-                break;
+        long now = System.currentTimeMillis();
+        for (Map.Entry<ClientConnection, Long> e :
+             getDeadlines().entrySet()) {
+            if (e.getValue() != null && e.getValue() < now) {
+                cleanup(e.getKey());
             }
         }
     }
 
     public void start() {
-        Thread t = new Thread(this, "Connection GC");
-        t.setDaemon(true);
-        t.start();
+        parent.scheduleJob(this, INTERVAL, INTERVAL);
     }
 
 }
