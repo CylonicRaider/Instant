@@ -9,10 +9,13 @@ import java.nio.ByteBuffer;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
+import java.util.logging.Logger;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 
 public class StringSigner {
+
+    private static final Logger LOGGER = Logger.getLogger("StringSigner");
 
     public static final String ALGORITHM = "HmacSHA1";
     public static final int KEYSIZE = 64;
@@ -47,9 +50,15 @@ public class StringSigner {
         return Arrays.equals(sig, signature);
     }
 
+    private static byte[] getRandomKey() {
+        LOGGER.config("Initializing from strong entropy source (" +
+            KEYSIZE + " bytes)...");
+        return Util.getStrongRandomness(KEYSIZE);
+    }
+
     public static StringSigner getInstance(byte[] key) {
         try {
-            if (key == null) key = Util.getStrongRandomness(KEYSIZE);
+            if (key == null) getRandomKey();
             return new StringSigner(key);
         } catch (Exception exc) {
             throw new RuntimeException(exc);
@@ -59,7 +68,7 @@ public class StringSigner {
         try {
             // Assuming KEYSIZE is not zero.
             if (create && f.length() != KEYSIZE) {
-                byte[] data = Util.getStrongRandomness(KEYSIZE);
+                byte[] data = getRandomKey();
                 FileOutputStream os = new FileOutputStream(f);
                 Util.writeOutputStreamClosing(os, ByteBuffer.wrap(data));
                 return new StringSigner(data);
