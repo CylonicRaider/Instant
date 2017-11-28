@@ -104,6 +104,11 @@ public class ValueOption<X> extends Option<X> {
             Character shortname, String help) {
         return new ValueOption<T>(name, shortname, help, Converter.get(cls));
     }
+    public static <T> ValueOption<List<T>> ofAccum(Class<T> cls, String name,
+            Character shortname, String help) {
+        return new ValueOption<List<T>>(name, shortname, help,
+                                        AccumulatingConverter.getA(cls));
+    }
     public static <T> ValueOption<List<T>> ofList(Class<T> cls, String name,
             Character shortname, String help) {
         return new ValueOption<List<T>>(name, shortname, help,
