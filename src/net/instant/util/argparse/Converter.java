@@ -30,6 +30,13 @@ public abstract class Converter<T> {
                 return new File(data);
             }
         });
+        register(KeyValue.class, new Converter<KeyValue>("<key>=<value>") {
+            public KeyValue convert(String data) {
+                String[] items = data.split("=", 2);
+                return new KeyValue(items[0],
+                                    (items.length < 2) ? null : items[1]);
+            }
+        });
     }
 
     private final String placeholder;
