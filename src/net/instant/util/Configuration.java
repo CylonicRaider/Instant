@@ -13,6 +13,18 @@ public class Configuration {
 
     }
 
+    public static final DataSource PROPERTY_SOURCE = new DataSource() {
+        public String get(String key) {
+            return System.getProperty(key);
+        }
+    };
+
+    public static final DataSource ENV_SOURCE = new DataSource() {
+        public String get(String key) {
+            return System.getenv(key.toUpperCase().replace(".", "_"));
+        }
+    };
+
     private final List<DataSource> sources;
     private final Map<String, String> data;
 
