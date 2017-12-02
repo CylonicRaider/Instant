@@ -88,7 +88,7 @@ public class InstantRunner implements API1 {
     private int port;
     private File webroot;
     private PrintStream httpLog;
-    private Configuration configuration;
+    private Configuration config;
     private InstantWebSocketServer server;
     private RedirectHook redirects;
     private StaticFileHook files;
@@ -135,17 +135,17 @@ public class InstantRunner implements API1 {
         httpLog = s;
     }
 
-    public Configuration getConfiguration() {
-        return configuration;
+    public Configuration getConfig() {
+        return config;
     }
-    public void setConfiguration(Configuration config) {
-        configuration = config;
+    public void setConfig(Configuration config) {
+        config = config;
     }
-    public Configuration makeConfiguration() {
-        if (configuration == null) {
-            configuration = Configuration.makeDefault();
+    public Configuration makeConfig() {
+        if (config == null) {
+            config = Configuration.makeDefault();
         }
-        return configuration;
+        return config;
     }
 
     public InstantWebSocketServer getServer() {
@@ -370,7 +370,7 @@ public class InstantRunner implements API1 {
     }
 
     public String getConfiguration(String name) {
-        return configuration.get(name);
+        return makeConfig().get(name);
     }
 
     public Object getPluginData(String name) throws IllegalArgumentException,
