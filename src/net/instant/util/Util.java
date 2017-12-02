@@ -161,14 +161,4 @@ public final class Util {
         return Utilities.isTrue(input);
     }
 
-    public static String getConfiguration(String propName, boolean ex) {
-        String ret = CONFIG.get(propName);
-        if (! ex && ret != null && ret.isEmpty())
-            ret = null;
-        return ret;
-    }
-    public static String getConfiguration(String propName) {
-        return getConfiguration(propName, false);
-    }
-
 }

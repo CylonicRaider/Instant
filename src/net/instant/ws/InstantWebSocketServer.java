@@ -37,14 +37,10 @@ public class InstantWebSocketServer extends WebSocketServer
 
     private static final Logger LOGGER = Logger.getLogger("IWSServer");
 
-    public static final List<Draft> DEFAULT_DRAFTS;
+    private static final String K_KEYFILE = "instant.cookies.keyfile";
+    private static final String K_CREATE = "instant.cookies.keyfile.create";
 
-    /* Whether cookies should have the Secure attribute */
-    public static final boolean INSECURE_COOKIES;
-    /* Key file for persistent cookie signing */
-    public static final File COOKIES_KEYFILE;
-    /* Whether to create the cookie key file */
-    public static final boolean COOKIES_KEYFILE_CREATE;
+    public static final List<Draft> DEFAULT_DRAFTS;
 
     static {
         List<Draft> l =  new ArrayList<Draft>();
@@ -53,16 +49,6 @@ public class InstantWebSocketServer extends WebSocketServer
         l.addAll(WebSocketImpl.defaultdraftlist);
         l.add(new Draft_Error());
         DEFAULT_DRAFTS = Collections.unmodifiableList(l);
-        INSECURE_COOKIES = Util.isTrue(
-            Util.getConfiguration("instant.cookies.insecure"));
-        String keyfile = Util.getConfiguration("instant.cookies.keyfile");
-        if (keyfile != null) {
-            COOKIES_KEYFILE = new File(keyfile);
-        } else {
-            COOKIES_KEYFILE = null;
-        }
-        COOKIES_KEYFILE_CREATE = Util.isTrue(
-            Util.getConfiguration("instant.cookies.keyfile.create"));
     }
 
     private final Set<RequestHook> hooks;
@@ -81,7 +67,7 @@ public class InstantWebSocketServer extends WebSocketServer
             new HashMap<WebSocket, RequestHook>());
         collector = new InformationCollector(this);
         gc = new ConnectionGC(api);
-        cookies = new CookieHandler(makeStringSigner());
+        cookies = new CookieHandler(makeStringSigner(api));
         httpLog = System.err;
         for (Draft d : getDraft()) {
             if (d instanceof DraftWrapper)
@@ -90,6 +76,17 @@ public class InstantWebSocketServer extends WebSocketServer
     }
     public InstantWebSocketServer(API1 api, int port) {
         this(api, new InetSocketAddress(port));
+    }
+
+    protected StringSigner makeStringSigner(API1 api) {
+        String keypath = api.getConfiguration(K_KEYFILE);
+        File keyfile = (keypath == null) ? null : new File(keypath);
+        boolean create = Util.isTrue(api.getConfiguration(K_CREATE));
+        if (keyfile != null) {
+            return StringSigner.getInstance(keyfile, create);
+        } else {
+            return StringSigner.getInstance(null);
+        }
     }
 
     public CookieHandler getCookieHandler() {
@@ -242,15 +239,6 @@ public class InstantWebSocketServer extends WebSocketServer
             ret.put(name, dat.getFieldValue(name));
         }
         return ret;
-    }
-
-    public static StringSigner makeStringSigner() {
-        if (COOKIES_KEYFILE != null) {
-            return StringSigner.getInstance(COOKIES_KEYFILE,
-                                            COOKIES_KEYFILE_CREATE);
-        } else {
-            return StringSigner.getInstance(null);
-        }
     }
 
 }

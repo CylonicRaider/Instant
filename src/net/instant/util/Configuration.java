@@ -63,4 +63,11 @@ public class Configuration {
         sources.remove(source);
     }
 
+    public static Configuration makeDefault() {
+        Configuration ret = new Configuration();
+        ret.addSource(PROPERTY_SOURCE);
+        ret.addSource(ENV_SOURCE);
+        return ret;
+    }
+
 }

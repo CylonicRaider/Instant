@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import net.instant.Main;
+import net.instant.api.API1;
 import net.instant.api.ClientConnection;
 import net.instant.api.Cookie;
 import net.instant.api.Message;
@@ -25,11 +26,12 @@ import net.instant.proto.RoomDistributor;
 import net.instant.util.Formats;
 import net.instant.util.UniqueCounter;
 import net.instant.util.Util;
-import net.instant.ws.InstantWebSocketServer;
 import org.json.JSONException;
 import org.json.JSONObject;
 
 public class APIWebSocketHook extends WebSocketHook {
+
+    private static final String K_INSECURE = "instant.cookies.insecure";
 
     public static class PresenceChangeImpl implements PresenceChange {
 
@@ -117,17 +119,19 @@ public class APIWebSocketHook extends WebSocketHook {
     private final List<MessageHook> hooks;
     private final List<MessageHook> internalHooks;
     private final Map<RequestData, String> tags;
+    private final boolean insecureCookies;
     private MessageDistributor distr;
 
-    public APIWebSocketHook(MessageDistributor distributor) {
+    public APIWebSocketHook(API1 api, MessageDistributor distributor) {
         hooks = new ArrayList<MessageHook>();
         internalHooks = new ArrayList<MessageHook>();
         tags = Collections.synchronizedMap(
             new HashMap<RequestData, String>());
+        insecureCookies = Util.isTrue(api.getConfiguration(K_INSECURE));
         distr = distributor;
     }
-    public APIWebSocketHook() {
-        this(null);
+    public APIWebSocketHook(API1 api) {
+        this(api, null);
     }
 
     public MessageDistributor getDistributor() {
@@ -179,8 +183,7 @@ public class APIWebSocketHook extends WebSocketHook {
         Calendar expiry = Calendar.getInstance();
         expiry.add(Calendar.YEAR, 2);
         cookie.put("Expires", Formats.formatHttpTime(expiry));
-        if (! InstantWebSocketServer.INSECURE_COOKIES)
-            cookie.put("Secure", null);
+        if (! insecureCookies) cookie.put("Secure", null);
         resp.addCookie(cookie);
         return true;
     }

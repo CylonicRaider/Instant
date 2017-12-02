@@ -26,9 +26,9 @@ import net.instant.plugins.PluginException;
 import net.instant.plugins.PluginManager;
 import net.instant.proto.APIHook;
 import net.instant.proto.MessageDistributor;
+import net.instant.util.Configuration;
 import net.instant.util.DefaultStringMatcher;
 import net.instant.util.UniqueCounter;
-import net.instant.util.Util;
 import net.instant.util.fileprod.FSResourceProducer;
 import net.instant.util.fileprod.FileCell;
 import net.instant.util.fileprod.ListProducer;
@@ -88,6 +88,7 @@ public class InstantRunner implements API1 {
     private int port;
     private File webroot;
     private PrintStream httpLog;
+    private Configuration configuration;
     private InstantWebSocketServer server;
     private RedirectHook redirects;
     private StaticFileHook files;
@@ -103,6 +104,7 @@ public class InstantRunner implements API1 {
         host = null;
         port = 8080;
         webroot = null;
+        httpLog = null;
     }
 
     public String getHost() {
@@ -131,6 +133,19 @@ public class InstantRunner implements API1 {
     }
     public void setHTTPLog(PrintStream s) {
         httpLog = s;
+    }
+
+    public Configuration getConfiguration() {
+        return configuration;
+    }
+    public void setConfiguration(Configuration config) {
+        configuration = config;
+    }
+    public Configuration makeConfiguration() {
+        if (configuration == null) {
+            configuration = Configuration.makeDefault();
+        }
+        return configuration;
     }
 
     public InstantWebSocketServer getServer() {
@@ -196,7 +211,7 @@ public class InstantRunner implements API1 {
     }
     public APIWebSocketHook makeAPIHook() {
         if (wsAPI == null) {
-            wsAPI = new APIWebSocketHook(makeDistributor());
+            wsAPI = new APIWebSocketHook(this, makeDistributor());
             wsAPI.addInternalHook(new APIHook());
         }
         return wsAPI;
@@ -259,19 +274,6 @@ public class InstantRunner implements API1 {
         return distributor;
     }
 
-    public PluginManager getPlugins() {
-        return plugins;
-    }
-    public void setPlugins(PluginManager mgr) {
-        plugins = mgr;
-    }
-    public PluginManager makePlugins() {
-        if (plugins == null) {
-            plugins = new PluginManager(this);
-        }
-        return plugins;
-    }
-
     public ScheduledExecutorService getJobScheduler() {
         return jobScheduler;
     }
@@ -284,6 +286,19 @@ public class InstantRunner implements API1 {
                 THREAD_POOL_CORE_SIZE);
         }
         return jobScheduler;
+    }
+
+    public PluginManager getPlugins() {
+        return plugins;
+    }
+    public void setPlugins(PluginManager mgr) {
+        plugins = mgr;
+    }
+    public PluginManager makePlugins() {
+        if (plugins == null) {
+            plugins = new PluginManager(this);
+        }
+        return plugins;
     }
 
     public void addRequestHook(RequestHook hook) {
@@ -355,7 +370,7 @@ public class InstantRunner implements API1 {
     }
 
     public String getConfiguration(String name) {
-        return Util.getConfiguration(name, true);
+        return configuration.get(name);
     }
 
     public Object getPluginData(String name) throws IllegalArgumentException,
