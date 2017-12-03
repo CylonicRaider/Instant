@@ -18,6 +18,7 @@ import net.instant.plugins.PluginException;
 import net.instant.util.Formats;
 import net.instant.util.Logging;
 import net.instant.util.argparse.ArgumentParser;
+import net.instant.util.argparse.KeyValue;
 import net.instant.util.argparse.ParseException;
 import net.instant.util.argparse.ParseResult;
 import net.instant.util.argparse.ValueArgument;
@@ -114,6 +115,9 @@ public class Main implements Runnable {
         ValueOption<String> cmd = p.add(ValueOption.of(String.class,
             "startup-cmd", 'c', "OS command to run before entering " +
             "main loop"));
+        ValueOption<List<KeyValue>> options = p.add(ValueOption.ofAccum(
+            KeyValue.class, "option", 'o', "Additional configuration " +
+            "parameters").defaultsTo(new ArrayList<KeyValue>()));
         ParseResult r = parseArgumentsInner(p);
         String hostval = r.get(host);
         if (hostval.equals("*")) hostval = null;
@@ -121,6 +125,7 @@ public class Main implements Runnable {
         runner.setPort(r.get(port));
         runner.setWebroot(r.get(webroot));
         runner.setHTTPLog(resolveLogFile(r.get(httpLog)));
+        runner.makeConfig().putAll(r.get(options));
         Logging.redirectToStream(resolveLogFile(r.get(debugLog)));
         Logging.setLevel(Level.parse(r.get(logLevel)));
         for (File f : r.get(plugPath)) runner.addPluginPath(f);

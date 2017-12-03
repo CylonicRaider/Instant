@@ -55,7 +55,8 @@ public class Configuration {
     public void put(String key, String value) {
         data.put(key, value);
     }
-    public void putAll(Iterable<Map.Entry<String, String>> entries) {
+    public void putAll(
+            Iterable<? extends Map.Entry<String, String>> entries) {
         for (Map.Entry<String, String> e : entries) {
             put(e.getKey(), e.getValue());
         }
