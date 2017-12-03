@@ -33,6 +33,10 @@ public class Configuration {
         data = new HashMap<String, String>();
     }
 
+    public Map<String, String> getData() {
+        return data;
+    }
+
     public String get(String key) {
         if (data.containsKey(key)) return data.get(key);
         String ret = null;
@@ -50,6 +54,11 @@ public class Configuration {
 
     public void put(String key, String value) {
         data.put(key, value);
+    }
+    public void putAll(Iterable<Map.Entry<String, String>> entries) {
+        for (Map.Entry<String, String> e : entries) {
+            put(e.getKey(), e.getValue());
+        }
     }
 
     public void remove(String key) {
