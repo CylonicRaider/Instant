@@ -1,7 +1,7 @@
 package net.instant.util;
 
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -30,7 +30,7 @@ public class Configuration {
 
     public Configuration() {
         sources = new ArrayList<DataSource>();
-        data = new HashMap<String, String>();
+        data = new LinkedHashMap<String, String>();
     }
 
     public Map<String, String> getData() {

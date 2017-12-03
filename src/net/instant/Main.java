@@ -117,7 +117,7 @@ public class Main implements Runnable {
             "main loop"));
         ValueOption<List<KeyValue>> options = p.add(ValueOption.ofAccum(
             KeyValue.class, "option", 'o', "Additional configuration " +
-            "parameters").defaultsTo(new ArrayList<KeyValue>()));
+            "parameters"));
         ParseResult r = parseArgumentsInner(p);
         String hostval = r.get(host);
         if (hostval.equals("*")) hostval = null;

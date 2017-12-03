@@ -1,5 +1,6 @@
 package net.instant.util.argparse;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class ValueOption<X> extends Option<X> {
@@ -107,7 +108,7 @@ public class ValueOption<X> extends Option<X> {
     public static <T> ValueOption<List<T>> ofAccum(Class<T> cls, String name,
             Character shortname, String help) {
         return new ValueOption<List<T>>(name, shortname, help,
-                                        AccumulatingConverter.getA(cls));
+            AccumulatingConverter.getA(cls)).defaultsTo(new ArrayList<T>());
     }
     public static <T> ValueOption<List<T>> ofList(Class<T> cls, String name,
             Character shortname, String help) {
