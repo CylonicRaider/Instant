@@ -13,7 +13,7 @@ always up-to-date with the latest backend and frontend (unless someone messed
 it up).
 
 The backend accepts the following command-line arguments (the `--help` option
-can be used to report a summary):
+can be used to report a summary and single-letter aliases):
 
 - `--host` *host* — *Hostname to bind to*: Can be used on machines with
   multiple network interfaces; `localhost` can be used to accept local
@@ -54,8 +54,12 @@ can be used to report a summary):
   split on spaces and then executed as-is (in particular, neither the program
   path nor the arguments may contain spaces themselves). The backend waits
   for the command to finish before it proceeds. Can be used to reduce
-  downtime during updates by starting a new backend in the "background" and
+  downtime during updates by starting a new backend in the background and
   letting it shut down the "old" one before taking over.
+
+- `--option` *key*=*value* — *Configuration value*: Explicitly sets a
+  configuration value (overriding environment variables and system
+  properties).
 
 - *port* — *Port to bind to*: As a single optional positional argument, this
   specifies the TCP port to listen on. Defaults to `8080`.
