@@ -59,7 +59,7 @@ can be used to report a summary and single-letter aliases):
 
 - `--option` *key*=*value* — *Configuration value*: Explicitly sets a
   configuration value (overriding environment variables and system
-  properties).
+  properties). See [`CONFIG.md`](CONFIG.md) for details.
 
 - *port* — *Port to bind to*: As a single optional positional argument, this
   specifies the TCP port to listen on. Defaults to `8080`.
