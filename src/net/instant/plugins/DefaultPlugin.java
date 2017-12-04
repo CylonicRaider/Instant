@@ -127,9 +127,6 @@ public class DefaultPlugin {
 
     }
 
-    public static final PluginAttribute<Set<String>> FRONTEND_DEPS =
-        new StringSetAttribute("Frontend-Deps");
-
     public static Object initInstantPlugin1(API1 api, PluginData data) {
         if (FRONTEND_PLUGIN.get(data)) initFrontendPlugin(api, data);
         return null;
