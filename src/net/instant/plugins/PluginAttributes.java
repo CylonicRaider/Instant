@@ -10,7 +10,7 @@ import java.util.jar.Attributes;
 public class PluginAttributes {
 
     private final List<Attributes> bases;
-    private Map<PluginAttribute<?>, Object> cache;
+    private final Map<PluginAttribute<?>, Object> cache;
 
     public PluginAttributes(Attributes... bases) {
         List<Attributes> l = new ArrayList<Attributes>();

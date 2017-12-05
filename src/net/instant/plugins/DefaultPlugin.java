@@ -130,8 +130,12 @@ public class DefaultPlugin {
     }
 
     public static Object initInstantPlugin1(API1 api, PluginData data) {
-        if (FRONTEND_PLUGIN.get(data)) initFrontendPlugin(api, data);
+        if (isFrontendPlugin(data)) initFrontendPlugin(api, data);
         return null;
+    }
+
+    public static boolean isFrontendPlugin(PluginData data) {
+        return FRONTEND_PLUGIN.get(data);
     }
 
     public static void initFrontendPlugin(API1 api, PluginData data) {

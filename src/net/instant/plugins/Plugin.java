@@ -14,7 +14,6 @@ import java.util.jar.JarFile;
 import java.util.jar.Manifest;
 import net.instant.api.API1;
 import net.instant.api.PluginData;
-import net.instant.util.Util;
 
 public class Plugin implements PluginData {
 
@@ -104,13 +103,11 @@ public class Plugin implements PluginData {
         return data;
     }
 
-    public Iterable<String> getRequirements() {
-        return Util.concat(getAttribute(REQUIRES), getAttribute(DEPENDS));
-    }
     public Set<String> getDependencies() {
         if (dependencies == null) {
             Set<String> ret = new LinkedHashSet<String>();
-            for (String n : getRequirements()) ret.add(n);
+            ret.addAll(getAttribute(REQUIRES));
+            ret.addAll(getAttribute(DEPENDS));
             dependencies = Collections.unmodifiableSet(ret);
         }
         return dependencies;

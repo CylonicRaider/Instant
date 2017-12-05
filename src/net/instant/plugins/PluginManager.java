@@ -73,7 +73,7 @@ public class PluginManager {
                 throw new NoSuchPluginException("Plugin " + name +
                                                 " not found");
             add(ret);
-            for (String n : ret.getRequirements()) {
+            for (String n : ret.getDependencies()) {
                 LOGGER.config(name + " requires " + n);
                 fetch(n);
             }
@@ -129,7 +129,7 @@ public class PluginManager {
         Map<Plugin, Set<Plugin>> ret = new HashMap<Plugin, Set<Plugin>>();
         for (Plugin p : plugins.values()) {
             Set<Plugin> deps = getDeps(ret, p);
-            for (String n : p.getRequirements()) {
+            for (String n : p.getDependencies()) {
                 if (get(n) == null)
                     throw new IntegrityException("Dependency " + n +
                         " of plugin " + p.getName() + " absent");
