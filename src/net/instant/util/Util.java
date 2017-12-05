@@ -5,6 +5,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.ByteBuffer;
 import java.security.SecureRandom;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.regex.Pattern;
@@ -61,23 +62,21 @@ public final class Util {
         Utilities.mergeJSONObjects(base, add);
     }
 
-    public static <E> Iterator<E> concat(final Iterator<E> a,
-                                         final Iterator<E> b) {
+    @SafeVarargs
+    public static <E> Iterator<E> concat(final Iterator<E>... l) {
+        if (l.length == 0) return Collections.<E>emptyList().iterator();
         return new Iterator<E>() {
 
-            private Iterator<E> it = a;
-            private boolean atB = false;
+            private Iterator<E> it = l[0];
+            private int idx = 1;
 
             public boolean hasNext() {
-                if (it.hasNext()) {
-                    return true;
-                } else if (! atB) {
-                    it = b;
-                    atB = true;
-                    return it.hasNext();
-                } else {
-                    return false;
+                if (it.hasNext()) return true;
+                while (idx < l.length) {
+                    it = l[idx++];
+                    if (it.hasNext()) return true;
                 }
+                return false;
             }
 
             public E next() {
@@ -92,11 +91,14 @@ public final class Util {
 
         };
     }
-    public static <E> Iterable<E> concat(final Iterable<E> a,
-                                         final Iterable<E> b) {
+    @SafeVarargs
+    public static <E> Iterable<E> concat(final Iterable<E>... l) {
         return new Iterable<E>() {
             public Iterator<E> iterator() {
-                return concat(a.iterator(), b.iterator());
+                @SuppressWarnings("unchecked")
+                Iterator<E>[] il = (Iterator<E>[]) new Iterator<?>[l.length];
+                for (int i = 0; i < l.length; i++) il[i] = l[i].iterator();
+                return concat(il);
             }
         };
     }
