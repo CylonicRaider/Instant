@@ -40,6 +40,7 @@ public class Plugin implements PluginData {
     private final JarFile file;
     private final PluginAttributes attrs;
     private final String mainClass;
+    private Set<String> dependencies;
     private boolean loaded;
     private Object data;
 
@@ -56,7 +57,9 @@ public class Plugin implements PluginData {
         this.attrs = new PluginAttributes(mf.getAttributes("Instant-Plugin"),
             mf.getMainAttributes());
         this.mainClass = this.attrs.getRaw(Attributes.Name.MAIN_CLASS);
+        this.dependencies = null;
         this.loaded = false;
+        this.data = null;
     }
     public Plugin(PluginManager parent, String name, File source)
             throws BadPluginException, IOException {
@@ -105,9 +108,12 @@ public class Plugin implements PluginData {
         return Util.concat(getAttribute(REQUIRES), getAttribute(DEPENDS));
     }
     public Set<String> getDependencies() {
-        Set<String> ret = new LinkedHashSet<String>();
-        for (String n : getRequirements()) ret.add(n);
-        return Collections.unmodifiableSet(ret);
+        if (dependencies == null) {
+            Set<String> ret = new LinkedHashSet<String>();
+            for (String n : getRequirements()) ret.add(n);
+            dependencies = Collections.unmodifiableSet(ret);
+        }
+        return dependencies;
     }
 
     public void load() {
