@@ -14,6 +14,16 @@ public class DefaultPlugin {
 
     public enum PluginResource {
 
+        DEPS("deps") {
+
+            public final PluginAttribute<Set<String>> ATTR =
+                new StringSetAttribute("Frontend-Deps");
+
+            public String parse(PluginData data) {
+                return parseSet(data, ATTR);
+            }
+
+        },
         STYLES("styles") {
 
             public final PluginAttribute<Set<String>> ATTR =
