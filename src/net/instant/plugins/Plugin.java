@@ -37,6 +37,7 @@ public class Plugin implements PluginData {
     private final String name;
     private final File source;
     private final JarFile file;
+    private final Manifest manifest;
     private final PluginAttributes attrs;
     private final String mainClass;
     private Set<String> dependencies;
@@ -49,12 +50,13 @@ public class Plugin implements PluginData {
         this.name = name;
         this.source = source;
         this.file = file;
-        Manifest mf = file.getManifest();
-        if (mf == null)
+        this.manifest = file.getManifest();
+        if (this.manifest == null)
             throw new BadPluginException("Plugin " + name +
                 " has no manifest");
-        this.attrs = new PluginAttributes(mf.getAttributes("Instant-Plugin"),
-            mf.getMainAttributes());
+        this.attrs = new PluginAttributes(
+            this.manifest.getAttributes("Instant-Plugin"),
+            this.manifest.getMainAttributes());
         this.mainClass = this.attrs.getRaw(Attributes.Name.MAIN_CLASS);
         this.dependencies = null;
         this.loaded = false;
@@ -79,6 +81,13 @@ public class Plugin implements PluginData {
 
     public JarFile getFile() {
         return file;
+    }
+
+    public Manifest getManifest() {
+        return manifest;
+    }
+    public Attributes getAttributeSet(String name) {
+        return manifest.getAttributes(name);
     }
 
     public PluginAttributes getAttributes() {

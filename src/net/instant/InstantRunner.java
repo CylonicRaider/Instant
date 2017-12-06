@@ -4,10 +4,12 @@ import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.net.InetSocketAddress;
+import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.jar.Attributes;
 import java.util.regex.Pattern;
 import net.instant.api.API1;
 import net.instant.api.Counter;
@@ -22,6 +24,7 @@ import net.instant.hooks.CodeHook;
 import net.instant.hooks.RedirectHook;
 import net.instant.hooks.StaticFileHook;
 import net.instant.plugins.DefaultPlugin;
+import net.instant.plugins.Plugin;
 import net.instant.plugins.PluginException;
 import net.instant.plugins.PluginManager;
 import net.instant.proto.APIHook;
@@ -75,6 +78,33 @@ public class InstantRunner implements API1 {
                     return new APIFileCell(wrapped.generateFile(name));
                 }
             };
+        }
+
+    }
+
+    public static class PluginConfigSource
+            implements Configuration.DataSource {
+
+        private final PluginManager plugins;
+
+        public PluginConfigSource(PluginManager m) {
+            plugins = m;
+        }
+
+        public String get(String key) {
+            List<Plugin> order;
+            try {
+                order = plugins.computeOrder();
+            } catch (PluginException exc) {
+                // Someone else should report that before we have to.
+                throw new RuntimeException(exc);
+            }
+            for (Plugin p : order) {
+                Attributes a = p.getAttributeSet("Instant-Configuration");
+                String v = a.getValue(key);
+                if (v != null) return v;
+            }
+            return null;
         }
 
     }
@@ -388,6 +418,7 @@ public class InstantRunner implements API1 {
 
     public void setupPlugins() throws PluginException {
         makePlugins().setup();
+        makeConfig().addSource(new PluginConfigSource(getPlugins()));
     }
     public void setupJobScheduler() {
         makeJobScheduler();
