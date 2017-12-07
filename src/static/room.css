@@ -811,40 +811,44 @@ body {
   display: none;
 }
 
-.popups-wrapper .popups-controls {
-  position: absolute;
-  top: 0;
-  right: 0;
-  border: 1px solid black;
+.popups-wrapper {
+  display: -webkit-flex;
+  display: flex;
+  -webkit-flex-direction: column;
+  flex-direction: column;
+}
+.popups-wrapper .popups-menu {
+  display: -webkit-flex;
+  display: flex;
+  border-bottom: 2px solid black;
+  background: white;
   z-index: 1100;
 }
-.popups-wrapper .popups-controls * {
-  vertical-align: top;
+.popups-wrapper .popups-menu .filler {
+  -webkit-flex-grow: 1;
+  flex-grow: 1;
 }
-.popups-wrapper .popups-controls .button {
+.popups-wrapper .popups-menu > .separator {
+  display: inline-block;
+  width: 1px;
+  height: 100%;
+  background: black;
+}
+.popups-wrapper .popups-menu > .button {
   width: 2em;
   height: 2em;
   background: white;
 }
-.popups-wrapper .popups-controls .separator {
-  display: inline-block;
-  width: 1px;
-  height: 2em;
-  background: black;
-}
-.popups-wrapper .popups-controls .button:hover {
+.popups-wrapper .popups-menu > .button:hover {
   background: #c0c0c0;
 }
-.popups-wrapper .popups-controls .button:active {
+.popups-wrapper .popups-menu > .button:active {
   background: #808080;
 }
 
 .popups-content {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
+  -webkit-flex-grow: 1;
+  flex-grow: 1;
   overflow: auto;
 }
 .popups {
@@ -852,10 +856,6 @@ body {
   display: flex;
   -webkit-flex-direction: column;
   flex-direction: column;
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
   min-height: 100%;
   padding: 0.5em;
   box-sizing: border-box;
@@ -988,6 +988,8 @@ body {
 .popup .popup-bottom {
   display: -webkit-flex;
   display: flex;
+  -webkit-justify-content: flex-end;
+  -webkit-flex-wrap: wrap;
   justify-content: flex-end;
   flex-wrap: wrap;
   margin: 0 5px 5px 5px;
@@ -1003,6 +1005,7 @@ body {
 }
 .popup .popup-bottom > .spacer {
   margin-left: 0;
+  -webkit-flex-grow: 1;
   flex-grow: 1;
 }
 

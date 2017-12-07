@@ -5748,10 +5748,9 @@ this.Instant = function() {
           });
         }
         wrapper = $makeNode('div', 'popups-wrapper empty', [
-          ['div', 'popups-content', [
-            ['div', 'popups']
-          ]],
-          ['div', 'popups-controls', [
+          ['div', 'popups-menu', [
+            ['span', 'filler'],
+            ['span', 'separator'],
             ['button', 'button button-noborder hide-all', [
               ['img', {src: collapseURL}]
             ]],
@@ -5759,6 +5758,9 @@ this.Instant = function() {
             ['button', 'button button-noborder close-all', [
               ['img', {src: closeURL}]
             ]]
+          ]],
+          ['div', 'popups-content', [
+            ['div', 'popups']
           ]]
         ]);
         stack = $cls('popups', wrapper);
@@ -5781,11 +5783,6 @@ this.Instant = function() {
           collapseURL = res;
         });
         return stack;
-      },
-      /* Adjust the position of the "close all" button */
-      _update: function() {
-        Instant.util.adjustScrollbar($cls('popups-controls', wrapper),
-                                     $cls('popups-content', wrapper));
       },
       /* Adjust the "hidden popups" UI message */
       _updateHidden: function(flash) {
@@ -5899,7 +5896,6 @@ this.Instant = function() {
         if (wrapper.classList.contains('hidden')) {
           Instant.popups._updateHidden(true);
         } else if (hasPopups) {
-          Instant.popups._update();
           Instant.popups.focus(node);
         }
       },
@@ -5923,7 +5919,6 @@ this.Instant = function() {
           Instant.popups._updateHidden();
           Instant.input.focus();
         } else {
-          Instant.popups._update();
           Instant.popups.focus(next);
         }
       },
@@ -5938,9 +5933,6 @@ this.Instant = function() {
         } else {
           node.classList.remove('collapsed');
           $sel('.popup-collapse img', node).src = collapseURL;
-        }
-        if (node.parentNode == stack) {
-          Instant.popups._update();
         }
       },
       /* Focus a concrete popup or anything */
@@ -5983,7 +5975,6 @@ this.Instant = function() {
           wrapper.classList.add('hidden');
         } else {
           wrapper.classList.remove('hidden');
-          Instant.popups._update();
           Instant.popups.focus();
         }
         Instant.popups._updateHidden();
@@ -6784,7 +6775,6 @@ this.Instant = function() {
     repeat(function() {
       Instant.util.adjustScrollbar($cls('sidebar', main),
                                    $cls('message-pane', main));
-      Instant.popups._update();
     }, 1000);
     Instant.notifications.submitNew({text: 'Ready.'});
     Instant._fireListeners('init.final');
