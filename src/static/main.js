@@ -5749,6 +5749,10 @@ this.Instant = function() {
         }
         wrapper = $makeNode('div', 'popups-wrapper empty', [
           ['div', 'popups-menu', [
+            ['span', 'logo-small big-text', [
+              ['img', {src: '/static/logo-static.svg'}],
+              ['strong', ['Instant']]
+            ]],
             ['span', 'filler'],
             ['span', 'separator'],
             ['button', 'button button-noborder hide-all', [

@@ -817,6 +817,7 @@ body {
   -webkit-flex-direction: column;
   flex-direction: column;
 }
+
 .popups-wrapper .popups-menu {
   display: -webkit-flex;
   display: flex;
@@ -824,19 +825,29 @@ body {
   background: white;
   z-index: 1100;
 }
-.popups-wrapper .popups-menu .filler {
+.popups-wrapper .popups-menu > * {
+  line-height: 1.2em;
+  margin: auto 0.2em;
+}
+.popups-wrapper .popups-menu > .big-text {
+  font-size: 1.5em;
+}
+.popups-wrapper .popups-menu > .filler {
   -webkit-flex-grow: 1;
   flex-grow: 1;
+  margin: 0;
 }
 .popups-wrapper .popups-menu > .separator {
   display: inline-block;
   width: 1px;
   height: 100%;
+  margin: 0;
   background: black;
 }
 .popups-wrapper .popups-menu > .button {
   width: 2em;
   height: 2em;
+  margin: 0;
   background: white;
 }
 .popups-wrapper .popups-menu > .button:hover {
