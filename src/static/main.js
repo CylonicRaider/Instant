@@ -4873,24 +4873,28 @@ this.Instant = function() {
             pending = true;
             if (! node || visible) return;
             if (hideTimeout != null) clearTimeout(hideTimeout);
-            node.style.display = 'inline-block';
-            node.style.opacity = '1';
+            node.style.display = '';
+            node.style.opacity = '';
             visible = true;
           },
           /* Hide greeter */
-          hide: function() {
+          hide: function(fast) {
             pending = false;
             if (! node || ! visible) return;
             if (hideTimeout != null) clearTimeout(hideTimeout);
             node.style.opacity = '0';
-            hideTimeout = setTimeout(function() {
+            if (fast) {
               node.style.display = 'none';
-            }, 1000);
+            } else {
+              hideTimeout = setTimeout(function() {
+                node.style.display = 'none';
+              }, 1000);
+            }
             visible = false;
           },
         };
       }(),
-      /* Throbber indicating ongoing action */
+      /* Spinner indicating ongoing action */
       spinner: function() {
         /* Status
          * The spinner displays as long as at least one of the values in
@@ -6829,7 +6833,7 @@ function init() {
   var wrapperClose = $id('load-wrapper-close');
   wrapperClose.style.display = 'block';
   wrapperClose.addEventListener('click', function() {
-    Instant.animation.greeter.hide();
+    Instant.animation.greeter.hide(true);
     Instant.input.focus();
   });
   /* Avoid hasty reconnects on refreshes */
