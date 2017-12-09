@@ -4530,7 +4530,7 @@ this.Instant = function() {
         popup.setAttribute('data-focus', '.first');
         if (isNew)
           Instant.privmsg._save(popup);
-        var uid = $sel('.popup-grid .nick').getAttribute('data-uid');
+        var uid = $sel('.popup-grid .nick', popup).getAttribute('data-uid');
         Instant.privmsg._updatePreferredReply(uid, null);
       },
       /* Determine which of the four classes the popup belongs to */
