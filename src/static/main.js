@@ -4272,7 +4272,7 @@ this.Instant = function() {
         var parentNode = $cls('pm-parent-id', popup);
         if (parentNode)
           data.parent = parentNode.textContent;
-        var recipient = $cls('pm-to-id').textContent;
+        var recipient = $cls('pm-to-id', popup).textContent;
         try {
           Instant.connection.sendUnicast(recipient, data, callback);
         } catch (e) {
