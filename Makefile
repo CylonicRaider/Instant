@@ -24,8 +24,7 @@ Instant.jar: .build.jar $(LIBRARIES) $(ASSETS) $(AUTOASSETS)
 .build.jar: $(SOURCES)
 	find src/net/ -name '*.class' -exec rm {} +
 	cd src && javac $(JAVACFLAGS) $(_JAVA_SOURCES)
-	cd src && jar cfe ../.build.jar Main $(_JAVA_SOURCES) \
-	$(patsubst %.java,%.class,$(_JAVA_SOURCES))
+	cd src && jar cfe ../.build.jar Main $$(find . -name '*.class')
 
 Instant-run.jar: Instant.jar
 	cp Instant.jar Instant-run.jar
