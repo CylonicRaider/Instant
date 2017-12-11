@@ -139,8 +139,8 @@
 .dark .popups {
   background: rgba(0, 0, 0, 0.5);
 }
-.dark .popups-wrapper .popups-menu,
-.dark .popups-wrapper .popups-menu > .button,
+.dark .popups-menu, .dark .popups-menu > .button,
+.dark .popups-menu-entry .popups-menu-menu,
 .dark .popup, .dark .popup .popup-header {
   background: black;
 }
@@ -150,8 +150,8 @@
 .dark .popups-wrapper .popups-menu > .button:active {
   background: #808080;
 }
-.dark .popups-wrapper .popups-menu, .dark .popup, .dark .popup-header,
-.dark .popup.popup-hidetitle .popup-title {
+.dark .popups-menu, .dark .popups-menu-entry .popups-menu-menu, .dark .popup,
+.dark .popup-header, .dark .popup.popup-hidetitle .popup-title {
   border-color: #e0e0e0;
 }
 .dark .popup .popup-title {
