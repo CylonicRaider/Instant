@@ -101,6 +101,7 @@ public class InstantRunner implements API1 {
             }
             for (Plugin p : order) {
                 Attributes a = p.getAttributeSet("Instant-Configuration");
+                if (a == null) continue;
                 String v = a.getValue(key);
                 if (v != null) return v;
             }
