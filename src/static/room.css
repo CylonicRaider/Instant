@@ -821,6 +821,8 @@ body {
 .popups-menu {
   display: -webkit-flex;
   display: flex;
+  -webkit-flex-shrink: 0;
+  flex-shrink: 0;
   border-bottom: 2px solid black;
   background: white;
   z-index: 1100;
@@ -848,6 +850,8 @@ body {
   width: 2em;
   height: 2em;
   margin: 0;
+  vertical-align: top;
+  line-height: 0;
   background: white;
 }
 .popups-menu > .button:hover {
@@ -888,6 +892,21 @@ body {
 .popups-menu-entry.open .popups-menu-menu,
 .popups-menu:not(.entry-open) .popups-menu-entry:hover .popups-menu-menu {
   visibility: visible;
+}
+
+@media (max-width: 400px) {
+
+  .popups-menu .logo-small {
+    line-height: 0;
+  }
+  .popups-menu .logo-small img {
+    margin: 0;
+    vertical-align: top;
+  }
+  .popups-menu .logo-small strong {
+    display: none;
+  }
+
 }
 
 .popups-content {
