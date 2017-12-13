@@ -4359,7 +4359,7 @@ this.Instant = function() {
       _makePopup: function(data) {
         function makeQuote(text) {
           return text.replace(/^(.)?/mg, function(char) {
-            return ((char) ? '> ' + char : '>');
+            return ((char == '>') ? '>>' : (char) ? '> ' + char : '>');
           }) + '\n';
         }
         /* Pre-computed variables */
