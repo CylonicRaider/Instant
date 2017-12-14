@@ -37,7 +37,6 @@
 .dark .logo img {
   box-shadow: 0 0 30px white;
 }
-
 .dark .logo-small img {
   box-shadow: 0 0 2px white;
 }
@@ -157,9 +156,8 @@
 .dark .popup .popup-title {
   color: white;
 }
-.dark .popups-wrapper .popups-menu > .separator,
-.dark .popup .popup-title-sep,
-.dark .popup .popup-content hr {
+.dark .popups-wrapper .popups-menu .separator,
+.dark .popup .popup-title-sep, .dark .popup .popup-content hr {
   background: #e0e0e0;
 }
 .dark .popups-wrapper .popups-menu > .button img,

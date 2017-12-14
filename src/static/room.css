@@ -889,6 +889,13 @@ body {
   border: none;
   outline-offset: -1px;
 }
+.popups-menu-entry .popups-menu-menu > .separator {
+  display: block;
+  width: 100%;
+  height: 1px;
+  border: none;
+  background: black;
+}
 .popups-menu-entry.open .popups-menu-menu,
 .popups-menu:not(.entry-open) .popups-menu-entry:hover .popups-menu-menu {
   visibility: visible;
