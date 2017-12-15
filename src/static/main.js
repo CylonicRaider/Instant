@@ -5751,26 +5751,23 @@ this.Instant = function() {
             document.head.appendChild(obj);
           });
         }
+        var menuNode = Instant.popups.menu.init();
         wrapper = $makeNode('div', 'popups-wrapper empty', [
-          ['div', 'popups-menu', [
-            ['span', 'logo-small big-text', [
-              ['img', {src: '/static/logo-static.svg'}],
-              ['strong', ['Instant']]
-            ]],
-            ['span', 'filler'],
-            ['span', 'separator'],
-            ['button', 'button button-noborder hide-all', [
-              ['img', {src: collapseURL}]
-            ]],
-            ['span', 'separator'],
-            ['button', 'button button-noborder close-all', [
-              ['img', {src: closeURL}]
-            ]]
-          ]],
+          menuNode,
           ['div', 'popups-content', [
             ['div', 'popups']
           ]]
         ]);
+        menuNode.appendChild($makeFrag(
+          ['span', 'separator'],
+          ['button', 'button button-noborder hide-all', [
+            ['img', {src: collapseURL}]
+          ]],
+          ['span', 'separator'],
+          ['button', 'button button-noborder close-all', [
+            ['img', {src: closeURL}]
+          ]]
+        ));
         stack = $cls('popups', wrapper);
         $cls('hide-all', wrapper).addEventListener('click',
           Instant.popups.hideAll.bind(Instant.popups));
@@ -6103,6 +6100,24 @@ this.Instant = function() {
           /* Return the DOM node hosting the windows */
           getNode: function() {
             return winnode;
+          }
+        };
+      }(),
+      /* The top bar menu */
+      menu: function() {
+        /* The DOM node hosting the menu */
+        var node = null;
+        return {
+          /* Initialize submodule */
+          init: function() {
+            node = $makeNode('div', 'popups-menu', [
+              ['span', 'logo-small big-text', [
+                ['img', {src: '/static/logo-static.svg'}],
+                ['strong', ['Instant']]
+              ]],
+              ['span', 'filler']
+            ]);
+            return node;
           }
         };
       }()
