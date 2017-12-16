@@ -6118,6 +6118,62 @@ this.Instant = function() {
               ['span', 'filler']
             ]);
             return node;
+          },
+          /* Handler for menu opening/closing */
+          _onclick: function(menu) {
+            var entries = $clsAll('popups-menu-entry', node);
+            Array.prototype.forEach.call(entries, function(ent) {
+              if (ent != menu) ent.classList.remove('open');
+            });
+            if (menu.classList.contains('open')) {
+              menu.classList.remove('open');
+              node.classList.remove('entry-open');
+            } else {
+              menu.classList.add('open');
+              node.classList.add('entry-open');
+            }
+          },
+          /* Create a submenu */
+          make: function(params) {
+            function makeButton(data) {
+              var ret = $makeNode('button', 'button', data.text);
+              if (data.color) ret.style.color = data.color;
+              if (data.bold) ret.style.fontWeight = 'bold';
+              if (data.onclick) ret.addEventListener('click', data.onclick);
+              return ret;
+            }
+            var menu = $makeNode('div', 'popups-menu-entry', [
+              makeButton(params),
+              ['div', 'popups-menu-menu']
+            ]);
+            $cls('button', menu).addEventListener('click', function(evt) {
+              Instant.popups.menu._onclick(menu);
+            });
+            var submenu = $cls('popups-menu-menu', menu);
+            (params.entries || []).forEach(function(ent) {
+              if (ent == null) {
+                submenu.appendChild($makeNode('hr', 'separator'));
+              } else if (ent.nodeType !== undefined) {
+                submenu.appendChild(ent);
+              } else {
+                submenu.appendChild(makeButton(ent));
+              }
+            });
+            return menu;
+          },
+          /* Add a submenu to the main menu bar */
+          add: function(menu) {
+            node.insertBefore(menu, $cls('filler', node));
+          },
+          /* Create a submenu and add it */
+          addNew: function(params) {
+            var menu = Instant.popups.menu.make(params);
+            Instant.popups.menu.add(menu);
+            return menu;
+          },
+          /* Obtain the main DOM node */
+          getNode: function() {
+            return node;
           }
         };
       }()
