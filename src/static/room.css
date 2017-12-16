@@ -896,6 +896,9 @@ body {
   border: none;
   background: black;
 }
+.popups-menu-entry.open > .button {
+  font-weight: bold;
+}
 .popups-menu-entry.open .popups-menu-menu,
 .popups-menu:not(.entry-open) .popups-menu-entry:hover .popups-menu-menu {
   visibility: visible;

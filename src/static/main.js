@@ -6117,20 +6117,38 @@ this.Instant = function() {
               ]],
               ['span', 'filler']
             ]);
+            node.addEventListener('keydown', function(event) {
+              if (event.keyCode == 27) { // Escape
+                var menu = $cls('popups-menu-entry open', node);
+                if (menu != null) {
+                  if (Instant.popups.menu.open(menu, false))
+                    $cls('button', menu).focus();
+                } else {
+                  Instant.popups.focus();
+                }
+                event.preventDefault();
+                event.stopPropagation();
+              }
+            });
             return node;
           },
-          /* Handler for menu opening/closing */
-          _onclick: function(menu) {
+          /* Open or close a concrete submenu */
+          open: function(menu, force) {
+            if (force == null) force = (! menu.classList.contains('open'));
             var entries = $clsAll('popups-menu-entry', node);
-            Array.prototype.forEach.call(entries, function(ent) {
-              if (ent != menu) ent.classList.remove('open');
-            });
-            if (menu.classList.contains('open')) {
-              menu.classList.remove('open');
-              node.classList.remove('entry-open');
-            } else {
+            if (force) {
+              Array.prototype.forEach.call(entries, function(ent) {
+                if (ent != menu) ent.classList.remove('open');
+              });
               menu.classList.add('open');
               node.classList.add('entry-open');
+              return true;
+            } else if (menu.classList.contains('open')) {
+              menu.classList.remove('open');
+              node.classList.remove('entry-open');
+              return true;
+            } else {
+              return false;
             }
           },
           /* Create a submenu */
@@ -6147,7 +6165,7 @@ this.Instant = function() {
               ['div', 'popups-menu-menu']
             ]);
             $cls('button', menu).addEventListener('click', function(evt) {
-              Instant.popups.menu._onclick(menu);
+              Instant.popups.menu.open(menu);
             });
             var submenu = $cls('popups-menu-menu', menu);
             (params.entries || []).forEach(function(ent) {
