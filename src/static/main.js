@@ -6157,6 +6157,7 @@ this.Instant = function() {
               var ret = $makeNode('button', 'button', data.text);
               if (data.color) ret.style.color = data.color;
               if (data.bold) ret.style.fontWeight = 'bold';
+              if (data.className) ret.className += ' ' + data.className;
               if (data.onclick) ret.addEventListener('click', data.onclick);
               return ret;
             }
