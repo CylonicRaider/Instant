@@ -6190,6 +6190,12 @@ this.Instant = function() {
             Instant.popups.menu.add(menu);
             return menu;
           },
+          /* Create a separator and add it */
+          addSeparator: function() {
+            var sep = $makeNode('span', 'separator');
+            Instant.popups.menu.add(sep);
+            return sep;
+          },
           /* Obtain the main DOM node */
           getNode: function() {
             return node;
