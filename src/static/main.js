@@ -4029,8 +4029,8 @@ this.Instant = function() {
     var popupsByUser = {};
     /* User ID -> popup to append additional quotes to */
     var preferredReply = {};
-    /* Message opening popup */
-    var accessPopup = null;
+    /* Message opening menu */
+    var accessMenu = null;
     /* Reload-safe cache of popups */
     var storage = null;
     return {
@@ -4051,10 +4051,9 @@ this.Instant = function() {
           content: 'Private messages',
           color: Instant.notifications.COLORS.privmsg,
           onclick: sm});
-        accessPopup = Instant.popups.make({
-          title: 'Private messages',
-          content: 'Click below to open your inbox / all drafts.',
-          buttons: [
+        accessMenu = Instant.popups.menu.addNew({
+          text: 'Private messages',
+          entries: [
             {text: 'Unread', onclick: su, color: COLORS.U,
              className: 'show-unread'},
             {text: 'Inbox', onclick: sh(false, true, false, false),
@@ -4063,9 +4062,7 @@ this.Instant = function() {
              color: COLORS.D, className: 'show-drafts'},
             {text: 'Outbox', onclick: sh(false, false, false, true),
              color: COLORS.O, className: 'show-outbox'}
-          ],
-          noClose: true,
-          className: 'popup-weak'});
+          ]});
         storage = new Instant.storage.Storage('instant-pm-backup', true);
         storage.load();
         storage.keys().forEach(function(k) {
@@ -4111,22 +4108,26 @@ this.Instant = function() {
         } else {
           Instant.sidebar.hideMessage(msgOthers);
         }
-        /* Update control popup */
-        if (counts.U + counts.I + counts.D + counts.O) {
-          [['U', 'show-unread', 'Unread'], ['I', 'show-inbox', 'Inbox'],
-           ['D', 'show-drafts', 'Drafts'], ['O', 'show-outbox', 'Outbox']
-          ].forEach(function(el) {
-            var btn = $cls(el[1], accessPopup);
-            if (counts[el[0]]) {
-              btn.textContent = el[2] + ' (' + counts[el[0]] + ')';
-              btn.style.display = '';
-            } else {
-              btn.style.display = 'none';
-            }
-          });
-          Instant.popups.add(accessPopup, true);
+        /* Update control menu */
+        [['U', 'show-unread', 'Unread'], ['I', 'show-inbox', 'Inbox'],
+         ['D', 'show-drafts', 'Drafts'], ['O', 'show-outbox', 'Outbox']
+        ].forEach(function(el) {
+          var btn = $cls(el[1], accessMenu);
+          if (counts[el[0]]) {
+            btn.textContent = el[2] + ' (' + counts[el[0]] + ')';
+            btn.disabled = false;
+          } else {
+            btn.textContent = el[2];
+            btn.disabled = true;
+          }
+        });
+        var total = counts.U + counts.I + counts.D + counts.O;
+        if (total) {
+          // HACK: Pasting HTML together again...
+          $cls('button', accessMenu).innerHTML = ('Private messages (<b>' +
+            total + '</b>)');
         } else {
-          Instant.popups.del(accessPopup);
+          $cls('button', accessMenu).textContent = 'Private messages';
         }
         Instant.title.update();
       },
