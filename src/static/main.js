@@ -4041,26 +4041,27 @@ this.Instant = function() {
         function sh(u, i, d, o) {
           return Instant.privmsg.show.bind(Instant.privmsg, u, i, d, o);
         }
-        var su = sh(true, false, false, false);
-        var sm = sh(false, true, true, true);
+        function tg(u, i, d, o) {
+          return Instant.privmsg.toggle.bind(Instant.privmsg, u, i, d, o);
+        }
         msgUnread = Instant.sidebar.makeMessage({
           content: 'New private messages',
           color: Instant.notifications.COLORS.privmsg,
-          onclick: su});
+          onclick: sh(true, false, false, false)});
         msgOthers = Instant.sidebar.makeMessage({
           content: 'Private messages',
           color: Instant.notifications.COLORS.privmsg,
-          onclick: sm});
+          onclick: sh(false, true, true, true)});
         accessMenu = Instant.popups.menu.addNew({
           text: 'Private messages',
           entries: [
-            {text: 'Unread', onclick: su, color: COLORS.U,
-             className: 'show-unread'},
-            {text: 'Inbox', onclick: sh(false, true, false, false),
+            {text: 'Unread', onclick: tg(true, false, false, false),
+             color: COLORS.U, className: 'show-unread'},
+            {text: 'Inbox', onclick: tg(false, true, false, false),
              color: COLORS.I, className: 'show-inbox'},
-            {text: 'Drafts', onclick: sh(false, false, true, false),
+            {text: 'Drafts', onclick: tg(false, false, true, false),
              color: COLORS.D, className: 'show-drafts'},
-            {text: 'Outbox', onclick: sh(false, false, false, true),
+            {text: 'Outbox', onclick: tg(false, false, false, true),
              color: COLORS.O, className: 'show-outbox'}
           ]});
         storage = new Instant.storage.Storage('instant-pm-backup', true);
@@ -4167,22 +4168,42 @@ this.Instant = function() {
       /* Show the requested class(es) of popups */
       show: function(unread, inbox, drafts, outbox) {
         var flags = {U: unread, I: inbox, D: drafts, O: outbox};
+        var shownNew = false;
         popups.forEach(function(popup) {
-          Instant.privmsg.showOne(popup, flags);
+          if (Instant.privmsg.showOne(popup, flags))
+            shownNew = true;
         });
         Instant.privmsg._update();
         Instant.animation.unflash(msgUnread);
+        return shownNew;
       },
-      /* Show the single requested popup */
+      /* Toggle the requested class(es) of popups */
+      toggle: function(unread, inbox, drafts, outbox) {
+        if (Instant.privmsg.show(unread, inbox, drafts, outbox)) return;
+        var flags = {U: unread, I: inbox, D: drafts, O: outbox};
+        popups.forEach(function(popup) {
+          Instant.privmsg.hideOne(popup, flags);
+        });
+      },
+      /* Show the requested popup if it matches classFlags */
       showOne: function(popup, classFlags) {
-        if (Instant.popups.isShown(popup)) return;
+        if (Instant.popups.isShown(popup)) return false;
         var cls = Instant.privmsg._getPopupClass(popup);
-        if (classFlags && ! classFlags[cls]) return;
+        if (classFlags && ! classFlags[cls]) return false;
         if (cls == 'U') {
           popup.classList.remove('pm-unread');
           Instant.privmsg._save(popup);
         }
         Instant.popups.add(popup);
+        return true;
+      },
+      /* Show the requested popup if it matches classFlags */
+      hideOne: function(popup, classFlags) {
+        if (! Instant.popups.isShown(popup) || classFlags &&
+            ! classFlags[Instant.privmsg._getPopupClass(popup)])
+          return false;
+        Instant.popups.del(popup);
+        return true;
       },
       /* Navigate to the given PM */
       navigateTo: function(id) {
