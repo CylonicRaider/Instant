@@ -5918,7 +5918,7 @@ this.Instant = function() {
         }
         var hasPopups = Instant.popups.hasPopups();
         if (hasPopups) {
-          wrapper.classList.remove('empty');
+          Instant.popups._setEmpty(false);
         }
         if (wrapper.classList.contains('hidden')) {
           Instant.popups._updateHidden(true);
@@ -5942,7 +5942,7 @@ this.Instant = function() {
           }
         }
         if (! Instant.popups.hasPopups()) {
-          wrapper.classList.add('empty');
+          Instant.popups._setEmpty(true);
           Instant.popups._updateHidden();
           Instant.input.focus();
         } else {
@@ -5988,7 +5988,7 @@ this.Instant = function() {
       /* Remove all popups */
       delAll: function() {
         while (stack.firstChild) stack.removeChild(stack.firstChild);
-        wrapper.classList.add('empty');
+        Instant.popups._setEmpty(true);
         Instant.input.focus();
       },
       /* Hide/unhide all popups */
@@ -6005,6 +6005,15 @@ this.Instant = function() {
           Instant.popups.focus();
         }
         Instant.popups._updateHidden();
+      },
+      /* Set whether the UI should be displayed or not */
+      _setEmpty: function(status) {
+        if (status) {
+          wrapper.classList.add('empty');
+          Instant.popups.menu.open(null);
+        } else {
+          wrapper.classList.remove('empty');
+        }
       },
       /* Create a message to be embedded into a popup */
       makeMessage: function(options) {
@@ -6156,14 +6165,19 @@ this.Instant = function() {
           },
           /* Open or close a concrete submenu */
           open: function(menu, force) {
-            if (force == null) force = (! menu.classList.contains('open'));
+            if (force == null)
+              force = (menu == null || ! menu.classList.contains('open'));
             var entries = $clsAll('popups-menu-entry', node);
             if (force) {
               Array.prototype.forEach.call(entries, function(ent) {
                 if (ent != menu) ent.classList.remove('open');
               });
-              menu.classList.add('open');
-              node.classList.add('entry-open');
+              if (menu != null) {
+                menu.classList.add('open');
+                node.classList.add('entry-open');
+              } else {
+                node.classList.remove('entry-open');
+              }
               return true;
             } else if (menu.classList.contains('open')) {
               menu.classList.remove('open');
