@@ -6959,7 +6959,18 @@ function init() {
     }
   });
   /* Fire up Instant! */
-  Instant.init(main, wrapper, $cls('breadcrumbs'));
+  try {
+    Instant.init(main, wrapper, $cls('breadcrumbs'));
+  } catch (e) {
+    var m = document.createElement('div');
+    m.className = 'note';
+    m.innerHTML = '<strong>Oops...</strong> <span>An error occured; see ' +
+      'the developer tools for details.</span>';
+    var cntbox = $cls('content-box', wrapper);
+    cntbox.appendChild(m);
+    console.error(e);
+    return;
+  }
   Instant.input.focus();
   /* Allow dismissing wrapper */
   var wrapperClose = $id('load-wrapper-close');

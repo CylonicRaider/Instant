@@ -61,11 +61,6 @@ body {
   border: 1px solid black;
 }
 
-#load-wrapper .content-box {
-  display: block;
-  text-align: justify;
-}
-
 #load-wrapper .wait {
   font-weight: bold;
   margin: 10px 0;
