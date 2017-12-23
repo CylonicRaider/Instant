@@ -1557,7 +1557,7 @@ this.Instant = function() {
           /* Filter out clicks on links */
           if (evt.target.nodeName == 'A') return;
           /* Navigate to message */
-          var doScroll = Instant.input.moveTo(msgNode);
+          var doScroll = Instant.input.moveTo(msgNode, true);
           if (inputWasFocused) {
             Instant.input.focus();
           } else {
@@ -2996,7 +2996,7 @@ this.Instant = function() {
           return ret;
         }
         function navigateDirect(msg) {
-          Instant.input.moveTo(msg);
+          Instant.input.moveTo(msg, true);
           Instant.pane.scrollIntoView(inputNode);
           event.preventDefault();
           Instant.input._updateMessage(event);
