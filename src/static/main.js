@@ -6264,37 +6264,41 @@ this.Instant = function() {
   }();
   /* Managing the fragment identifier and navigating to things */
   Instant.hash = function() {
+    /* Handler array */
+    var handlers = {};
     /* DOM node used for URL resolution */
     var probe = document.createElement('a');
     return {
       /* Initialize submodule */
       init: function() {
-        var handler = Instant.hash._onhashchange.bind(Instant.hash);
-        window.addEventListener('hashchange', handler);
+        function makeHnd(self, attr, noHide) {
+          var cb = self[attr].bind(self);
+          return function(id, type) {
+            if (! noHide) Instant.popups.hideAll(true);
+            cb(id);
+          };
+        }
+        var cb = Instant.hash._onhashchange.bind(Instant.hash);
+        window.addEventListener('hashchange', cb);
         // Delaying until all other modules are loaded.
         setTimeout(function() {
           Instant.hash.navigateEx(location.hash);
         }, 0);
+        /* Create standard handlers */
+        handlers.root = makeHnd(Instant.animation, 'navigateToRoot');
+        handlers.message = makeHnd(Instant.animation, 'navigateToMessage');
+        handlers.user = makeHnd(Instant.userList, 'showMenu');
+        handlers.pm = makeHnd(Instant.privmsg, 'navigateTo', true);
+        handlers[''] = handlers.root;
       },
       /* Navigate to an object identifier */
       navigateEx: function(hash) {
         var m = /^#?(?:(\w+)(?:-(\w+))?)?$/.exec(hash);
         if (! m) return null;
-        var type = m[1] || 'root', id = m[2] || null;
-        switch (type) {
-          case 'root':
-            Instant.popups.hideAll(true);
-            return Instant.animation.navigateToRoot(id);
-          case 'message':
-            Instant.popups.hideAll(true);
-            return Instant.animation.navigateToMessage(id);
-          case 'user':
-            Instant.popups.hideAll(true);
-            return Instant.userList.showMenu(id);
-          case 'pm':
-            return Instant.privmsg.navigateTo(id);
-        }
-        return null;
+        var type = m[1] || '', id = m[2] || null;
+        var handler = handlers[type];
+        if (handler == null) return null;
+        return handler(id, type);
       },
       /* Update the browsring history and navigate to something
        * The "something" can be an object identifier as for navigateEx(),
@@ -6340,6 +6344,14 @@ this.Instant = function() {
         if (needsUpdate)
           history.pushState({}, '', newURL);
         return needsUpdate;
+      },
+      /* Install the given handler */
+      addHandler: function(type, hnd) {
+        handlers[type] = hnd;
+      },
+      /* Return the raw handler mapping */
+      getHandlers: function() {
+        return handlers;
       }
     };
   }();
