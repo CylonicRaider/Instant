@@ -13,6 +13,8 @@ public class Configuration {
 
     }
 
+    public static final Configuration DEFAULT;
+
     public static final DataSource PROPERTY_SOURCE = new DataSource() {
         public String get(String key) {
             return System.getProperty(key);
@@ -24,6 +26,10 @@ public class Configuration {
             return System.getenv(key.toUpperCase().replace(".", "_"));
         }
     };
+
+    static {
+        DEFAULT = makeDefault();
+    }
 
     private final List<DataSource> sources;
     private final Map<String, String> data;
