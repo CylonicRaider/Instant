@@ -61,6 +61,10 @@ body {
   border: 1px solid black;
 }
 
+#load-wrapper .content-box {
+  text-align: left;
+}
+
 #load-wrapper .wait {
   font-weight: bold;
   margin: 10px 0;
