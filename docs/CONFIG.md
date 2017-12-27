@@ -43,3 +43,9 @@ the backend.
 Boolean indicating whether to create the cookie key file if it is absent or
 invalid. The Instant process must have appropriate privileges for this to
 work (otherwise, a fatal error may occur).
+
+### instant.http.maxCacheAge
+
+Integer setting the `max-age` parameter of the `Cache-Control` HTTP header
+for static resources, i.e., controlling for how long (compliant) browsers
+will cache them.
