@@ -45,7 +45,8 @@ lint-ro:
 	script/importlint.py $(SOURCES)
 
 run: Instant-run.jar cookie-key.bin
-	cd src && INSTANT_COOKIES_INSECURE=yes \
+	cd src && INSTANT_HTTP_MAXCACHEAGE=10 \
+	INSTANT_COOKIES_INSECURE=yes \
 	INSTANT_COOKIES_KEYFILE=../cookie-key.bin \
 	java -jar ../Instant-run.jar
 
