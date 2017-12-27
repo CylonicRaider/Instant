@@ -8,6 +8,7 @@ import net.instant.api.ClientConnection;
 import net.instant.api.RequestData;
 import net.instant.api.RequestType;
 import net.instant.api.ResponseBuilder;
+import net.instant.util.Configuration;
 import net.instant.util.ListStringMatcher;
 import net.instant.util.Util;
 import net.instant.util.fileprod.FileCell;
@@ -16,22 +17,31 @@ import net.instant.util.fileprod.ProducerJob;
 
 public class StaticFileHook extends HookAdapter {
 
-    public static final int MAX_CACHE_AGE = 3600;
+    private static final String K_MAXAGE = "instant.http.maxCacheAge";
+    public static final int DEFAULT_MAX_CACHE_AGE = 3600;
 
     private final Map<RequestData, String> paths;
     private final ListStringMatcher aliases;
     private final ListStringMatcher contentTypes;
+    private final int maxCacheAge;
     private FileProducer producer;
 
-    public StaticFileHook(FileProducer p) {
+    public StaticFileHook(Configuration cfg, FileProducer p) {
         paths = Collections.synchronizedMap(
             new HashMap<RequestData, String>());
         aliases = new ListStringMatcher();
         contentTypes = new ListStringMatcher();
+        int age;
+        try {
+            age = Integer.parseInt(cfg.get(K_MAXAGE));
+        } catch (NumberFormatException exc) {
+            age = DEFAULT_MAX_CACHE_AGE;
+        }
+        maxCacheAge = age;
         producer = p;
     }
     public StaticFileHook() {
-        this(new FileProducer());
+        this(Configuration.DEFAULT, new FileProducer());
     }
 
     public ListStringMatcher getAliases() {
@@ -70,7 +80,7 @@ public class StaticFileHook extends HookAdapter {
                 String fullETag = "w/\"" + ent.getETag() + "\"";
                 cached = fullETag.equals(req.getHeader("If-None-Match"));
                 resp.addHeader("Cache-Control", "public, max-age=" +
-                    MAX_CACHE_AGE);
+                    maxCacheAge);
                 resp.addHeader("ETag", fullETag);
             }
             if (cached) {

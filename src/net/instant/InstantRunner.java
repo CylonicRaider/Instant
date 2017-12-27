@@ -34,6 +34,7 @@ import net.instant.util.DefaultStringMatcher;
 import net.instant.util.UniqueCounter;
 import net.instant.util.fileprod.FSResourceProducer;
 import net.instant.util.fileprod.FileCell;
+import net.instant.util.fileprod.FileProducer;
 import net.instant.util.fileprod.ListProducer;
 import net.instant.util.fileprod.Producer;
 import net.instant.util.fileprod.ProducerJob;
@@ -225,7 +226,7 @@ public class InstantRunner implements API1 {
     }
     public StaticFileHook makeFileHook() {
         if (files == null) {
-            files = new StaticFileHook();
+            files = new StaticFileHook(makeConfig(), new FileProducer());
             ListProducer l = files.getProducer().getProducer();
             l.add(makePluginFiles());
             l.add(makeStringFiles());
