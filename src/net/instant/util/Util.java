@@ -16,14 +16,7 @@ public final class Util {
 
     public static final int BUFFER_SIZE = 16384;
 
-    public static final Configuration CONFIG = new Configuration();
-
     private static final SecureRandom RNG = new SecureRandom();
-
-    static {
-        CONFIG.addSource(Configuration.PROPERTY_SOURCE);
-        CONFIG.addSource(Configuration.ENV_SOURCE);
-    }
 
     private Util() {}
 

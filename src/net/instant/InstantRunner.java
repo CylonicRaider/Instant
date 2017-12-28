@@ -31,6 +31,7 @@ import net.instant.proto.APIHook;
 import net.instant.proto.MessageDistributor;
 import net.instant.util.Configuration;
 import net.instant.util.DefaultStringMatcher;
+import net.instant.util.DynamicConfiguration;
 import net.instant.util.UniqueCounter;
 import net.instant.util.fileprod.FSResourceProducer;
 import net.instant.util.fileprod.FileCell;
@@ -83,8 +84,7 @@ public class InstantRunner implements API1 {
 
     }
 
-    public static class PluginConfigSource
-            implements Configuration.DataSource {
+    public static class PluginConfigSource implements Configuration {
 
         private final PluginManager plugins;
 
@@ -120,7 +120,7 @@ public class InstantRunner implements API1 {
     private int port;
     private File webroot;
     private PrintStream httpLog;
-    private Configuration config;
+    private DynamicConfiguration config;
     private InstantWebSocketServer server;
     private RedirectHook redirects;
     private StaticFileHook files;
@@ -167,15 +167,15 @@ public class InstantRunner implements API1 {
         httpLog = s;
     }
 
-    public Configuration getConfig() {
+    public DynamicConfiguration getConfig() {
         return config;
     }
-    public void setConfig(Configuration config) {
+    public void setConfig(DynamicConfiguration config) {
         config = config;
     }
-    public Configuration makeConfig() {
+    public DynamicConfiguration makeConfig() {
         if (config == null) {
-            config = Configuration.makeDefault();
+            config = DynamicConfiguration.makeDefault();
         }
         return config;
     }
