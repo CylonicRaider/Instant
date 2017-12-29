@@ -4402,7 +4402,7 @@ this.Instant = function() {
               ]]
             ]]
           ]],
-          draft && data.parent && ['div', 'popup-grid', [
+          draft && data.parent && ['div', 'popup-grid pm-reply-to', [
             ['b', null, 'Reply-to: '],
             ['span', [['a', 'monospace pm-parent-id']]]
           ]],
@@ -4535,12 +4535,25 @@ this.Instant = function() {
       /* Transform the given editor popup into an after-view */
       _transformAfterview: function(popup, isNew) {
         var title = $cls('popup-title', popup);
+        var content = $cls('popup-content', popup);
         var body = $cls('pm-body', popup);
         var editor = $cls('pm-editor', popup);
         var preview = $cls('pm-preview', popup);
         var finishLater = $cls('pm-finish-later', popup);
         var send = $cls('pm-send', popup);
         var newText = Instant.message.parseContent(editor.value);
+        var id = popup.getAttribute('data-id').replace(/^sent-/, '');
+        var parnode = $cls('pm-parent-id', popup);
+        content.insertBefore($makeNode('div', 'popup-grid', [
+          ['b', null, 'ID: '],
+          ['span', [
+            ['span', 'monospace pm-message-id', [$text(id)]],
+            parnode && ' ',
+            parnode && ['i', ['(reply to ', parnode, ')']]
+          ]]
+        ]), content.firstChild);
+        var reply = $cls('pm-reply-to', popup);
+        if (reply) reply.parentNode.removeChild(reply);
         while (body.firstChild) body.removeChild(body.firstChild);
         body.appendChild(newText);
         preview.parentNode.removeChild(preview);
