@@ -4124,7 +4124,7 @@ this.Instant = function() {
         });
         var total = counts.U + counts.I + counts.D + counts.O;
         if (total) {
-          // HACK: Pasting HTML together again...
+          // HACK: I'm getting lazy...
           $cls('button', accessMenu).innerHTML = ('Private messages (<b>' +
             total + '</b>)');
         } else {
