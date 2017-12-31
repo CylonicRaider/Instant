@@ -4230,9 +4230,9 @@ this.Instant = function() {
       },
       /* Start writing a message to uid */
       write: function(uid, nick, text, parent) {
-        var now = Date.now();
+        var now = Date.now(), uuid = Instant.logs.getUUID(uid);
         return Instant.privmsg._write({id: 'draft-' + now, parent: parent,
-            to: uid, tonick: nick, text: text, timestamp: now,
+            to: uid, toUUID: uuid, tonick: nick, text: text, timestamp: now,
             type: 'pm-draft'},
           true);
       },
@@ -4371,8 +4371,10 @@ this.Instant = function() {
        * id        (A): The ID of the message.
        * parent    (A): The message this PM is a reply to.
        * from      (I): The user the PM originates from.
+       * fromUUID  (I): The UUID corresponding to from.
        * nick      (I): The nick-name of the user the PM originates from.
        * to        (O): The recipient of the PM.
+       * toUUID    (O): The UUID corresponding to to.
        * tonick    (O): The nickname of the recipient of the PM.
        * text      (A): The content of the PM.
        * timestamp (A): The UNIX timestamp of the message in milliseconds.
@@ -4509,23 +4511,33 @@ this.Instant = function() {
         if (draft) {
           if (data.from != null)
             popup.setAttribute('data-from', data.from);
+          if (data.fromUUID != null)
+            popup.setAttribute('data-from-uuid', data.fromUUID);
           if (data.nick != null)
             popup.setAttribute('data-from-nick', data.nick);
           var toNode = $cls('pm-to-id', popup);
+          var toNick = $cls('pm-to-nick', popup);
           toNode.textContent = data.to;
           toNode.href = '#user-' + data.to;
           Instant.hash.listenOn(toNode);
-          $cls('pm-to-nick', popup).setAttribute('data-uid', data.to);
+          toNick.setAttribute('data-uid', data.to);
+          if (data.toUUID)
+            toNick.setAttribute('data-uuid', data.toUUID);
           $cls('pm-editor', popup).value = data.text || '';
         } else {
           $cls('pm-message-id', popup).textContent = data.id;
           var fromNode = $cls('pm-from-id', popup);
+          var fromNick = $cls('pm-from-nick', popup);
           fromNode.textContent = data.from;
           fromNode.href = '#user-' + data.from;
           Instant.hash.listenOn(fromNode);
-          $cls('pm-from-nick', popup).setAttribute('data-uid', data.from);
+          fromNick.setAttribute('data-uid', data.from);
+          if (data.fromUUID)
+            fromNick.setAttribute('data-uuid', data.fromUUID);
           if (data.to != null)
             popup.setAttribute('data-to', data.to);
+          if (data.toUUID != null)
+            popup.setAttribute('data-to-uuid', data.toUUID);
           if (data.tonick != null)
             popup.setAttribute('data-to-nick', data.tonick);
         }
@@ -4586,6 +4598,11 @@ this.Instant = function() {
           var node = $cls(cls, popup);
           if (node) ret[key] = node.textContent;
         }
+        function extractAttr(cls, attr, key) {
+          var node = $cls(cls, popup);
+          var val = node && node.getAttribute(attr);
+          if (val) ret[key] = val;
+        }
         var ret = {
           type: (popup.classList.contains('pm-draft')) ? 'pm-draft' :
                 (popup.classList.contains('pm-afterview')) ? 'pm-afterview' :
@@ -4599,8 +4616,10 @@ this.Instant = function() {
           ret.timestamp = +dateNode.getAttribute('data-timestamp');
         if (draft) {
           ret.from = popup.getAttribute('data-from');
+          ret.fromUUID = popup.getAttribute('data-from-uuid');
           ret.nick = popup.getAttribute('data-from-nick');
           extractText('pm-to-id', 'to');
+          extractAttr('pm-to-nick', 'data-uuid', 'toUUID');
           extractText('pm-to-nick', 'tonick');
           if (ret.type == 'pm-afterview') {
             ret.text = Instant.message.parser.extractText(
@@ -4611,7 +4630,9 @@ this.Instant = function() {
         } else {
           extractText('pm-from-id', 'from');
           extractText('pm-from-nick', 'nick');
+          extractAttr('pm-from-nick', 'data-uuid', 'fromUUID');
           ret.to = popup.getAttribute('data-to');
+          ret.toUUID = popup.getAttribute('data-to-uuid');
           ret.tonick = popup.getAttribute('data-to-nick');
           ret.text = Instant.message.parser.extractText(
             $cls('message-text', popup));
@@ -4626,8 +4647,9 @@ this.Instant = function() {
         }
         var data = msg.data;
         if (data.type != 'privmsg') return;
+        var uuid = Instant.logs.getUUID(msg.from);
         Instant.privmsg._read({id: msg.id, parent: data.parent,
-          from: msg.from, nick: data.nick, text: data.text,
+          from: msg.from, fromUUID: uuid, nick: data.nick, text: data.text,
           timestamp: msg.timestamp, type: 'privmsg', unread: true},
           true);
       },
