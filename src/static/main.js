@@ -5760,9 +5760,10 @@ this.Instant = function() {
     var removeListeners = {};
     /* URL-s for the icons
      * Replaced by data URI-s as soon as the images are preloaded. */
-    var closeURL = '/static/close.svg';
-    var collapseURL = '/static/collapse.svg';
-    var expandURL = '/static/expand.svg';
+    var icons = { close:    '/static/close.svg',
+                  collapse: '/static/collapse.svg',
+                  expand:   '/static/expand.svg',
+                  reload:   '/static/reload.svg' };
     return {
       /* Initialize submodule */
       init: function() {
@@ -5780,6 +5781,7 @@ this.Instant = function() {
               resolve('data:image/svg+xml;base64,' + btoa(xml));
             });
             obj.addEventListener('error', function(event) {
+              document.head.removeChild(obj);
               reject(event);
             });
             obj.data = url;
@@ -5796,11 +5798,11 @@ this.Instant = function() {
         menuNode.appendChild($makeFrag(
           ['span', 'separator'],
           ['button', 'button button-noborder hide-all', [
-            ['img', {src: collapseURL}]
+            ['img', {src: icons.collapse}]
           ]],
           ['span', 'separator'],
           ['button', 'button button-noborder close-all', [
-            ['img', {src: closeURL}]
+            ['img', {src: icons.close}]
           ]]
         ));
         stack = $cls('popups', wrapper);
@@ -5813,15 +5815,10 @@ this.Instant = function() {
             Instant.popups.hideAll(false);
           }});
         /* Preload images */
-        preloadImage(closeURL).then(function(res) {
-          closeURL = res;
-        });
-        preloadImage(expandURL).then(function(res) {
-          expandURL = res;
-        });
-        preloadImage(collapseURL).then(function(res) {
-          collapseURL = res;
-        });
+        for (var k in icons) {
+          if (! icons.hasOwnProperty(k)) continue;
+          preloadImage(icons[k]).then(function(res) { icons[k] = res; });
+        }
         return stack;
       },
       /* Adjust the "hidden popups" UI message */
@@ -5851,11 +5848,11 @@ this.Instant = function() {
             ['span', 'popup-title'],
             co && ['span', 'popup-title-sep'],
             co && ['button', 'button popup-button popup-collapse', [
-              ['img', {src: collapseURL}]
+              ['img', {src: icons.collapse}]
             ]],
             cl && ['span', 'popup-title-sep'],
             cl && ['button', 'button popup-button popup-close', [
-              ['img', {src: closeURL}]
+              ['img', {src: icons.close}]
             ]]
           ]],
           ['div', 'popup-content'],
@@ -5969,10 +5966,10 @@ this.Instant = function() {
         }
         if (force) {
           node.classList.add('collapsed');
-          $sel('.popup-collapse img', node).src = expandURL;
+          $sel('.popup-collapse img', node).src = icons.expand;
         } else {
           node.classList.remove('collapsed');
-          $sel('.popup-collapse img', node).src = collapseURL;
+          $sel('.popup-collapse img', node).src = icons.collapse;
         }
       },
       /* Focus a concrete popup or anything */
@@ -6033,7 +6030,7 @@ this.Instant = function() {
         var ret = $makeNode('div', 'popup-message', [
           ! options.noClose && ['span', 'popup-message-close-wrapper', [
             ['button', 'button button-noborder popup-message-close', [
-              ['img', {src: closeURL}]
+              ['img', {src: icons.close}]
             ]]
           ]]
         ]);
@@ -6088,7 +6085,11 @@ this.Instant = function() {
       isShown: function(node) {
         return stack.contains(node);
       },
-      /* Returns the internal node containing the popups */
+      /* Return the icon URL stash */
+      getIcons: function() {
+        return icons;
+      },
+      /* Return the internal node containing the popups */
       getNode: function() {
         return wrapper;
       },
