@@ -553,10 +553,24 @@ body {
   border: 0;
   padding: 0;
 }
-.button.button-noborder {
+.button.button-noborder, .button.button-icon {
   border: 0;
   padding: 0;
+}
+.button.button-noborder {
   outline-offset: -1px;
+}
+.button.button-icon {
+  outline-offset: 0;
+  line-height: 0;
+}
+button.button-icon > img {
+  width: 1em;
+  height: 1em;
+  vertical-align: middle;
+}
+.button.hidden {
+  display: none;
 }
 .button:disabled {
   /* Override dynamic color coding */

@@ -7,6 +7,7 @@ function $hypot(dx, dy) {
   return Math.sqrt(dx * dx + dy * dy);
 }
 
+/* NOTE: Do not use $cls and $clsAll on document fragments. */
 function $id(id, elem) {
   return (elem || document).getElementById(id);
 }
@@ -4136,9 +4137,10 @@ this.Instant = function() {
       _updateNicks: function(popup) {
         var nick = $sel('.popup-grid .nick', popup);
         if (! Instant.userList.get(nick.getAttribute('data-uid')) &&
-            nick.style.backgroundColor)
+            nick.style.backgroundColor) {
           nick.style.backgroundColor = '';
-        return;
+          $cls('pm-reload-to', popup).classList.remove('hidden');
+        }
       },
       /* Update the preferred reply status for the given user or popup */
       _updatePreferredReply: function(uid, popup) {
@@ -4333,32 +4335,40 @@ this.Instant = function() {
       /* Add a PM popup to the runtime state and update relevant indexes */
       _add: function(popup) {
         var uid = $sel('.popup-grid .nick', popup).getAttribute('data-uid');
-        var list = popupsByUser[uid];
-        if (list == null) {
-          list = [popup];
-          popupsByUser[uid] = list;
-          Instant.userList._listenLeave(uid, Instant.privmsg._onleave);
-        } else {
-          popupsByUser[uid].push(popup);
-        }
+        Instant.privmsg._retarget(popup, null, uid);
         popups.push(popup);
       },
       /* Remove a PM draft or reader */
       _remove: function(popup) {
         storage.del(popup.getAttribute('data-id'));
         var uid = $sel('.popup-grid .nick', popup).getAttribute('data-uid');
-        var list = popupsByUser[uid];
-        var idx;
-        if (list) {
-          idx = list.indexOf(popup);
-          if (idx != -1) list.splice(idx, 1);
-        }
-        if (popup == preferredReply[uid])
-          Instant.privmsg._updatePreferredReply(uid, null);
-        idx = popups.indexOf(popup);
+        Instant.privmsg._retarget(popup, uid, null);
+        var idx = popups.indexOf(popup);
         if (idx != -1) popups.splice(idx, 1);
         Instant.popups.del(popup);
         Instant.privmsg._update();
+      },
+      /* Update the indexes to reflect popup's user */
+      _retarget: function(popup, from, to) {
+        if (from != null) {
+          var list = popupsByUser[from];
+          if (list) {
+            var idx = list.indexOf(popup);
+            if (idx != -1) list.splice(idx, 1);
+          }
+          if (popup == preferredReply[from])
+            Instant.privmsg._updatePreferredReply(from, null);
+        }
+        if (to != null) {
+          var list = popupsByUser[to];
+          if (list == null) {
+            list = [popup];
+            popupsByUser[to] = list;
+            Instant.userList._listenLeave(to, Instant.privmsg._onleave);
+          } else {
+            list.push(popup);
+          }
+        }
       },
       /* Save the current state of the popup into storage */
       _save: function(popup) {
@@ -4419,7 +4429,10 @@ this.Instant = function() {
             ['b', null, 'To: '],
             ['span', [
               nickNode, ' ',
-              ['i', ['(user ID ', ['a', 'monospace pm-to-id'], ')']]
+              ['i', ['(user ID ', ['a', 'monospace pm-to-id'], ')']], ' ',
+              ['button', 'button button-icon pm-reload-to hidden', [
+                ['img', {src: Instant.popups.getIcons().reload}]
+              ]]
             ]]
           ]],
           (data.timestamp != null) && ['div', 'popup-grid', [
@@ -4432,6 +4445,13 @@ this.Instant = function() {
             ! draft && Instant.message.parseContent(data.text || '')
           ]]
         );
+        /* Install event handlers
+         * NOTE that popup will be defined later. */
+        var reloadTo = $sel('.pm-reload-to', body);
+        if (reloadTo)
+          reloadTo.addEventListener('click', function() {
+            Instant.privmsg._reloadTo(popup);
+          });
         /* Create buttons */
         var buttons = (draft) ? [
           {text: 'Preview', onclick: function() {
@@ -4566,6 +4586,7 @@ this.Instant = function() {
         ]), content.firstChild);
         var reply = $cls('pm-reply-to', popup);
         if (reply) reply.parentNode.removeChild(reply);
+        $cls('pm-reload-to', popup).classList.add('hidden');
         while (body.firstChild) body.removeChild(body.firstChild);
         body.appendChild(newText);
         preview.parentNode.removeChild(preview);
@@ -4579,6 +4600,38 @@ this.Instant = function() {
           Instant.privmsg._save(popup);
         var uid = $sel('.popup-grid .nick', popup).getAttribute('data-uid');
         Instant.privmsg._updatePreferredReply(uid, null);
+      },
+      /* Update the recipient of the given popup based on its UUID */
+      _reloadTo: function(popup) {
+        if (! popup.classList.contains('pm-draft')) return;
+        var toNick = $cls('pm-to-nick', popup);
+        var toUID = $cls('pm-to-id', popup);
+        var reloadBtn = $cls('pm-reload-to', popup);
+        var entries = Instant.userList.query(null, null,
+          toNick.getAttribute('data-id'));
+        if (entries.length == 0)
+          entries = Instant.userList.query(
+            toNick.getAttribute('data-nick'),
+            toNick.getAttribute('data-uuid'));
+        if (entries.length == 0)
+          entries = Instant.userList.query(null,
+            toNick.getAttribute('data-uuid'));
+        if (entries.length == 0) return;
+        var result = entries[entries.length - 1];
+        var newNick = Instant.nick.makeNode(result.nick);
+        newNick.classList.add('pm-to-nick');
+        newNick.setAttribute('data-uid', result.id);
+        newNick.setAttribute('data-uuid', result.uuid);
+        toNick.parentNode.insertBefore(newNick, toNick);
+        toNick.parentNode.removeChild(toNick);
+        var newUID = $makeNode('a', 'monospace pm-to-id',
+          {href: '#user-' + result.id}, [$text(result.id)]);
+        toUID.parentNode.insertBefore(newUID, toUID);
+        toUID.parentNode.removeChild(toUID);
+        reloadBtn.classList.add('hidden');
+        Instant.privmsg._retarget(popup, toNick.getAttribute('data-uid'),
+                                  result.id);
+        Instant.privmsg._save(popup);
       },
       /* Determine which of the four classes the popup belongs to */
       _getPopupClass: function(popup) {
