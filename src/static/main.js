@@ -5835,10 +5835,10 @@ this.Instant = function() {
     var removeListeners = {};
     /* URL-s for the icons
      * Replaced by data URI-s as soon as the images are preloaded. */
-    var icons = { close:    '/static/close.svg',
-                  collapse: '/static/collapse.svg',
-                  expand:   '/static/expand.svg',
-                  reload:   '/static/reload.svg' };
+    var icons = {close:    '/static/close.svg',
+                 collapse: '/static/collapse.svg',
+                 expand:   '/static/expand.svg',
+                 reload:   '/static/reload.svg'};
     return {
       /* Initialize submodule */
       init: function() {
@@ -5890,10 +5890,9 @@ this.Instant = function() {
             Instant.popups.hideAll(false);
           }});
         /* Preload images */
-        for (var k in icons) {
-          if (! icons.hasOwnProperty(k)) continue;
+        Object.getOwnPropertyNames(icons).forEach(function(k) {
           preloadImage(icons[k]).then(function(res) { icons[k] = res; });
-        }
+        });
         return stack;
       },
       /* Adjust the "hidden popups" UI message */
