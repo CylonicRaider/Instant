@@ -4045,6 +4045,7 @@ this.Instant = function() {
         function tg(u, i, d, o) {
           return Instant.privmsg.toggle.bind(Instant.privmsg, u, i, d, o);
         }
+        var clr = Instant.privmsg.clear.bind(Instant.privmsg);
         msgUnread = Instant.sidebar.makeMessage({
           content: 'New private messages',
           color: Instant.notifications.COLORS.privmsg,
@@ -4063,7 +4064,9 @@ this.Instant = function() {
             {text: 'Drafts', onclick: tg(false, false, true, false),
              color: COLORS.D, className: 'show-drafts'},
             {text: 'Outbox', onclick: tg(false, false, false, true),
-             color: COLORS.O, className: 'show-outbox'}
+             color: COLORS.O, className: 'show-outbox'},
+            null, // Separator
+            {text: 'Delete all', onclick: clr}
           ]});
         storage = new Instant.storage.Storage('instant-pm-backup', true);
         storage.load();
@@ -4166,6 +4169,17 @@ this.Instant = function() {
         } else {
           delete preferredReply[uid];
         }
+      },
+      /* Delete all private messages */
+      clear: function() {
+        popups.forEach(function(el) {
+          Instant.popups.del(el);
+        });
+        popups = [];
+        popupsByUser = {};
+        preferredReply = {};
+        storage.clear();
+        Instant.privmsg._update();
       },
       /* Show the requested class(es) of popups */
       show: function(unread, inbox, drafts, outbox) {
