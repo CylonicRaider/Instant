@@ -4406,8 +4406,8 @@ this.Instant = function() {
        * messages; A -- applies to all messages.) */
       _makePopup: function(data) {
         function makeQuote(text) {
-          return text.replace(/^(.)?/mg, function(char) {
-            return ((char == '>') ? '>>' : (char) ? '> ' + char : '>');
+          return text.replace(/^(?:(>+)(\s+))?/mg, function(m, ind, sp) {
+            return (ind || '') + '>' + (sp || ' ');
           }) + '\n';
         }
         /* Pre-computed variables */
