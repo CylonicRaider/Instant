@@ -4643,6 +4643,7 @@ this.Instant = function() {
         toUID.parentNode.insertBefore(newUID, toUID);
         toUID.parentNode.removeChild(toUID);
         reloadBtn.classList.add('hidden');
+        $cls('pm-send', popup).disabled = false;
         Instant.privmsg._retarget(popup, toNick.getAttribute('data-uid'),
                                   result.id);
         Instant.privmsg._save(popup);
