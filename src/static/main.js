@@ -4477,7 +4477,7 @@ this.Instant = function() {
               editor.style.display = '';
               this.textContent = 'Preview';
             } else {
-              body.appendChild(Instant.message.parseContent(editor.value));
+              Instant.privmsg._updatePreview(popup, true);
               editor.style.display = 'none';
               this.textContent = 'Edit';
             }
@@ -4517,6 +4517,7 @@ this.Instant = function() {
             editor.setSelectionRange(editor.value.length,
                                      editor.value.length);
             editor.focus();
+            Instant.privmsg._updatePreview(target);
           }, className: 'pm-quote-add'},
           {text: 'Reply', color: '#008000', onclick: function() {
             var nick = data.nick;
@@ -4647,6 +4648,18 @@ this.Instant = function() {
         Instant.privmsg._retarget(popup, toNick.getAttribute('data-uid'),
                                   result.id);
         Instant.privmsg._save(popup);
+      },
+      /* Update the preview (if any; of a draft) to match the text */
+      _updatePreview: function(popup, forceAdd) {
+        var preview = $cls('pm-preview-display', popup);
+        if (! preview && ! forceAdd) return;
+        var editor = $cls('pm-editor', popup);
+        var newPreview = Instant.message.parseContent(editor.value);
+        newPreview.classList.add('pm-preview-display');
+        var body = $cls('pm-body', popup);
+        if (body.lastElementChild != editor)
+          body.removeChild(body.lastElementChild);
+        body.appendChild(newPreview);
       },
       /* Determine which of the four classes the popup belongs to */
       _getPopupClass: function(popup) {
