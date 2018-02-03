@@ -2,6 +2,7 @@
 # -*- coding: ascii -*-
 
 import sys, time
+import instabot
 
 def id2time(ident):
     ts = ident >> 10
@@ -9,13 +10,15 @@ def id2time(ident):
     return (ts / 1000, ts % 1000, ident & 0x3FF)
 
 def main():
-    if len(sys.argv) == 1:
-        sys.stderr.write('USAGE: %s ID [ID ...]\n' % sys.argv[0])
-        sys.stderr.flush()
-        sys.exit(0)
-    for i in sys.argv[1:]:
-        sec, ms, seq = id2time(int(i, 16))
+    p = instabot.OptionParser(sys.argv[0])
+    p.help_action()
+    p.flag('decimal', short='d', help='Use decimal ID-s instead of hex ones')
+    p.argument('value', accum=True, help='Values to convert')
+    p.parse(sys.argv[1:])
+    base = 0 if p.get('decimal') else 16
+    for i in p.get('value'):
+        sec, ms, seq = id2time(int(i, base))
         timestr = time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime(sec))
-        print ('%s: %s.%s Z, #%s' % (i, timestr, ms, seq))
+        print ('%s: %s.%03d Z, #%d' % (i, timestr, ms, seq))
 
 if __name__ == '__main__': main()
