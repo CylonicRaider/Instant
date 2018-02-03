@@ -378,6 +378,7 @@ class ArgParser:
         self.iter = None
         self.at_arguments = False
         self.last_option = None
+        self.next_arg = None
     def __iter__(self):
         if self.iter is None: self.iter = iter(self.args)
         return self
@@ -393,7 +394,11 @@ class ArgParser:
             pass
     def argument(self, type=None):
         try:
-            arg = next(self)
+            if self.next_arg is not None:
+                arg = self.next_arg
+                self.next_arg = None
+            else:
+                arg = next(self)
             if type is not None: arg = type(arg)
             return arg
         except StopIteration:
@@ -420,13 +425,19 @@ class ArgParser:
     def pairs(self, posmin=None, posmax=None):
         positional = 0
         for arg in self:
-            if self.at_arguments or not arg.startswith('-'):
+            if self.at_arguments or not arg.startswith('-') or arg == '-':
                 positional += 1
                 if posmax is not None and positional > posmax:
                     self.toomany()
                 yield 'arg', arg
             elif arg == '--':
                 self.at_arguments = True
+            elif not arg.startswith('--'):
+                for n, ch in enumerate(arg[1:], 2):
+                    self.last_option = '-' + ch
+                    self.next_arg = arg[n:]
+                    yield 'opt', ch
+                    if self.next_arg is None: break
             else:
                 self.last_option = arg
                 yield 'opt', arg
@@ -437,9 +448,13 @@ class OptionParser:
     def __init__(self, progname=None):
         self.progname = progname
         self.options = collections.OrderedDict()
+        self.short_options = collections.OrderedDict()
         self.arguments = []
         self.values = {}
         self.arg_index = 0
+    def _add_option(self, opt, kwds):
+        self.options[opt['option']] = opt
+        if opt.get('short'): self.short_options[opt['short']] = opt
     def _set_accum(self, opt, kwds, default=True):
         def accum_list(list, item):
             list.append(item)
@@ -468,11 +483,15 @@ class OptionParser:
             else:
                 res = placeholder
         else:
-            if placeholder is None:
-                res = '--' + name
+            if opt.get('short'):
+                res = '--%s|-%s' % (name, opt['short'])
             else:
-                res = '--%s %s' % (name, placeholder)
+                res = '--' + name
+            if placeholder is not None:
+                res += ' ' + placeholder
         opt['rawdesc'] = res
+        if 'accum' in opt:
+            res += ' [...]'
         if 'default' in opt or opt.get('omissible'):
             res = '[%s]' % res
         opt['desc'] = res
@@ -484,22 +503,23 @@ class OptionParser:
             placeholder = '<%s>' % type.__name__
         opt = {'option': name, 'argument': True, 'convert': type,
             'varname': kwds.get('varname', name), 'default': default,
-            'help': kwds.get('help')}
+            'help': kwds.get('help'), 'short': kwds.get('short')}
         self._set_accum(opt, kwds)
         self._make_desc(opt, name, placeholder)
-        self.options[name] = opt
+        self._add_option(opt, kwds)
     def flag_ex(self, name, value=True, varname=None, **kwds):
         opt = {'option': name, 'varname': varname or name, 'value': value,
-            'omissible': True, 'help': kwds.get('help')}
+            'omissible': True, 'help': kwds.get('help'),
+            'short': kwds.get('short')}
         self._set_accum(opt, kwds)
         self._make_desc(opt, name, None)
-        self.options[name] = opt
+        self._add_option(opt, kwds)
     def flag(self, name, **kwds):
         self.flag_ex(name, default=False, **kwds)
     def action(self, name, function, **kwds):
-        self.options[name] = {'option': name, 'action': function,
+        self._add_option({'option': name, 'action': function,
             'rawdesc': '--%s' % name, 'desc': '[--%s]' % name,
-            'help': kwds.get('help')}
+            'help': kwds.get('help'), 'short': kwds.get('short')}, kwds)
     def argument(self, name=None, type=None, **kwds):
         if type is None: type = str
         try:
@@ -564,8 +584,9 @@ class OptionParser:
         for tp, arg in parser.pairs():
             if tp == 'arg':
                 try:
-                    process(self.arguments[self.arg_index], arg)
-                    self.arg_index += 1
+                    desc = self.arguments[self.arg_index]
+                    process(desc, arg)
+                    if 'accum' not in desc: self.arg_index += 1
                 except IndexError:
                     parser.toomany()
             elif arg.startswith('--'):
@@ -575,8 +596,11 @@ class OptionParser:
                     parser.unknown()
                 process(opt)
             else:
-                # Single-letter options are not supported.
-                parser.unknown()
+                try:
+                    opt = self.short_options[arg]
+                except KeyError:
+                    parser.unknown()
+                process(opt)
     def get(self, *names, **kwds):
         force_tuple = kwds.get('force_tuple')
         try:
