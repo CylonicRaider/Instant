@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: ascii -*-
 
+# A script removing animations from SVG graphics.
+
 import sys, os, re
 
 # etree fails utterly at producing nice-looking XML

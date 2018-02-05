@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: ascii -*-
 
+# A script cleaning up imports in Java source files.
+
 import sys, os, re
 import functools
 

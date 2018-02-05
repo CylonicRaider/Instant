@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: ascii -*-
 
+# A log-keeping bot for Instant.
+
 import sys, time
 import threading
 import bisect

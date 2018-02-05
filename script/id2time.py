@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: ascii -*-
 
+# A script converting Instant message ID-s from and to timestamps.
+
 import sys, re, time, calendar
 import instabot
 
