@@ -620,10 +620,11 @@ class OptionParser:
 
 class CmdlineBotBuilder:
     RELAXED_COOKIES = RELAXED_COOKIES
-    def __init__(self, botcls=None, defnick=None):
+    def __init__(self, botcls=None, defnick=None, defurl=Ellipsis):
         if botcls is None: botcls = HookBot
         self.botcls = botcls
         self.defnick = defnick
+        self.defurl = defurl
         self.cookies = None
         self.relaxed_cookies = self.RELAXED_COOKIES
         self.args = []
@@ -640,7 +641,9 @@ class CmdlineBotBuilder:
                            help='Cookie file (empty string -> memory)')
         self.parser.flag_ex('no-cookies', None, 'cookies',
                             help='Do not save cookies')
-        self.parser.argument('url', help='The URL to connect to')
+        kwds = {}
+        if self.defurl is not Ellipsis: kwds['default'] = self.defurl
+        self.parser.argument('url', help='The URL to connect to', **kwds)
         return self.parser
     def parse(self, argv):
         self.parser.parse(argv)

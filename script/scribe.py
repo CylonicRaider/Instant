@@ -736,7 +736,7 @@ def main():
                 yield f
     def interrupt(signum, frame):
         raise SystemExit
-    b = instabot.CmdlineBotBuilder(Scribe, NICKNAME)
+    b = instabot.CmdlineBotBuilder(Scribe, NICKNAME, None)
     p = b.make_parser(sys.argv[0])
     p.option('maxlen', MAXLEN, type=int,
              help='Maximum amount of logs to deliver')
@@ -782,6 +782,9 @@ def main():
         except IOError as e:
             log('ERROR reason=%r' % repr(e))
     log('LOGBOUNDS from=%r to=%r amount=%r' % msgdb.bounds())
+    if b.get_args('url') is None:
+        log('EXITING')
+        return
     sched = instabot.EventScheduler()
     bot = b(scheduler=sched, db=msgdb)
     reconnect, thr = 0, None
