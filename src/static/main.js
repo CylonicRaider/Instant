@@ -1468,6 +1468,8 @@ this.Instant = function() {
             stack.pop();
             top = stack[stack.length - 1];
           }
+          /* Skip fake messages */
+          if (m.classList.contains('message-fake')) return;
           /* Insert an omission mark if necessary */
           if (prev && prev != Instant.message.getDocumentPredecessor(m)) {
             var d = top[2] + 1;
@@ -1478,10 +1480,14 @@ this.Instant = function() {
               'data-message-id': m.getAttribute('data-id')}, [
             ['span', {'data-user-id': m.getAttribute('data-from')},
               $cls('nick', m).textContent],
-            ['span', [' ', $cls('message-text', m).textContent]]
+            ['span', [$cls('message-text', m).textContent]]
           ]);
-          if (m.classList.contains('emote'))
+          if (m.classList.contains('emote')) {
             copy.setAttribute('data-emote', 'true');
+          } else {
+            var content = copy.childNodes[1];
+            content.insertBefore($text(' '), content.firstChild);
+          }
           /* Settle state */
           top[1].appendChild(copy);
           stack.push([m, copy, depth]);
@@ -1650,7 +1656,7 @@ this.Instant = function() {
         }
         /* Add emote styles */
         if (emote) {
-          $sel('[data-key=after-nick]', msgNode).textContent += '/me ';
+          $sel('[data-key=after-nick]', msgNode).textContent += '/me';
           var cnt = $cls('content', msgNode);
           cnt.style.background = Instant.nick.emoteColor(params.nick);
         }
