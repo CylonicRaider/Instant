@@ -517,15 +517,13 @@ class OptionParser:
     def flag(self, name, **kwds):
         self.flag_ex(name, default=False, **kwds)
     def action(self, name, function, **kwds):
-        self._add_option({'option': name, 'action': function,
-            'rawdesc': '--%s' % name, 'desc': '[--%s]' % name,
-            'help': kwds.get('help'), 'short': kwds.get('short')}, kwds)
+        opt = {'option': name, 'omissible': True, 'action': function,
+            'help': kwds.get('help'), 'short': kwds.get('short')}
+        self._make_desc(opt, name, None)
+        self._add_option(opt, kwds)
     def argument(self, name=None, type=None, **kwds):
         if type is None: type = str
-        try:
-            placeholder = kwds['placeholder']
-        except KeyError:
-            placeholder = '<%s>' % name
+        placeholder = kwds.get('placeholder', '<%s>' % name)
         arg = {'varname': name, 'convert': type, 'help': kwds.get('help')}
         self._set_accum(arg, kwds)
         self._make_desc(arg, None, placeholder)
@@ -601,16 +599,21 @@ class OptionParser:
                 except KeyError:
                     parser.unknown()
                 process(opt)
+        for opt in self.options.values():
+            if opt.get('omissible') or opt['varname'] in self.values:
+                continue
+            parser.die('Missing required option --%r' % opt['option'])
+        for opt in self.arguments:
+            if opt.get('omissible') or opt['varname'] in self.values:
+                continue
+            parser.toofew()
     def get(self, *names, **kwds):
         force_tuple = kwds.get('force_tuple')
         try:
             if len(names) == 1 and not force_tuple:
                 n = names[0]
                 return self.values[n]
-            ret = []
-            for n in names:
-                ret.append(self.values[n])
-            return ret
+            return [self.values[n] for n in names]
         except KeyError:
             if n in self.options: n = '--' + n
             raise SystemExit('ERROR: Missing value for %r' % n)
