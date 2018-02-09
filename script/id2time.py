@@ -20,7 +20,7 @@ def id2time(ident):
     ident is an integer; the return value is a MessageID instance.
     """
     ts = ident >> 10
-    return MessageID(ts / 1000, ts % 1000, ident & 0x3FF)
+    return MessageID(ts // 1000, ts % 1000, ident & 0x3FF)
 
 def time2id(parts):
     """
