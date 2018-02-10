@@ -53,13 +53,19 @@ class LogFormatter:
     #      newline.
     def format_logs(self, msglist):
         def prefix(msgid):
-            if not self.detail:
-                return ''
-            elif msgid is None:
-                return '[---------- --------  ] '
+            if self.detail == 1:
+                if msgid is None:
+                    return '[---------- --------  ] '
+                else:
+                    return time.strftime('[%Y-%m-%d %H:%M:%S Z] ',
+                        time.gmtime(int(msgid, 16) // 1024000))
+            elif self.detail == 2:
+                if msgid is None:
+                    return '[---------- ------------    -----] '
+                else:
+                    return '[%s] ' % id2time.MessageID(msgid).format_time()
             else:
-                return time.strftime('[%Y-%m-%d %H:%M:%S Z] ',
-                                     time.gmtime(int(msgid, 16) // 1024000))
+                return ''
         stack, res = [], []
         for m in msglist:
             while stack and stack[-1] != m.get('parent'): stack.pop()
@@ -81,8 +87,8 @@ def main():
              help='Maximal (latest) message ID to output')
     p.option('length', short='l', type=int,
              help='Maximal amount of messages to output')
-    p.flag('detail', short='d',
-           help='Prepend date-times to messages')
+    p.flag_ex('detail', short='d', default=0, value=1, accum=True,
+              help='Prepend date-times to messages')
     p.flag('mono', short='m',
            help='Optimize indents for monospaced display')
     p.argument('msgdb', help='Database file to dump logs from')
