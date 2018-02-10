@@ -4,7 +4,7 @@
 # A script dumping Instant message logs in a format similar to the copy-paste
 # pretty-printer.
 
-import sys
+import sys, time
 import operator
 import instabot, id2time, scribe
 
@@ -35,29 +35,39 @@ def sort_threads(msglist):
     return ret
 
 class LogFormatter:
-    def __init__(self, mono=False):
+    def __init__(self, detail=0, mono=False):
+        self.detail = detail
         self.mono = mono
 
     # Return a plain-text representation of msg.
     # NOTE that there is no trailing newline.
-    def format_message(self, msg, indent=''):
+    def format_message(self, msg, indent='', first_indent=None):
+        if first_indent is None: first_indent = indent
         prefix, lines = '<%s> ' % msg['nick'], msg['text'].split('\n')
         align = ' ' * len(prefix) if self.mono else '  '
-        res = [(prefix if n == 0 else align) + l
-               for n, l in enumerate(lines)]
-        return '\n'.join(indent + l for l in res)
+        return '\n'.join((first_indent + prefix if n == 0 else
+                          indent + align) + l for n, l in enumerate(lines))
 
     # Return a plain-text representation of the messages in msglist.
     # NOTE that msglist is used in the order given, and there is no trailing
     #      newline.
     def format_logs(self, msglist):
+        def prefix(msgid):
+            if not self.detail:
+                return ''
+            elif msgid is None:
+                return '[---------- --------  ] '
+            else:
+                return time.strftime('[%Y-%m-%d %H:%M:%S Z] ',
+                                     time.gmtime(int(msgid, 16) // 1024000))
         stack, res = [], []
         for m in msglist:
             while stack and stack[-1] != m.get('parent'): stack.pop()
             if m.get('parent') is not None and not stack:
-                res.append('| ' * len(stack) + '...')
+                res.append(prefix(None) + '| ' * len(stack) + '...')
                 stack.append(m['parent'])
-            res.append(self.format_message(m, '| ' * len(stack)))
+            p, ind = prefix(m['id']), '| ' * len(stack)
+            res.append(self.format_message(m, ' ' * len(p) + ind, p + ind))
             stack.append(m['id'])
         return '\n'.join(res)
 
@@ -71,6 +81,8 @@ def main():
              help='Maximal (latest) message ID to output')
     p.option('length', short='l', type=int,
              help='Maximal amount of messages to output')
+    p.flag('detail', short='d',
+           help='Prepend date-times to messages')
     p.flag('mono', short='m',
            help='Optimize indents for monospaced display')
     p.argument('msgdb', help='Database file to dump logs from')
@@ -86,7 +98,7 @@ def main():
     finally:
         db.close()
     # Format messages
-    fmt = LogFormatter(mono=p.get('mono'))
+    fmt = LogFormatter(detail=p.get('detail'), mono=p.get('mono'))
     print (fmt.format_logs(sort_threads(messages)))
 
 if __name__ == '__main__': main()
