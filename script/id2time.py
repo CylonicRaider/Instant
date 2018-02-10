@@ -10,9 +10,61 @@ import instabot
 __all__ = ['MessageID', 'id2time', 'time2id', 'parse_time', 'parse',
            'format_id', 'format_time']
 
-# Fields are: seconds (arbitrary integer), milliseconds (integer in [0, 999]
-# range), sequence number (integer in [0, 1023] range).
-MessageID = collections.namedtuple('MessageID', 'sec ms seq')
+class MessageID(collections.namedtuple('_MesageID', 'sec ms seq')):
+    """
+    An Instant message ID in broken-up form
+
+    The fields are:
+    sec: Seconds (arbitrary integer; should be in the [-9007199254740,
+         9007199254739], i.e. [-2**63/1024000, 2**63/1024000-1], range
+         for maximum interoperability).
+    ms : Milliseconds (integer in the [0, 999] range).
+    seq: Sequence number (integer in the [0, 1023] range).
+    """
+
+    def __new__(cls, *params):
+        """
+        Construct a new instance
+
+        If only one parameter is given, it must be a string, integer,
+        or MessageID instance; it is processed using parse(),
+        id2time(), or its contents are copied into the new instance.
+        With three parameters, the sec, ms, and seq fields are assigned
+        directly from the parameters.
+        NOTE that passing a base specification along with strings is
+             not available, since bases other than 16 are considered
+             non-standard.
+        """
+        sup = super(MessageID, cls)
+        if len(params) == 1:
+            if isinstance(params[0], MessageID):
+                return sup.__new__(cls, *params[0])
+            elif isinstance(params[0], str):
+                return sup.__new__(cls, *parse(params[0]))
+            else:
+                return sup.__new__(cls, *time2id(params[0]))
+        else:
+            return sup.__new__(cls, *params)
+
+    def __int__(self):
+        """
+        Return the numerical representation of this ID
+        """
+        return time2id(self)
+
+    def format_id(self):
+        """
+        Return the canonical hexadecimal representation of this ID
+        """
+        return format_id(time2id(self))
+
+    def format_time(self, compact=False):
+        """
+        Return a human-readable string representation of this ID
+
+        The compact argument is passed through to format_time().
+        """
+        return format_time(self, compact)
 
 def id2time(ident):
     """
@@ -25,9 +77,9 @@ def id2time(ident):
 
 def time2id(parts):
     """
-    Combine a split-up message identifier into a single identifier
+    Combine a broken-up message identifier into a numeric one
 
-    parts is a MessageID structure (or any 3-sequence); the return
+    parts is a MessageID instance (or any 3-sequence); the return
     value is an integer.
     """
     ts, ms, seq = parts
