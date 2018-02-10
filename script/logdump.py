@@ -34,27 +34,32 @@ def sort_threads(msglist):
     for k in roots: dump(k)
     return ret
 
-# Return a plain-text representation of msg.
-# NOTE that there is no trailing newline.
-def format_message(msg, indent='', mono=False):
-    prefix, lines = '<%s> ' % msg['nick'], msg['text'].split('\n')
-    align = ' ' * len(prefix) if mono else '  '
-    res = [(prefix if n == 0 else align) + l for n, l in enumerate(lines)]
-    return '\n'.join(indent + l for l in res)
+class LogFormatter:
+    def __init__(self, mono=False):
+        self.mono = mono
 
-# Return a plain-text representation of the messages in msglist.
-# NOTE that msglist is used in the order given, and there is no trailing
-#      newline.
-def format_logs(msglist, mono=False):
-    stack, res = [], []
-    for m in msglist:
-        while stack and stack[-1] != m.get('parent'): stack.pop()
-        if m.get('parent') is not None and not stack:
-            res.append('| ' * len(stack) + '...')
-            stack.append(m['parent'])
-        res.append(format_message(m, '| ' * len(stack), mono))
-        stack.append(m['id'])
-    return '\n'.join(res)
+    # Return a plain-text representation of msg.
+    # NOTE that there is no trailing newline.
+    def format_message(self, msg, indent=''):
+        prefix, lines = '<%s> ' % msg['nick'], msg['text'].split('\n')
+        align = ' ' * len(prefix) if self.mono else '  '
+        res = [(prefix if n == 0 else align) + l
+               for n, l in enumerate(lines)]
+        return '\n'.join(indent + l for l in res)
+
+    # Return a plain-text representation of the messages in msglist.
+    # NOTE that msglist is used in the order given, and there is no trailing
+    #      newline.
+    def format_logs(self, msglist):
+        stack, res = [], []
+        for m in msglist:
+            while stack and stack[-1] != m.get('parent'): stack.pop()
+            if m.get('parent') is not None and not stack:
+                res.append('| ' * len(stack) + '...')
+                stack.append(m['parent'])
+            res.append(self.format_message(m, '| ' * len(stack)))
+            stack.append(m['id'])
+        return '\n'.join(res)
 
 def main():
     # Parse command line
@@ -81,6 +86,7 @@ def main():
     finally:
         db.close()
     # Format messages
-    print (format_logs(sort_threads(messages), p.get('mono')))
+    fmt = LogFormatter(mono=p.get('mono'))
+    print (fmt.format_logs(sort_threads(messages)))
 
 if __name__ == '__main__': main()
