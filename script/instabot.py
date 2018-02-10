@@ -621,7 +621,11 @@ class OptionParser:
             if len(names) == 1 and not force_tuple:
                 n = names[0]
                 return self.values[n]
-            return [self.values[n] for n in names]
+            ret = []
+            # n is referenced by the exception handler.
+            for n in names:
+                ret.append(self.values[n])
+            return ret
         except KeyError:
             if n in self.options: n = '--' + n
             raise SystemExit('ERROR: Missing value for %r' % n)
