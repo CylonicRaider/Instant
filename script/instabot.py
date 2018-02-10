@@ -438,11 +438,16 @@ class ArgParser:
             elif not arg.startswith('--'):
                 for n, ch in enumerate(arg[1:], 2):
                     self.last_option = '-' + ch
-                    self.next_arg = arg[n:]
-                    yield 'opt', ch
-                    if self.next_arg is None: break
+                    if arg[n:]:
+                        self.next_arg = arg[n:]
+                        yield 'opt', ch
+                        if self.next_arg is None: break
+                    else:
+                        self.next_arg = None
+                        yield 'opt', ch
             else:
                 self.last_option = arg
+                self.next_arg = None
                 yield 'opt', arg
         if posmin is not None and positional < posmin:
             self.toofew()
