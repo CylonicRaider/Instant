@@ -661,7 +661,7 @@ class Scribe(instabot.Bot):
         self.send_unicast(uid, {'type': 'log-request', 'to': data['reqto']})
     def _process_log_request(self, data, uid):
         logs = self.db.query(data.get('from'), data.get('to'),
-                             data.get('amount'))
+                             data.get('length'))
         response = {'data': logs,
                     'uuids': self.db.query_uuid(ent['from'] for ent in logs)}
         if data.get('key') is not None: response['key'] = data['key']
