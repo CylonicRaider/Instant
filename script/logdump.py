@@ -49,8 +49,11 @@ def format_logs(msglist, mono=False):
     stack, res = [], []
     for m in msglist:
         while stack and stack[-1] != m.get('parent'): stack.pop()
+        if m.get('parent') is not None and not stack:
+            res.append('| ' * len(stack) + '...')
+            stack.append(m['parent'])
+        res.append(format_message(m, '| ' * len(stack), mono))
         stack.append(m['id'])
-        res.append(format_message(m, '| ' * (len(stack) - 1), mono))
     return '\n'.join(res)
 
 def main():
