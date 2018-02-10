@@ -7,7 +7,8 @@ import sys, re, time, calendar
 import collections
 import instabot
 
-__all__ = ['MessageID', 'id2time', 'time2id', 'parse_time', 'parse']
+__all__ = ['MessageID', 'id2time', 'time2id', 'parse_time', 'parse',
+           'format_id', 'format_time']
 
 # Fields are: seconds (arbitrary integer), milliseconds (integer in [0, 999]
 # range), sequence number (integer in [0, 1023] range).
@@ -78,6 +79,28 @@ def parse(s, base=16):
         except ValueError:
             raise ValueError('Cannot parse message ID: %r' % (s,))
 
+def format_id(ident):
+    """
+    Convert a message ID to its canonical string form
+    """
+    return '%016X' % ident
+
+def format_time(parts, compact=False):
+    """
+    Format a split-up message ID to a timestamp string
+
+    If compact is true, an alternate slightly shorter representation
+    without whitespace is emitted. Both compact and "long" forms have
+    a fixed width, and are recognized by parse_time().
+    """
+    sec, ms, seq = parts
+    if compact:
+        return '%s.%03d#%04d' % (time.strftime('%Y-%m-%d_%H:%M:%S',
+            time.gmtime(sec)), ms, seq)
+    else:
+        return '%s.%03d Z, #%04d' % (time.strftime('%Y-%m-%d %H:%M:%S',
+            time.gmtime(sec)), ms, seq)
+
 def read_stdin():
     for line in sys.stdin:
         for word in line.split():
@@ -88,6 +111,8 @@ def main():
     p.help_action()
     p.flag('decimal', short='d',
            help='Use nonstandard decimal ID-s instead of hex ones')
+    p.flag('compact', short='c',
+           help='Use compact format for timestamps')
     p.flag('reverse', short='r',
            help='Output ID-s instead of timestamps')
     p.flag('stdin', short='i', help='Read values from stdin')
@@ -106,9 +131,9 @@ def main():
             ident = time2id(parse(i, base))
             print (fmt % (i, ident))
     else:
+        compact = p.get('compact')
         for i in values:
-            sec, ms, seq = parse(i, base)
-            timestr = time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime(sec))
-            print ('%s: %s.%03d Z, #%04d' % (i, timestr, ms, seq))
+            parts = parse(i, base)
+            print ('%s: %s' % (i, format_time(parts, compact)))
 
 if __name__ == '__main__': main()
