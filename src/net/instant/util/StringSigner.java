@@ -58,7 +58,7 @@ public class StringSigner {
 
     public static StringSigner getInstance(byte[] key) {
         try {
-            if (key == null) getRandomKey();
+            if (key == null) key = getRandomKey();
             return new StringSigner(key);
         } catch (Exception exc) {
             throw new RuntimeException(exc);
