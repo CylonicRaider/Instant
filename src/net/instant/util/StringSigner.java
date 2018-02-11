@@ -18,7 +18,7 @@ public class StringSigner {
     private static final Logger LOGGER = Logger.getLogger("StringSigner");
 
     public static final String ALGORITHM = "HmacSHA1";
-    public static final int KEYSIZE = 64;
+    public static final int KEYSIZE = 64; // in bytes
 
     private final Mac impl;
 
