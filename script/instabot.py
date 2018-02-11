@@ -499,7 +499,7 @@ class OptionParser:
             if placeholder is not None:
                 res += ' ' + placeholder
         opt['rawdesc'] = res
-        if 'accum' in opt:
+        if opt.get('accum'):
             res += ' [...]'
         if 'default' in opt or opt.get('omissible'):
             res = '[%s]' % res
@@ -613,7 +613,7 @@ class OptionParser:
         for opt in self.options.values():
             if opt.get('omissible') or opt['varname'] in self.values:
                 continue
-            parser.die('Missing required option --%r' % opt['option'])
+            parser.die('Missing required option %r' % ('--' + opt['option']))
         for opt in self.arguments:
             if opt.get('omissible') or opt['varname'] in self.values:
                 continue

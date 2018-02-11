@@ -215,7 +215,7 @@ def main():
                         '[--[no-]%s]' % x for x in ('warn', 'sort', 'prune',
                                                     'empty-lines'))))
                 sys.stderr.write('Test Java source files for superfluous '
-                        'imports and remove them if necessary. Default is '
+                        'imports and remove them if necessary.\nDefault is '
                         '--warn only.\n'
                     '--warn       : Report unnecessary imports.\n'
                     '--sort       : Lexicographically sort the imports '
