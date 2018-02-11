@@ -46,6 +46,9 @@ public class HelpOption extends ActionOption {
         }
         return sb.toString();
     }
+    public static String formatDescription(ArgumentParser p) {
+        return p.getDescription();
+    }
     public static String formatHelp(ArgumentParser p) {
         List<String[]> columns = new LinkedList<String[]>();
         int wdN = 0, wdA = 0;
@@ -73,9 +76,16 @@ public class HelpOption extends ActionOption {
         return sb.toString();
     }
 
+    public static String formatFullHelp(ArgumentParser p) {
+        String usage = formatUsage(p, true), desc = formatDescription(p);
+        String help = formatHelp(p);
+        StringBuilder sb = new StringBuilder(usage);
+        if (desc != null) sb.append('\n').append(desc);
+        return sb.append('\n').append(help).toString();
+    }
+
     public static void displayHelp(ArgumentParser p, int code) {
-        System.err.println(formatUsage(p, true));
-        System.err.println(formatHelp(p));
+        System.err.println(formatFullHelp(p));
         System.exit(code);
     }
 

@@ -31,6 +31,7 @@ public class Main implements Runnable {
     public static final String APPNAME = "Instant";
     public static final String VERSION = "1.5.2";
     public static final String FINE_VERSION;
+    public static final String DESCRIPTION = "A Web-based threaded chat.";
 
     public static final String ROOM_RE =
         "[a-zA-Z](?:[a-zA-Z0-9_-]*[a-zA-Z0-9])?";
@@ -147,7 +148,7 @@ public class Main implements Runnable {
         Logging.captureExceptions(LOGGER);
         String version = VERSION;
         if (FINE_VERSION != null) version += " (" + FINE_VERSION + ")";
-        parseArguments(new ArgumentParser(APPNAME, version));
+        parseArguments(new ArgumentParser(APPNAME, version, DESCRIPTION));
         LOGGER.info(APPNAME + " " + version);
         runner.addFileAlias("/", "/pages/main.html");
         runner.addFileAlias("/favicon.ico",

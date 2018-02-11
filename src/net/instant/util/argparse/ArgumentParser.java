@@ -18,10 +18,13 @@ public class ArgumentParser {
     private final Map<Character, BaseOption<?>> shortOptions;
     private String progname;
     private String version;
+    private String description;
 
-    public ArgumentParser(String progname, String version) {
+    public ArgumentParser(String progname, String version,
+                          String description) {
         this.progname = progname;
         this.version = version;
+        this.description = description;
         this.options = new LinkedHashMap<String, BaseOption<?>>();
         this.shortOptions = new LinkedHashMap<Character, BaseOption<?>>();
     }
@@ -38,6 +41,13 @@ public class ArgumentParser {
     }
     public void setVersion(String ver) {
         version = ver;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+    public void setDescription(String desc) {
+        description = desc;
     }
 
     public Collection<BaseOption<?>> getAllOptions() {
