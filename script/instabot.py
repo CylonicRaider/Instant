@@ -646,7 +646,7 @@ class CmdlineBotBuilder:
         self.parser = OptionParser(*args, **kwds)
         self.parser.help_action()
         self.parser.option('nick', self.defnick,
-                           help='The nickname to use')
+                           help='Nickname to use')
         self.parser.flag_ex('no-nick', None, 'nick',
                             help='Use no nickname at all')
         self.parser.option('cookies',
@@ -655,7 +655,7 @@ class CmdlineBotBuilder:
                             help='Do not save cookies')
         kwds = {}
         if self.defurl is not Ellipsis: kwds['default'] = self.defurl
-        self.parser.argument('url', help='The URL to connect to', **kwds)
+        self.parser.argument('url', help='URL to connect to', **kwds)
         return self.parser
     def parse(self, argv):
         self.parser.parse(argv)
