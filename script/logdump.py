@@ -97,7 +97,7 @@ class LogFormatter:
 def main():
     # Parse command line
     p = instabot.OptionParser(sys.argv[0])
-    p.help_action()
+    p.help_action(desc='Pretty-print contents of Scribe database files.')
     p.option('from', short='f', type=msgid,
              help='Minimal (earliest) message ID to output')
     p.option('to', short='t', type=msgid,

@@ -15,7 +15,8 @@ def post_cb(self, msg, meta):
 
 def main():
     b = instabot.CmdlineBotBuilder(defnick=NICKNAME)
-    b.make_parser(sys.argv[0])
+    b.make_parser(sys.argv[0],
+                  desc='An Instant bot bouncing back received messages.')
     b.parse(sys.argv[1:])
     bot = b(post_cb=post_cb)
     try:

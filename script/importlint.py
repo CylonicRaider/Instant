@@ -214,7 +214,9 @@ def main():
                     '--no-report] <file(s)>\n' % (sys.argv[0], ' '.join(
                         '[--[no-]%s]' % x for x in ('warn', 'sort', 'prune',
                                                     'empty-lines'))))
-                sys.stderr.write('Default is --warn only.\n'
+                sys.stderr.write('Test Java source files for superfluous '
+                        'imports and remove them if necessary. Default is '
+                        '--warn only.\n'
                     '--warn       : Report unnecessary imports.\n'
                     '--sort       : Lexicographically sort the imports '
                         '(modifies file).\n'

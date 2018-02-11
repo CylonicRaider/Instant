@@ -739,7 +739,8 @@ def main():
     def interrupt(signum, frame):
         raise SystemExit
     b = instabot.CmdlineBotBuilder(Scribe, NICKNAME, None)
-    p = b.make_parser(sys.argv[0])
+    p = b.make_parser(sys.argv[0],
+                      desc='An Instant bot storing room logs.')
     p.option('maxlen', MAXLEN, type=int,
              help='Maximum amount of logs to deliver')
     p.option('msgdb', placeholder='<file>', default=Ellipsis,

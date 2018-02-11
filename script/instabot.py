@@ -455,6 +455,7 @@ class ArgParser:
 class OptionParser:
     def __init__(self, progname=None):
         self.progname = progname
+        self.description = None
         self.options = collections.OrderedDict()
         self.short_options = collections.OrderedDict()
         self.arguments = []
@@ -536,7 +537,8 @@ class OptionParser:
         self._set_accum(arg, kwds)
         self._make_desc(arg, None, placeholder)
         self.arguments.append(arg)
-    def help_action(self, name='help', help='Display help'):
+    def help_action(self, name='help', help='Display help', desc=Ellipsis):
+        if desc is not Ellipsis: self.description = desc
         self.action(name, lambda: self.help(0), help=help)
     def usage(self, exit=None, write=True):
         usage = ' '.join(['USAGE:', self.progname or '...'] +
@@ -550,6 +552,7 @@ class OptionParser:
         return usage
     def help(self, exit=None, write=True):
         help = [self.usage(write=False)]
+        if self.description is not None: help.append(self.description)
         descs, helps = [], []
         for item in list(self.options.values()) + self.arguments:
             if not item['help']: continue
@@ -643,8 +646,9 @@ class CmdlineBotBuilder:
         self.kwds = {}
         self.parser = None
     def make_parser(self, *args, **kwds):
+        desc = kwds.pop('desc', Ellipsis)
         self.parser = OptionParser(*args, **kwds)
-        self.parser.help_action()
+        self.parser.help_action(desc=desc)
         self.parser.option('nick', self.defnick,
                            help='Nickname to use')
         self.parser.flag_ex('no-nick', None, 'nick',
@@ -653,9 +657,9 @@ class CmdlineBotBuilder:
                            help='Cookie file (empty string -> memory)')
         self.parser.flag_ex('no-cookies', None, 'cookies',
                             help='Do not save cookies')
-        kwds = {}
+        kwargs = {}
         if self.defurl is not Ellipsis: kwds['default'] = self.defurl
-        self.parser.argument('url', help='URL to connect to', **kwds)
+        self.parser.argument('url', help='URL to connect to', **kwargs)
         return self.parser
     def parse(self, argv):
         self.parser.parse(argv)

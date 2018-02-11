@@ -165,7 +165,7 @@ def main():
         except ValueError as e:
             raise SystemExit('ERROR: ' + str(e))
     p = instabot.OptionParser(sys.argv[0])
-    p.help_action()
+    p.help_action(desc='Convert Instant message ID-s to/from timestamps.')
     p.flag('decimal', short='d',
            help='Use nonstandard decimal ID-s instead of hex ones')
     p.flag('compact', short='c',
