@@ -121,12 +121,12 @@ def main():
         uuids = db.query_uuid(m['from'] for m in messages)
     finally:
         db.close()
-    # Sort messages.
+    # Sort messages
     # This step cannot be streamed as someone could reply to an arbitrarily
     # old messages; since the database API does not include querying by
     # parent (yet), we also cannot offload that to the DB.
     messages = sort_threads(messages)
-    # Format messages.
+    # Format messages
     fmt = LogFormatter(detail=p.get('detail'), mono=p.get('mono'))
     for s in fmt.format_logs_stream(messages, uuids):
         print (s)
