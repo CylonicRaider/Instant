@@ -159,6 +159,11 @@ def read_stdin():
             yield word
 
 def main():
+    def parse_cmdline(ident, base):
+        try:
+            return parse(ident, base)
+        except ValueError as e:
+            raise SystemExit('ERROR: ' + str(e))
     p = instabot.OptionParser(sys.argv[0])
     p.help_action()
     p.flag('decimal', short='d',
@@ -180,12 +185,12 @@ def main():
     if p.get('reverse'):
         fmt = '%s: %016X' if base == 16 else '%s: %d'
         for i in values:
-            ident = time2id(parse(i, base))
-            print (fmt % (i, ident))
+            parts = parse_cmdline(i, base)
+            print (fmt % (i, time2id(parts)))
     else:
         compact = p.get('compact')
         for i in values:
-            parts = parse(i, base)
+            parts = parse_cmdline(i, base)
             print ('%s: %s' % (i, format_time(parts, compact)))
 
 if __name__ == '__main__': main()
