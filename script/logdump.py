@@ -40,7 +40,7 @@ class LogFormatter:
         self.mono = mono
 
     # Return a plain-text representation of msg.
-    # NOTE that there is no trailing newline.
+    # There is no trailing newline.
     def format_message(self, msg, indent='', first_indent=None):
         if first_indent is None: first_indent = indent
         prefix, lines = '<%s> ' % msg['nick'], msg['text'].split('\n')
@@ -48,10 +48,10 @@ class LogFormatter:
         return '\n'.join((first_indent + prefix if n == 0 else
                           indent + align) + l for n, l in enumerate(lines))
 
-    # Return a plain-text representation of the messages in msglist.
-    # NOTE that msglist is used in the order given, and there is no trailing
-    #      newline.
-    def format_logs(self, msglist, uuids=None):
+    # Return an iterable formatting messages from msglist.
+    # msglist is used exactly in the order given; the individual strings do
+    # not include trailing newlines.
+    def format_logs_stream(self, msglist, uuids=None):
         def prefix(msgid):
             if self.detail >= 3:
                 if msgid is None:
@@ -79,12 +79,18 @@ class LogFormatter:
         for m in msglist:
             while stack and stack[-1] != m.get('parent'): stack.pop()
             if m.get('parent') is not None and not stack:
-                res.append(prefix(None) + '| ' * len(stack) + '...')
+                yield prefix(None) + '| ' * len(stack) + '...'
                 stack.append(m['parent'])
             p, ind = prefix(m['id']), '| ' * len(stack)
-            res.append(self.format_message(m, ' ' * len(p) + ind, p + ind))
+            yield self.format_message(m, ' ' * len(p) + ind, p + ind)
             stack.append(m['id'])
         return '\n'.join(res)
+
+    # Return a plain-text representation of the messages in msglist.
+    # msglist is used exactly in the order given; there is no trailing
+    # newline.
+    def format_logs(self, msglist, uuids=None):
+        return '\n'.join(self.format_logs_stream(msglist, uuids))
 
 def main():
     # Parse command line
@@ -113,8 +119,14 @@ def main():
         uuids = db.query_uuid(m['from'] for m in messages)
     finally:
         db.close()
-    # Format messages
+    # Sort messages.
+    # This step cannot be streamed as someone could reply to an arbitrarily
+    # old messages; since the database API does not include querying by
+    # parent (yet), we also cannot offload that to the DB.
+    messages = sort_threads(messages)
+    # Format messages.
     fmt = LogFormatter(detail=p.get('detail'), mono=p.get('mono'))
-    print (fmt.format_logs(sort_threads(messages), uuids))
+    for s in fmt.format_logs_stream(messages, uuids):
+        print (s)
 
 if __name__ == '__main__': main()
