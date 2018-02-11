@@ -51,21 +51,30 @@ class LogFormatter:
     # Return a plain-text representation of the messages in msglist.
     # NOTE that msglist is used in the order given, and there is no trailing
     #      newline.
-    def format_logs(self, msglist):
+    def format_logs(self, msglist, uuids=None):
         def prefix(msgid):
-            if self.detail == 1:
+            if self.detail >= 3:
                 if msgid is None:
-                    return '[---------- --------  ] '
+                    return ('[---------- ------------    -----|'
+                        '------------------------------------] ')
                 else:
-                    return time.strftime('[%Y-%m-%d %H:%M:%S Z] ',
-                        time.gmtime(int(msgid, 16) // 1024000))
+                    return '[%s|%36s] ' % (
+                        id2time.MessageID(msgid).format_time(),
+                        uuids.get(m['from'], m['from']))
             elif self.detail == 2:
                 if msgid is None:
                     return '[---------- ------------    -----] '
                 else:
                     return '[%s] ' % id2time.MessageID(msgid).format_time()
+            elif self.detail == 1:
+                if msgid is None:
+                    return '[---------- --------  ] '
+                else:
+                    return time.strftime('[%Y-%m-%d %H:%M:%S Z] ',
+                        time.gmtime(int(msgid, 16) // 1024000))
             else:
                 return ''
+        if uuids is None: uuids = {}
         stack, res = [], []
         for m in msglist:
             while stack and stack[-1] != m.get('parent'): stack.pop()
@@ -88,7 +97,7 @@ def main():
     p.option('length', short='l', type=int,
              help='Maximal amount of messages to output')
     p.flag_ex('detail', short='d', default=0, value=1, accum=True,
-              help='Prepend date-times to messages')
+              help='Make output more detailed')
     p.flag('mono', short='m',
            help='Optimize indents for monospaced display')
     p.argument('msgdb', help='Database file to dump logs from')
@@ -101,10 +110,11 @@ def main():
     db.init()
     try:
         messages = db.query(lfrom, lto, amount)
+        uuids = db.query_uuid(m['from'] for m in messages)
     finally:
         db.close()
     # Format messages
     fmt = LogFormatter(detail=p.get('detail'), mono=p.get('mono'))
-    print (fmt.format_logs(sort_threads(messages)))
+    print (fmt.format_logs(sort_threads(messages), uuids))
 
 if __name__ == '__main__': main()
