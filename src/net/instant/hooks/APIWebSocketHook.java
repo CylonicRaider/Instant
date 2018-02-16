@@ -8,6 +8,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.logging.Logger;
 import net.instant.Main;
 import net.instant.api.API1;
 import net.instant.api.ClientConnection;
@@ -30,6 +31,8 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 public class APIWebSocketHook extends WebSocketHook {
+
+    private static final Logger LOGGER = Logger.getLogger("APIWSHook");
 
     private static final String K_INSECURE = "instant.cookies.insecure";
 
@@ -238,8 +241,11 @@ public class APIWebSocketHook extends WebSocketHook {
         event.getMessage().updateData("id", conn.getExtraData().get("id"));
         for (MessageHook h : getAllHooks())
             h.onDisconnect(event);
-        if (room.getName() != null)
+        if (room == null) {
+            LOGGER.warning("Closing connection " + conn + " with no room?!");
+        } else if (room.getName() != null) {
             room.sendBroadcast(event.getMessage());
+        }
     }
 
     public void onError(ClientConnection conn, Exception exc) {
