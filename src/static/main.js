@@ -2023,8 +2023,10 @@ this.Instant = function() {
         var troot = Instant.message.getThreadRoot(message);
         if (troot) {
           var rid = troot.getAttribute('data-id');
-          if (threadLatest[rid] == null || msgid > threadLatest[rid])
-            threadLatest[rid] = msgid;
+          var latest = threadLatest[msgid] || msgid;
+          delete threadLatest[msgid];
+          if (threadLatest[rid] == null || latest > threadLatest[rid])
+            threadLatest[rid] = latest;
         }
         /* Update indents */
         Instant.message.updateIndents(message);
