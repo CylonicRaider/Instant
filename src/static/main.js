@@ -3006,6 +3006,7 @@ this.Instant = function() {
         }
         function navigateDirect(msg) {
           Instant.input.moveTo(msg, true);
+          Instant.animation.offscreen.clear(msg);
           Instant.pane.scrollIntoView(inputNode);
           event.preventDefault();
           Instant.input._updateMessage(event);
