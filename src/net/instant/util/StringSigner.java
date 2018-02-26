@@ -53,7 +53,9 @@ public class StringSigner {
     private static byte[] getRandomKey() {
         LOGGER.config("Initializing from strong entropy source (" +
             KEYSIZE + " bytes)...");
-        return Util.getStrongRandomness(KEYSIZE);
+        byte[] ret = Util.getStrongRandomness(KEYSIZE);
+        LOGGER.config("Done.");
+        return ret;
     }
 
     public static StringSigner getInstance(byte[] key) {
