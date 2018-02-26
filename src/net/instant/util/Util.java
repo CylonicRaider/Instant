@@ -17,6 +17,11 @@ public final class Util {
     public static final int BUFFER_SIZE = 16384;
 
     private static final SecureRandom RNG = new SecureRandom();
+    private static final boolean useFastRNG;
+
+    static {
+        useFastRNG = isTrue(System.getProperty("instant.rng._unsafeFast"));
+    }
 
     private Util() {}
 
@@ -26,7 +31,11 @@ public final class Util {
         return buf;
     }
     public static byte[] getStrongRandomness(int len) {
-        return RNG.generateSeed(len);
+        if (useFastRNG) {
+            return getRandomness(len);
+        } else {
+            return RNG.generateSeed(len);
+        }
     }
     public static void clear(byte[] arr) {
         for (int i = 0; i < arr.length; i++) arr[i] = 0;
