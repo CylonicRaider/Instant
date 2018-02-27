@@ -15,14 +15,14 @@ proc_status() {
 
 cd "$(dirname "${BASH_SOURCE:-$0}")/.."
 
+INSTANT_HOST=localhost
+INSTANT_PORT=8080
+INSTANT_COOKIES_KEYFILE=cookie-key.bin
+INSTANT_OPTIONS=
+SCRIBE_ROOM=welcome
+SCRIBE_MAXLEN=100
+SCRIBE_OPTIONS=
 [ -f instant.default ] && . instant.default
-INSTANT_HOST="${INSTANT_HOST:-localhost}"
-INSTANT_PORT="${INSTANT_PORT:-8080}"
-INSTANT_COOKIES_KEYFILE="${INSTANT_COOKIES_KEYFILE:-cookie-key.bin}"
-#INSTANT_OPTIONS=
-SCRIBE_ROOM="${SCRIBE_ROOM:-welcome}"
-#SCRIBE_MAXLEN=100 # Should be set for long-term deployments
-#SCRIBE_OPTIONS=
 export INSTANT_COOKIES_KEYFILE
 
 cmd="$1"
@@ -57,6 +57,7 @@ case $cmd in
     exec script/run.bash start
   ;;
   bg-restart)
+    [ "$1" = "-f" ] && trap 'kill $(jobs -p) 2>/dev/null' EXIT
     [ -p run/comm ] || mkfifo run/comm
     # Fire backend up in background.
     # Catting the pipe will block until someone opens and closes it. Hence,
@@ -76,6 +77,7 @@ case $cmd in
     sleep 1
     # Actually run new backend.
     exec 3>&-
+    [ "$1" = "-f" ] && wait
   ;;
   run-instant)
     exec java -jar Instant.jar --host $INSTANT_HOST $INSTANT_PORT \
@@ -83,6 +85,7 @@ case $cmd in
       >>log/Instant.dbg.log 2>&1
   ;;
   run-scribe)
+    export INSTABOT_RELAXED_COOKIES=y
     exec python3 script/scribe.py ${SCRIBE_MAXLEN:+--maxlen $SCRIBE_MAXLEN} \
       --msgdb db/messages-$SCRIBE_ROOM.sqlite \
       --cookies run/scribe-cookies.txt \
