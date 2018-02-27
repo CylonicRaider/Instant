@@ -20,7 +20,8 @@ public final class Util {
     private static final boolean useFastRNG;
 
     static {
-        useFastRNG = isTrue(System.getProperty("instant.rng._unsafeFast"));
+        useFastRNG = isTrue(Configuration.DEFAULT.get(
+            "instant.rng._unsafeFast"));
     }
 
     private Util() {}
