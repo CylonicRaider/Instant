@@ -4151,7 +4151,8 @@ this.Instant = function() {
         if (! Instant.userList.get(nick.getAttribute('data-uid')) &&
             nick.style.backgroundColor) {
           nick.style.backgroundColor = '';
-          $cls('pm-reload-to', popup).classList.remove('hidden');
+          if (popup.classList.contains('pm-draft'))
+            $cls('pm-reload-to', popup).classList.remove('hidden');
         }
       },
       /* Update the preferred reply status for the given user or popup */
@@ -4632,7 +4633,7 @@ this.Instant = function() {
         var toUID = $cls('pm-to-id', popup);
         var reloadBtn = $cls('pm-reload-to', popup);
         var entries = Instant.userList.query(null, null,
-          toNick.getAttribute('data-id'));
+          toNick.getAttribute('data-uid'));
         if (entries.length == 0)
           entries = Instant.userList.query(
             toNick.getAttribute('data-nick'),
