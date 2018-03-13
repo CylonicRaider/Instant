@@ -12,26 +12,27 @@ import instabot, id2time, scribe
 class msgid(id2time.MessageID): pass
 
 # Return msglist sorted in the order it would be put into by the Web client.
-# NOTE that messages' immediate parent might be missing.
+# NOTE that messages' immediate parents might be missing.
 def sort_threads(msglist):
     def dump(k):
         if k in index:
             ret.append(index[k])
-        ids = [m['id'] for m in children.get(k, ())]
-        ids.sort()
-        for k in ids:
-            dump(k)
+        for c in sorted(children.get(k, ())):
+            dump(c)
     # Put messages into indexes
     index, children = {}, {}
     for m in msglist:
         index[m['id']] = m
-        children.setdefault(m.get('parent'), []).append(m)
-    roots = [k for k in children if k is not None and
-             (k not in index or index[k].get('parent') is None)]
-    roots.sort()
+        p = m.get('parent')
+        children.setdefault(p, []).append(m['id'])
+    # Compute set of roots
+    roots = set(children)
+    roots.difference_update(index)
+    roots.update(children.get(None, ()))
+    roots.discard(None)
     # Extract messages again
     ret = []
-    for k in roots: dump(k)
+    for k in sorted(roots): dump(k)
     return ret
 
 class LogFormatter:
@@ -86,7 +87,6 @@ class LogFormatter:
             p, ind = prefix(m['id']), '| ' * len(stack)
             yield self.format_message(m, ' ' * len(p) + ind, p + ind)
             stack.append(m['id'])
-        return '\n'.join(res)
 
     # Return a plain-text representation of the messages in msglist.
     # msglist is used exactly in the order given; there is no trailing
