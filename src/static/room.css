@@ -202,9 +202,12 @@ body {
   font-weight: bold;
 }
 .message-text .emph.emph-3 {
-  font-variant: small-caps;
+  text-decoration: underline;
 }
 .message-text .emph.emph-4 {
+  font-variant: small-caps;
+}
+.message-text .emph.emph-5 {
   letter-spacing: 0.15em;
 }
 .message-text .heading-line {
