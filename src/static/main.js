@@ -4356,6 +4356,14 @@ this.Instant = function() {
         }
         return popup;
       },
+      /* Start composing another message towards the target of a sent PM */
+      _followUp: function(popup) {
+        var parentNode = $cls('pm-parent-id', popup);
+        var toNick = $cls('pm-to-nick', popup);
+        Instant.privmsg.write(toNick.getAttribute('data-uid'),
+          toNick.getAttribute('data-nick'), null,
+          parentNode && parentNode.textContent);
+      },
       /* Add a PM popup to the runtime state and update relevant indexes */
       _add: function(popup) {
         var uid = $sel('.popup-grid .nick', popup).getAttribute('data-uid');
@@ -4615,7 +4623,14 @@ this.Instant = function() {
         while (body.firstChild) body.removeChild(body.firstChild);
         body.appendChild(newText);
         preview.parentNode.removeChild(preview);
+        finishLater.classList.remove('pm-finish-later');
         finishLater.textContent = 'Dismiss';
+        var followUp = $makeNode('button', 'button',
+          {style: 'color: #008000;'}, 'Follow up');
+        followUp.onclick = function() {
+          Instant.privmsg._followUp(popup);
+        };
+        send.parentNode.insertBefore(followUp, send);
         send.parentNode.removeChild(send);
         title.textContent = 'Private message (sent)';
         popup.classList.remove('pm-draft');
