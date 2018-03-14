@@ -4298,7 +4298,7 @@ this.Instant = function() {
               resp.data.message
             ), className: 'popup-message-error'});
           } else {
-            /* Re-assign ID
+            /* Re-assign ID and date
              * An actually well-tested corner case is sending messages to
              * oneself; in that case, there will be two popups for the same
              * message. The received message is to be preferred to the
@@ -4310,6 +4310,9 @@ this.Instant = function() {
             } else {
               popup.setAttribute('data-id', resp.data.id);
             }
+            var dateNode = $cls('pm-date', popup);
+            dateNode.removeChild(dateNode.firstChild);
+            dateNode.appendChild(formatDateNode(resp.timestamp));
             Instant.privmsg._transformAfterview(popup, true);
             Instant.privmsg._update();
             Instant.popups.focus(popup);
