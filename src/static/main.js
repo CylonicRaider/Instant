@@ -4466,7 +4466,7 @@ this.Instant = function() {
               nickNode, ' ',
               ['i', ['(user ID ', ['a', 'monospace pm-to-id'], ')']], ' ',
               ['button', 'button button-icon pm-reload-to hidden', [
-                ['img', {src: Instant.popups.getIcons().reload}]
+                ['img', {src: Instant.icons.get('reload')}]
               ]]
             ]]
           ]],
@@ -5889,36 +5889,9 @@ this.Instant = function() {
     var curID = 0;
     /* Popup ID -> listener for removal of popup */
     var removeListeners = {};
-    /* URL-s for the icons
-     * Replaced by data URI-s as soon as the images are preloaded. */
-    var icons = {close:    '/static/close.svg',
-                 collapse: '/static/collapse.svg',
-                 expand:   '/static/expand.svg',
-                 reload:   '/static/reload.svg'};
     return {
       /* Initialize submodule */
       init: function() {
-        function preloadImage(url) {
-          if (! /\.svg$/.test(url)) return Promise.resolve(url);
-          /* HACK: Using <object> elements to avoid devtools noise.
-           *       Blame me for that later. */
-          return new Promise(function(resolve, reject) {
-            var obj = document.createElement('object');
-            obj.addEventListener('load', function() {
-              var doc = obj.contentDocument;
-              var xml = new XMLSerializer().serializeToString(doc);
-              /* Shush! */
-              document.head.removeChild(obj);
-              resolve('data:image/svg+xml;base64,' + btoa(xml));
-            });
-            obj.addEventListener('error', function(event) {
-              document.head.removeChild(obj);
-              reject(event);
-            });
-            obj.data = url;
-            document.head.appendChild(obj);
-          });
-        }
         var menuNode = Instant.popups.menu.init();
         wrapper = $makeNode('div', 'popups-wrapper empty', [
           menuNode,
@@ -5929,11 +5902,11 @@ this.Instant = function() {
         menuNode.appendChild($makeFrag(
           ['span', 'separator'],
           ['button', 'button button-noborder hide-all', [
-            ['img', {src: icons.collapse}]
+            ['img', {src: Instant.icons.get('collapse')}]
           ]],
           ['span', 'separator'],
           ['button', 'button button-noborder close-all', [
-            ['img', {src: icons.close}]
+            ['img', {src: Instant.icons.get('close')}]
           ]]
         ));
         stack = $cls('popups', wrapper);
@@ -5945,10 +5918,6 @@ this.Instant = function() {
           onclick: function() {
             Instant.popups.hideAll(false);
           }});
-        /* Preload images */
-        Object.getOwnPropertyNames(icons).forEach(function(k) {
-          preloadImage(icons[k]).then(function(res) { icons[k] = res; });
-        });
         return stack;
       },
       /* Adjust the "hidden popups" UI message */
@@ -5978,11 +5947,11 @@ this.Instant = function() {
             ['span', 'popup-title'],
             co && ['span', 'popup-title-sep'],
             co && ['button', 'button popup-button popup-collapse', [
-              ['img', {src: icons.collapse}]
+              ['img', {src: Instant.icons.get('collapse')}]
             ]],
             cl && ['span', 'popup-title-sep'],
             cl && ['button', 'button popup-button popup-close', [
-              ['img', {src: icons.close}]
+              ['img', {src: Instant.icons.get('close')}]
             ]]
           ]],
           ['div', 'popup-content'],
@@ -6096,10 +6065,12 @@ this.Instant = function() {
         }
         if (force) {
           node.classList.add('collapsed');
-          $sel('.popup-collapse img', node).src = icons.expand;
+          var url = Instant.icons.get('expand');
+          $sel('.popup-collapse img', node).src = url;
         } else {
           node.classList.remove('collapsed');
-          $sel('.popup-collapse img', node).src = icons.collapse;
+          var url = Instant.icons.get('collapse');
+          $sel('.popup-collapse img', node).src = url;
         }
       },
       /* Focus a concrete popup or anything */
@@ -6160,7 +6131,7 @@ this.Instant = function() {
         var ret = $makeNode('div', 'popup-message', [
           ! options.noClose && ['span', 'popup-message-close-wrapper', [
             ['button', 'button button-noborder popup-message-close', [
-              ['img', {src: icons.close}]
+              ['img', {src: Instant.icons.get('close')}]
             ]]
           ]]
         ]);
@@ -6214,10 +6185,6 @@ this.Instant = function() {
       /* Check whether a popup is already shown */
       isShown: function(node) {
         return stack.contains(node);
-      },
-      /* Return the icon URL stash */
-      getIcons: function() {
-        return icons;
       },
       /* Return the internal node containing the popups */
       getNode: function() {
@@ -6382,6 +6349,73 @@ this.Instant = function() {
           }
         };
       }()
+    };
+  }();
+  /* Icon management */
+  Instant.icons = function() {
+    /* The icon storage
+     * The URL-s are replaced by data URI-s when the corresponding icon gets
+     * loaded. */
+    var urls = {close:    '/static/close.svg',
+                collapse: '/static/collapse.svg',
+                expand:   '/static/expand.svg',
+                reload:   '/static/reload.svg'};
+    /* A mapping from icons being loaded to the corresponding Promises */
+    var promises = {};
+    return {
+      /* Export the storage */
+      URLS: urls,
+      /* Initialize submodule */
+      init: function() {
+        Object.getOwnPropertyNames(urls).forEach(
+          Instant.icons.fetch.bind(Instant.icons));
+      },
+      /* Fetch an image and return a Promise of it */
+      _preloadImage: function(url) {
+        if (! /\.svg$/.test(url)) return Promise.resolve(url);
+        /* HACK: Using <object> elements to avoid devtools noise.
+         *       Blame me for that later. */
+        return new Promise(function(resolve, reject) {
+          var obj = document.createElement('object');
+          obj.addEventListener('load', function() {
+            var doc = obj.contentDocument;
+            var xml = new XMLSerializer().serializeToString(doc);
+            /* Shush! */
+            document.head.removeChild(obj);
+            resolve('data:image/svg+xml;base64,' + btoa(xml));
+          });
+          obj.addEventListener('error', function(event) {
+            document.head.removeChild(obj);
+            reject(event);
+          });
+          obj.data = url;
+          document.head.appendChild(obj);
+        });
+      },
+      /* Preload the icon with the name and return a Promise of it */
+      fetch: function(name) {
+        if (promises[name])
+          return promises[name];
+        var prom;
+        if (/^data:/.test(urls[name])) {
+          prom = Promise.resolve(urls[name]);
+        } else {
+          prom = Instant.icons._preloadImage(urls[name]).then(function(res) {
+            urls[name] = res;
+            promises[name] = Promise.resolve(res);
+            return res;
+          });
+        }
+        promises[name] = prom;
+        return prom;
+      },
+      /* Obtain the icon corresponding to name
+       * This may be either a URL of the icon on the server, or a data URI
+       * if the icon was preloaded. Use fetch() to attempt to preload an
+       * icon. */
+      get: function(name) {
+        return urls[name];
+      }
     };
   }();
   /* Query string and other URL parameters
@@ -7046,6 +7080,7 @@ this.Instant = function() {
     Instant.query.init();
     Instant.hash.init();
     Instant.storage.init();
+    Instant.icons.init();
     Instant.message.init();
     Instant.input.init();
     Instant.message.getMessageBox().appendChild(Instant.input.getNode());
