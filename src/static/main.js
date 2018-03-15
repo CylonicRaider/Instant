@@ -2241,6 +2241,13 @@ this.Instant = function() {
         function makeSigil(text, className) {
           return makeNode(text, 'sigil ' + className);
         }
+        /* Helper: Traverse all descendants of a given DOM node */
+        function traverse(node, callback) {
+          callback(node);
+          Array.prototype.forEach.call(node.childNodes, function(n) {
+            traverse(n, callback);
+          });
+        }
         /* Disable a wrongly-assumed emphasis mark */
         function declassify(elem) {
           elem.disabled = true;
@@ -2462,6 +2469,9 @@ this.Instant = function() {
             }
           }
         ];
+        /* Functions that may edit the resulting DOM node after the fact
+         * The return values are ignored. */
+        var processors = [];
         return {
           /* Export constants */
           URL_RE: URL_RE,
@@ -2472,6 +2482,8 @@ this.Instant = function() {
           makeNode: makeNode,
           /* Helper: Quickly create a sigil node */
           makeSigil: makeSigil,
+          /* Helper: Traverse all descendants of a given DOM node */
+          traverse: traverse,
           /* Parse a message into a DOM node */
           parse: function(text) {
             /* Intermediate result; current index; text length; array of
@@ -2612,8 +2624,12 @@ this.Instant = function() {
                 }
               }
             }
+            /* Apply processors */
+            var ret = stack[0];
+            for (var i = 0; i < processors.length; i++)
+              processors[i](ret);
             /* Done! */
-            return stack[0];
+            return ret;
           },
           /* Reverse the transformation performed by the parser */
           extractText: function(node) {
@@ -2640,6 +2656,14 @@ this.Instant = function() {
           /* Count plugin-inserted late matchers */
           countLateMatchers: function() {
             return lateMatchers;
+          },
+          /* Add a processor */
+          addProcessor: function(f) {
+            processors.push(f);
+          },
+          /* Return all processors */
+          getProcessors: function() {
+            return processors;
           }
         };
       }()
