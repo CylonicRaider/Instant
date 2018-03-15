@@ -2205,11 +2205,11 @@ this.Instant = function() {
       /* Message parsing -- has an own namespace to avoid pollution */
       parser: function() {
         function sm(s) {
-          return s.replace(/%PM%/g, pm).replace(/%ME%/g, me);
+          return new RegExp(s.replace(/%PM%/g, pm).replace(/%ME%/g, me));
         }
         /* Important regexes */
-        var URL_RE = '((?!javascript:)[a-zA-Z]+:(//)?)?' +
-          '([a-zA-Z0-9._~-]+@)?([a-zA-Z0-9.-]+)(:[0-9]+)?(/[^>]*)?';
+        var URL_RE = new RegExp('((?!javascript:)[a-zA-Z]+:(//)?)?' +
+          '([a-zA-Z0-9._~-]+@)?([a-zA-Z0-9.-]+)(:[0-9]+)?(/[^>]*)?');
         var pm = '[^()\\s]*', me = '[^.,:;!?()\\s]';
         var MENTION_RE = sm('%PM%(?:\\(%PM%\\)%PM%)*(?:\\(%PM%\\)|%ME%)');
         var PARTIAL_MENTION = sm('%PM%(?:\\(%PM%\\)%PM%)*(?:\\(%PM%)?');
@@ -2292,7 +2292,7 @@ this.Instant = function() {
           },
           { /* Hyperlinks */
             name: 'link',
-            re: new RegExp('<(' + URL_RE + ')>'),
+            re: new RegExp('<(' + URL_RE.source + ')>'),
             cb: function(m, out) {
               /* Must contain word and non-word characters */
               if (! /\w/.test(m[1]) || ! /\W/.test(m[1])) {
@@ -2312,7 +2312,7 @@ this.Instant = function() {
           },
           { /* @-mentions */
             name: 'mention',
-            re: new RegExp('@' + MENTION_RE),
+            re: new RegExp('@' + MENTION_RE.source),
             bef: /\W|^$/, aft: /\W|^$/,
             cb: function(m, out) {
               out.push(Instant.nick.makeMention(m[0]));
@@ -2649,7 +2649,7 @@ this.Instant = function() {
   Instant.input = function () {
     /* Match @-mentions with arbitrary text before */
     var MENTION_BEFORE = new RegExp('(?:\\W|^)\\B@(' +
-      Instant.message.parser.PARTIAL_MENTION + ')?$');
+      Instant.message.parser.PARTIAL_MENTION.source + ')?$');
     /* The DOM node containing the input bar */
     var inputNode = null;
     /* The sub-node currently focused */
