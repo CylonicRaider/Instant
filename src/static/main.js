@@ -1523,23 +1523,28 @@ this.Instant = function() {
        * accepted, otherwise, the normalizations of the own nick and the
        * candidate are compared. */
       scanMentions: function(content, nick, strict) {
-        var ret = 0, children = content.children;
-        var nnick = Instant.nick.normalize(nick);
-        for (var i = 0; i < children.length; i++) {
-          if (children[i].classList.contains('mention')) {
-            var candidate = children[i].getAttribute('data-nick');
-            /* If nick is correct, one instance found */
-            if (candidate == nick) {
-              ret++;
-            } else if (! strict && Instant.nick.normalize(candidate) ==
-                nnick) {
-              ret++;
+        /* Helper function to traverse the DOM tree of content */
+        function scan(node) {
+          var children = node.children;
+          for (var i = 0; i < children.length; i++) {
+            if (children[i].classList.contains('mention')) {
+              var candidate = children[i].getAttribute('data-nick');
+              if (candidate == nick) {
+                /* Definite match found */
+                ret++;
+              } else if (! strict && Instant.nick.normalize(candidate) ==
+                  nnick) {
+                /* Relaxed match found */
+                ret++;
+              }
+            } else {
+              /* Scan recursively */
+              scan(children[i]);
             }
-          } else {
-            /* Scan recursively */
-            ret += Instant.message.scanMentions(children[i], nick);
           }
         }
+        var ret = 0, nnick = Instant.nick.normalize(nick);
+        scan(content);
         return ret;
       },
       /* Install event handlers into the given message node */
