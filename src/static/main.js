@@ -2542,7 +2542,7 @@ this.Instant = function() {
             if (node.firstChild && node.firstChild.nodeName == 'DIV') {
               if (node.firstChild.classList.contains('embed-outer'))
                 node.firstChild.classList.add('embed-first');
-            } else {
+            } else if (! node.firstChild) {
               node.insertBefore(makeNode(null, 'strut'), node.firstChild);
             }
             if (node.lastChild && node.lastChild.nodeName == 'DIV' &&

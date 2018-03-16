@@ -241,6 +241,7 @@ body {
   display: inline-block;
   vertical-align: top;
   border: 1px solid #808080;
+  background: white;
 }
 .message-text .embed-inner.no-margin {
   margin-left: -1px;
@@ -291,6 +292,22 @@ body {
     display: inline;
     position: static;
     margin: 0;
+  }
+
+  .message > .line .content .message-text .embed-outer {
+    display: inline-block;
+  }
+  .message > .line .content .message-text .embed-outer.embed-first,
+  .message > .line .content .message-text .embed-outer.embed-last,
+  .message > .line .content .message-text
+  .embed-outer.embed-first.embed-last {
+    -webkit-transform: none;
+    transform: none;
+    margin-bottom: 0;
+  }
+
+  .message-text .embed-inner {
+    vertical-align: baseline;
   }
 
   .message .nick {
