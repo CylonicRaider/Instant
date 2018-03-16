@@ -2294,20 +2294,6 @@ this.Instant = function() {
         var lateMatchers = 0;
         /* Message parsing fragments */
         var matchers = [
-          { /* Leading/trailing whitespace */
-            name: 'whitespace',
-            re: /^\s+|\s+$/,
-            cb: function(m, out) {
-              out.push(makeNode(m[0], 'hidden'));
-            }
-          },
-          { /* Line-trailing whitespace */
-            name: 'trailingWhitespace',
-            re: /(?!\n)\s+$/m,
-            cb: function(m, out) {
-              out.push(makeNode(m[0], 'hidden'));
-            }
-          },
           { /* Room/message links */
             name: 'room',
             re: /\B&([a-zA-Z]([\w-]*[a-zA-Z0-9])?)(#([a-zA-Z0-9]+))?\b/,
@@ -2338,7 +2324,7 @@ this.Instant = function() {
           },
           { /* Embeds */
             name: 'embed',
-            re: new RegExp('<!' + URL_RE.source + '>'),
+            re: new RegExp('\\s*<!' + URL_RE.source + '>\\s*'),
             cb: function(m, out, status) {
               /* Perform plausibility check and obtain link node */
               var linkNode = makeLink(m);
@@ -2356,20 +2342,30 @@ this.Instant = function() {
                 }
               }
               /* Disgorge the DOM structure */
+              var spaceBefore = /^\s+/.exec(m[0]);
               if (embedder) {
                 out.push({add: 'embed', embed: 'outer'});
+                if (spaceBefore)
+                  out.push(makeNode(spaceBefore[0], 'embed-space hidden'));
                 out.push({add: 'embed', embed: 'link'});
+              } else if (spaceBefore) {
+                out.push(spaceBefore[0]);
               }
               out.push(makeSigil('<!', 'embed-before'));
               out.push(linkNode);
               out.push(makeSigil('>', 'embed-after'));
+              var spaceAfter = /\s+$/.exec(m[0]);
               if (embedder) {
                 out.push({rem: 'embed'});
                 out.push({add: 'embed', embed: 'inner'});
                 var res = embedder.cb(url, out, status);
                 if (res != null) out.push(res);
                 out.push({rem: 'embed'});
+                if (spaceAfter)
+                  out.push(makeNode(spaceAfter[0], 'embed-space hidden'));
                 out.push({rem: 'embed'});
+              } else if (spaceAfter) {
+                out.push(spaceAfter[0]);
               }
             },
             add: function(stack, status, elem) {
@@ -2537,6 +2533,20 @@ this.Instant = function() {
             add: function() {
               return makeNode(null, 'term-line monospace');
             }
+          },
+          { /* Leading/trailing whitespace */
+            name: 'whitespace',
+            re: /^\s+|\s+$/,
+            cb: function(m, out) {
+              out.push(makeNode(m[0], 'hidden'));
+            }
+          },
+          { /* Line-trailing whitespace */
+            name: 'trailingWhitespace',
+            re: /(?!\n)\s+$/m,
+            cb: function(m, out) {
+              out.push(makeNode(m[0], 'hidden'));
+            }
           }
         ];
         /* Functions that produce DOM nodes for objects to be embedded
@@ -2551,18 +2561,18 @@ this.Instant = function() {
             var containers = $selAll('.embed-outer + .embed-outer', node);
             for (var i = 0; i < containers.length; i++) {
               var cur = containers[i], pred = cur.previousSibling;
-              if (pred.nodeName == 'DIV') {
-                $cls('embed-inner', cur).classList.add('no-margin');
-                $moveCh(cur, pred);
-                cur.parentNode.removeChild(cur);
-              } else if (pred.nodeType == Node.TEXT_NODE &&
-                  /^\s+$/.test(pred.nodeValue)) {
-                if (pred.previousSibling.nodeName != 'DIV')
-                  continue;
-                pred.previousSibling.appendChild(pred);
-                $moveCh(cur, cur.previousSibling);
-                cur.parentNode.removeChild(cur);
+              if (pred.nodeType != Node.ELEMENT_NODE) continue;
+              var last = pred.lastChild;
+              /* Preserve line breaks */
+              if (last.nodeType == Node.ELEMENT_NODE &&
+                  last.classList.contains('embed-space') &&
+                  /\n/.test(last.textContent)) {
+                cur.classList.add('new-line');
+                continue;
               }
+              $cls('embed-inner', cur).classList.add('line-cont');
+              $moveCh(cur, pred);
+              cur.parentNode.removeChild(cur);
             }
             /* Special-case embeds appearing in the very beginning / end
              * of a message; insert struts to ensure message height */

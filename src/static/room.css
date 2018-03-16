@@ -184,6 +184,10 @@ body {
 .message > .line .content .message-text .embed-outer.embed-first.embed-last {
   margin-bottom: -2px;
 }
+.message > .line .content .message-text .embed-outer.embed-first +
+.embed-outer.new-line {
+  margin-top: -2px;
+}
 
 /* Keep in sync with copy formatting in main.js */
 .message-text {
@@ -237,13 +241,16 @@ body {
   overflow: auto;
 }
 
+.message-text .embed-outer.new-line {
+  margin-top: -1px;
+}
 .message-text .embed-inner {
   display: inline-block;
   vertical-align: top;
   border: 1px solid #808080;
   background: white;
 }
-.message-text .embed-inner.no-margin {
+.message-text .embed-inner.line-cont {
   margin-left: -1px;
 }
 
@@ -295,7 +302,7 @@ body {
   }
 
   .message > .line .content .message-text .embed-outer {
-    display: inline-block;
+    display: inline;
   }
   .message > .line .content .message-text .embed-outer.embed-first,
   .message > .line .content .message-text .embed-outer.embed-last,
@@ -305,8 +312,11 @@ body {
     transform: none;
     margin-bottom: 0;
   }
-
-  .message-text .embed-inner {
+  .message-text .embed-outer.new-line {
+    margin-top: 0;
+  }
+  .message-text .embed-inner, .message-text .embed-inner.line-cont {
+    margin-left: 0;
     vertical-align: baseline;
   }
 
