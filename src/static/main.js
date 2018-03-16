@@ -2302,24 +2302,62 @@ this.Instant = function() {
               out.push(node);
             }
           },
-          { /* Hyperlinks */
+          { /* Hyperlinks / embeds */
             name: 'link',
-            re: new RegExp('<(' + URL_RE.source + ')>'),
-            cb: function(m, out) {
+            re: new RegExp('<!?(' + URL_RE.source + ')>'),
+            cb: function(m, out, status) {
               /* Must contain word and non-word characters */
               if (! /\w/.test(m[1]) || ! /\W/.test(m[1])) {
                 out.push(m[0]);
                 return;
               }
-              out.push(makeSigil('<', 'link-before'));
-              /* Insert http:// if necessary */
+              /* Prepare the final URL */
               var url = m[1];
               if (! m[2]) url = 'http://' + url;
+              /* Find a matching embedder module. */
+              var embedder = null;
+              if (m[0][1] == '!') {
+                for (var i = 0; i < embedders.length; i++) {
+                  if (embedders[i].re.test(url))
+                    embedder = embedders[i];
+                }
+                if (embedder) {
+                  out.push({add: 'link', embed: 'outer'});
+                  out.push({add: 'link', embed: 'link'});
+                }
+                out.push(makeSigil('<!', 'embed-before'));
+              } else {
+                out.push(makeSigil('<', 'link-before'));
+              }
               var node = makeNode(m[1], 'link', null, 'a');
               node.href = url;
               node.target = '_blank';
               out.push(node);
-              out.push(makeSigil('>', 'link-after'));
+              if (m[0][1] == '!') {
+                out.push(makeSigil('>', 'embed-after'));
+                if (embedder) {
+                  out.push({rem: 'link'});
+                  out.push({add: 'link', embed: 'inner'});
+                  var res = embedder.cb(url, out, status);
+                  if (res != null) out.push(res);
+                  out.push({rem: 'link'});
+                  out.push({rem: 'link'});
+                }
+              } else {
+                out.push(makeSigil('>', 'link-after'));
+              }
+            },
+            add: function(stack, status, elem) {
+              if (elem.embed) {
+                var clsname = 'embed-' + elem.embed;
+                if (elem.embed == 'link') {
+                  clsname += ' hidden';
+                } else if (elem.embed == 'inner') {
+                  clsname += ' no-copy';
+                }
+                var tag = (elem.embed == 'outer') ? 'div' : 'span';
+                return makeNode(null, clsname, null, tag);
+              }
             }
           },
           { /* @-mentions */
@@ -2474,9 +2512,44 @@ this.Instant = function() {
             }
           }
         ];
-        /* Functions that may edit the resulting DOM node after the fact
+        /* Functions that produce DOM nodes for objects to be embedded
+         * See addEmbedder() for the entry format. */
+        var embedders = [];
+        /* Functions that may edit the resulting DOM node
          * The return values are ignored. */
-        var processors = [];
+        var processors = [
+          /* Coalesce embed containers and insert strut if necessary */
+          function(node) {
+            /* Coalesce adjacent embed containers */
+            var containers = $selAll('.embed-outer + .embed-outer', node);
+            for (var i = 0; i < containers.length; i++) {
+              var cur = containers[i], pred = cur.previousSibling;
+              if (pred.nodeName == 'DIV') {
+                $cls('embed-inner', cur).classList.add('no-margin');
+                $moveCh(cur, pred);
+                cur.parentNode.removeChild(cur);
+              } else if (pred.nodeType == Node.TEXT_NODE &&
+                  /^\s+$/.test(pred.nodeValue)) {
+                if (pred.previousSibling.nodeName != 'DIV')
+                  continue;
+                pred.previousSibling.appendChild(pred);
+                $moveCh(cur, cur.previousSibling);
+                cur.parentNode.removeChild(cur);
+              }
+            }
+            /* Special-case embeds appearing in the very beginning / end
+             * of a message; insert struts to ensure message height */
+            if (node.firstChild && node.firstChild.nodeName == 'DIV') {
+              if (node.firstChild.classList.contains('embed-outer'))
+                node.firstChild.classList.add('embed-first');
+            } else {
+              node.insertBefore(makeNode(null, 'strut'), node.firstChild);
+            }
+            if (node.lastChild && node.lastChild.nodeName == 'DIV' &&
+                node.lastChild.classList.contains('embed-outer'))
+              node.lastChild.classList.add('embed-last');
+          }
+        ];
         return {
           /* Export constants */
           URL_RE: URL_RE,
@@ -2577,21 +2650,18 @@ this.Instant = function() {
               }
               /* Filter such that only user-made objects remain */
               if (typeof e != 'object' || e.nodeType !== undefined) continue;
-              /* Add or remove emphasis, respectively */
+              /* Add or remove highlights, respectively */
               if (e.add || e.line) {
                 stack.push(e);
               } else if (e.rem) {
-                if (stack.length) {
-                  /* Check if it actually matches */
-                  if (e.rem == stack[stack.length - 1].add) {
-                    stack.pop();
-                  } else {
-                    declassify(e);
-                  }
+                /* Check if it actually matches */
+                if (stack.length && e.rem == stack[stack.length - 1].add) {
+                  stack.pop();
                 } else {
                   declassify(e);
                 }
               }
+
             }
             doEOL(stack, out, i);
             for (var i = 0; i < stack.length; i++) declassify(stack[i]);
@@ -2610,22 +2680,20 @@ this.Instant = function() {
               }
               /* Disabled emphasis nodes don't do anything */
               if (e.disabled) continue;
-              /* First remove emphasis */
-              if (e.rem) {
-                var cb = matcherIndex[e.rem].rem;
-                if (cb) {
-                  cb(stack, status);
-                } else {
-                  stack.pop();
-                }
-              }
-              /* Then add some */
+              /* Add / remove highlights */
               if (e.add) {
                 var cb = matcherIndex[e.add].add;
-                var node = (cb) ? cb(stack, status) : makeNode();
+                var node = (cb) ? cb(stack, status, e) : makeNode();
                 if (node) {
                   top.appendChild(node);
                   stack.push(node);
+                }
+              } else if (e.rem) {
+                var cb = matcherIndex[e.rem].rem;
+                if (cb) {
+                  cb(stack, status, e);
+                } else {
+                  stack.pop();
                 }
               }
             }
@@ -2661,6 +2729,14 @@ this.Instant = function() {
           /* Count plugin-inserted late matchers */
           countLateMatchers: function() {
             return lateMatchers;
+          },
+          /* Add an embedder */
+          addEmbedder: function(regex, callback) {
+            embedders.push({re: regex, cb: callback});
+          },
+          /* Return all embedders */
+          getEmbedders: function() {
+            return embedders;
           },
           /* Add a processor */
           addProcessor: function(f) {

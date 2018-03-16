@@ -137,7 +137,7 @@ body {
 }
 .message > .line .nick-wrapper .nick::after,
 .message > .line .time-wrapper::after,
-.message > .line .content .message-text::after {
+.message > .line .content .strut::after {
   /* HACK: Abusing the un-selectability of pseudoelements */
   content: " ";
   display: inline-block;
@@ -168,6 +168,21 @@ body {
 }
 .message.emote > .line .content .message-text {
   padding-right: 0.25em;
+}
+/* HACK: Make embeds extend into the padding
+ * For .embed-first, a negative top margin seems not to affect the embed (or
+ * anything at all), so we transform the embed up instead, and cover the fact
+ * up by a negative bottom margin. */
+.message > .line .content .message-text .embed-outer.embed-first {
+  -webkit-transform: translateY(-1px);
+  transform: translateY(-1px);
+  margin-bottom: -1px;
+}
+.message > .line .content .message-text .embed-outer.embed-last {
+  margin-bottom: -1px;
+}
+.message > .line .content .message-text .embed-outer.embed-first.embed-last {
+  margin-bottom: -2px;
 }
 
 /* Keep in sync with copy formatting in main.js */
@@ -220,6 +235,15 @@ body {
   display: block;
   white-space: pre;
   overflow: auto;
+}
+
+.message-text .embed-inner {
+  display: inline-block;
+  vertical-align: top;
+  border: 1px solid #808080;
+}
+.message-text .embed-inner.no-margin {
+  margin-left: -1px;
 }
 
 .message > .replies {
