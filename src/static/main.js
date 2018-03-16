@@ -1480,7 +1480,7 @@ this.Instant = function() {
               'data-message-id': m.getAttribute('data-id')}, [
             ['span', {'data-user-id': m.getAttribute('data-from')},
               $cls('nick', m).textContent],
-            ['span', [$cls('message-text', m).textContent]]
+            ['span', [Instant.message.extractText(m)]]
           ]);
           if (m.classList.contains('emote')) {
             copy.setAttribute('data-emote', 'true');
@@ -1517,6 +1517,15 @@ this.Instant = function() {
       parseContent: function(text) {
         /* Compatibility wrapper */
         return Instant.message.parser.parse(text);
+      },
+      /* Extract the text of message, if any, or fallback otherwise */
+      extractText: function(message, fallback) {
+        if (fallback === undefined) fallback = null;
+        var line = $cls('line', message);
+        if (line == null) return fallback;
+        var textNode = $cls('message-text', line);
+        if (textNode == null) return fallback;
+        return Instant.message.parser.extractText(textNode);
       },
       /* Scan for @-mentions of a given nickname in a message
        * If strict is true, only literal matches of the own nick are
@@ -2180,13 +2189,13 @@ this.Instant = function() {
         var text;
         if (msg.classList.contains('emote')) {
           text = ('* ' + $cls('nick', msg).textContent + ' ' +
-                  $cls('content', msg).textContent);
+                  Instant.message.extractText(msg, '???'));
         } else {
           /* HACK: Some notification systems seem to interpret the body as
            *       HTML, so the preferred "angled brackets" cannot be used
            *       (unless we want the name to be an HTML tag). */
           text = ('[' + $cls('nick', msg).textContent + '] ' +
-                  $cls('content', msg).textContent);
+                  Instant.message.extractText(msg, '???'));
         }
         var level = Instant.notifications.getLevel(msg);
         /* For window title etc. */
@@ -2266,7 +2275,7 @@ this.Instant = function() {
         }
         /* Helper: Traverse all descendants of a given DOM node */
         function traverse(node, callback) {
-          callback(node);
+          if (callback(node) == 'prune') return;
           Array.prototype.forEach.call(node.childNodes, function(n) {
             traverse(n, callback);
           });
@@ -2742,8 +2751,19 @@ this.Instant = function() {
             return ret;
           },
           /* Reverse the transformation performed by the parser */
-          extractText: function(node) {
-            return node.textContent;
+          extractText: function(content) {
+            var ret = '';
+            traverse(content, function(node) {
+              if (node.nodeType == Node.TEXT_NODE) {
+                ret += node.nodeValue;
+              } else if (node.nodeType != Node.ELEMENT_NODE) {
+                /* NOP */
+              } else if (node.classList.contains('no-copy')) {
+                /* No-copy nodes are ignored */
+                return 'prune';
+              }
+            });
+            return ret;
           },
           /* Add an early matcher */
           addEarlyMatcher: function(m) {
