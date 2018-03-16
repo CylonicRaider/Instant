@@ -44,7 +44,7 @@ public class DefaultPlugin {
             super(name, attr);
         }
         public StringSetResource(String name) {
-            super(name, new StringSetAttribute(name));
+            super(name, new StringSetAttribute("Frontend-" + name));
         }
 
         public String parse(PluginData data) {
@@ -66,11 +66,11 @@ public class DefaultPlugin {
     }
 
     public static final Resource<Set<String>> RES_DEPS =
-        new StringSetResource("Deps");
+        new StringSetResource("deps");
     public static final Resource<Set<String>> RES_STYLES =
-        new StringSetResource("Styles");
+        new StringSetResource("styles");
     public static final Resource<Set<String>> RES_SCRIPTS =
-            new StringSetResource("Scripts") {
+            new StringSetResource("scripts") {
 
         public String parse(PluginData data) {
             Set<String> urls = getAttribute().get(data);
@@ -103,11 +103,11 @@ public class DefaultPlugin {
 
     };
     public static final Resource<Set<String>> RES_LIBS =
-        new StringSetResource("Libs");
+        new StringSetResource("libs");
     public static final Resource<Set<String>> RES_CODE =
-        new StringSetResource("Code");
+        new StringSetResource("code");
     public static final Resource<String> RES_MAIN = new Resource<String>(
-            "Main", new StringAttribute("Plugin-Main")) {
+            "main", new StringAttribute("Frontend-main")) {
 
         public String parse(PluginData data) {
             String source = getAttribute().get(data);
