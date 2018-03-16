@@ -2213,8 +2213,8 @@ this.Instant = function() {
           return new RegExp(s.replace(/%PM%/g, pm).replace(/%ME%/g, me));
         }
         /* Important regexes */
-        var URL_RE = new RegExp('((?!javascript:)[a-zA-Z]+:(//)?)?' +
-          '([a-zA-Z0-9._~-]+@)?([a-zA-Z0-9.-]+)(:[0-9]+)?(/[^>]*)?');
+        var URL_RE = new RegExp('(((?!javascript:)[a-zA-Z]+:(//)?)?' +
+          '([a-zA-Z0-9._~-]+@)?([a-zA-Z0-9.-]+)(:[0-9]+)?(/[^>]*)?)');
         var pm = '[^()\\s]*', me = '[^.,:;!?()\\s]';
         var MENTION_RE = sm('%PM%(?:\\(%PM%\\)%PM%)*(?:\\(%PM%\\)|%ME%)');
         var PARTIAL_MENTION = sm('%PM%(?:\\(%PM%\\)%PM%)*(?:\\(%PM%)?');
@@ -2245,6 +2245,24 @@ this.Instant = function() {
         /* Helper: Create a sigil node */
         function makeSigil(text, className) {
           return makeNode(text, 'sigil ' + className);
+        }
+        /* Helper: Create a link node
+         * m must be a match of URL_RE (pattern fragments without capturing
+         * groups may be prepended/appended). force disables plausibility
+         * checking on the match. */
+        function makeLink(m, force) {
+          /* Avoid things such as <.> and <sarcasm>. */
+          if (! force && ! (/\w/.test(m[1]) && /\W/.test(m[1])))
+            return null;
+          /* Compute effective URL */
+          var url = m[1];
+          if (! m[2]) url = 'http://' + url;
+          /* Create result */
+          var node = makeNode(m[1], 'link', null, 'a');
+          node.href = url;
+          node.target = '_blank';
+          node.setAttribute('data-url', url);
+          return node;
         }
         /* Helper: Traverse all descendants of a given DOM node */
         function traverse(node, callback) {
@@ -2302,49 +2320,56 @@ this.Instant = function() {
               out.push(node);
             }
           },
-          { /* Hyperlinks / embeds */
+          { /* Hyperlinks */
             name: 'link',
-            re: new RegExp('<!?(' + URL_RE.source + ')>'),
+            re: new RegExp('<' + URL_RE.source + '>'),
             cb: function(m, out, status) {
-              /* Must contain word and non-word characters */
-              if (! /\w/.test(m[1]) || ! /\W/.test(m[1])) {
+              /* Perform plausibility check and obtain link node */
+              var linkNode = makeLink(m);
+              if (linkNode == null) {
                 out.push(m[0]);
                 return;
               }
-              /* Prepare the final URL */
-              var url = m[1];
-              if (! m[2]) url = 'http://' + url;
-              /* Find a matching embedder module. */
-              var embedder = null;
-              if (m[0][1] == '!') {
-                for (var i = 0; i < embedders.length; i++) {
-                  if (embedders[i].re.test(url))
-                    embedder = embedders[i];
-                }
-                if (embedder) {
-                  out.push({add: 'link', embed: 'outer'});
-                  out.push({add: 'link', embed: 'link'});
-                }
-                out.push(makeSigil('<!', 'embed-before'));
-              } else {
-                out.push(makeSigil('<', 'link-before'));
+              /* Produce output */
+              out.push(makeSigil('<', 'link-before'));
+              out.push(linkNode);
+              out.push(makeSigil('>', 'link-after'));
+            }
+          },
+          { /* Embeds */
+            name: 'embed',
+            re: new RegExp('<!' + URL_RE.source + '>'),
+            cb: function(m, out, status) {
+              /* Perform plausibility check and obtain link node */
+              var linkNode = makeLink(m);
+              if (linkNode == null) {
+                out.append(m[0]);
+                return;
               }
-              var node = makeNode(m[1], 'link', null, 'a');
-              node.href = url;
-              node.target = '_blank';
-              out.push(node);
-              if (m[0][1] == '!') {
-                out.push(makeSigil('>', 'embed-after'));
-                if (embedder) {
-                  out.push({rem: 'link'});
-                  out.push({add: 'link', embed: 'inner'});
-                  var res = embedder.cb(url, out, status);
-                  if (res != null) out.push(res);
-                  out.push({rem: 'link'});
-                  out.push({rem: 'link'});
+              var url = linkNode.getAttribute('data-url');
+              /* Find a matching embedder module */
+              var embedder = null;
+              for (var i = 0; i < embedders.length; i++) {
+                if (embedders[i].re.test(url)) {
+                  embedder = embedders[i];
+                  break;
                 }
-              } else {
-                out.push(makeSigil('>', 'link-after'));
+              }
+              /* Disgorge the DOM structure */
+              if (embedder) {
+                out.push({add: 'embed', embed: 'outer'});
+                out.push({add: 'embed', embed: 'link'});
+              }
+              out.push(makeSigil('<!', 'embed-before'));
+              out.push(linkNode);
+              out.push(makeSigil('>', 'embed-after'));
+              if (embedder) {
+                out.push({rem: 'embed'});
+                out.push({add: 'embed', embed: 'inner'});
+                var res = embedder.cb(url, out, status);
+                if (res != null) out.push(res);
+                out.push({rem: 'embed'});
+                out.push({rem: 'embed'});
               }
             },
             add: function(stack, status, elem) {
@@ -2357,6 +2382,8 @@ this.Instant = function() {
                 }
                 var tag = (elem.embed == 'outer') ? 'div' : 'span';
                 return makeNode(null, clsname, null, tag);
+              } else {
+                return makeNode();
               }
             }
           },
