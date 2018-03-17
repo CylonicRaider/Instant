@@ -6887,8 +6887,8 @@ this.Instant = function() {
   }();
   /* Plugin utilities */
   Instant.plugins = function() {
-    /* Plugin registries */
-    var plugins = {}, pendingPlugins = {};
+    /* Plugin and mailbox registries */
+    var plugins = {}, pendingPlugins = {}, mailboxes = {};
     /* Plugin class */
     function Plugin(name, options) {
       this.name = name;
@@ -6987,11 +6987,76 @@ this.Instant = function() {
       /* Stub of the plugin initializer function */
       _main: function() {
         return null;
+      },
+      /* Return a mailbox associated with this plugin
+       * If name is null, the plugin's name is used; otherwise, name is
+       * appended (after a dot) to the plugin name. */
+      mailbox: function(name) {
+        if (name == null) {
+          return Instant.plugins.mailbox(this.name);
+        } else {
+          return Instant.plugins.mailbox(this.name + '.' + name);
+        }
+      }
+    };
+    /* Mailbox class */
+    function Mailbox(name) {
+      this.name = name;
+      this.handler = null;
+      this.onerror = null;
+      this._handlerPromise = new Promise(function(resolve) {
+        this._handlerInstalled = resolve;
+      }.bind(this));
+    }
+    Mailbox.prototype = {
+      /* Let the handler of this mailbox pick data up, now or later */
+      post: function(data) {
+        this._handlerPromise = this._handlerPromise.then(function() {
+          try {
+            this.handler(data);
+          } catch (e) {
+            if (this.onerror) this.onerror(e);
+          }
+        }.bind(this));
+      },
+      /* Invoke callback when all currently posted mail is processed
+       * The callback could, for example, switch handlers. */
+      mark: function(callback) {
+        this._handlerPromise = this._handlerPromise.then(function() {
+          try {
+            callback.call(this);
+          } catch (e) {
+            if (this.onerror) this.onerror(e);
+          }
+        }.bind(this));
+      },
+      /* Install a handler for this mailbox
+       * Pending data are picked up asynchronously (but in order). */
+      handle: function(handler) {
+        this.handler = handler;
+        if (this._handlerInstalled) {
+          this._handlerInstalled();
+          this._handlerInstalled = null;
+        }
       }
     };
     return {
-      /* Make constructor externally visible */
+      /* Export constructors */
       Plugin: Plugin,
+      Mailbox: Mailbox,
+      /* Get the mailbox with the given name, or create a new one
+       * Mailboxes should be named hierarchically with dots separating
+       * components. The "instant" namespace is reserved for internal
+       * use. Each plugin has a namespace with its name as the first
+       * component. See Plugin.prototype.mailbox(). */
+      mailbox: function(name) {
+        var ret = mailboxes[name];
+        if (! ret) {
+          ret = new Mailbox(name);
+          mailboxes[name] = ret;
+        }
+        return ret;
+      },
       /* Return a Promise of the result of an XMLHttpRequest GETting url
        * init is a callback that (if true) is called with the XMLHttpRequest
        * object as the only argument just before submitting the latter.
