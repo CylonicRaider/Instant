@@ -7093,43 +7093,42 @@ this.Instant = function() {
       },
       /* Load the given plugin asynchronously and return a Promise of it
        * options contains the following properties (all optional):
-       * deps       : An array of names of plugins this plugin is dependent
-       *              on. All dependencies are loaded before this plugin is
-       *              initialized.
-       * styles     : An array of stylesheet URL-s to be fetched and to be
-       *              added to the document (asynchronously).
-       * scripts    : An array of objects describing code to be run in
-       *              association with the plugin:
-       *              url    : The URL of the script to be run. Required.
-       *              before : Whether the script may be run before the
-       *                       dependencies of the plugin are loaded.
-       *              after  : Whether the script may finish after the plugin
-       *                       has loaded, i.e., whether the plugin's
-       *                       initialization should *not* depend on it.
-       *              isolate: Whether the script should be run in an
-       *                       isolated function scope. If so, false values
-       *                       for before and after are implied, and the
-       *                       this object for the script points to the
-       *                       plugin object; references that have to
-       *                       persist must be explicitly assigned to it.
-       *              The non-required parameters (i.e. everything except
-       *              url) are off as default.
-       *              If isolate is true, the code of the plugin is
-       *              eval()-uated; to preserve the file name for debugging,
-       *              a sourceURL annotation is programmatically inserted at
-       *              the beginning of the code if there is none (and no
-       *              sourceMappingURL one) within the first 4096 bytes.
-       * libs       : An array of JavaScript file URL-s for external
-       *              libraries to load. They are equivalent to scripts (as
-       *              above) with all additional parameters set to false.
-       * code       : An array of JavaScript file URL-s for (additional) code
-       *              for the plugin. Each entry is equivalent to a scripts
-       *              entry with isolate set to true.
-       * main       : Plugin initializer function. All synclibs have been
-       *              run, and their results are available in the this
-       *              object. The return value is assigned to the "data"
-       *              property of the plugin object; if it is thenable, it is
-       *              resolved first.
+       * deps   : An array of names of plugins this plugin is dependent on.
+       *          All dependencies are loaded before this plugin is
+       *          initialized.
+       * styles : An array of stylesheet URL-s to be fetched and to be added
+       *          to the document (asynchronously).
+       * scripts: An array of objects describing code to be run in
+       *          association with the plugin:
+       *          url    : The URL of the script to be run. Required.
+       *          before : Whether the script may be run before the
+       *                   dependencies of the plugin are loaded.
+       *          after  : Whether the script may finish after the plugin has
+       *                   loaded, i.e., whether the plugin's initialization
+       *                   should *not* depend on it.
+       *          isolate: Whether the script should be run in an isolated
+       *                   function scope. If so, false values for before and
+       *                   after are implied, and the this object for the
+       *                   script points to the plugin object; properties
+       *                   that have to persist must be explicitly assigned
+       *                   to it.
+       *          The non-required parameters (i.e. everything except url)
+       *          are off as default.
+       *          If isolate is true, the code of the plugin is eval()-uated;
+       *          to preserve the file name for debugging, a sourceURL
+       *          annotation is programmatically inserted at the beginning of
+       *          the code if there is none (and no sourceMappingURL one)
+       *          within the first 4096 bytes.
+       * libs   : An array of JavaScript file URL-s for external libraries to
+       *          load. They are equivalent to scripts (as above) with all
+       *          additional parameters set to false.
+       * code   : An array of JavaScript file URL-s for (additional) code for
+       *          the plugin. Each entry is equivalent to a scripts entry
+       *          with isolate set to true.
+       * main   : Plugin initializer function. All synclibs have been run,
+       *          and their results are available in the this object. The
+       *          return value is assigned to the "data" property of the
+       *          plugin object; if it is thenable, it is resolved first.
        * Execution order:
        * - All resources are fetched asynchronously in no particular order
        *   (and may have been cached). Execution of scripts is, except for
