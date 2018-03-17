@@ -2385,8 +2385,7 @@ this.Instant = function() {
                 } else if (elem.embed == 'inner') {
                   clsname += ' no-copy';
                 }
-                var tag = (elem.embed == 'outer') ? 'div' : 'span';
-                return makeNode(null, clsname, null, tag);
+                return makeNode(null, clsname);
               } else {
                 return makeNode();
               }
@@ -2585,13 +2584,15 @@ this.Instant = function() {
             }
             /* Special-case embeds appearing in the very beginning / end
              * of a message; insert struts to ensure message height */
-            if (node.firstChild && node.firstChild.nodeName == 'DIV') {
-              if (node.firstChild.classList.contains('embed-outer'))
-                node.firstChild.classList.add('embed-first');
+            if (node.firstChild &&
+                node.firstChild.nodeType == Node.ELEMENT_NODE &&
+                node.firstChild.classList.contains('embed-outer')) {
+              node.firstChild.classList.add('embed-first');
             } else if (! node.firstChild) {
               node.insertBefore(makeNode(null, 'strut'), node.firstChild);
             }
-            if (node.lastChild && node.lastChild.nodeName == 'DIV' &&
+            if (node.lastChild &&
+                node.lastChild.nodeType == Node.ELEMENT_NODE &&
                 node.lastChild.classList.contains('embed-outer'))
               node.lastChild.classList.add('embed-last');
           }

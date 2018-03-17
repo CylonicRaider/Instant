@@ -241,6 +241,9 @@ body {
   overflow: auto;
 }
 
+.message-text .embed-outer {
+  display: block;
+}
 .message-text .embed-outer.new-line {
   margin-top: -1px;
 }
@@ -301,9 +304,6 @@ body {
     margin: 0;
   }
 
-  .message > .line .content .message-text .embed-outer {
-    display: inline;
-  }
   .message > .line .content .message-text .embed-outer.embed-first,
   .message > .line .content .message-text .embed-outer.embed-last,
   .message > .line .content .message-text
@@ -317,7 +317,7 @@ body {
   }
   .message-text .embed-inner, .message-text .embed-inner.line-cont {
     margin-left: 0;
-    vertical-align: baseline;
+    vertical-align: middle;
   }
 
   .message .nick {
