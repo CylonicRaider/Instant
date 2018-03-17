@@ -1527,35 +1527,6 @@ this.Instant = function() {
         if (textNode == null) return fallback;
         return Instant.message.parser.extractText(textNode);
       },
-      /* Scan for @-mentions of a given nickname in a message
-       * If strict is true, only literal matches of the own nick are
-       * accepted, otherwise, the normalizations of the own nick and the
-       * candidate are compared. */
-      scanMentions: function(content, nick, strict) {
-        /* Helper function to traverse the DOM tree of content */
-        function scan(node) {
-          var children = node.children;
-          for (var i = 0; i < children.length; i++) {
-            if (children[i].classList.contains('mention')) {
-              var candidate = children[i].getAttribute('data-nick');
-              if (candidate == nick) {
-                /* Definite match found */
-                ret++;
-              } else if (! strict && Instant.nick.normalize(candidate) ==
-                  nnick) {
-                /* Relaxed match found */
-                ret++;
-              }
-            } else {
-              /* Scan recursively */
-              scan(children[i]);
-            }
-          }
-        }
-        var ret = 0, nnick = Instant.nick.normalize(nick);
-        scan(content);
-        return ret;
-      },
       /* Install event handlers into the given message node */
       _installEventHandlers: function(msgNode) {
         /* Flag telling whether the input was focused */
@@ -1631,7 +1602,8 @@ this.Instant = function() {
         if (params.from && params.from == Instant.identity.id)
           clsname += ' mine';
         if (Instant.identity.nick != null &&
-            Instant.message.scanMentions(content, Instant.identity.nick))
+            Instant.message.parser.scanMentions(content,
+                                                Instant.identity.nick))
           clsname += ' ping';
         if (params.isNew)
           clsname += ' new';
@@ -2765,6 +2737,27 @@ this.Instant = function() {
               } else if (node.classList.contains('no-copy')) {
                 /* No-copy nodes are ignored */
                 return 'prune';
+              }
+            });
+            return ret;
+          },
+          /* Scan for @-mentions of a given nickname in a message text
+           * If strict is true, only literal matches of the own nick are
+           * accepted, otherwise, the normalizations of the own nick and the
+           * candidate are compared. */
+          scanMentions: function(content, nick, strict) {
+            var ret = 0, nnick = Instant.nick.normalize(nick);
+            traverse(content, function(node) {
+              if (node.nodeType != Node.ELEMENT_NODE) return 'prune';
+              if (! node.classList.contains('mention')) return;
+              var candidate = node.getAttribute('data-nick');
+              if (candidate == nick) {
+                /* Definite match found */
+                ret++;
+              } else if (! strict && Instant.nick.normalize(candidate) ==
+                  nnick) {
+                /* Relaxed match found */
+                ret++;
               }
             });
             return ret;
