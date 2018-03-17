@@ -2429,7 +2429,7 @@ this.Instant = function() {
               }
             },
             add: function() {
-              return makeNode(null, 'monospace');
+              return makeNode(null, 'monospace', null, 'code');
             }
           },
           { /* Emphasized text */
@@ -2484,7 +2484,10 @@ this.Instant = function() {
               out.push(bnode);
               out.push(bnl);
               out.push({add: 'monoBlock', nodes: [bnode, bnl]});
-              out.push(makeNode(m[1] + '\n', 'monospace monospace-block'));
+              /* HACK: Using inline element for marginally better select-and-
+               *       paste experience. */
+              out.push(makeNode(m[1] + '\n', 'monospace monospace-block',
+                                null, 'code'));
               out.push({rem: 'monoBlock', nodes: [anode]});
               out.push(anode);
             }
