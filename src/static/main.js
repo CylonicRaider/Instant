@@ -7013,7 +7013,7 @@ this.Instant = function() {
       post: function(data) {
         this._handlerPromise = this._handlerPromise.then(function() {
           try {
-            this.handler(data);
+            return this.handler(data);
           } catch (e) {
             if (this.onerror) this.onerror(e);
           }
@@ -7024,7 +7024,7 @@ this.Instant = function() {
       mark: function(callback) {
         this._handlerPromise = this._handlerPromise.then(function() {
           try {
-            callback.call(this);
+            return callback.call(this);
           } catch (e) {
             if (this.onerror) this.onerror(e);
           }
