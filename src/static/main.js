@@ -2382,7 +2382,7 @@ this.Instant = function() {
           },
           { /* Inline monospace */
             name: 'mono',
-            re: /`([^`\s]+)`|`([^`\s]+)|([^`\s]+)`/,
+            re: /`([^`\s]+)`|`([^`\s]+)|(?!\W+`\w)([^`\s]+)`/,
             bef: /[^\w`]|^$/, aft: /[^\w`]|^$/,
             cb: function(m, out) {
               /* Leading sigil */
@@ -2406,7 +2406,7 @@ this.Instant = function() {
           },
           { /* Emphasized text */
             name: 'emph',
-            re: /\*+([^*\s-]+)\*+|\*+([^*\s-]+)|([^*\s-]+)\*+/,
+            re: /\*+([^*\s-]+)\*+|\*+([^*\s-]+)|(?!\W+\*\w)([^*\s-]+)\*+/,
             bef: /\W|^$/, aft: /\W|^$/,
             cb: function(m, out) {
               /* Emphasized text (again, only before has to be tested) */
