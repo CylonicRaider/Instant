@@ -7046,7 +7046,14 @@ this.Instant = function() {
         if (init) init(img);
         var ret = Instant.plugins._eventPromise(img);
         img.src = url;
-        return ret;
+        return ret.then(function(event) {
+          return img;
+        }, function(event) {
+          var ret = new Error('Image failed to load');
+          ret.image = img;
+          ret.event = event;
+          return ret;
+        });
       },
       /* Add a stylesheet <link> referencing the given URL to the <head>
        * If type is false, "text/css" is assigned to the link's "type"
