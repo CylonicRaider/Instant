@@ -31,14 +31,12 @@ public final class Utilities {
     public static String escapeStringJS(String data, boolean full) {
         if (full && data == null) return "null";
         Matcher m = ESCAPE.matcher(data);
-        // How old is *that* method to require a specific class?
         StringBuffer sb = new StringBuffer();
         if (full) sb.append('"');
         while (m.find()) {
             int ch = m.group().charAt(0);
-            String repl = String.format((ch < 256) ? "\\x%02x" : "\\u%04x",
-                                        ch);
-            m.appendReplacement(sb, repl);
+            m.appendReplacement(sb, String.format((ch < 256) ? "\\\\x%02x" :
+                "\\\\u%04x", ch));
         }
         m.appendTail(sb);
         if (full) sb.append('"');
