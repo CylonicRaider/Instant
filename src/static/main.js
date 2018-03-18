@@ -2315,13 +2315,7 @@ this.Instant = function() {
               }
               var url = linkNode.getAttribute('data-url');
               /* Find a matching embedder module */
-              var embedder = null;
-              for (var i = 0; i < embedders.length; i++) {
-                if (embedders[i].re.test(url)) {
-                  embedder = embedders[i];
-                  break;
-                }
-              }
+              var embedder = Instant.message.parser.queryEmbedder(url);
               /* Disgorge the DOM structure */
               var spaceBefore = /^\s+/.exec(m[0]);
               if (embedder) {
@@ -2791,6 +2785,21 @@ this.Instant = function() {
           /* Return all embedders */
           getEmbedders: function() {
             return embedders;
+          },
+          /* Return an embedder for handling url, or null */
+          queryEmbedder: function(url) {
+            var normurl = url.replace(new RegExp('^' + URL_RE.source + '$'),
+              function(m, g1, scheme, g3, userinfo, host, port, path) {
+                return scheme.toLowerCase() + g3 + userinfo +
+                  host.toLowerCase() + port + path;
+              });
+            for (var i = 0; i < embedders.length; i++) {
+              var emb = embedders[i];
+              if (emb.re.test((emb.normalize) ? normurl : url)) {
+                return emb;
+              }
+            }
+            return null;
           },
           /* Add a processor */
           addProcessor: function(f) {
