@@ -6927,10 +6927,14 @@ this.Instant = function() {
         var self = this;
         /* Fetch stylesheets */
         var styles = this.options.styles || [];
-        this._styles = styles.map(Instant.plugins.addStylesheet);
+        this._styles = styles.map(function(url) {
+          Instant.plugins.addStylesheet(url);
+        });
         /* Fetch dependencies */
         var deps = this.options.deps || [];
-        var depsprom = Promise.all(deps.map(Instant.plugins.getPluginAsync));
+        var depsprom = Promise.all(deps.map(function(name) {
+          Instant.plugins.getPluginAsync(name);
+        }));
         /* Resolve scripts */
         var descriptors = [];
         var scripts = this.options.scripts || [];
