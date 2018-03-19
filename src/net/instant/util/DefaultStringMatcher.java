@@ -6,7 +6,7 @@ import java.util.regex.Pattern;
 public class DefaultStringMatcher implements StringMatcher {
 
     public static final Pattern GROUPING_RE =
-        Pattern.compile("\\\\([0-9]+|\\{[0-9]+\\}|[^0-9{])");
+        Pattern.compile("\\\\([0-9]+|\\{[0-9]+\\}|[^0-9])");
 
     private final Pattern pattern;
     private final String replacement;
@@ -48,18 +48,22 @@ public class DefaultStringMatcher implements StringMatcher {
         while (rm.find()) {
             String g = rm.group(1);
             if (g.equals("\\")) {
-                sb.append("\\");
+                rm.appendReplacement(sb, "\\\\");
             } else if (g.matches("[0-9]+")) {
-                rm.appendReplacement(sb, m.group(Integer.parseInt(g)));
+                rm.appendReplacement(sb, escapeExpand(m.group(
+                    Integer.parseInt(g))));
             } else if (g.matches("\\{[0-9]+\\}")) {
-                rm.appendReplacement(sb, m.group(Integer.parseInt(
-                    g.substring(1, g.length() - 1))));
+                rm.appendReplacement(sb, escapeExpand(m.group(
+                    Integer.parseInt(g.substring(1, g.length() - 1)))));
             } else {
                 throw new RuntimeException("Invalid replacement!");
             }
         }
         rm.appendTail(sb);
         return sb.toString();
+    }
+    private static String escapeExpand(String s) {
+        return s.replaceAll("[\\\\$]", "\\\\$0");
     }
 
 }
