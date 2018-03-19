@@ -2779,8 +2779,11 @@ this.Instant = function() {
             return lateMatchers;
           },
           /* Add an embedder */
-          addEmbedder: function(regex, callback) {
-            embedders.push({re: regex, cb: callback});
+          addEmbedder: function(regex, callback, options) {
+            if (options == null) options = {};
+            options.re = regex;
+            options.cb = callback;
+            embedders.push(options);
           },
           /* Return all embedders */
           getEmbedders: function() {
