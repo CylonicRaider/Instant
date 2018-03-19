@@ -228,9 +228,14 @@ public class Main implements Runnable {
     }
 
     private String formatAddress(InetSocketAddress addr) {
-        InetAddress host = addr.getAddress();
-        return ((host.isAnyLocalAddress()) ? "*" : host) + ":" +
-            addr.getPort();
+        InetAddress baseAddr = addr.getAddress();
+        if (baseAddr.isAnyLocalAddress())
+            return "*:" + addr.getPort();
+        String hostname = baseAddr.getHostName();
+        String hostaddr = baseAddr.getHostAddress();
+        if (hostname.equals(hostaddr))
+            return hostname + ":" + addr.getPort();
+        return hostname + "[" + hostaddr + "]:" + addr.getPort();
     }
 
 }
