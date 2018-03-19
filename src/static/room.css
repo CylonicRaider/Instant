@@ -306,6 +306,9 @@ body {
     position: static;
     margin: 0;
   }
+  .message > .line .content .message-text.trailing-embed {
+    padding-right: 0;
+  }
 
   .message > .line .content .message-text .embed-outer.embed-first,
   .message > .line .content .message-text .embed-outer.embed-last,
@@ -320,7 +323,7 @@ body {
   }
   .message-text .embed-inner, .message-text .embed-inner.line-cont {
     margin-left: 0;
-    vertical-align: middle;
+    vertical-align: top;
   }
 
   .message .nick {

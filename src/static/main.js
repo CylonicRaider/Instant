@@ -2557,13 +2557,16 @@ this.Instant = function() {
                 node.firstChild.nodeType == Node.ELEMENT_NODE &&
                 node.firstChild.classList.contains('embed-outer')) {
               node.firstChild.classList.add('embed-first');
+              node.classList.add('leading-embed');
             } else if (! node.firstChild) {
               node.insertBefore(makeNode(null, 'strut'), node.firstChild);
             }
             if (node.lastChild &&
                 node.lastChild.nodeType == Node.ELEMENT_NODE &&
-                node.lastChild.classList.contains('embed-outer'))
+                node.lastChild.classList.contains('embed-outer')) {
               node.lastChild.classList.add('embed-last');
+              node.classList.add('trailing-embed');
+            }
           }
         ];
         return {
