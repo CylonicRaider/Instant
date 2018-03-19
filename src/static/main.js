@@ -2793,8 +2793,8 @@ this.Instant = function() {
           queryEmbedder: function(url) {
             var normurl = url.replace(new RegExp('^' + URL_RE.source + '$'),
               function(m, g1, scheme, g3, userinfo, host, port, path) {
-                return scheme.toLowerCase() + g3 + userinfo +
-                  host.toLowerCase() + port + path;
+                return (scheme || '').toLowerCase() + (userinfo || '') +
+                  (host || '').toLowerCase() + (port || '') + (path || '');
               });
             for (var i = 0; i < embedders.length; i++) {
               var emb = embedders[i];
