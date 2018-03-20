@@ -306,8 +306,15 @@ body {
     position: static;
     margin: 0;
   }
-  .message > .line .content .message-text.trailing-embed {
-    padding-right: 0;
+  .message > .line .content .message-text,
+  .message.emote > .line .content .message-text {
+    padding: 0;
+  }
+  .message > .line .content .message-text::before,
+  .message.emote > .line .content .message-text:not(.trailing-embed)::after {
+    content: "";
+    display: inline-block;
+    width: 0.25em;
   }
 
   .message > .line .content .message-text .embed-outer.embed-first,
