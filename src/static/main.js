@@ -1512,12 +1512,6 @@ this.Instant = function() {
         /* Done */
         return stack[0][1];
       },
-      /* Detect links, emphasis, smilies, etc. out of a flat string and
-       * render those into a DOM node */
-      parseContent: function(text) {
-        /* Compatibility wrapper */
-        return Instant.message.parser.parse(text);
-      },
       /* Extract the text of message, if any, or fallback otherwise */
       extractText: function(message, fallback) {
         if (fallback === undefined) fallback = null;
@@ -1594,7 +1588,7 @@ this.Instant = function() {
         /* Filter out emotes; parse (remaining) content */
         var emote = /^\/me(?=\s|$)/.test(params.text);
         var text = (emote) ? params.text.substr(3) : params.text;
-        var content = Instant.message.parseContent(text);
+        var content = Instant.message.parser.parse(text, 'in-chat');
         /* Collect some values */
         var clsname = 'message';
         if (emote)
@@ -2581,8 +2575,10 @@ this.Instant = function() {
           makeSigil: makeSigil,
           /* Helper: Traverse all descendants of a given DOM node */
           traverse: traverse,
-          /* Parse a message into a DOM node */
-          parse: function(text) {
+          /* Parse a message into a DOM node
+           * classes is a string of additional CSS classes to add to the root
+           * node when it is created. */
+          parse: function(text, classes) {
             /* Intermediate result; current index; text length; array of
              * matches; length of matchers; status object */
             var out = [], idx = 0, len = text.length, matches = [];
@@ -2686,6 +2682,7 @@ this.Instant = function() {
             for (var i = 0; i < stack.length; i++) declassify(stack[i]);
             /* Render result into a DOM node */
             stack = [makeNode(null, 'message-text')];
+            if (classes) stack[0].className += ' ' + classes;
             status = {};
             for (var i = 0; i < out.length; i++) {
               var e = out[i], top = stack[stack.length - 1];
@@ -4651,7 +4648,8 @@ this.Instant = function() {
           ['hr'],
           ['div', 'pm-body', [
             draft && ['textarea', 'pm-editor'],
-            ! draft && Instant.message.parseContent(data.text || '')
+            ! draft && Instant.message.parser.parse(data.text || '',
+                                                    'in-pm')
           ]]
         );
         /* Install event handlers
@@ -4783,7 +4781,8 @@ this.Instant = function() {
         var preview = $cls('pm-preview', popup);
         var finishLater = $cls('pm-finish-later', popup);
         var send = $cls('pm-send', popup);
-        var newText = Instant.message.parseContent(editor.value);
+        var newText = Instant.message.parser.parse(editor.value,
+          'in-pm in-pm-afterview');
         var id = popup.getAttribute('data-id').replace(/^sent-/, '');
         var parnode = $cls('pm-parent-id', popup);
         content.insertBefore($makeNode('div', 'popup-grid', [
@@ -4856,7 +4855,8 @@ this.Instant = function() {
         var preview = $cls('pm-preview-display', popup);
         if (! preview && ! forceAdd) return;
         var editor = $cls('pm-editor', popup);
-        var newPreview = Instant.message.parseContent(editor.value);
+        var newPreview = Instant.message.parser.parse(editor.value,
+          'in-pm in-pm-preview');
         newPreview.classList.add('pm-preview-display');
         var body = $cls('pm-body', popup);
         if (body.lastElementChild != editor)
