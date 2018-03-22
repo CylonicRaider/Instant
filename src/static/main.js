@@ -2539,8 +2539,6 @@ this.Instant = function() {
                   last.classList.contains('embed-space') &&
                   /\n/.test(last.textContent))
                 continue;
-              var lastEmbed = $sel('.embed-inner:not(.line-inner)', pred);
-              if (lastEmbed) lastEmbed.classList.add('line-inner');
               $moveCh(cur, pred);
               cur.parentNode.removeChild(cur);
             }

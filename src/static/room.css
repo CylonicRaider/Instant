@@ -259,8 +259,6 @@ body {
   vertical-align: top;
   border: 1px solid #808080;
   background: white;
-}
-.message-text .embed-inner.line-inner {
   margin-right: 1px;
 }
 
@@ -321,20 +319,17 @@ body {
     width: 0.25em;
   }
 
-  .message > .line .content .message-text .embed-outer.embed-first,
-  .message > .line .content .message-text .embed-outer.embed-last,
-  .message > .line .content .message-text
-  .embed-outer.embed-first.embed-last {
+  .message > .line .content .message-text .embed-outer.embed-first {
     -webkit-transform: none;
     transform: none;
-    margin-bottom: 0;
+    margin: 0 0 1px;
   }
-  .message-text .embed-outer.new-line {
-    margin-top: 0;
+  .message > .line .content .message-text .embed-outer.embed-last {
+    margin: 1px 0 0;
   }
-  .message-text .embed-inner, .message-text .embed-inner.line-cont {
-    margin-left: 0;
-    vertical-align: top;
+  .message > .line .content .message-text
+  .embed-outer.embed-first.embed-last {
+    display: inline;
   }
 
   .message .nick {
