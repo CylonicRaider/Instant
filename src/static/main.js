@@ -2537,11 +2537,10 @@ this.Instant = function() {
               /* Preserve line breaks */
               if (last.nodeType == Node.ELEMENT_NODE &&
                   last.classList.contains('embed-space') &&
-                  /\n/.test(last.textContent)) {
-                cur.classList.add('new-line');
+                  /\n/.test(last.textContent))
                 continue;
-              }
-              $cls('embed-inner', cur).classList.add('line-cont');
+              var lastEmbed = $sel('.embed-inner:not(.line-inner)', pred);
+              if (lastEmbed) lastEmbed.classList.add('line-inner');
               $moveCh(cur, pred);
               cur.parentNode.removeChild(cur);
             }

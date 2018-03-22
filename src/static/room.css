@@ -179,17 +179,17 @@ body {
 .message > .line .content .message-text .embed-outer.embed-first {
   -webkit-transform: translateY(-1px);
   transform: translateY(-1px);
-  margin-bottom: -1px;
+  margin: 0;
 }
-.message > .line .content .message-text .embed-outer.embed-last {
+.message > .line .content .message-text .embed-outer.embed-first +
+.embed-outer {
+  margin-top: 0;
+}
+.message > .line .content .message-text .embed-last {
   margin-bottom: -1px;
 }
 .message > .line .content .message-text .embed-outer.embed-first.embed-last {
   margin-bottom: -2px;
-}
-.message > .line .content .message-text .embed-outer.embed-first +
-.embed-outer.new-line {
-  margin-top: -2px;
 }
 
 /* Keep in sync with copy formatting in main.js */
@@ -246,9 +246,13 @@ body {
 
 .message-text .embed-outer {
   display: block;
+  margin: 1px 0;
 }
-.message-text .embed-outer.new-line {
-  margin-top: -1px;
+.message-text .embed-outer.embed-first {
+  margin-top: 0;
+}
+.message-text .embed-outer.embed-last {
+  margin-bottom: 0;
 }
 .message-text .embed-inner {
   display: inline-block;
@@ -256,8 +260,8 @@ body {
   border: 1px solid #808080;
   background: white;
 }
-.message-text .embed-inner.line-cont {
-  margin-left: -1px;
+.message-text .embed-inner.line-inner {
+  margin-right: 1px;
 }
 
 .message > .replies {
