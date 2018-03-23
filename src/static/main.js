@@ -6424,7 +6424,7 @@ this.Instant = function() {
           /* Initialize submodule */
           init: function() {
             node = $makeNode('div', 'popups-menu', [
-              ['span', 'logo-small big-text', [
+              ['a', 'logo-small big-text', {href: '/', target: '_blank'}, [
                 ['img', {src: '/static/logo-static.svg'}],
                 ['strong', ['Instant']]
               ]],
