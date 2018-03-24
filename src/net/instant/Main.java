@@ -48,6 +48,7 @@ public class Main implements Runnable {
                 if (stream != null) stream.close();
             } catch (IOException exc) {}
         }
+        if (v == null) v = "";
         FINE_VERSION = v;
         VERSION_FILE = String.format("this._instantVersion_ = " +
             "{version: \"%s\", revision: \"%s\"};\n",
