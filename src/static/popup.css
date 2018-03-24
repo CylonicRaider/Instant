@@ -23,6 +23,9 @@ body {
 .mdl-card.card-wide {
   width: 512px;
 }
+.mdl-card__supporting-text {
+  width: auto;
+}
 .mdl-card__supporting-text p:last-child {
   margin-bottom: 0;
 }
