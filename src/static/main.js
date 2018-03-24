@@ -3462,7 +3462,7 @@ this.Instant = function() {
     var shownUIMessages = {};
     return {
       /* Initialize submodule */
-      init: function(navNode) {
+      init: function() {
         function mutationInvalid(el) {
           return (el.target == wrapper);
         }
@@ -3490,10 +3490,6 @@ this.Instant = function() {
         ]);
         var topLine = $cls('sidebar-top-line', node);
         var nameNode = $cls('room-name', node);
-        if (navNode) {
-          topLine.insertBefore(navNode, nameNode);
-          topLine.insertBefore(document.createTextNode(' '), nameNode);
-        }
         if (Instant.stagingLocation) {
           var stagingNode = $makeNode('span', 'staging',
             '(' + Instant.stagingLocation + ')');
@@ -3632,30 +3628,38 @@ this.Instant = function() {
           msgbox.removeChild(msgnode);
         } catch (e) {}
       },
-      /* Room name widget */
+      /* Logo and room name widget */
       roomName: function() {
-        /* The DOM node */
+        /* The wrapper DOM node */
         var node = null;
         return {
           /* Initialize submodule */
           init: function() {
-            node = $makeNode('a', 'room-name', {href: '#'});
+            node = $makeNode('span', [
+              ['button', 'logo-button', [
+                ['img', {src: '/static/logo-static.svg'}]
+              ]],
+              ' ',
+              ['a', 'room-name', {href: '#'}]
+            ]);
+            $cls('logo-button', node).addEventListener('click',
+              Instant.popups.show.bind(Instant.popups));
             /* The link is dangerously close to possibly clickable UI
              * messages, so we "ignore" single clicks and reload on
              * double clicks instead. */
-            node.addEventListener('dblclick', function() {
+            var link = $cls('room-name', node);
+            link.addEventListener('dblclick', function() {
               location.reload(false);
             });
             if (Instant.roomName) {
-              node.appendChild(document.createTextNode('&' +
-                Instant.roomName));
+              link.appendChild($text('&' + Instant.roomName));
             } else {
-              node.appendChild($makeNode('i', null, 'local'));
+              link.appendChild($makeNode('i', null, 'local'));
             }
             return node;
           },
           /* Obtain the wrapped node */
-          getNode: function() {
+          getWrapper: function() {
             return node;
           }
         };
@@ -6081,8 +6085,9 @@ this.Instant = function() {
           ]]
         ));
         stack = $cls('popups', wrapper);
-        $cls('hide-all', wrapper).addEventListener('click',
-          Instant.popups.hideAll.bind(Instant.popups));
+        $cls('hide-all', wrapper).addEventListener('click', function() {
+          Instant.popups.hideAll(true, true);
+        });
         $cls('close-all', wrapper).addEventListener('click',
           Instant.popups.delAll.bind(Instant.popups));
         hiddenMsg = Instant.sidebar.makeMessage({content: 'Hidden popups',
@@ -6094,9 +6099,8 @@ this.Instant = function() {
       /* Adjust the "hidden popups" UI message */
       _updateHidden: function(flash) {
         var count = $selAll('.popup', stack).length;
-        hiddenMsg.textContent = 'Hidden popups (' + count + ')';
-        if (wrapper.classList.contains('hidden') &&
-            Instant.popups.hasPopups()) {
+        hiddenMsg.textContent = 'Hidden popups (' + (count || 'none') + ')';
+        if (wrapper.classList.contains('hidden')) {
           Instant.sidebar.showMessage(hiddenMsg);
         } else {
           Instant.sidebar.hideMessage(hiddenMsg);
@@ -6287,6 +6291,12 @@ this.Instant = function() {
           Instant.popups.focus();
         }
         Instant.popups._updateHidden();
+      },
+      /* Force displaying the UI */
+      show: function() {
+        Instant.popups._setEmpty(false);
+        if (wrapper.classList.contains('hidden'))
+          Instant.popups._updateHidden(true);
       },
       /* Set whether the UI should be displayed or not */
       _setEmpty: function(status) {
@@ -7321,7 +7331,7 @@ this.Instant = function() {
     runList(handlers[type], event);
   };
   /* Global initialization function */
-  Instant.init = function(main, loadWrapper, navigation) {
+  Instant.init = function(main, loadWrapper) {
     Instant._fireListeners('init.early');
     Instant.query.init();
     Instant.hash.init();
@@ -7330,7 +7340,7 @@ this.Instant = function() {
     Instant.message.init();
     Instant.input.init();
     Instant.message.getMessageBox().appendChild(Instant.input.getNode());
-    Instant.sidebar.init(navigation);
+    Instant.sidebar.init();
     Instant.title.init();
     Instant.notifications.init();
     Instant.logs.pull.init(Instant.message.getMessageBox());
@@ -7397,7 +7407,7 @@ function init() {
   });
   /* Fire up Instant! */
   try {
-    Instant.init(main, wrapper, $cls('breadcrumbs'));
+    Instant.init(main, wrapper);
   } catch (e) {
     var m = document.createElement('div');
     m.className = 'note';

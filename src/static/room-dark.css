@@ -54,7 +54,7 @@
   border-color: #e0e0e0;
   box-shadow: 0 0 5px white;
 }
-.dark .room-name, .dark a.room-name {
+.dark a.room-name {
   color: white;
 }
 

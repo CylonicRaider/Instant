@@ -402,12 +402,39 @@ body {
   right: 0;
 }
 
-.room-name, a.room-name {
+.logo-button {
+  display: inline-block;
+  position: relative;
+  width: 1.2em;
+  height: 1.2em;
+  margin: -2px 0;
+  border: 0;
+  padding: 2px;
+  vertical-align: bottom;
+  font: inherit;
+  background: none;
+  cursor: pointer;
+  box-sizing: content-box;
+}
+.logo-button::-moz-focus-inner {
+  margin: 0;
+  border: 0;
+  padding: 0;
+}
+.logo-button img {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
+}
+
+a.room-name {
   font-weight: bold;
   text-decoration: none;
   color: inherit;
 }
-.staging {
+a.room-name.staging {
   font-style: italic;
 }
 
@@ -443,8 +470,7 @@ body {
 }
 .settings {
   position: relative;
-  font-size: 100%;
-  line-height: 0;
+  font: inherit;
   background: white;
   cursor: pointer;
 }
