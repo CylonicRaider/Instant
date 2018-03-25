@@ -3490,13 +3490,6 @@ this.Instant = function() {
         ]);
         var topLine = $cls('sidebar-top-line', node);
         var nameNode = $cls('room-name', node);
-        if (Instant.stagingLocation) {
-          var stagingNode = $makeNode('span', 'staging',
-            '(' + Instant.stagingLocation + ')');
-          topLine.insertBefore(stagingNode, nameNode.nextSibling);
-          topLine.insertBefore(document.createTextNode(' '),
-                               nameNode.nextSibling);
-        }
         var wrapper = $cls('sidebar-middle-wrapper', node);
         window.addEventListener('resize', Instant.sidebar.updateWidth);
         if (window.MutationObserver) {
@@ -3656,6 +3649,13 @@ this.Instant = function() {
             } else {
               link.appendChild($makeNode('i', null, 'local'));
             }
+            if (Instant.stagingLocation)
+              link.appendChild($makeFrag(
+                ' ',
+                ['span', 'staging', [
+                  $text('(' + Instant.stagingLocation + ')')
+                ]]
+              ));
             return node;
           },
           /* Obtain the wrapped node */

@@ -444,7 +444,8 @@ a.room-name {
   text-decoration: none;
   color: inherit;
 }
-a.room-name.staging {
+a.room-name .staging {
+  font-weight: normal;
   font-style: italic;
 }
 
