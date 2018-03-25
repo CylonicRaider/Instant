@@ -412,6 +412,7 @@ body {
   padding: 2px;
   vertical-align: bottom;
   font: inherit;
+  line-height: 0;
   background: none;
   cursor: pointer;
   box-sizing: content-box;
@@ -471,6 +472,7 @@ a.room-name.staging {
 .settings {
   position: relative;
   font: inherit;
+  line-height: 0;
   background: white;
   cursor: pointer;
 }
