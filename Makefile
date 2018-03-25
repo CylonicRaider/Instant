@@ -32,9 +32,12 @@ Instant-run.jar: Instant.jar
 	jar ufm Instant-run.jar .git-commit
 	rm .git-commit
 
-cookie-key.bin:
-	head -c64 /dev/random > cookie-key.bin
-	chmod 0600 cookie-key.bin
+config:
+	mkdir -p $@
+
+config/cookie-key.bin: | config
+	head -c64 /dev/random > config/cookie-key.bin
+	chmod 0600 config/cookie-key.bin
 
 clean:
 	rm -f .build.jar Instant.jar Instant-run.jar
@@ -44,10 +47,10 @@ lint:
 lint-ro:
 	script/importlint.py $(SOURCES)
 
-run: Instant-run.jar cookie-key.bin
+run: Instant-run.jar config/cookie-key.bin
 	cd src && INSTANT_HTTP_MAXCACHEAGE=10 \
 	INSTANT_COOKIES_INSECURE=yes \
-	INSTANT_COOKIES_KEYFILE=../cookie-key.bin \
+	INSTANT_COOKIES_KEYFILE=../config/cookie-key.bin \
 	java -jar ../Instant-run.jar
 
 src/static/logo-static.svg: src/static/logo.svg

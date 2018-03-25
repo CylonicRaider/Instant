@@ -17,12 +17,12 @@ cd "$(dirname "${BASH_SOURCE:-$0}")/.."
 
 INSTANT_HOST=localhost
 INSTANT_PORT=8080
-INSTANT_COOKIES_KEYFILE=cookie-key.bin
+INSTANT_COOKIES_KEYFILE=config/cookie-key.bin
 INSTANT_OPTIONS=
 SCRIBE_ROOM=welcome
 SCRIBE_MAXLEN=100
 SCRIBE_OPTIONS=
-[ -f instant.default ] && . instant.default
+[ -f config/instant.default ] && . config/instant.default
 export INSTANT_COOKIES_KEYFILE
 
 cmd="$1"
