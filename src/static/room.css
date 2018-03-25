@@ -963,8 +963,7 @@ button.button-icon > img {
 .popups-menu > .button {
   width: 2em;
   height: 2em;
-  margin: 0;
-  vertical-align: top;
+  margin: auto 0;
   line-height: 0;
   background: white;
 }
@@ -1018,6 +1017,10 @@ button.button-icon > img {
   visibility: visible;
 }
 
+.popups-menu .narrow-screen {
+  display: none;
+}
+
 @media (max-width: 400px) {
 
   .popups-menu .logo-small {
@@ -1028,6 +1031,13 @@ button.button-icon > img {
     vertical-align: top;
   }
   .popups-menu .logo-small strong {
+    display: none;
+  }
+
+  .popups-menu .narrow-screen {
+    display: initial;
+  }
+  .popups-menu .wide-screen {
     display: none;
   }
 
@@ -1252,6 +1262,10 @@ button.button-icon > img {
 }
 .popup .popup-grid i {
   font-size: smaller;
+}
+
+.pm-menu-counter.hidden {
+  display: none;
 }
 
 .pm-popup .pm-editor {

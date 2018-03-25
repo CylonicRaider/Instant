@@ -4236,7 +4236,11 @@ this.Instant = function() {
           color: Instant.notifications.COLORS.privmsg,
           onclick: sh(false, true, true, true)});
         accessMenu = Instant.popups.menu.addNew({
-          text: 'Private messages',
+          text: [
+            ['span', 'wide-screen', 'Private messages'],
+            ['span', 'narrow-screen', 'PM-s'],
+            ['span', 'pm-menu-counter hidden', [' (', ['b'], ')']]
+          ],
           entries: [
             {text: 'Unread', onclick: tg(true, false, false, false),
              color: COLORS.U, className: 'show-unread'},
@@ -4308,12 +4312,12 @@ this.Instant = function() {
           }
         });
         var total = counts.U + counts.I + counts.D + counts.O;
+        var counterNode = $cls('pm-menu-counter', accessMenu);
+        $sel('b', counterNode).textContent = total;
         if (total) {
-          // HACK: I'm getting lazy...
-          $cls('button', accessMenu).innerHTML = ('Private messages (<b>' +
-            total + '</b>)');
+          counterNode.classList.remove('hidden');
         } else {
-          $cls('button', accessMenu).textContent = 'Private messages';
+          counterNode.classList.add('hidden');
         }
         Instant.title.update();
       },
@@ -6482,7 +6486,13 @@ this.Instant = function() {
           /* Create a submenu */
           make: function(params) {
             function makeButton(data) {
-              var ret = $makeNode('button', 'button', data.text);
+              var content = data.text;
+              if (data.narrowText)
+                content = [
+                  ['span', 'wide-screen', data.text],
+                  ['span', 'narrow-screen', data.narrowText]
+                ];
+              var ret = $makeNode('button', 'button', content);
               if (data.color) ret.style.color = data.color;
               if (data.bold) ret.style.fontWeight = 'bold';
               if (data.className) ret.className += ' ' + data.className;
