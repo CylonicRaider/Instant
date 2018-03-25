@@ -2,6 +2,12 @@
 
 # Init script for Instant with a Scribe copy in a specific room.
 
+# Write a message to standard error.
+log() {
+  echo "[$(date +'%Y-%m-%d %H:%M:%S %Z')] $*"
+}
+
+# Obtain the status of the given process and print it to stdout.
 proc_status() {
   service="$1"
   shift
@@ -80,6 +86,39 @@ case $cmd in
     # Actually run new backend.
     exec 3>&-
     [ "$1" = "-f" ] && wait
+  ;;
+  run-master)
+    # Doing nothing on SIGHUP does not ignore the signal, but lets it
+    # interrupt the wait builtin.
+    trap ':' HUP
+    # When interrupted, ensure the loop will not run (again), and interrupt
+    # our children. With EXIT, we hope to not leave around child processes
+    # should we die for other reasons.
+    trap 'continue=; kill $(jobs -p) 2>/dev/null' INT TERM EXIT
+    # Record our PID.
+    echo $$ > run/master.pid
+    # Most of the following commands will not finish "successfully" (e.g.
+    # be killed of by signals; the kill-s in the traps also complain when
+    # given nothing to signal).
+    set +e
+    # One the first round, start the backend normally.
+    log "Starting service..."
+    continue=y
+    script/run.bash run &
+    # Rate-limit restarts.
+    sleep 10
+    wait
+    # Until we are told to stop, continue restarting the service in the
+    # background.
+    while [ "$continue" ]; do
+      log "Restarting service..."
+      script/run.bash bg-restart -f &
+      sleep 10
+      wait
+    done
+    # Remove our PID.
+    rm -f run/master.pid
+    log "Done."
   ;;
   run-instant)
     exec java -jar Instant.jar --host $INSTANT_HOST $INSTANT_PORT \
