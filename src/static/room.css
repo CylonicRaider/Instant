@@ -413,9 +413,14 @@ body {
   vertical-align: bottom;
   font: inherit;
   line-height: 0;
-  background: none;
+  background: black;
   cursor: pointer;
   box-sizing: content-box;
+  border-radius: 50%;
+  box-shadow: 0 0 5px #808080;
+}
+.logo-button:hover {
+  box-shadow: 0 0 10px #404040;
 }
 .logo-button::-moz-focus-inner {
   margin: 0;
@@ -428,6 +433,10 @@ body {
   bottom: 0;
   left: 0;
   right: 0;
+}
+.logo-button, #main .logo-button {
+  -webkit-transition: box-shadow 0.1s;
+  transition: box-shadow 0.1s;
 }
 
 a.room-name {
