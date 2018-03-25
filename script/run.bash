@@ -1,4 +1,4 @@
-#!/bin/bash -e
+#!/bin/bash
 
 # Init script for Instant with a Scribe copy in a specific room.
 
@@ -12,6 +12,8 @@ proc_status() {
     *) echo "$service: error" ;;
   esac
 }
+
+set -e
 
 cd "$(dirname "${BASH_SOURCE:-$0}")/.."
 
@@ -53,7 +55,7 @@ case $cmd in
     proc_status scribe -p run/scribe.pid -n python3
   ;;
   restart)
-    script/run.bash stop || true
+    script/run.bash stop
     exec script/run.bash start
   ;;
   bg-restart)
