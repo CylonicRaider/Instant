@@ -1541,7 +1541,7 @@ this.Instant = function() {
             return;
           clickPos = null;
           /* Filter out clicks on links */
-          if (evt.target.nodeName == 'A') return;
+          if (evt.target.matches('a, a *')) return;
           /* Navigate to message */
           var doScroll = Instant.input.moveTo(msgNode, true);
           if (inputWasFocused) {
@@ -1552,8 +1552,9 @@ this.Instant = function() {
           if (doScroll) Instant.pane.scrollIntoView(msgNode);
           evt.stopPropagation();
         });
-        /* Clicking a permalink moves to its parent message, in a slightly
-         * different way */
+        /* Clicking a permalink moves to its message, somewhat differently.
+         * NOTE: This will eventually be replaced with an interactive menu
+         *       (that will still have the permalink as an option). */
         Instant.hash.listenOn($cls('permalink', msgNode));
         /* Clicking on internal links handles them smoothly */
         var locationTrunk = location.href.replace(/#[^#]*$/, '');
