@@ -360,6 +360,8 @@ body {
   flex-direction: column;
   align-items: flex-end;
   min-height: 0;
+}
+.sidebar-content > * {
   pointer-events: auto;
 }
 .sidebar-top > *, .sidebar-middle > *, .sidebar-bottom > * {
