@@ -29,6 +29,7 @@ INSTANT_COOKIES_KEYFILE=config/cookie-key.bin
 INSTANT_OPTIONS=
 SCRIBE_ROOM=welcome
 SCRIBE_MAXLEN=100
+SCRIBE_COOKIES=config/scribe-cookies.txt
 SCRIBE_OPTIONS=
 [ -f config/instant.default ] && . config/instant.default
 export INSTANT_COOKIES_KEYFILE
@@ -129,7 +130,7 @@ case $cmd in
     export INSTABOT_RELAXED_COOKIES=y
     exec python3 script/scribe.py ${SCRIBE_MAXLEN:+--maxlen $SCRIBE_MAXLEN} \
       --msgdb db/messages-$SCRIBE_ROOM.sqlite \
-      --cookies run/scribe-cookies.txt \
+      ${SCRIBE_COOKIES:+--cookies $SCRIBE_COOKIES} \
       ws://$INSTANT_HOST:$INSTANT_PORT/room/$SCRIBE_ROOM/ws \
       $SCRIBE_OPTIONS "$@" >>log/scribe.log 2>>log/scribe.err.log
   ;;
