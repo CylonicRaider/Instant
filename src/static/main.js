@@ -3641,6 +3641,9 @@ this.Instant = function() {
              * messages, so we "ignore" single clicks and reload on
              * double clicks instead. */
             var link = $cls('room-name', node);
+            link.addEventListener('click', function() {
+              Instant.animation.navigateToRoot();
+            });
             link.addEventListener('dblclick', function() {
               location.reload(false);
             });
