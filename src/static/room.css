@@ -436,7 +436,7 @@ button.sidebar-widget:hover {
   display: inline-block;
 }
 
-.logo-button {
+.logo-button:hover {
   background: black;
 }
 
@@ -476,6 +476,11 @@ a.room-name .staging {
 }
 .settings:active {
   background: #c0c0c0;
+}
+/* Need to override .sidebar-widget.bordered img */
+.settings img, .settings-wrapper .settings img {
+  position: static;
+  padding: 1px;
 }
 .settings-content {
   display: none;
