@@ -37,6 +37,9 @@
 .dark .logo img {
   box-shadow: 0 0 30px white;
 }
+.dark a.logo-small {
+  color: white;
+}
 .dark .logo-small img {
   box-shadow: 0 0 2px white;
 }
