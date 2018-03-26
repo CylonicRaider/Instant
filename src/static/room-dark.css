@@ -45,23 +45,25 @@
   color: white;
 }
 
+.dark .sidebar-widget {
+  box-shadow: 0 0 4px 1px white;
+}
+.dark .sidebar-widget.bordered {
+  border-color: #e0e0e0;
+}
+.dark .sidebar-widget:not(.static):hover {
+  box-shadow: 0 0 9px 1px white;
+}
 .dark .spinner {
   -webkit-filter: invert(1);
   filter: invert(1);
 }
-.dark .logo-button {
-  box-shadow: 0 0 5px white;
-}
-.dark .logo-button:hover {
-  box-shadow: 0 0 10px white;
-}
-.dark .online-status, .dark .settings, .dark .settings-content,
-.dark .user-list-menu {
-  border-color: #e0e0e0;
-  box-shadow: 0 0 5px white;
-}
 .dark a.room-name {
   color: white;
+}
+.dark .settings-content, .dark .user-list-menu {
+  border-color: #e0e0e0;
+  box-shadow: 0 0 5px white;
 }
 
 .dark .settings, .dark .settings-content, .dark .user-list-menu {

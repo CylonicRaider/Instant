@@ -384,27 +384,7 @@ body {
   padding-right: 3px;
 }
 
-.spinner {
-  display: none;
-  position: relative;
-  width: 1.2em;
-  height: 1.2em;
-  margin: -2px 0;
-  padding: 2px;
-  vertical-align: bottom;
-}
-.spinner.visible {
-  display: inline-block;
-}
-.spinner img {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  left: 0;
-  right: 0;
-}
-
-.logo-button {
+.sidebar-widget {
   display: inline-block;
   position: relative;
   width: 1.2em;
@@ -412,33 +392,52 @@ body {
   margin: -2px 0;
   border: 0;
   padding: 2px;
+  box-sizing: content-box;
+  border-radius: 50%;
   vertical-align: bottom;
   font: inherit;
   line-height: 0;
-  background: black;
-  cursor: pointer;
-  box-sizing: content-box;
-  border-radius: 50%;
-  box-shadow: 0 0 5px #808080;
 }
-.logo-button:hover {
-  box-shadow: 0 0 10px #404040;
+.sidebar-widget, #main .sidebar-widget {
+  -webkit-transition: box-shadow 0.1s;
+  transition: box-shadow 0.1s;
 }
-.logo-button::-moz-focus-inner {
+.sidebar-widget.bordered {
+  border: 1px solid black;
+  padding: 1px;
+}
+.sidebar-widget::-moz-focus-inner {
   margin: 0;
   border: 0;
   padding: 0;
 }
-.logo-button img {
+.sidebar-widget img {
   position: absolute;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
 }
-.logo-button, #main .logo-button {
-  -webkit-transition: box-shadow 0.1s;
-  transition: box-shadow 0.1s;
+.sidebar-widget.bordered img {
+  padding: 2px;
+  box-sizing: border-box;
+}
+button.sidebar-widget {
+  cursor: pointer;
+}
+button.sidebar-widget:hover {
+  box-shadow: 0 0 10px #404040;
+}
+
+.spinner {
+  display: none;
+}
+.spinner.visible {
+  display: inline-block;
+}
+
+.logo-button {
+  background: black;
 }
 
 a.room-name {
@@ -449,18 +448,6 @@ a.room-name {
 a.room-name .staging {
   font-weight: normal;
   font-style: italic;
-}
-
-.online-status, .settings {
-  display: inline-block;
-  width: 1.2em;
-  height: 1.2em;
-  margin: -2px 0;
-  padding: 1px;
-  border: 1px solid black;
-  border-radius: 50%;
-  vertical-align: bottom;
-  box-sizing: content-box;
 }
 
 .online-status {
@@ -482,28 +469,13 @@ a.room-name .staging {
   z-index: 20;
 }
 .settings {
-  position: relative;
-  font: inherit;
-  line-height: 0;
   background: white;
-  cursor: pointer;
-}
-.settings::-moz-focus-inner {
-  margin: 0;
-  border: 0;
-  padding: 0;
 }
 .settings:hover {
   background: #e0e0e0;
 }
 .settings:active {
   background: #c0c0c0;
-}
-.settings img {
-  padding: 1px;
-  width: 100%;
-  height: 100%;
-  box-sizing: border-box;
 }
 .settings-content {
   display: none;
@@ -684,8 +656,8 @@ button.button-icon > img {
   outline: none;
 }
 .button, #main .button, .settings, #main .settings {
-  -webkit-transition: none;
-  transition: none;
+  -webkit-transition: box-shadow 0.1s;
+  transition: box-shadow 0.1s;
 }
 
 .user-list-counter {

@@ -3629,7 +3629,7 @@ this.Instant = function() {
           /* Initialize submodule */
           init: function() {
             node = $makeNode('span', [
-              ['button', 'logo-button', [
+              ['button', 'sidebar-widget logo-button', [
                 ['img', {src: '/static/logo-static.svg'}]
               ]],
               ' ',
@@ -5253,7 +5253,7 @@ this.Instant = function() {
         return {
           /* Initialize the submodule */
           init: function() {
-            node = $makeNode('div', 'spinner', [
+            node = $makeNode('span', 'sidebar-widget static spinner', [
               ['img', {src: '/static/spinner.svg'}]
             ]);
             Instant.animation.spinner._update();
@@ -5303,7 +5303,9 @@ this.Instant = function() {
         return {
           /* Initialize submodule */
           init: function() {
-            node = $makeNode('span', 'online-status', {title: '...'});
+            node = $makeNode('span',
+              'sidebar-widget bordered static online-status',
+              {title: '...'});
             return node;
           },
           /* Update node */
@@ -5653,7 +5655,7 @@ this.Instant = function() {
           ]];
         }
         wrapperNode = $makeNode('div', 'settings-wrapper', [
-          ['button', 'settings', [
+          ['button', 'sidebar-widget bordered settings', [
             ['img', {src: '/static/gear.svg'}],
           ]],
           ['form', 'settings-content', [
