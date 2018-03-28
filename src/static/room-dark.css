@@ -61,6 +61,9 @@
   -webkit-filter: invert(1);
   filter: invert(1);
 }
+.dark .logo-button:hover {
+  background: white;
+}
 .dark a.room-name {
   color: white;
 }
