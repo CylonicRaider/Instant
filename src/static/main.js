@@ -3189,8 +3189,6 @@ this.Instant = function() {
         var text = inputMsg.value;
         if (event.keyCode == 13 && ! event.shiftKey) { // Return
           /* Send message! */
-          /* Whether to clear the input bar */
-          var clear = false;
           /* Allow event handlers to have a word */
           var evdata = {text: text, source: event,
             _cancel: event.preventDefault.bind(event)};
@@ -3199,34 +3197,8 @@ this.Instant = function() {
           text = evdata.text;
           /* Do not input line feeds in any case */
           event.preventDefault();
-          /* Ignore empty sends */
-          if (! text) {
-            /* NOP */
-          } else if (! Instant.connectionURL) {
-            /* Save scroll state */
-            var restore = Instant.input.saveScrollState();
-            /* Fake messages if not connected */
-            var msgid = 'local-' + leftpad(fakeSeq++, 8, '0');
-            Instant.message.importMessage(
-              {id: msgid, nick: Instant.identity.nick || '', text: text,
-               parent: Instant.input.getParentID(),
-               timestamp: Date.now()},
-              Instant.message.getRoot(inputNode));
-            /* Restore scroll state */
-            restore();
-            clear = true;
-          } else if (Instant.connection.isConnected()) {
-            /* Send actual message */
-            Instant.connection.sendBroadcast({type: 'post',
-              nick: Instant.identity.nick, text: text,
-              parent: Instant.input.getParentID()});
-            clear = true;
-          }
-          /* Clear input bar */
-          if (clear) {
-            inputMsg.value = '';
-            Instant.input._updateMessage(event);
-          }
+          /* Actually submit it */
+          Instant.input.post(text, event);
         } else if (event.keyCode == 27) { // Escape
           if (navigate('root'))
             location.hash = '';
@@ -3319,6 +3291,41 @@ this.Instant = function() {
                           oldText.substring(to));
         inputMsg.setSelectionRange(from + text.length, from + text.length);
         Instant.input._updateMessage();
+      },
+      /* Post the current status of the input bar */
+      post: function(text, event) {
+        var inputMsg = $cls('input-message', inputNode);
+        if (text == null) text = inputMsg.value;
+        /* Whether to clear the input bar */
+        var clear = false;
+        /* Ignore empty sends */
+        if (! text) {
+          /* NOP */
+        } else if (! Instant.connectionURL) {
+          /* Save scroll state */
+          var restore = Instant.input.saveScrollState();
+          /* Fake messages if not connected */
+          var msgid = 'local-' + leftpad(fakeSeq++, 8, '0');
+          Instant.message.importMessage(
+            {id: msgid, nick: Instant.identity.nick || '', text: text,
+             parent: Instant.input.getParentID(),
+             timestamp: Date.now()},
+            Instant.message.getRoot(inputNode));
+          /* Restore scroll state */
+          restore();
+          clear = true;
+        } else if (Instant.connection.isConnected()) {
+          /* Send actual message */
+          Instant.connection.sendBroadcast({type: 'post',
+            nick: Instant.identity.nick, text: text,
+            parent: Instant.input.getParentID()});
+          clear = true;
+        }
+        /* Clear input bar */
+        if (clear) {
+          inputMsg.value = '';
+          Instant.input._updateMessage(event);
+        }
       }
     };
   }();
