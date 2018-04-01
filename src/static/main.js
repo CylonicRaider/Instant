@@ -7059,7 +7059,11 @@ this.Instant = function() {
           try {
             return this.handler(data);
           } catch (e) {
-            if (this.onerror) this.onerror(e);
+            if (this.onerror) {
+              this.onerror(e);
+            } else {
+              console.error('Error while handling mailbox:', e);
+            }
           }
         }.bind(this));
       },
@@ -7070,7 +7074,11 @@ this.Instant = function() {
           try {
             return callback.call(this);
           } catch (e) {
-            if (this.onerror) this.onerror(e);
+            if (this.onerror) {
+              this.onerror(e);
+            } else {
+              console.error('Error while handling mailbox mark:', e);
+            }
           }
         }.bind(this));
       },
