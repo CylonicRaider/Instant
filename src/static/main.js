@@ -3574,6 +3574,8 @@ this.Instant = function() {
         }
         var msgnode = document.createElement('div');
         msgnode.tabIndex = 0;
+        if (options.id) msgnode.id = id;
+        if (options.className) msgnode.className = options.className;
         if (typeof options.content == 'string') {
           msgnode.textContent = options.content;
         } else if (options.content) {
