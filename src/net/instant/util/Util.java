@@ -53,8 +53,8 @@ public final class Util {
         return Utilities.escapeStringJS(data, full);
     }
 
-    public static String trimQuery(String fullPath) {
-        return Utilities.trimQuery(fullPath);
+    public static String[] splitQueryString(String fullPath) {
+        return Utilities.splitQueryString(fullPath);
     }
 
     public static JSONObject createJSONObject(Object... params) {

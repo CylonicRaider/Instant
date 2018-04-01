@@ -1,9 +1,7 @@
 package net.instant.util;
 
-import java.io.UnsupportedEncodingException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
-import java.net.URLDecoder;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -212,24 +210,7 @@ public final class Formats {
     }
 
     public static Map<String, String> parseQueryString(String query) {
-        Map<String, String> ret = new LinkedHashMap<String, String>();
-        for (String entry : query.split("&")) {
-            String[] parts = entry.split("=", 2);
-            String key, value;
-            try {
-                key = URLDecoder.decode(parts[0], "utf-8");
-                if (parts.length == 1) {
-                    value = null;
-                } else {
-                    value = URLDecoder.decode(parts[1], "utf-8");
-                }
-            } catch (UnsupportedEncodingException exc) {
-                // Should not happen.
-                throw new RuntimeException(exc);
-            }
-            ret.put(key, value);
-        }
-        return ret;
+        return Utilities.parseQueryString(query);
     }
 
     public static String formatHTTPLog(RequestResponseData req) {

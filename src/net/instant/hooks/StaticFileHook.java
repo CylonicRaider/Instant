@@ -63,7 +63,7 @@ public class StaticFileHook extends HookAdapter {
         if (producer == null || req.getRequestType() != RequestType.HTTP ||
                 ! req.getMethod().equals("GET"))
             return false;
-        String rawPath = Util.trimQuery(req.getPath());
+        String rawPath = Util.splitQueryString(req.getPath())[0];
         String path = aliases.match(rawPath);
         if (path == null) path = rawPath;
         FileCell ent;

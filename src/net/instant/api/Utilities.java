@@ -1,6 +1,10 @@
 package net.instant.api;
 
+import java.io.UnsupportedEncodingException;
+import java.net.URLDecoder;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.json.JSONObject;
@@ -13,6 +17,10 @@ public final class Utilities {
     /* Regular expression pattern for escapeStringJS(). */
     private static final Pattern ESCAPE = Pattern.compile(
         "[^ !#-&(-\\[\\]-~]");
+
+    /* Regular expression for splitQuery(). */
+    private static final Pattern QUERY = Pattern.compile(
+        "([^?]*)(?:\\?(.*))?");
 
     /* Prevent (unintended) construction */
     private Utilities() {}
@@ -44,10 +52,41 @@ public final class Utilities {
     }
 
     /**
-     * Remove the query string from the given request path.
+     * Split the given path into the path proper and the query string.
      */
-    public static String trimQuery(String fullPath) {
-        return fullPath.replaceFirst("\\?.*$", "");
+    public static String[] splitQueryString(String fullPath) {
+        Matcher m = QUERY.matcher(fullPath);
+        if (! m.matches()) {
+            // Should not happen.
+            throw new RuntimeException("Could not match request path?!");
+        }
+        return new String[] { m.group(1), m.group(2) };
+    }
+
+    /**
+     * Parse the given query string into a Map.
+     * The order of first appearance is preserved. If a query string entry
+     * has no "value" (i.e. no equals sign), its entirety is used as the key.
+     */
+    public static Map<String, String> parseQueryString(String query) {
+        Map<String, String> ret = new LinkedHashMap<String, String>();
+        for (String entry : query.split("&")) {
+            String[] parts = entry.split("=", 2);
+            String key, value;
+            try {
+                key = URLDecoder.decode(parts[0], "utf-8");
+                if (parts.length == 1) {
+                    value = null;
+                } else {
+                    value = URLDecoder.decode(parts[1], "utf-8");
+                }
+            } catch (UnsupportedEncodingException exc) {
+                // Should not happen.
+                throw new RuntimeException(exc);
+            }
+            ret.put(key, value);
+        }
+        return ret;
     }
 
     /**
