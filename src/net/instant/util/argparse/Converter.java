@@ -67,6 +67,10 @@ public abstract class Converter<T> {
         return String.valueOf(item);
     }
 
+    public String formatAppendix() {
+        return null;
+    }
+
     public static <X> void register(Class<X> cls, Converter<X> cvt) {
         registry.put(cls, cvt);
     }

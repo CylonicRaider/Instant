@@ -64,14 +64,16 @@ public class ValueOption<X> extends Option<X> {
     public String formatArguments() {
         StringBuilder sb = new StringBuilder();
         if (isOptional()) sb.append('[');
-        sb.append(getConverter().getPlaceholder());
+        sb.append(converter.getPlaceholder());
         if (isOptional()) sb.append(']');
         return sb.toString();
     }
     public String formatHelp() {
         String ret = super.formatHelp();
-        String fmtDef = getConverter().format(getDefault());
+        String fmtDef = converter.format(getDefault());
         if (fmtDef != null) ret += " (default " + fmtDef + ")";
+        String appendix = converter.formatAppendix();
+        if (appendix != null) ret += " " + appendix;
         return ret;
     }
 

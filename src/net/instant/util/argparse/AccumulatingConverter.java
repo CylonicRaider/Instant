@@ -40,6 +40,10 @@ public class AccumulatingConverter<E> extends Converter<List<E>> {
         return null;
     }
 
+    public String formatAppendix() {
+        return "(repeatable)";
+    }
+
     /* HACK: Naming the method "get" would result in a "cannot override"
      *       error... */
     public static <F> AccumulatingConverter<F> getA(Class<F> cls) {
