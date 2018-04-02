@@ -1,4 +1,4 @@
-package net.instant.util;
+package net.instant.util.stringmatch;
 
 import java.util.LinkedList;
 import java.util.List;

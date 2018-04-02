@@ -8,8 +8,8 @@ import java.util.regex.Pattern;
 import net.instant.api.ClientConnection;
 import net.instant.api.RequestData;
 import net.instant.api.ResponseBuilder;
-import net.instant.util.DefaultStringMatcher;
-import net.instant.util.StringMatcher;
+import net.instant.util.stringmatch.DefaultStringMatcher;
+import net.instant.util.stringmatch.StringMatcher;
 
 public class RedirectHook extends HookAdapter {
 

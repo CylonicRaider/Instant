@@ -8,12 +8,12 @@ import net.instant.api.ClientConnection;
 import net.instant.api.RequestData;
 import net.instant.api.RequestType;
 import net.instant.api.ResponseBuilder;
-import net.instant.util.ListStringMatcher;
 import net.instant.util.Util;
 import net.instant.util.config.Configuration;
 import net.instant.util.fileprod.FileCell;
 import net.instant.util.fileprod.FileProducer;
 import net.instant.util.fileprod.ProducerJob;
+import net.instant.util.stringmatch.ListStringMatcher;
 
 public class StaticFileHook extends HookAdapter {
 

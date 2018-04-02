@@ -5,8 +5,8 @@ import net.instant.api.RequestHook;
 import net.instant.api.RequestType;
 import net.instant.api.ResponseBuilder;
 import net.instant.util.Encodings;
-import net.instant.util.ListStringMatcher;
 import net.instant.util.Util;
+import net.instant.util.stringmatch.ListStringMatcher;
 
 public abstract class WebSocketHook implements RequestHook {
 

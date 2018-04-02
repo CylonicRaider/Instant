@@ -1,4 +1,4 @@
-package net.instant.util;
+package net.instant.util.stringmatch;
 
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;

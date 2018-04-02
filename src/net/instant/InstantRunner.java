@@ -32,7 +32,6 @@ import net.instant.plugins.PluginException;
 import net.instant.plugins.PluginManager;
 import net.instant.proto.APIHook;
 import net.instant.proto.MessageDistributor;
-import net.instant.util.DefaultStringMatcher;
 import net.instant.util.UniqueCounter;
 import net.instant.util.config.Configuration;
 import net.instant.util.config.DynamicConfiguration;
@@ -44,6 +43,7 @@ import net.instant.util.fileprod.ListProducer;
 import net.instant.util.fileprod.Producer;
 import net.instant.util.fileprod.ProducerJob;
 import net.instant.util.fileprod.StringProducer;
+import net.instant.util.stringmatch.DefaultStringMatcher;
 import net.instant.ws.InstantWebSocketServer;
 
 public class InstantRunner implements API1 {
