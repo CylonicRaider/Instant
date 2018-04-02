@@ -61,6 +61,9 @@ can be used to report a summary and single-letter aliases):
   configuration value (overriding environment variables and system
   properties). See [`CONFIG.md`](CONFIG.md) for details.
 
+- `--config` *file* — *Configuration file*: A Java properties file holding
+  additional configuration values. See [`CONFIG.md`](CONFIG.md) for details.
+
 - *port* — *Port to bind to*: As a single optional positional argument, this
   specifies the TCP port to listen on. Defaults to `8080`.
 

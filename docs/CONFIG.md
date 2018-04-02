@@ -15,6 +15,8 @@ When looking for a configuration value, Instant checks the following sources
 - Values specified via environment variables. In this mode, the name is
   converted to upper case and dots are replaced with underscores before
   retrieval.
+- Values specified in a configuration file (which itself is specified using
+  the `--config` (a.k.a. `-C`) command-line option).
 - Values specified in plugin manifests, in attribute sets for
   `Instant-Configuration`.
 

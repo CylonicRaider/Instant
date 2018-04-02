@@ -36,6 +36,7 @@ import net.instant.util.DefaultStringMatcher;
 import net.instant.util.UniqueCounter;
 import net.instant.util.config.Configuration;
 import net.instant.util.config.DynamicConfiguration;
+import net.instant.util.config.PropertiesConfiguration;
 import net.instant.util.fileprod.FSResourceProducer;
 import net.instant.util.fileprod.FileCell;
 import net.instant.util.fileprod.FileProducer;
@@ -432,6 +433,10 @@ public class InstantRunner implements API1 {
     public Object getPluginData(String name) throws IllegalArgumentException,
             IllegalStateException {
         return makePlugins().getData(name);
+    }
+
+    public void addConfigFile(File path) {
+        makeConfig().addSource(new PropertiesConfiguration(path));
     }
 
     public void addPluginPath(File path) {

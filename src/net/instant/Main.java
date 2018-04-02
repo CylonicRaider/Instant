@@ -121,6 +121,8 @@ public class Main implements Runnable {
         ValueOption<List<KeyValue>> options = p.add(ValueOption.ofAccum(
             KeyValue.class, "option", 'o', "Additional configuration " +
             "parameters"));
+        ValueOption<File> config = p.add(ValueOption.of(File.class,
+            "config", 'C', "Configuration file"));
         ParseResult r = parseArgumentsInner(p);
         String hostval = r.get(host);
         if (hostval.equals("*")) hostval = null;
@@ -129,6 +131,8 @@ public class Main implements Runnable {
         runner.setWebroot(r.get(webroot));
         runner.setHTTPLog(resolveLogFile(r.get(httpLog)));
         runner.makeConfig().putAll(r.get(options));
+        File configPath = r.get(config);
+        if (configPath != null) runner.addConfigFile(configPath);
         Logging.redirectToStream(resolveLogFile(r.get(debugLog)));
         Logging.setLevel(Level.parse(r.get(logLevel)));
         for (File f : r.get(plugPath)) runner.addPluginPath(f);
