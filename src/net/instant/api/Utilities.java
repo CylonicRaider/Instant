@@ -1,6 +1,9 @@
 package net.instant.api;
 
+import java.io.File;
 import java.io.UnsupportedEncodingException;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.net.URLDecoder;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
@@ -128,6 +131,22 @@ public final class Utilities {
             } else {
                 base.put(k, add.get(k));
             }
+        }
+    }
+
+    /**
+     * Interpret the given string as a file or as a generic URL.
+     * If the string contains a colon, it is interpreted as a URL; otherwise,
+     * as a filesystem path (and it is converted to a URL). If the string is
+     * the null reference or empty, a MalformedURLException is thrown.
+     */
+    public static URL makeURL(String path) throws MalformedURLException {
+        if (! nonempty(path)) {
+            throw new MalformedURLException("String is null or empty");
+        } else if (path.contains(":")) {
+            return new URL(path);
+        } else {
+            return new File(path).toURI().toURL();
         }
     }
 
