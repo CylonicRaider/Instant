@@ -5,9 +5,12 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.net.InetSocketAddress;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.jar.Attributes;
 import java.util.regex.Pattern;
@@ -130,6 +133,7 @@ public class InstantRunner implements API1 {
     private FSResourceProducer sourceFiles;
     private MessageDistributor distributor;
     private ScheduledExecutorService jobScheduler;
+    private ExecutorService taskRunner;
     private PluginManager plugins;
 
     public InstantRunner() {
@@ -314,10 +318,24 @@ public class InstantRunner implements API1 {
     }
     public ScheduledExecutorService makeJobScheduler() {
         if (jobScheduler == null) {
-            jobScheduler = Executors.newScheduledThreadPool(
-                THREAD_POOL_CORE_SIZE);
+            jobScheduler = Executors.newSingleThreadScheduledExecutor();
         }
         return jobScheduler;
+    }
+
+    public ExecutorService getTaskRunner() {
+        return taskRunner;
+    }
+    public void setTaskRunner(ExecutorService runner) {
+        taskRunner = runner;
+    }
+    public ExecutorService makeTaskRunner() {
+        if (taskRunner == null) {
+            taskRunner = new ThreadPoolExecutor(THREAD_POOL_CORE_SIZE,
+                Integer.MAX_VALUE, 60, TimeUnit.SECONDS,
+                new LinkedBlockingQueue<Runnable>());
+        }
+        return taskRunner;
     }
 
     public PluginManager getPlugins() {
@@ -387,14 +405,20 @@ public class InstantRunner implements API1 {
         if (period != -1) {
             return makeJobScheduler().scheduleAtFixedRate(callback, delay,
                 period, TimeUnit.MILLISECONDS);
-        } else {
+        } else if (delay != -1) {
             return makeJobScheduler().schedule(callback, delay,
                                                TimeUnit.MILLISECONDS);
+        } else {
+            return makeTaskRunner().submit(callback);
         }
     }
 
-    public ScheduledExecutorService getExecutor() {
+    public ScheduledExecutorService getScheduledExecutor() {
         return makeJobScheduler();
+    }
+
+    public ExecutorService getExecutor() {
+        return makeTaskRunner();
     }
 
     public Object handleDefault(PluginData data) {
@@ -424,6 +448,7 @@ public class InstantRunner implements API1 {
     }
     public void setupJobScheduler() {
         makeJobScheduler();
+        makeTaskRunner();
     }
 
 }

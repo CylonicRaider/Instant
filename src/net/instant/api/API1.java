@@ -1,5 +1,6 @@
 package net.instant.api;
 
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.regex.Pattern;
@@ -114,10 +115,12 @@ public interface API1 {
      * Schedule the given Runnable to be run once or regularly.
      * callback is the Runnable to invoke.
      * delay specifies the time to wait for before the first invocation; it
-     * may be zero to denote "immediately". period may be -1 to denote "no
-     * repetitions", or the amount of milliseconds between subsequent
-     * invocations (note that this is independent of how long callback takes
-     * to run).
+     * may be zero to denote "immediately", or -1 to denote "parallelizable".
+     * All tasks whose delay is not -1 are serialized with respect to each
+     * other.
+     * period may be -1 to denote "no repetitions", or the amount of
+     * milliseconds between subsequent invocations (note that this is
+     * independent of how long callback takes to run).
      * Use the return value to cancel execution.
      */
     Future<?> scheduleJob(Runnable callback, long delay, long period);
@@ -125,9 +128,18 @@ public interface API1 {
     /**
      * Return the central job scheduler instance.
      * Can be used to perform e.g. regular cleanup without having to create a
-     * dedicated thread.
+     * dedicated thread. All jobs executed by this instance are serialized
+     * with respect to each other. For potentially heavy (and parallel)
+     * workloads, use getExecutor().
      */
-    ScheduledExecutorService getExecutor();
+    ScheduledExecutorService getScheduledExecutor();
+
+    /**
+     * Return the central job runner instance.
+     * This should be used to offload execution of potentially heavy
+     * background tasks.
+     */
+    ExecutorService getExecutor();
 
     /**
      * Invoke the default plugin initializer.
