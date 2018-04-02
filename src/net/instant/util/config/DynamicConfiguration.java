@@ -1,4 +1,4 @@
-package net.instant.util;
+package net.instant.util.config;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;

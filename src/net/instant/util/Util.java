@@ -10,6 +10,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.regex.Pattern;
 import net.instant.api.Utilities;
+import net.instant.util.config.Configuration;
 import org.json.JSONObject;
 
 public final class Util {
