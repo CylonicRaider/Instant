@@ -82,6 +82,10 @@ public class StaticFileHook extends HookAdapter {
                 resp.addHeader("Cache-Control", "public, max-age=" +
                     maxCacheAge);
                 resp.addHeader("ETag", fullETag);
+            } else {
+                // Prevent reverse proxy from sending the non-revalidatable
+                // version over and over.
+                resp.addHeader("Cache-Control", "no-cache");
             }
             if (cached) {
                 resp.respond(304, "Not Modified", -1);
