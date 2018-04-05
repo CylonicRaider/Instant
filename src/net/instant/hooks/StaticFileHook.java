@@ -84,7 +84,7 @@ public class StaticFileHook extends HookAdapter {
                 resp.addHeader("ETag", fullETag);
             }
             if (cached) {
-                resp.respond(304, "Not Modified", ent.getSize());
+                resp.respond(304, "Not Modified", -1);
                 // Not registering path to not send response body.
             } else {
                 resp.respond(200, "OK", ent.getSize());
