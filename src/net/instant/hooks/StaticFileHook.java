@@ -8,6 +8,7 @@ import net.instant.api.ClientConnection;
 import net.instant.api.RequestData;
 import net.instant.api.RequestType;
 import net.instant.api.ResponseBuilder;
+import net.instant.util.Util;
 import net.instant.util.config.Configuration;
 import net.instant.util.fileprod.FileCell;
 import net.instant.util.fileprod.FileProducer;
@@ -90,7 +91,8 @@ public class StaticFileHook extends HookAdapter {
                 paths.put(req, path);
             }
         }
-        String contentType = contentTypes.match(path);
+        String basePath = Util.splitQueryString(path)[0];
+        String contentType = contentTypes.match(basePath);
         if (contentType != null)
             resp.addHeader("Content-Type", contentType);
         return true;
