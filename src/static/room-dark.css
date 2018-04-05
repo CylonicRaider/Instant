@@ -67,21 +67,23 @@
 .dark a.room-name {
   color: white;
 }
-.dark .settings-content, .dark .user-list-menu {
+.dark .settings-content, .dark .extras-content, .dark .user-list-menu {
   border-color: #e0e0e0;
   box-shadow: 0 0 5px white;
 }
 
-.dark .settings, .dark .settings-content, .dark .user-list-menu {
+.dark .settings, .dark .settings-content, .dark .extras,
+.dark .extras-content, .dark .user-list-menu {
   background: black;
 }
-.dark .settings:hover {
+.dark .settings:hover, .dark .extras:hover {
   background: #202020;
 }
-.dark .settings:active {
+.dark .settings:active, .dark .extras:active {
   background: #404040;
 }
-.dark .settings-content h2, .dark .settings-content h3 {
+.dark .settings-content h2, .dark .settings-content h3,
+.dark .extras-content h2, .dark .extras-content h3, {
   color: white;
 }
 .dark .settings-content .more-link, .dark .settings-content a.more-link {

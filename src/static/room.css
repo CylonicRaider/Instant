@@ -463,26 +463,27 @@ a.room-name .staging {
   background: #c0c0c0;
 }
 
-.settings-wrapper {
+.settings-wrapper, .extras-wrapper {
   display: inline-block;
   position: relative;
   z-index: 20;
 }
-.settings {
+.settings, .extras {
   background: white;
 }
-.settings:hover {
+.settings:hover, .extras:hover {
   background: #e0e0e0;
 }
-.settings:active {
+.settings:active, .extras:active {
   background: #c0c0c0;
 }
 /* Need to override .sidebar-widget.bordered img */
-.settings img, .settings-wrapper .settings img {
+.settings img, .settings-wrapper .settings img, .extras img,
+.extras-wrapper .extras img {
   position: static;
   padding: 1px;
 }
-.settings-content {
+.settings-content, .extras-content {
   display: none;
   position: absolute;
   top: -2px;
@@ -494,14 +495,18 @@ a.room-name .staging {
   white-space: nowrap;
   background: white;
 }
-.settings-content h2, .settings-content h3 {
+.settings-content h2, .settings-content h3, .extras-content h2,
+.extras-content h3 {
   font-size: inherit;
 }
-.settings-content h2 {
+.settings-content h2, .extras-content h2 {
   margin-top: -4px;
   margin-right: 1.2em;
 }
-.settings-content h3 {
+.extras-content h2 {
+  margin-bottom: 2px;
+}
+.settings-content h3, .extras-content h3 {
   font-weight: normal;
   font-style: italic;
 }
@@ -514,7 +519,7 @@ a.room-name .staging {
 .settings-content .show-more label.more-content {
   display: block;
 }
-.settings-content hr {
+.settings-content hr, .extras-content hr {
   border: none;
   height: 5px;
 }
@@ -523,13 +528,25 @@ a.room-name .staging {
   font-size: smaller;
 }
 
-.settings-wrapper.visible .settings {
+.extras-buttons:last-child {
+  margin-bottom: -5px;
+}
+.extras-buttons .button.button-noborder.button-block {
+  margin: 0 -5px;
+  padding: 2px 5px;
+}
+
+.extras-wrapper.empty {
+  display: none;
+}
+.settings-wrapper.visible .settings, .extras-wrapper.visible .extras {
   border-radius: 0;
   border-width: 1px 1px 0 0;
   padding: 1px 1px 2px 2px;
   box-shadow: none;
 }
-.settings-wrapper.visible .settings-content {
+.settings-wrapper.visible .settings-content,
+.extras-wrapper.visible .extras-content {
   display: block;
 }
 
@@ -633,6 +650,9 @@ a.room-name .staging {
   border: 0;
   padding: 0;
 }
+.button.button-block {
+  display: block;
+}
 .button.button-noborder, .button.button-icon {
   border: 0;
   padding: 0;
@@ -660,7 +680,7 @@ button.button-icon > img {
   cursor: default;
   outline: none;
 }
-.button, #main .button, .settings, #main .settings {
+.button, #main .button, .settings, #main .settings, .extras, #main .extras {
   -webkit-transition: box-shadow 0.1s;
   transition: box-shadow 0.1s;
 }
