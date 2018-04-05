@@ -10,21 +10,28 @@ public class FileProducer {
 
     private final Map<String, ProducerJob> pending;
     private final Executor pool;
-    private final ListProducer producer;
+    private ListProducer producer;
     private FileCache cache;
 
-    public FileProducer(FileCache cache) {
+    public FileProducer(ListProducer producer, FileCache cache) {
         this.pending = new HashMap<String, ProducerJob>();
         this.pool = Executors.newCachedThreadPool();
-        this.producer = new ListProducer();
+        this.producer = producer;
         this.cache = cache;
     }
     public FileProducer() {
-        this(new FileCache());
+        this(new ListProducer(), new FileCache());
     }
 
     public Executor getPool() {
         return pool;
+    }
+
+    public ListProducer getProducer() {
+        return producer;
+    }
+    public void setProducer(ListProducer p) {
+        producer = p;
     }
 
     public FileCache getCache() {
@@ -32,10 +39,6 @@ public class FileProducer {
     }
     public void setCache(FileCache c) {
         cache = c;
-    }
-
-    public ListProducer getProducer() {
-        return producer;
     }
 
     protected synchronized ProducerJob produce(String name,
