@@ -13,6 +13,8 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.jar.Attributes;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.regex.Pattern;
 import net.instant.api.API1;
 import net.instant.api.Counter;
@@ -48,6 +50,8 @@ import net.instant.ws.InstantWebSocketServer;
 
 public class InstantRunner implements API1 {
 
+    private static final Logger LOGGER = Logger.getLogger("InstantRunner");
+
     public static class APIFileCell extends FileCell {
 
         private final FileInfo wrapped;
@@ -75,7 +79,8 @@ public class InstantRunner implements API1 {
             try {
                 if (! wrapped.hasFile(path)) return null;
             } catch (IOException exc) {
-                exc.printStackTrace();
+                LOGGER.log(Level.SEVERE, "Exception while checking for " +
+                    "file existence:", exc);
                 return null;
             }
             final String name = path;

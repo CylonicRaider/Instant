@@ -3,8 +3,12 @@ package net.instant.util.fileprod;
 import java.io.IOException;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public abstract class ProducerJob implements Runnable {
+
+    private static final Logger LOGGER = Logger.getLogger("ProducerJob");
 
     public interface Callback {
 
@@ -68,7 +72,7 @@ public abstract class ProducerJob implements Runnable {
         try {
             res = produce();
         } catch (IOException exc) {
-            exc.printStackTrace();
+            LOGGER.log(Level.SEVERE, "Exception while producing file:", exc);
         } finally {
             runCallbacks(res);
         }

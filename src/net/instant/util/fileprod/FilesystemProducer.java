@@ -32,7 +32,11 @@ public class FilesystemProducer implements Producer {
 
     public File convert(String name) {
         String adjustedPath = new File(workdir, name).toString();
-        return new File(chroot, adjustedPath.replaceFirst("^[/\\\\]+", ""));
+        // HACK: Force adjustedPath to be relative.
+        while (adjustedPath.startsWith("/") ||
+               adjustedPath.startsWith(File.separator))
+            adjustedPath = adjustedPath.substring(1);
+        return new File(chroot, adjustedPath);
     }
 
     public ProducerJob produce(String name) {

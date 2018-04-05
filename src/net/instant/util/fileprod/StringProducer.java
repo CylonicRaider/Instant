@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import net.instant.util.Encodings;
 
 public class StringProducer implements Producer {
@@ -68,7 +69,8 @@ public class StringProducer implements Producer {
     }
 
     public synchronized String[] listFiles() {
-        return files.keySet().toArray(new String[0]);
+        Set<String> keys = files.keySet();
+        return keys.toArray(new String[keys.size()]);
     }
     public synchronized ByteBuffer getCachedFile(String name) {
         return files.get(name);
@@ -84,7 +86,7 @@ public class StringProducer implements Producer {
         for (ByteBuffer b : queue) newData.put(b);
         newData.flip();
         addFile(name, newData);
-        return newData.asReadOnlyBuffer();
+        return newData;
     }
 
     public ProducerJob produce(String name) {
@@ -97,7 +99,8 @@ public class StringProducer implements Producer {
         if (content == null) return null;
         return new ProducerJob(name) {
             protected FileCell produce() {
-                return new StringFileCell(getName(), content, pollTime);
+                return new StringFileCell(getName(),
+                    content.asReadOnlyBuffer(), pollTime);
             }
         };
     }

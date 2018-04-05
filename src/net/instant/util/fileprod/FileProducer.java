@@ -51,14 +51,14 @@ public class FileProducer {
         job.callback(new ProducerJob.Callback() {
             public void fileProduced(String name, FileCell f) {
                 synchronized (FileProducer.this) {
-                    getCache().add(f);
+                    cache.add(f);
                     pending.remove(name);
                 }
             }
         });
         if (cb != null) job.callback(cb);
         pending.put(name, job);
-        getPool().execute(job);
+        pool.execute(job);
         return job;
     }
 

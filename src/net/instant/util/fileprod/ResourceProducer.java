@@ -26,7 +26,7 @@ public class ResourceProducer implements Producer {
     public ProducerJob produce(String name) {
         final long pollTime = System.currentTimeMillis();
         final InputStream is = loader.getResourceAsStream(
-            name.replaceFirst("^/", ""));
+            name.replaceAll("^/+|\\?.*$", ""));
         if (is == null) return null;
         return new ProducerJob(name) {
             protected FileCell produce() throws IOException {
