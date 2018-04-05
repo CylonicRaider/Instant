@@ -173,6 +173,7 @@ public class Main implements Runnable {
                               "charset=utf-8");
         runner.addContentType(".*\\.svg", "image/svg+xml; charset=utf-8");
         runner.addContentType(".*\\.png", "image/png");
+        runner.addContentType(".*\\.jpg", "image/jpeg");
         runner.addContentType(".*\\.ico", "image/vnd.microsoft.icon");
         runner.addContentType(".*\\.txt", "text/plain; charset=utf-8");
         runner.addRedirect(Pattern.compile("/room/" + ROOM_RE), "\\0/", 301);
