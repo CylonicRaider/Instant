@@ -47,6 +47,7 @@ public class ConnectionGC implements Runnable {
     }
 
     public void run() {
+        LOGGER.fine("Garbage-collecting connections...");
         long now = System.currentTimeMillis();
         for (Map.Entry<ClientConnection, Long> e :
              getDeadlines().entrySet()) {

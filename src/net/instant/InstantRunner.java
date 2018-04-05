@@ -453,13 +453,13 @@ public class InstantRunner implements API1 {
         makePlugins().queueFetch(name);
     }
 
-    public void setupPlugins() throws PluginException {
+    public void setup() throws Exception {
         makePlugins().setup();
         makeConfig().addSource(new PluginConfigSource(getPlugins()));
-    }
-    public void setupJobScheduler() {
         makeJobScheduler();
         makeTaskRunner();
+        scheduleJob(makeFileHook().getProducer().getGCTask(),
+                    FileProducer.GC_INTERVAL, FileProducer.GC_INTERVAL);
     }
 
 }

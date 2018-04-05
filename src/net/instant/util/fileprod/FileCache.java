@@ -1,6 +1,7 @@
 package net.instant.util.fileprod;
 
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
 
 public class FileCache implements Producer {
@@ -38,6 +39,14 @@ public class FileCache implements Producer {
                 return cell;
             }
         };
+    }
+
+    public synchronized void gc() {
+        Iterator<FileCell> it = data.values().iterator();
+        while (it.hasNext()) {
+            FileCell c = it.next();
+            if (! c.isValid()) it.remove();
+        }
     }
 
 }
