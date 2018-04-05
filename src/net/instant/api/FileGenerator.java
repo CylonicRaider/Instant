@@ -9,8 +9,7 @@ public interface FileGenerator {
 
     /**
      * Test for the presence of a static file.
-     * Called with the file's path (without a query string, which static
-     * files should be independent of).
+     * Called with the file's path.
      * Should return whether this generator can produce the given file or
      * not, without blocking.
      * Exceptions thrown imply the absence of the file.
