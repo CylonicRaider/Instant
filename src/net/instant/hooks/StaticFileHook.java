@@ -8,7 +8,6 @@ import net.instant.api.ClientConnection;
 import net.instant.api.RequestData;
 import net.instant.api.RequestType;
 import net.instant.api.ResponseBuilder;
-import net.instant.util.Util;
 import net.instant.util.config.Configuration;
 import net.instant.util.fileprod.FileCell;
 import net.instant.util.fileprod.FileProducer;
@@ -63,9 +62,8 @@ public class StaticFileHook extends HookAdapter {
         if (producer == null || req.getRequestType() != RequestType.HTTP ||
                 ! req.getMethod().equals("GET"))
             return false;
-        String rawPath = Util.splitQueryString(req.getPath())[0];
-        String path = aliases.match(rawPath);
-        if (path == null) path = rawPath;
+        String path = aliases.match(req.getPath());
+        if (path == null) path = req.getPath();
         FileCell ent;
         try {
             ent = producer.get(path);

@@ -44,6 +44,7 @@ import net.instant.util.fileprod.FileProducer;
 import net.instant.util.fileprod.ListProducer;
 import net.instant.util.fileprod.Producer;
 import net.instant.util.fileprod.ProducerJob;
+import net.instant.util.fileprod.QueryStrippingProducer;
 import net.instant.util.fileprod.StringProducer;
 import net.instant.util.stringmatch.DefaultStringMatcher;
 import net.instant.ws.InstantWebSocketServer;
@@ -239,8 +240,8 @@ public class InstantRunner implements API1 {
             files = new StaticFileHook(makeConfig(), new FileProducer());
             ListProducer l = files.getProducer().getProducer();
             l.add(makePluginFiles());
-            l.add(makeStringFiles());
-            l.add(makeSourceFiles());
+            l.add(new QueryStrippingProducer(makeStringFiles()));
+            l.add(new QueryStrippingProducer(makeSourceFiles()));
         }
         return files;
     }
