@@ -529,7 +529,7 @@ this.Instant = function() {
                 if (typeof nick != 'string')
                   nick = '';
                 if (typeof text != 'string')
-                  /* HACK: Serialize text to something remotely senseful */
+                  /* HACK: Serialize text to something remotely meaningful */
                   text = JSON.stringify(text);
                 /* Scrape for nicknames */
                 Instant.userList.add(msg.from, nick);
@@ -986,7 +986,7 @@ this.Instant = function() {
           init: function(paneNode) {
             /* Verbosity level */
             if (window.logInstantLogPulling === undefined) {
-              var v = (!! Instant.query.get('verbose'))
+              var v = (!! Instant.query.get('verbose'));
               window.logInstantLogPulling = v;
             }
             pane = paneNode;
@@ -1017,8 +1017,7 @@ this.Instant = function() {
             Instant.logs.pull._start();
           },
           /* Pull logs until the given message is fetched; then go to it
-           * This is asynchronous, and can potentially take *much* time.
-           */
+           * This is asynchronous, and can potentially take *much* time. */
           upto: function(msgid, done) {
             /* Check if goal already reached; otherwise set it */
             if (keys.length && keys[0] <= msgid) {
@@ -1442,9 +1441,12 @@ this.Instant = function() {
         var textarr = [];
         traverse(resNode);
         var text = textarr.join('');
+        /* Plugin hook */
+        var evdata = {html: resNode.outerHTML, text: text.trim()};
+        Instant._fireListeners('message.copy', evdata);
         /* Poke them into the clipboard */
-        event.clipboardData.setData('text/html', resNode.outerHTML);
-        event.clipboardData.setData('text/plain', text.trim());
+        event.clipboardData.setData('text/html', evdata.html);
+        event.clipboardData.setData('text/plain', evdata.text);
         /* Prevent browser from overwriting our data */
         event.preventDefault();
       },
@@ -1503,7 +1505,7 @@ this.Instant = function() {
              *       definition of that), one would have to evaluate messages
              *       that are not included by the selection. Instead,
              *       omission marks that have no message to be rooted at are
-             *       now prevented from "pusing" the remainder of the
+             *       now prevented from "pushing" the remainder of the
              *       selection to the right. */
             var nd = el.getAttribute('data-depth') - minDepth;
             el.setAttribute('data-depth', Math.max(nd, 0));
@@ -1540,6 +1542,10 @@ this.Instant = function() {
               evt.clientY - clickPos[1]) >= DRAG_THRESHOLD)
             return;
           clickPos = null;
+          /* Plugin hook */
+          Instant._fireListeners('message.click', {source: evt,
+            _cancel: evt.preventDefault.bind(evt)});
+          if (evt.defaultPrevented) return;
           /* Filter out clicks on links */
           if (evt.target.matches('a, a *')) return;
           /* Navigate to message */
@@ -1804,7 +1810,7 @@ this.Instant = function() {
         return ret;
       },
       /* Get the node hosting the replies to the given message, or the
-       * message itself if it's actually not a message at all */
+       * "message" itself if it's actually not a message at all */
       _getReplyNode: function(message) {
         if (Instant.message.isMessage(message)) {
           var lc = message.lastElementChild;
@@ -2052,7 +2058,7 @@ this.Instant = function() {
        * and the return value is not sorted.
        * cb is called on the message node being processed and returns a
        * bitmask of the following values:
-       *  1: Predicate matches; message in question be returned.
+       *  1: Predicate matches; message in question should be returned.
        *  2: Children of the message should be scanned.
        *  4: The direct predecessor of the message should be scanned.
        *  8: The direct successor of the message should be scanned.
@@ -3189,12 +3195,6 @@ this.Instant = function() {
         var text = inputMsg.value;
         if (event.keyCode == 13 && ! event.shiftKey) { // Return
           /* Send message! */
-          /* Allow event handlers to have a word */
-          var evdata = {text: text, source: event,
-            _cancel: event.preventDefault.bind(event)};
-          Instant._fireListeners('input.send', evdata);
-          if (event.defaultPrevented) return;
-          text = evdata.text;
           /* Do not input line feeds in any case */
           event.preventDefault();
           /* Actually submit it */
@@ -3296,6 +3296,11 @@ this.Instant = function() {
       post: function(text, event) {
         var inputMsg = $cls('input-message', inputNode);
         if (text == null) text = inputMsg.value;
+        /* Allow event handlers to have a word */
+        var evdata = {text: text, source: event, _cancel: true};
+        var evt = Instant._fireListeners('input.post', evdata);
+        if (evt.canceled) return;
+        text = evdata.text;
         /* Whether to clear the input bar */
         var clear = false;
         /* Ignore empty sends */
@@ -3954,7 +3959,7 @@ this.Instant = function() {
         /* Insert node into list */
         node.insertBefore(newWrapper, insBefore);
         /* Maintain consistency */
-        Instant.userList._update();
+        Instant.userList._update({added: id});
         /* Return something sensible */
         return newNode;
       },
@@ -3968,7 +3973,7 @@ this.Instant = function() {
         var l = leaveListeners[id];
         delete leaveListeners[id];
         if (l) runList(l, id, false);
-        Instant.userList._update();
+        Instant.userList._update({removed: id});
       },
       /* Remove everything from list */
       clear: function(_noListeners) {
@@ -3982,7 +3987,7 @@ this.Instant = function() {
             runList(l, k, true);
           }
         }
-        Instant.userList._update();
+        Instant.userList._update({cleared: true});
       },
       /* Obtain data for a certain (set of) users in a convenient format
        * The user list is filtered by entries that match all parameters of
@@ -4066,7 +4071,7 @@ this.Instant = function() {
         });
       },
       /* Update some CSS properties */
-      _update: function() {
+      _update: function(detail) {
         /* Update counter */
         if (node && collapser) {
           var c = $sel('span', collapser);
@@ -4078,7 +4083,7 @@ this.Instant = function() {
         /* Now actually delegated to sidebar itself */
         Instant.sidebar.updateWidth();
         /* Fire event */
-        Instant._fireListeners('userList.update');
+        Instant._fireListeners('userList.update', detail);
       },
       /* Collapse or uncollapse the user list */
       collapse: function(invisible) {
@@ -4096,7 +4101,7 @@ this.Instant = function() {
           /* Update animations */
           Instant.userList._updateDecay();
         }
-        Instant.userList._update();
+        Instant.userList._update({collapsed: invisible});
       },
       /* Return whether the user list is currently collapsed */
       isCollapsed: function() {
@@ -4167,13 +4172,13 @@ this.Instant = function() {
         var newChild = null;
         if (id) newChild = Instant.userList.get(id);
         if (! newChild) {
-          Instant.userList._update();
+          Instant.userList._update({menuOn: null});
           return false;
         }
         var newParent = newChild.parentNode;
         newParent.classList.add('selected');
         newParent.appendChild(menu);
-        Instant.userList._update();
+        Instant.userList._update({menuOn: id});
         Instant.sidebar.scrollIntoView(newParent);
         newChild.focus();
         return true;
@@ -4246,7 +4251,7 @@ this.Instant = function() {
       },
       /* Remove the leaving listener defined by uid and cb
        * A listener can potentially carry references to heavy objects (e.g.
-       * a closure referending a complex DOM node), so care should be taken
+       * a closure referencing a complex DOM node), so care should be taken
        * to remove listeners as early as possible. */
       _stopListeningLeave: function(uid, cb) {
         var list = leaveListeners[uid];
@@ -4366,7 +4371,7 @@ this.Instant = function() {
         Instant.privmsg._update();
       },
       /* Update notification state */
-      _update: function() {
+      _update: function(detail) {
         /* Categorize popups into Unread, Inbox, Drafts, Outbox */
         var counts = {U: 0, I: 0, D: 0, O: 0};
         popups.forEach(function(popup) {
@@ -4418,6 +4423,7 @@ this.Instant = function() {
           counterNode.classList.add('hidden');
         }
         Instant.title.update();
+        Instant._fireListeners('pm.update', detail);
       },
       /* Update the gray-out status of the given popup */
       _updateNicks: function(popup) {
@@ -4463,7 +4469,7 @@ this.Instant = function() {
         popupsByUser = {};
         preferredReply = {};
         storage.clear();
-        Instant.privmsg._update();
+        Instant.privmsg._update({cleared: true});
       },
       /* Show the requested class(es) of popups */
       show: function(unread, inbox, drafts, outbox) {
@@ -4473,7 +4479,7 @@ this.Instant = function() {
           if (Instant.privmsg.showOne(popup, flags))
             shownNew = true;
         });
-        Instant.privmsg._update();
+        Instant.privmsg._update({bulkShow: flags, shownNew: shownNew});
         Instant.animation.unflash(msgUnread);
         return shownNew;
       },
@@ -4558,9 +4564,10 @@ this.Instant = function() {
           Instant.privmsg._save(popup);
           Instant.privmsg._updateNicks(popup);
           Instant.popups.add(popup);
-          Instant.privmsg._update();
+          Instant.privmsg._update({popup: popup});
           editor.focus();
         }
+        Instant._fireListeners('pm.write', {popup: popup});
         return popup;
       },
       /* Send a PM draft */
@@ -4588,7 +4595,7 @@ this.Instant = function() {
             dateNode.removeChild(dateNode.firstChild);
             dateNode.appendChild(formatDateNode(resp.timestamp));
             Instant.privmsg._transformAfterview(popup, true);
-            Instant.privmsg._update();
+            Instant.privmsg._update({popup: popup});
             Instant.popups.focus(popup);
           }
         }
@@ -4598,8 +4605,12 @@ this.Instant = function() {
         if (parentNode)
           data.parent = parentNode.textContent;
         var recipient = $cls('pm-to-id', popup).textContent;
+        var evdata = {popup: popup, recipient: recipient, data: data,
+          _cancel: true};
+        if (Instant._fireListeners('pm.send', evdata).canceled) return;
         try {
-          Instant.connection.sendUnicast(recipient, data, callback);
+          Instant.connection.sendUnicast(evdata.recipient, evdata.data,
+                                         callback);
         } catch (e) {
           Instant.popups.addNewMessage(popup, {content: $makeFrag(
             ['b', null, 'Error: '],
@@ -4617,7 +4628,7 @@ this.Instant = function() {
         if (isNew) {
           Instant.privmsg._updateNicks(popup);
           Instant.privmsg._save(popup);
-          Instant.privmsg._update();
+          Instant.privmsg._update({popup: popup});
           Instant.animation.flash(msgUnread);
           Instant.notifications.submitNew({level: 'privmsg',
             text: 'You have a new private message.',
@@ -4626,11 +4637,12 @@ this.Instant = function() {
               popup.classList.remove('pm-unread');
               Instant.privmsg._save(popup);
               Instant.popups.add(popup);
-              Instant.privmsg._update();
+              Instant.privmsg._update({popup: popup});
               Instant.animation.unflash(msgUnread);
             }
           });
         }
+        Instant._fireListeners('pm.read', {popup: popup});
         return popup;
       },
       /* Start composing another message towards the target of a sent PM */
@@ -4655,7 +4667,7 @@ this.Instant = function() {
         var idx = popups.indexOf(popup);
         if (idx != -1) popups.splice(idx, 1);
         Instant.popups.del(popup);
-        Instant.privmsg._update();
+        Instant.privmsg._update({removed: popup});
       },
       /* Update the indexes to reflect popup's user */
       _retarget: function(popup, from, to) {
@@ -5087,7 +5099,9 @@ this.Instant = function() {
       },
       /* Set the window title to str */
       _set: function(str) {
+        var doFire = (document.title != str);
         document.title = str;
+        if (doFire) Instant._fireListeners('windowTitle.set', {title: str});
       },
       /* Update the window title to accord to the internal counters */
       _update: function() {
@@ -5213,6 +5227,7 @@ this.Instant = function() {
               document.head.appendChild(link);
             }
             link.href = url;
+            Instant._fireListeners('favicon.set', {url: url});
           }
         };
       }()
@@ -5320,6 +5335,7 @@ this.Instant = function() {
             node.style.display = '';
             node.style.opacity = '';
             visible = true;
+            Instant._fireListeners('greeter.visibility', {visible: true});
           },
           /* Hide greeter */
           hide: function(fast) {
@@ -5335,7 +5351,12 @@ this.Instant = function() {
               }, 1000);
             }
             visible = false;
+            Instant._fireListeners('greeter.visibility', {visible: false});
           },
+          /* Return whether it is visible */
+          isVisible: function() {
+            return visible;
+          }
         };
       }(),
       /* Spinner indicating ongoing action */
@@ -5389,6 +5410,7 @@ this.Instant = function() {
             } else {
               node.classList.remove('visible');
             }
+            Instant._fireListeners('spinner.visibility', {visible: visible});
           }
         };
       }(),
@@ -5791,7 +5813,7 @@ this.Instant = function() {
             ['hr'],
             ['div', 'settings-nodisturb', [
               checkbox('no-disturb', 'Do not disturb', 'Void ' +
-                'notifications that are below your chosen level' )
+                'notifications that are below your chosen level')
             ]]
           ]]
         ]);
@@ -6005,13 +6027,14 @@ this.Instant = function() {
       },
       /* Process a notification object properly */
       submit: function(notify) {
-        var data = {notify: notify, suppress: false};
+        var data = {notify: notify, suppress: false, _cancel: true};
         if (Instant.notifications.noDisturb) {
           var nl = LEVELS[notify.level];
           var ul = LEVELS[Instant.notifications.level];
           data.suppress = (nl > ul);
         }
-        Instant._fireListeners('notifications.submit', data);
+        if (Instant._fireListeners('notifications.submit', data).canceled)
+          return null;
         Instant.sidebar._notify(notify);
         Instant.animation.onlineStatus._notify(notify);
         /* Externally visible means of notification can be swallowed */
@@ -6206,12 +6229,14 @@ this.Instant = function() {
       _updateHidden: function(flash) {
         var count = $selAll('.popup', stack).length;
         hiddenMsg.textContent = 'Hidden popups (' + (count || 'none') + ')';
-        if (wrapper.classList.contains('hidden')) {
+        var hidden = wrapper.classList.contains('hidden');
+        if (hidden) {
           Instant.sidebar.showMessage(hiddenMsg);
         } else {
           Instant.sidebar.hideMessage(hiddenMsg);
         }
         if (flash) Instant.animation.flash(hiddenMsg);
+        Instant._fireListeners('popups.hide', {hidden: hidden});
       },
       /* Create a new popup */
       make: function(options) {
@@ -6315,6 +6340,7 @@ this.Instant = function() {
         } else if (hasPopups) {
           Instant.popups.focus(node);
         }
+        Instant._fireListeners('popups.add', {popup: node});
       },
       /* Remove a node from the popup stack */
       del: function(node) {
@@ -6338,6 +6364,7 @@ this.Instant = function() {
         } else {
           Instant.popups.focus(next);
         }
+        Instant._fireListeners('popups.del', {popup: node});
       },
       /* Collapse or expand a popup */
       collapse: function(node, force) {
@@ -6353,6 +6380,7 @@ this.Instant = function() {
           var url = Instant.icons.get('collapse');
           $sel('.popup-collapse img', node).src = url;
         }
+        Instant._fireListeners('popups.collapse', {popup: node});
       },
       /* Focus a concrete popup or anything */
       focus: function(node) {
@@ -6382,6 +6410,7 @@ this.Instant = function() {
         while (stack.firstChild) stack.removeChild(stack.firstChild);
         Instant.popups._setEmpty(true);
         Instant.input.focus();
+        Instant._fireListeners('popups.clear');
       },
       /* Hide/unhide all popups */
       hideAll: function(force, nonempty) {
@@ -6442,6 +6471,8 @@ this.Instant = function() {
       addMessage: function(popup, msgnode) {
         var bottom = $cls('popup-bottom', popup);
         popup.insertBefore(msgnode, bottom);
+        Instant._fireListeners('popups.addMessage', {popup: popup,
+          message: msgnode});
       },
       /* Add a newly-created message to a popup */
       addNewMessage: function(popup, options) {
@@ -6451,7 +6482,10 @@ this.Instant = function() {
       },
       /* Remove a message from a popup */
       removeMessage: function(msgnode) {
+        var popup = $parentWithClass(msgnode, 'popup');
         msgnode.parentNode.removeChild(msgnode);
+        Instant._fireListeners('popups.removeMessage', {popup: popup,
+          message: msgnode});
       },
       /* Listen for the removal of a popup */
       _listenRemove: function(popup, cb) {
@@ -6498,6 +6532,7 @@ this.Instant = function() {
             var cont = $cls('windows', winnode);
             cont.appendChild(wnd);
             winnode.classList.remove('hidden');
+            Instant._fireListeners('windows.add', {window: wnd});
           },
           /* Hide the given window */
           del: function(wnd) {
@@ -6507,6 +6542,7 @@ this.Instant = function() {
             } catch (e) {}
             if (cont.children.length == 0)
               winnode.classList.add('hidden');
+            Instant._fireListeners('windows.del', {window: wnd});
           },
           /* Collapse (iconify) the given window */
           collapse: function(wnd, force) {
@@ -7407,19 +7443,17 @@ this.Instant = function() {
     if (data == null) data = {};
     this.instant = Instant;
     this.type = type;
-    this.cancelable = (!! data._cancel);
+    this._cancel = data._cancel;
+    this.cancelable = (!! this._cancel);
     this.canceled = false;
-    for (var key in data) {
-      if (! data.hasOwnProperty(key)) continue;
-      this[key] = data[key];
-    }
+    this.data = data;
   }
   InstantEvent.prototype = {
     /* Cancel the event, if that did not already happen */
     cancel: function() {
       if (! this._cancel || this.canceled) return false;
       this.canceled = true;
-      this._cancel();
+      if (typeof this._cancel == 'function') this._cancel();
       return true;
     }
   };
@@ -7446,9 +7480,11 @@ this.Instant = function() {
   };
   /* Invoke the listeners for a given event */
   Instant._fireListeners = function(type, data) {
-    if (! handlers[type]) return;
+    if (! handlers[type] && ! handlers['*']) return {canceled: false};
     var event = new InstantEvent(type, data);
     runList(handlers[type], event);
+    runList(handlers['*'], event);
+    return event;
   };
   /* Global initialization function */
   Instant.init = function(main, loadWrapper) {
