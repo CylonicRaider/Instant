@@ -4814,6 +4814,7 @@ this.Instant = function() {
                                      editor.value.length);
             editor.focus();
             Instant.privmsg._updatePreview(target);
+            Instant.popups.add(target);
           }, className: 'pm-quote-add'},
           {text: 'Reply', color: '#008000', onclick: function() {
             var nick = data.nick;
