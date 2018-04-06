@@ -18,6 +18,10 @@ public class QueryStrippingProducer implements Producer {
             return source;
         }
 
+        public boolean isValid() {
+            return source.isValid();
+        }
+
     }
 
     private final Producer inner;

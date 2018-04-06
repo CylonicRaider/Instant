@@ -45,7 +45,7 @@ public class FileCell {
             try {
                 d = MessageDigest.getInstance("MD5");
             } catch (NoSuchAlgorithmException exc) {
-                // SRSLY?
+                // Seriously?
                 return null;
             }
             d.update(Encodings.toBytes(created));
