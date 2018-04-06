@@ -398,7 +398,7 @@ body {
   font: inherit;
   line-height: 0;
 }
-.sidebar-widget, #main .sidebar-widget {
+.sidebar-widget {
   -webkit-transition: box-shadow 0.1s;
   transition: box-shadow 0.1s;
 }
@@ -680,7 +680,7 @@ button.button-icon > img {
   cursor: default;
   outline: none;
 }
-.button, #main .button, .settings, #main .settings, .extras, #main .extras {
+.button, .settings, .extras {
   -webkit-transition: box-shadow 0.1s;
   transition: box-shadow 0.1s;
 }
@@ -739,6 +739,8 @@ button.button-icon > img {
   background: white;
   box-shadow: 0 0 5px #808080;
   line-height: 1.2;
+  -webkit-transition: background 0.5s;
+  transition: background 0.5s;
 }
 .input-bar .input-nick-sizer, .input-bar .input-nick,
 .input-bar .input-message, .input-bar .input-message-sizer {
@@ -783,8 +785,7 @@ button.button-icon > img {
   color: transparent;
   background: #c0c0c0;
 }
-/* Need to be more specific than catch-all below */
-.input-bar .input-nick-sizer, #main .input-bar .input-nick-sizer {
+.input-bar .input-nick-sizer {
   -webkit-transition: background 0.1s linear;
   transition: background 0.1s linear;
 }
@@ -801,6 +802,8 @@ button.button-icon > img {
   -webkit-flex-grow: 1;
   flex-grow: 1;
   padding: 1px 0 1px 0.25em;
+  -webkit-transition: background 0.1s;
+  transition: background 0.1s;
 }
 .input-bar .input-nick-prompt {
   display: inline-block;
@@ -1395,11 +1398,11 @@ img.inline {
 @-webkit-keyframes clrfade { to { color: rgba(0, 0, 0, 0.5); } }
 @keyframes clrfade { to { color: rgba(0, 0, 0, 0.5); } }
 
-body, #main * {
-  -webkit-transition: background 0.5s, color 0.5s;
-  transition: background 0.5s, color 0.5s;
+body {
+  -webkit-transition: background 0.5s;
+  transition: background 0.5s;
 }
 #main.ready {
-  -webkit-transition: background 0.5s, color 0.5s, opacity 1s;
-  transition: background 0.5s, color 0.5s, opacity 1s;
+  -webkit-transition: background 0.5s, opacity 1s;
+  transition: background 0.5s, opacity 1s;
 }
