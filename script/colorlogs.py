@@ -82,6 +82,43 @@ def highlight_stream(it, newlines=False):
         for line in it:
             yield highlight(line.rstrip('\n')) + '\n'
 
+class linecnt(int):
+    def __new__(cls, value):
+        sup = super(linecnt, cls)
+        if isinstance(value, str):
+            if not re.match(r'[+-]?[1-9][0-9]*', value):
+                raise ValueError('Invalid line count')
+            elif value.startswith('+'):
+                return sup.__new__(cls, '-' + value[1:])
+            elif value.startswith('-'):
+                return sup.__new__(cls, value[1:])
+        return sup.__new__(cls, value)
+
+def itertail(it, count):
+    if count < 0:
+        # For negative count, drop some items and then output everything.
+        for i in range(-count - 1): next(it)
+        for item in it: yield item
+    elif count == 0:
+        # For a count of zero, drop all input and output zero items.
+        for item in it: pass
+    else:
+        # Otherwise, maintain a ring buffer of count items.
+        buf, offset = [None] * count, 0
+        for item in it:
+            buf[offset] = item
+            offset = (offset + 1) % count
+        # If the item at offset is None, the buffer was not filled;
+        # otherwise, the first item is at offset. Cut-and-paste buffer
+        # to become linear.
+        if buf[offset] is None:
+            buf = buf[:offset]
+        else:
+            buf = buf[offset:] + buf[:offset]
+        # Drain buffer.
+        for item in buf:
+            yield item
+
 def open_file(path, mode):
     if path == '-':
         if mode[:1] in ('a', 'w'):
@@ -99,14 +136,21 @@ def main():
                  'the default)')
     p.flag('append', short='a',
            help='Append to output file instead of overwriting it')
+    p.option('lines', short='n', type=linecnt, default=None,
+             help='Only output trailing lines.\n'
+                 'N, -N -> Output the last N lines.\n'
+                 '+N -> Output from the (one-based) N-th line on.')
     p.argument('in', default='-',
                help='File to read from (- is standard input and '
                    'the default)')
     p.parse(sys.argv[1:])
     inpath, outpath, append = p.get('in', 'out', 'append')
+    lastlines = p.get('lines')
     outmode = 'a' if append else 'w'
     with open_file(inpath, 'r') as fi, open_file(outpath, outmode) as fo:
-        for l in highlight_stream(fi, True):
+        it = iter(fi)
+        if lastlines is not None: it = itertail(it, lastlines)
+        for l in highlight_stream(it, True):
             fo.write(l)
 
 if __name__ == '__main__': main()
