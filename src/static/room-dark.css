@@ -138,6 +138,9 @@
 .dark .nick, .dark .message.emote > .line .content {
   color: black;
 }
+.dark .message.emote > .line .content .monospace {
+  background: #f0f0f0;
+}
 .dark .message.ping > .line {
   background: #202000;
   color: inherit;
