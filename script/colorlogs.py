@@ -7,14 +7,10 @@ import sys, os, re
 
 import instabot
 
-# Configurable constants
-DEFAULT_LOG_PATH = 'log/scribe.log'
-
-# Actual constants
 COLORS = {None: '\033[0m', 'bold': '\033[1m', 'black': '\033[30m',
     'red': '\033[31m', 'green': '\033[32m', 'orange': '\033[33m',
     'blue': '\033[34m', 'magenta': '\033[35m', 'cyan': '\033[36m',
-    'white': '\033[37m'}
+    'gray': '\033[37m'}
 
 def highlight(line):
     def highlight_scalar(val):
@@ -78,9 +74,39 @@ def highlight(line):
         ret.extend((COLORS[None], line[idx:]))
     return ''.join(ret)
 
+def highlight_stream(it, newlines=False):
+    if not newlines:
+        for line in it:
+            yield highlight(line)
+    else:
+        for line in it:
+            yield highlight(line.rstrip('\n')) + '\n'
+
+def open_file(path, mode):
+    if path == '-':
+        if mode[:1] in ('a', 'w'):
+            return os.fdopen(sys.stdout.fileno(), mode, 1)
+        else:
+            return os.fdopen(sys.stdin.fileno(), mode, 1)
+    else:
+        return open(path, mode)
+
 def main():
-    for line in sys.stdin:
-        sys.stdout.write(highlight(line.rstrip('\n')) + '\n')
-        sys.stdout.flush()
+    p = instabot.OptionParser(sys.argv[0])
+    p.help_action(desc='A syntax highlighter for Scribe logs.')
+    p.option('out', short='o', default='-',
+             help='File to write output to (- is standard output and '
+                 'the default)')
+    p.flag('append', short='a',
+           help='Append to output file instead of overwriting it')
+    p.argument('in', default='-',
+               help='File to read from (- is standard input and '
+                   'the default)')
+    p.parse(sys.argv[1:])
+    inpath, outpath, append = p.get('in', 'out', 'append')
+    outmode = 'a' if append else 'w'
+    with open_file(inpath, 'r') as fi, open_file(outpath, outmode) as fo:
+        for l in highlight_stream(fi, True):
+            fo.write(l)
 
 if __name__ == '__main__': main()
