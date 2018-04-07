@@ -48,10 +48,14 @@ IN_ALL_EVENTS = (IN_ACCESS | IN_MODIFY | IN_ATTRIB | IN_CLOSE_WRITE |
                  IN_MOVED_TO | IN_CREATE | IN_DELETE | IN_DELETE_SELF |
                  IN_MOVE_SELF)
 
+# All inotify constants for enumeration and reverse lookup
+constants = dict((k, v) for k, v in globals().items() if k.startswith('IN_'))
+__all__ += list(constants)
+
 # Own constants
 READ_BUFFER_SIZE = 16384
 
-# Define structures
+# Structures
 class inotify_event(ctypes.Structure):
     _fields_ = (('wd', ctypes.c_int),
                 ('mask', ctypes.c_uint32),
