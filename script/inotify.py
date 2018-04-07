@@ -6,6 +6,8 @@
 import sys, os
 import ctypes
 
+__all__ = ['INotify', 'watch']
+
 # Constants
 # Taken from glibc as of commit 23158b08a0908f381459f273a984c6fd328363cb. We
 # only include the platform-independent flags.
@@ -46,6 +48,9 @@ IN_ALL_EVENTS = (IN_ACCESS | IN_MODIFY | IN_ATTRIB | IN_CLOSE_WRITE |
                  IN_MOVED_TO | IN_CREATE | IN_DELETE | IN_DELETE_SELF |
                  IN_MOVE_SELF)
 
+# Own constants
+READ_BUFFER_SIZE = 16384
+
 # Define structures
 class inotify_event(ctypes.Structure):
     _fields_ = (('wd', ctypes.c_int),
@@ -72,6 +77,15 @@ class inotify_event(ctypes.Structure):
             ret.append(entry)
         return ret
 
+    def __repr__(self):
+        try:
+            name = repr(self.name)
+        except AttributeError:
+            name = '(~%r chars)' % (self.len,)
+        return '<%s(wd=%r, mask=%r, cookie=%r, path=%r, name=%s)>' % (
+            self.__class__.__name__, self.wd, self.mask, self.cookie,
+            getattr(self, 'path'), name)
+
 # Load the C functions
 try:
     libc = ctypes.CDLL('libc.so.6', use_errno=True)
@@ -84,11 +98,6 @@ try:
     inotify_rm_watch = libc.inotify_rm_watch
 except AttributeError:
     raise ImportError('libc6 has no inotify bindings')
-
-try:
-    inotify_init1 = libc.inotify_init1
-except AttributeError:
-    inotify_init1 = None
 
 # Enforce C function signatures
 def check_errno(result, func, args):
@@ -103,6 +112,65 @@ inotify_add_watch.argtypes = (ctypes.c_int, ctypes.c_char_p, ctypes.c_uint32)
 inotify_add_watch.errcheck = check_errno
 inotify_rm_watch.argtypes = (ctypes.c_int, ctypes.c_int)
 inotify_rm_watch.errcheck = check_errno
-if inotify_init1 is not None:
-    inotify_init1.argtypes = (ctypes.c_int,)
-    inotify_init1.errcheck = check_errno
+
+# Path encoding facilities
+try:
+    fsencode = os.fsencode
+    fsdecode = os.fsdecode
+except AttributeError:
+    def fsencode(s):
+        if isinstance(s, bytes):
+            return s
+        return s.encode(sys.getfilesystemencoding(),
+                        errors='surrogateescape')
+    def fsdecode(s):
+        if isinstance(s, str):
+            return s
+        return s.decode(sys.getfilesystemencoding(),
+                        errors='surrogateescape')
+
+# Pythonic wrappers
+class INotify:
+    def __init__(self):
+        self.fd = inotify_init()
+        self.watches = {}
+    def __enter__(self):
+        return self
+    def __exit__(self, *args):
+        self.close()
+    def __iter__(self):
+        while 1:
+            for evt in self.get_events():
+                yield evt
+    def __del__(self):
+        self.close()
+    def fileno(self):
+        return self.fd
+    def close(self, __os=os):
+        if self.fd is not None:
+            __os.close(self.fd)
+            self.fd = None
+    def watch(self, path, mask):
+        wd = inotify_add_watch(self.fd, fsencode(path), mask)
+        self.watches[wd] = path
+        return wd
+    def unwatch(self, wd):
+        self.watches.pop(wd, None)
+        inotify_rm_watch(self.fd, wd)
+    def get_events(self):
+        buf = os.read(self.fd, READ_BUFFER_SIZE)
+        events = inotify_event.parse_list(buf)
+        # Perform bookkeeping
+        for evt in events:
+            evt.path = self.watches.get(evt.wd)
+            if evt.mask & IN_IGNORED:
+                self.watches.pop(evt.wd, None)
+            evt.rawname = evt.name
+            evt.name = fsdecode(evt.rawname)
+        return events
+
+def watch(path, mask):
+    with INotify() as notifier:
+        notifier.watch(path, mask)
+        for event in notifier:
+            yield event
