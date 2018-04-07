@@ -1,7 +1,9 @@
 
 # -*- coding: ascii -*-
 
-# Python ctypes wrapper around Linux' inotify API.
+"""
+Python ctypes wrapper around Linux' inotify API.
+"""
 
 import sys, os
 import ctypes
@@ -61,7 +63,7 @@ class inotify_event(ctypes.Structure):
                 ('mask', ctypes.c_uint32),
                 ('cookie', ctypes.c_uint32),
                 ('len', ctypes.c_uint32),
-                ('_name', ctypes.c_char * 0))
+                ('__name', ctypes.c_char * 0))
 
     @classmethod
     def parse_list(cls, data):
@@ -135,33 +137,110 @@ except AttributeError:
 
 # Pythonic wrappers
 class INotify:
+    """
+    INotify() -> new instance
+
+    This class maintains an inotify file descriptor, which is automatically
+    created on instance initialization.
+    """
+
     def __init__(self):
+        "Initializer; see class docstring for details"
         self.fd = inotify_init()
         self.watches = {}
+
     def __enter__(self):
+        "Context manager entry; see class docstring for details"
         return self
+
     def __exit__(self, *args):
+        "Context manager exit; see class docstring for details"
         self.close()
+
     def __iter__(self):
+        """
+        __iter__() -> iterator
+
+        Return an iterator that continuously yields events (whenever they
+        appear); see get_events().
+        """
         while 1:
             for evt in self.get_events():
                 yield evt
+
     def __del__(self):
+        "Destructor; invokes close()."
         self.close()
+
     def fileno(self):
+        """
+        fileno() -> int
+
+        Return the inotify file descriptor managed by this instance.
+        """
         return self.fd
+
     def close(self, __os=os):
+        """
+        close() -> None
+
+        Close the underlying file descriptor (if this has not already
+        happened).
+        """
         if self.fd is not None:
             __os.close(self.fd)
             self.fd = None
+            self.watches.clear()
+
     def watch(self, path, mask):
+        """
+        watch(path, mask) -> int
+
+        Watch for events matching mask on path, and return the watch
+        descriptor.
+        """
         wd = inotify_add_watch(self.fd, fsencode(path), mask)
         self.watches[wd] = path
         return wd
+
     def unwatch(self, wd):
+        """
+        unwatch(wd) -> None
+
+        Stop watching on wd.
+        """
         self.watches.pop(wd, None)
         inotify_rm_watch(self.fd, wd)
+
+    def get_watch(self, path):
+        """
+        get_watch(path) -> int
+
+        Return a watch descriptor corresponding to path, or None.
+        WARNING: The returned watch descriptor may have already been deleted
+                 internally. Prefer using the path attribute of events
+                 returned by get_event() instead.
+        """
+        for wd, p in self.watches.items():
+            if p == path: return wd
+        raise None
+
     def get_events(self):
+        """
+        get_events() -> list
+
+        Retrieve a list of events for the watched paths. Each entry of the
+        output has the following attributes:
+        wd    : The watch descriptor as an integer. Can be -1 for certain
+                ("global") events.
+        mask  : A bitmask of the events that happened to the file watched by
+                wd.
+        cookie: Value for correlating IN_MOVED_FROM and IN_MOVED_TO events.
+        path  : The path that was passed to the watch() call that returned
+                wd (as a string).
+        name  : The name of a directory entry the event happened to, if
+                applicable, or None.
+        """
         buf = os.read(self.fd, READ_BUFFER_SIZE)
         events = inotify_event.parse_list(buf)
         # Perform bookkeeping
@@ -169,11 +248,18 @@ class INotify:
             evt.path = self.watches.get(evt.wd)
             if evt.mask & IN_IGNORED:
                 self.watches.pop(evt.wd, None)
-            evt.rawname = evt.name
+            evt._name = evt.name
             evt.name = fsdecode(evt.rawname)
         return events
 
 def watch(path, mask):
+    """
+    watch(path, mask) -> iterator
+
+    Convenience wrapper for watching a single file. This creates an INotify
+    instance, registers path to be watched for events matching mask, and
+    yields all events read from the INotify instance.
+    """
     with INotify() as notifier:
         notifier.watch(path, mask)
         for event in notifier:
