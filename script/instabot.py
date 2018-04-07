@@ -658,7 +658,7 @@ class CmdlineBotBuilder:
         self.parser.flag_ex('no-cookies', None, 'cookies',
                             help='Do not save cookies')
         kwargs = {}
-        if self.defurl is not Ellipsis: kwds['default'] = self.defurl
+        if self.defurl is not Ellipsis: kwargs['default'] = self.defurl
         self.parser.argument('url', help='URL to connect to', **kwargs)
         return self.parser
     def parse(self, argv):
