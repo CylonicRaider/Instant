@@ -3411,14 +3411,13 @@ this.Instant = function() {
         var nodeRect = node.getBoundingClientRect();
         var paneRect = pane.getBoundingClientRect();
         /* Cookie value stays invariant */
-        var cookie = nodeRect.top - paneRect.top + nodeRect.height * hf -
-          pane.scrollTop;
+        var cookie = nodeRect.top + nodeRect.height * hf - paneRect.top;
         return function() {
           /* Restore values */
           nodeRect = node.getBoundingClientRect();
           paneRect = pane.getBoundingClientRect();
-          pane.scrollTop = Math.round(nodeRect.top - paneRect.top +
-            nodeRect.height * hf - cookie);
+          pane.scrollTop = Math.round(pane.scrollTop + nodeRect.top +
+            nodeRect.height * hf - paneRect.top - cookie);
           if (focused) focused.focus();
         };
       },
