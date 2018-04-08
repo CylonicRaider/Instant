@@ -110,17 +110,20 @@ class linecnt(int):
                 return sup.__new__(cls, value[1:])
         return sup.__new__(cls, value)
 
+def seek(fp, offset, whence):
+    try:
+        return fp.seek(offset, whence)
+    except io.UnsupportedOperation:
+        return None
+    except IOError as e:
+        if e.errno != errno.ESPIPE: raise
+        return None
+
 def backoff(infile, lines):
     # Read infile "backwards" until we've encountered no less than lines
     # newline characters.
     # BUG: Might not work properly if the file is truncated concurrently.
-    try:
-        infile.seek(0, io.SEEK_END)
-    except io.UnsupportedOperation:
-        return False
-    except IOError as e:
-        if e.errno == errno.ESPIPE: return False
-        raise
+    if seek(infile, 0, io.SEEK_END) is None: return False
     while lines > 0:
         # Position the file offset back
         try:
@@ -168,16 +171,40 @@ def itertail(it, count):
             yield item
 
 def follow(fp, path=None):
+    # Keep track of file truncation (shared by both backends).
+    def watch_truncate(fp):
+        def callback():
+            stats = os.fstat(fp.fileno())
+            offset = fp.tell()
+            if offset > stats.st_size:
+                sys.stderr.write('----- file truncated -----\n')
+                sys.stderr.flush()
+                fp.seek(stats.st_size)
+                return True
+            return False
+        if seek(fp, 0, io.SEEK_CUR) is None: return None
+        return callback
+    # Regularly poll the file for new lines.
     def follow_poll(fp):
+        watcher = watch_truncate(fp)
         while 1:
-            for l in fp: yield l
+            for l in fp:
+                yield l
+            if watcher is not None and watcher():
+                continue
             time.sleep(FOLLOW_POLL_INTERVAL)
+    # Use inotify to get quicker updates when the file changes.
     def follow_inotify(fp, path):
+        watcher = watch_truncate(fp)
         with inotify.INotify() as notifier:
             notifier.watch(path, inotify.IN_MODIFY)
             while 1:
-                for l in fp: yield l
+                for l in fp:
+                    yield l
                 notifier.get_events()
+                if watcher is not None:
+                    watcher()
+    # Choose a backend and return it.
     if path is None or inotify is None:
         return follow_poll(fp)
     else:
