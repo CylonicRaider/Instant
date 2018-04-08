@@ -83,7 +83,7 @@
   background: #404040;
 }
 .dark .settings-content h2, .dark .settings-content h3,
-.dark .extras-content h2, .dark .extras-content h3, {
+.dark .extras-content h2, .dark .extras-content h3 {
   color: white;
 }
 .dark .settings-content .more-link, .dark .settings-content a.more-link {
