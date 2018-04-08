@@ -201,6 +201,9 @@ option. (Refer to the `--help` message for a listing.)
 - `--msgdb` *file* — *Message database*: Stores messages in an SQLite
   database instead of RAM, allowing for potentially unbounded storage.
 
+    Use `:memory:` to create an in-memory message database that does not
+    discard messages if there are more than *maxlen* ones.
+
 - `--read-file` *file* — *Scrape messages from logfile*: Scribe formats its
   logfile in a machine-readable way, and indeed supports restoring messages
   from it. Since this may be time-consuming, users are encouraged to use
@@ -208,7 +211,7 @@ option. (Refer to the `--help` message for a listing.)
 
     Ancient versions (without `--msgdb`) used this to persist messages across
     restarts; the name of the bot is derived from the very first version only
-    noting down messages (which the second version could deliver to clients).
+    noting down messages (which the second version would deliver to clients).
 
 - `--push-logs` *client-ID* — *Push logs*: Can be used to (crudely) transfer
   logs between instances. When specified, Scribe pushes all of its logs to
@@ -230,7 +233,7 @@ option. (Refer to the `--help` message for a listing.)
     updating its logs. Intended to provide short-term coverage when the
     "main" instance of Scribe is being restarted.
 
-- `--nick` *name* — *Nickname*: Allows setting a custom nick-name for the
+- `--nick` *name* — *Nickname*: Allows setting a custom nickname for the
   bot. An empty nickname will make the bot invisible to users, although it
   will still respond with the empty nickname upon request and contribute to
   the user count.
@@ -246,9 +249,14 @@ option. (Refer to the `--help` message for a listing.)
 - `--no-cookies` — *No cookies*: Disables the storage of cookies (as is the
   default).
 
-- *url* — *WebSocket URL to connect to*: The single mandatory positional
+- *url* — *WebSocket URL to connect to*: The single optional positional
   argument specifies (indeed) where to connect to. It is the resource `ws`
-  relative to the (slash-terminated) room URL to connect to, with a `ws` or
-  `wss` scheme; for example, to connect to the upstream *&test*
+  relative to the (slash-terminated) room URL to use, with a `ws` or `wss`
+  scheme; for example, to connect to the upstream *&test*
   (<https://instant.leet.nu/room/test/>), one would specify
   `wss://instant.leet.nu/room/test/ws`.
+
+    If *url* is not specified, the bot exits after initializing the message
+    database and reading logfiles without connecting to any server; this can
+    be used to "convert" log files to databases without the need to run a
+    backend.
