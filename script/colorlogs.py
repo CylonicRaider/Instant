@@ -177,7 +177,7 @@ def follow(fp, path=None):
             stats = os.fstat(fp.fileno())
             offset = fp.tell()
             if offset > stats.st_size:
-                sys.stderr.write('----- file truncated -----\n')
+                sys.stderr.write('----- File truncated -----\n')
                 sys.stderr.flush()
                 fp.seek(stats.st_size)
                 return True
@@ -241,19 +241,23 @@ def main():
     lines, do_follow = p.get('lines', 'follow')
     do_backoff = (DO_BACKOFF and lines > 0)
     inm, outm = ('rb' if do_backoff else 'r'), ('a' if append else 'w')
-    with open_file(inpath, inm) as fi, open_file(outpath, outm) as fo:
-        if do_backoff:
-            backoff(fi, lines)
-            it = io.TextIOWrapper(fi)
-        else:
-            it = fi
-        for l in highlight_stream(itertail(it, lines), True):
-            fo.write(l)
-        if do_follow:
-            fo.flush()
-            if inpath == '-': inpath = None
-            for l in highlight_stream(follow(it, inpath), True):
+    try:
+        with open_file(inpath, inm) as fi, open_file(outpath, outm) as fo:
+            if do_backoff:
+                backoff(fi, lines)
+                it = io.TextIOWrapper(fi)
+            else:
+                it = fi
+            for l in highlight_stream(itertail(it, lines), True):
                 fo.write(l)
+            if do_follow:
                 fo.flush()
+                if inpath == '-': inpath = None
+                for l in highlight_stream(follow(it, inpath), True):
+                    fo.write(l)
+                    fo.flush()
+    except KeyboardInterrupt:
+        # Suppress noisy stack traces.
+        pass
 
 if __name__ == '__main__': main()
