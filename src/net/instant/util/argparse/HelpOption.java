@@ -66,9 +66,14 @@ public class HelpOption extends ActionOption {
             makeWidth(wdN), ((wdA != 0) ? " " : ""), makeWidth(wdA));
         String argFormat = String.format("%%%ss%%s%s%%%ss: %%s",
             makeWidth(wdN - 1), ((wdA != 0) ? " " : ""), makeWidth(wdA));
+        int indentWidth = wdN + wdA + ((wdA != 0) ? 3 : 2);
+        // HACK: It will take until Java 11 for string repetition to appear
+        //       the standard library...
+        String indent = new String(new char[indentWidth]).replace('\0', ' ');
         StringBuilder sb = new StringBuilder();
         for (String[] col : columns) {
             if (sb.length() != 0) sb.append('\n');
+            col[3] = col[3].replace("\n", "\n" + indent);
             // Varargs magic!
             sb.append(String.format(((col[1].isEmpty()) ? optFormat :
                 argFormat), (Object[]) col));
