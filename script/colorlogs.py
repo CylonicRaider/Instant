@@ -3,10 +3,16 @@
 
 # Perform syntax highlighting on Scribe logs.
 
-import sys, os, re
+import sys, os, re, io
+import errno
 
 import instabot
 
+# Allow suppressing backoff if it's faulty.
+DO_BACKOFF = (not os.environ.get('COLORLOGS_NO_BACKOFF'))
+# How many bytes to scan in one round of "backing off".
+BACKOFF_BLOCKSIZE = 16384
+# Hard-coded ANSI escape sequences for coloring.
 COLORS = {None: '\033[0m', 'bold': '\033[1m', 'black': '\033[30m',
     'red': '\033[31m', 'green': '\033[32m', 'orange': '\033[33m',
     'blue': '\033[34m', 'magenta': '\033[35m', 'cyan': '\033[36m',
@@ -94,6 +100,38 @@ class linecnt(int):
                 return sup.__new__(cls, value[1:])
         return sup.__new__(cls, value)
 
+def backoff(infile, lines):
+    # Read infile "backwards" until we've encountered no less than lines
+    # newline characters.
+    # BUG: Might not work properly if the file is truncated concurrently.
+    try:
+        infile.seek(0, io.SEEK_END)
+    except io.UnsupportedOperation:
+        return False
+    except IOError as e:
+        if e.errno == errno.ESPIPE: return False
+        raise
+    while lines > 0:
+        # Position the file offset back
+        try:
+            infile.seek(-BACKOFF_BLOCKSIZE, io.SEEK_CUR)
+        except IOError as e:
+            if e.errno == errno.EINVAL: break
+            raise
+        # Scan for newlines
+        lines -= infile.read(BACKOFF_BLOCKSIZE).count(b'\n')
+        # Compensate for the read just above
+        try:
+            infile.seek(-BACKOFF_BLOCKSIZE, io.SEEK_CUR)
+        except IOError as e:
+            if e.errno == errno.EINVAL: break
+            raise
+    else:
+        # Do not seek to the beginning if the loop terminated normally
+        return True
+    infile.seek(0, io.SEEK_SET)
+    return True
+
 def itertail(it, count):
     if count < 0:
         # For negative count, drop some items and then output everything.
@@ -122,11 +160,11 @@ def itertail(it, count):
 def open_file(path, mode):
     if path == '-':
         if mode[:1] in ('a', 'w'):
-            return os.fdopen(sys.stdout.fileno(), mode, 1)
+            return io.open(sys.stdout.fileno(), mode, 1)
         else:
-            return os.fdopen(sys.stdin.fileno(), mode, 1)
+            return io.open(sys.stdin.fileno(), mode, 1)
     else:
-        return open(path, mode)
+        return io.open(path, mode)
 
 def main():
     p = instabot.OptionParser(sys.argv[0])
@@ -136,7 +174,7 @@ def main():
                  'the default)')
     p.flag('append', short='a',
            help='Append to output file instead of overwriting it')
-    p.option('lines', short='n', type=linecnt, default=None,
+    p.option('lines', short='n', type=linecnt, default=-1,
              help='Only output trailing lines.\n'
                  'N, -N -> Output the last N lines.\n'
                  '+N -> Output from the (one-based) N-th line on.')
@@ -146,11 +184,15 @@ def main():
     p.parse(sys.argv[1:])
     inpath, outpath, append = p.get('in', 'out', 'append')
     lastlines = p.get('lines')
-    outmode = 'a' if append else 'w'
-    with open_file(inpath, 'r') as fi, open_file(outpath, outmode) as fo:
-        it = iter(fi)
-        if lastlines is not None: it = itertail(it, lastlines)
-        for l in highlight_stream(it, True):
+    do_backoff = DO_BACKOFF and lastlines > 0
+    inm, outm = ('rb' if do_backoff else 'r'), ('a' if append else 'w')
+    with open_file(inpath, inm) as fi, open_file(outpath, outm) as fo:
+        if do_backoff:
+            backoff(fi, lastlines)
+            it = io.TextIOWrapper(fi)
+        else:
+            it = fi
+        for l in highlight_stream(itertail(it, lastlines), True):
             fo.write(l)
 
 if __name__ == '__main__': main()
