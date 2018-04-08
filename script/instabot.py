@@ -330,7 +330,7 @@ def log_exception(name, exc, trailer=None):
 
 LOGLINE = re.compile(r'^\[([0-9 Z:-]+)\]\s+([A-Z0-9_-]+)(?:\s+(.*))?$')
 WHITESPACE = re.compile(r'\s+')
-SCALAR = re.compile(r'[^"\'(,\s][^\s),]+|u?"(?:[^"\\]|\\.)*"|'
+SCALAR = re.compile(r'[^"\'(,\s][^\s),]*|u?"(?:[^"\\]|\\.)*"|'
     r'u?\'(?:[^\'\\]|\\.)*\'')
 TUPLE_ENTRY = re.compile(r'(%s)\s*(,)\s*' % SCALAR.pattern)
 TUPLE = re.compile(r'\(\s*(?:(?:%s)\s*,\s*)*(?:(?:%s)\s*)?\)' %
