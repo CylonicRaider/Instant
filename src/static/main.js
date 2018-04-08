@@ -3417,8 +3417,8 @@ this.Instant = function() {
           /* Restore values */
           nodeRect = node.getBoundingClientRect();
           paneRect = pane.getBoundingClientRect();
-          pane.scrollTop = nodeRect.top - paneRect.top +
-            nodeRect.height * hf - cookie;
+          pane.scrollTop = Math.round(nodeRect.top - paneRect.top +
+            nodeRect.height * hf - cookie);
           if (focused) focused.focus();
         };
       },
