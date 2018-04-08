@@ -249,7 +249,7 @@ class INotify:
             if evt.mask & IN_IGNORED:
                 self.watches.pop(evt.wd, None)
             evt._name = evt.name
-            evt.name = fsdecode(evt.rawname)
+            evt.name = fsdecode(evt._name)
         return events
 
 def watch(path, mask):

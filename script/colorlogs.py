@@ -4,14 +4,24 @@
 # Perform syntax highlighting on Scribe logs.
 
 import sys, os, re, io
+import time
 import errno
 
 import instabot
+
+try:
+    import inotify
+except ImportError:
+    inotify = None
 
 # Allow suppressing backoff if it's faulty.
 DO_BACKOFF = (not os.environ.get('COLORLOGS_NO_BACKOFF'))
 # How many bytes to scan in one round of "backing off".
 BACKOFF_BLOCKSIZE = 16384
+
+# File following poll time.
+FOLLOW_POLL_INTERVAL = 1
+
 # Hard-coded ANSI escape sequences for coloring.
 COLORS = {None: '\033[0m', 'bold': '\033[1m', 'black': '\033[30m',
     'red': '\033[31m', 'green': '\033[32m', 'orange': '\033[33m',
@@ -157,12 +167,28 @@ def itertail(it, count):
         for item in buf:
             yield item
 
+def follow(fp, path=None):
+    def follow_poll(fp):
+        while 1:
+            for l in fp: yield l
+            time.sleep(FOLLOW_POLL_INTERVAL)
+    def follow_inotify(fp, path):
+        with inotify.INotify() as notifier:
+            notifier.watch(path, inotify.IN_MODIFY)
+            while 1:
+                for l in fp: yield l
+                notifier.get_events()
+    if path is None or inotify is None:
+        return follow_poll(fp)
+    else:
+        return follow_inotify(fp, path)
+
 def open_file(path, mode):
     if path == '-':
         if mode[:1] in ('a', 'w'):
-            return io.open(sys.stdout.fileno(), mode, 1)
+            return io.open(sys.stdout.fileno(), mode)
         else:
-            return io.open(sys.stdin.fileno(), mode, 1)
+            return io.open(sys.stdin.fileno(), mode)
     else:
         return io.open(path, mode)
 
@@ -175,24 +201,32 @@ def main():
     p.flag('append', short='a',
            help='Append to output file instead of overwriting it')
     p.option('lines', short='n', type=linecnt, default=-1,
-             help='Only output trailing lines.\n'
-                 'N, -N -> Output the last N lines.\n'
-                 '+N -> Output from the (one-based) N-th line on.')
+             help='Only output trailing lines\n'
+                 'N, -N -> Output the last N lines\n'
+                 '+N -> Output from the (one-based) N-th line on')
+    p.flag('follow', short='f',
+           help='Keep waiting for input on EOF')
     p.argument('in', default='-',
                help='File to read from (- is standard input and '
                    'the default)')
     p.parse(sys.argv[1:])
     inpath, outpath, append = p.get('in', 'out', 'append')
-    lastlines = p.get('lines')
-    do_backoff = DO_BACKOFF and lastlines > 0
+    lines, do_follow = p.get('lines', 'follow')
+    do_backoff = (DO_BACKOFF and lines > 0)
     inm, outm = ('rb' if do_backoff else 'r'), ('a' if append else 'w')
     with open_file(inpath, inm) as fi, open_file(outpath, outm) as fo:
         if do_backoff:
-            backoff(fi, lastlines)
+            backoff(fi, lines)
             it = io.TextIOWrapper(fi)
         else:
             it = fi
-        for l in highlight_stream(itertail(it, lastlines), True):
+        for l in highlight_stream(itertail(it, lines), True):
             fo.write(l)
+        if do_follow:
+            fo.flush()
+            if inpath == '-': inpath = None
+            for l in highlight_stream(follow(it, inpath), True):
+                fo.write(l)
+                fo.flush()
 
 if __name__ == '__main__': main()
