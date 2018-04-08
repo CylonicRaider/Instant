@@ -2821,7 +2821,7 @@ this.Instant = function() {
     };
   }();
   /* Input bar management */
-  Instant.input = function () {
+  Instant.input = function() {
     /* Match @-mentions with arbitrary text before */
     var MENTION_BEFORE = new RegExp('(?:\\W|^)\\B@(' +
       Instant.message.parser.PARTIAL_MENTION.source + ')?$');
