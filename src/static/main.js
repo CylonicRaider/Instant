@@ -4253,11 +4253,11 @@ this.Instant = function() {
           color: Instant.notifications.COLORS.privmsg,
           onclick: sh(false, true, true, true)});
         accessMenu = Instant.popups.menu.addNew({
-          text: [
+          text: $makeFrag(
             ['span', 'wide-screen', 'Private messages'],
             ['span', 'narrow-screen', 'PM-s'],
             ['span', 'pm-menu-counter hidden', [' (', ['b'], ')']]
-          ],
+          ),
           entries: [
             {text: 'Unread', onclick: tg(true, false, false, false),
              color: COLORS.U, className: 'show-unread'},
@@ -6537,12 +6537,15 @@ this.Instant = function() {
           /* Create a submenu */
           make: function(params) {
             function makeButton(data) {
-              var content = data.text;
-              if (data.narrowText)
+              var content;
+              if (data.narrowText) {
                 content = [
                   ['span', 'wide-screen', data.text],
                   ['span', 'narrow-screen', data.narrowText]
                 ];
+              } else {
+                content = [data.text];
+              }
               var ret = $makeNode('button', 'button', content);
               if (data.color) ret.style.color = data.color;
               if (data.bold) ret.style.fontWeight = 'bold';
@@ -6554,19 +6557,22 @@ this.Instant = function() {
               makeButton(params),
               ['div', 'popups-menu-menu']
             ]);
-            $cls('button', menu).addEventListener('click', function(evt) {
-              Instant.popups.menu.open(menu);
-            });
-            var submenu = $cls('popups-menu-menu', menu);
-            (params.entries || []).forEach(function(ent) {
-              if (ent == null) {
-                submenu.appendChild($makeNode('hr', 'separator'));
-              } else if (ent.nodeType !== undefined) {
-                submenu.appendChild(ent);
-              } else {
-                submenu.appendChild(makeButton(ent));
-              }
-            });
+            if (params.entries) {
+              var submenu = $makeNode('div', 'popups-menu-menu');
+              menu.appendChild(submenu);
+              $cls('button', menu).addEventListener('click', function(evt) {
+                Instant.popups.menu.open(menu);
+              });
+              params.entries.forEach(function(ent) {
+                if (ent == null) {
+                  submenu.appendChild($makeNode('hr', 'separator'));
+                } else if (ent.nodeType !== undefined) {
+                  submenu.appendChild(ent);
+                } else {
+                  submenu.appendChild(makeButton(ent));
+                }
+              });
+            }
             return menu;
           },
           /* Add a submenu to the main menu bar */
