@@ -3486,8 +3486,7 @@ this.Instant = function() {
                 Instant.animation.spinner.init(), ' ',
                 Instant.sidebar.roomName.init(), ' ',
                 Instant.animation.onlineStatus.init(), ' ',
-                Instant.settings.init(), ' ',
-                Instant.sidebar.extras.init()
+                Instant.settings.init()
               ]],
               ['div', 'ui-message-box']
             ]],
@@ -3679,90 +3678,6 @@ this.Instant = function() {
           /* Obtain the wrapped node */
           getWrapper: function() {
             return node;
-          }
-        };
-      }(),
-      /* Extras menu */
-      extras: function() {
-        /* The outer DOM node */
-        var wrapperNode = null;
-        return {
-          /* Initialize submodule */
-          init: function() {
-            wrapperNode = $makeNode('div', 'extras-wrapper empty', [
-              ['button', 'sidebar-widget bordered extras', [
-                ['img', {src: '/static/extras.svg'}],
-              ]],
-              ['div', 'extras-content', [
-                ['h2', null, 'Extras'],
-                ['div', 'extras-buttons']
-              ]]
-            ]);
-            $cls('extras', wrapperNode).addEventListener('click',
-              Instant.sidebar.extras.toggle);
-            return wrapperNode;
-          },
-          /* Return a button node configured with the given options */
-          makeButton: function(options) {
-            var btn = $makeNode('button',
-              'button button-noborder button-block');
-            if (options.id) btn.id = options.id;
-            if (options.className) btn.className += ' ' + options.className;
-            if (options.color) btn.style.color = options.color;
-            if (typeof options.text == 'string') {
-              btn.textContent = options.text;
-            } else if (options.text) {
-              btn.appendChild(options.text);
-            }
-            if (options.onclick)
-              btn.addEventListener('click', options.onclick);
-            return btn;
-          },
-          /* Add a button to the extras */
-          addButton: function(node) {
-            $cls('extras-buttons', wrapperNode).appendChild(node);
-            wrapperNode.classList.remove('empty');
-          },
-          /* Create a button and add it to the extras */
-          addNewButton: function(options) {
-            var btn = Instant.sidebar.extras.makeButton(options);
-            Instant.sidebar.extras.addButton(btn);
-            return btn;
-          },
-          /* Set the setting popup visibility */
-          _setVisible: function(vis, event) {
-            var wasVisible = Instant.sidebar.extras.isVisible();
-            if (vis == null) {
-              wrapperNode.classList.toggle('visible');
-            } else if (vis) {
-              wrapperNode.classList.add('visible');
-            } else {
-              wrapperNode.classList.remove('visible');
-            }
-            var visible = Instant.sidebar.extras.isVisible();
-            Instant._fireListeners('extras.visibility', {visible: visible,
-              wasVisible: wasVisible, source: event});
-            if (visible) Instant.settings.hide();
-          },
-          /* Show the settings popup */
-          show: function(event) {
-            Instant.sidebar.extras._setVisible(true, event);
-          },
-          /* Hide the settings popup */
-          hide: function(event) {
-            Instant.sidebar.extras._setVisible(false, event);
-          },
-          /* Toggle the settings visibility */
-          toggle: function(event) {
-            Instant.sidebar.extras._setVisible(null, event);
-          },
-          /* Obtain the current setttings node */
-          getMainNode: function() {
-            return $cls('extras-content', wrapperNode);
-          },
-          /* Returns whether the settings area is currently visible */
-          isVisible: function() {
-            return wrapperNode.classList.contains('visible');
           }
         };
       }()
@@ -5897,7 +5812,6 @@ this.Instant = function() {
         var visible = Instant.settings.isVisible();
         Instant._fireListeners('settings.visibility', {visible: visible,
           wasVisible: wasVisible, source: event});
-        if (visible) Instant.sidebar.extras.hide();
       },
       /* Show the settings popup */
       show: function(event) {
@@ -7553,8 +7467,6 @@ function init() {
     if (event.keyCode == 27) { // Escape
       if (Instant.settings.isVisible())
         Instant.settings.hide();
-      if (Instant.sidebar.extras.isVisible())
-        Instant.sidebar.extras.hide();
       if (Instant.userList.getSelectedUser() != null)
         Instant.userList.showMenu(null);
       Instant.input.focus();
