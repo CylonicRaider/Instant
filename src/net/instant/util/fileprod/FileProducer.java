@@ -59,7 +59,7 @@ public class FileProducer {
         job.callback(new ProducerJob.Callback() {
             public void fileProduced(String name, FileCell f) {
                 synchronized (FileProducer.this) {
-                    cache.add(f);
+                    if (f != null) cache.add(f);
                     pending.remove(name);
                 }
             }
