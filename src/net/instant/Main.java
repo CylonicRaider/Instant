@@ -31,7 +31,7 @@ import net.instant.ws.InstantWebSocketServer;
 public class Main implements Runnable {
 
     public static final String APPNAME = "Instant";
-    public static final String VERSION = "1.5.2";
+    public static final String VERSION = "1.5.3";
     public static final String FINE_VERSION;
     public static final String DESCRIPTION = "A Web-based threaded chat.";
 
