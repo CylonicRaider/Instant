@@ -215,14 +215,14 @@ class LogDBSQLite(LogDB):
         # The REFERENCES is not enforced to allow "stray" messages to
         # be preserved.
         self.cursor.execute('CREATE TABLE IF NOT EXISTS logs ('
-                                'msgid INTEGER PRIMARY KEY,'
-                                'parent INTEGER,' # REFERENCES msgid
-                                'sender INTEGER,'
-                                'nick TEXT,'
+                                'msgid INTEGER PRIMARY KEY, '
+                                'parent INTEGER, ' # REFERENCES msgid
+                                'sender INTEGER, '
+                                'nick TEXT, '
                                 'text TEXT'
                             ')')
         self.cursor.execute('CREATE TABLE IF NOT EXISTS uuid ('
-                                'user INTEGER PRIMARY KEY,'
+                                'user INTEGER PRIMARY KEY, '
                                 'uuid TEXT'
                             ')')
         self.conn.commit()
