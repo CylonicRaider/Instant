@@ -156,17 +156,19 @@ public class Main implements Runnable {
         if (FINE_VERSION != null) version += " (" + FINE_VERSION + ")";
         parseArguments(new ArgumentParser(APPNAME, version, DESCRIPTION));
         LOGGER.info(APPNAME + " " + version);
-        runner.addFileAlias("/", "/pages/main.html");
-        runner.addFileAlias("/favicon.ico",
+        runner.addFileAlias(Pattern.compile("/(\\?.*)?"),
+                            "/pages/main.html");
+        runner.addFileAlias(Pattern.compile("/favicon.ico(\\?.*)?"),
                             "/static/logo-static_128x128.ico");
-        runner.addFileAlias(Pattern.compile("/([^/]+\\.html)"),
+        runner.addFileAlias(Pattern.compile("/([^/]+\\.html)(\\?.*)?"),
                             "/pages/\\1");
-        runner.addFileAlias(Pattern.compile("/room/" + ROOM_RE + "/"),
+        runner.addFileAlias(Pattern.compile("/room/" + ROOM_RE + "/(\\?.*)?"),
                             "/static/room.html");
-        runner.addFileAlias(Pattern.compile("/(" + STAGING_RE + ")/"),
+        runner.addFileAlias(Pattern.compile("/(" + STAGING_RE + ")/(\\?.*)?"),
                             "/static/\\1/main.html");
         runner.addFileAlias(Pattern.compile("/(" + STAGING_RE + ")/room/" +
-                            ROOM_RE + "/"), "/static/\\1/room.html");
+                            ROOM_RE + "/(\\?.*)?"),
+                            "/static/\\1/room.html");
         runner.addContentType(".*\\.html", "text/html; charset=utf-8");
         runner.addContentType(".*\\.css", "text/css; charset=utf-8");
         runner.addContentType(".*\\.js", "application/javascript; " +
@@ -176,10 +178,13 @@ public class Main implements Runnable {
         runner.addContentType(".*\\.jpg", "image/jpeg");
         runner.addContentType(".*\\.ico", "image/vnd.microsoft.icon");
         runner.addContentType(".*\\.txt", "text/plain; charset=utf-8");
-        runner.addRedirect(Pattern.compile("/room/" + ROOM_RE), "\\0/", 301);
-        runner.addRedirect(Pattern.compile("/" + STAGING_RE), "\\0/", 301);
-        runner.addRedirect(Pattern.compile("/" + STAGING_RE + "/room/" +
-                           ROOM_RE), "\\0/", 301);
+        runner.addRedirect(Pattern.compile("/(room/" + ROOM_RE + ")(\\?.*)?"),
+                           "/\\1/\\2", 301);
+        runner.addRedirect(Pattern.compile("/(" + STAGING_RE + ")(\\?.*)?"),
+                           "/\\1/\\2", 301);
+        runner.addRedirect(Pattern.compile("/(" + STAGING_RE + "/room/" +
+                           ROOM_RE + ")(\\?.*)?"),
+                           "\\1/\\2", 301);
         runner.addSyntheticFile(InstantRunner.VERSION_FILE, VERSION_FILE);
         FSResourceProducer prod = runner.makeSourceFiles();
         prod.whitelist("/pages/.*");
