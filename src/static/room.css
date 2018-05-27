@@ -258,6 +258,7 @@ body {
   display: inline-block;
   vertical-align: top;
   border: 1px solid #808080;
+  color: black;
   background: white;
   margin-right: 1px;
 }
