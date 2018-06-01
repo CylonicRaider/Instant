@@ -50,11 +50,14 @@ public class DefaultStringMatcher implements StringMatcher {
             if (g.equals("\\")) {
                 rm.appendReplacement(sb, "\\\\");
             } else if (g.matches("[0-9]+")) {
-                rm.appendReplacement(sb, escapeExpand(m.group(
-                    Integer.parseInt(g))));
+                String v = m.group(Integer.parseInt(g));
+                if (v == null) v = "";
+                rm.appendReplacement(sb, escapeExpand(v));
             } else if (g.matches("\\{[0-9]+\\}")) {
-                rm.appendReplacement(sb, escapeExpand(m.group(
-                    Integer.parseInt(g.substring(1, g.length() - 1)))));
+                String v = m.group(Integer.parseInt(g.substring(1,
+                    g.length() - 1)));
+                if (v == null) v = "";
+                rm.appendReplacement(sb, escapeExpand(v));
             } else {
                 throw new RuntimeException("Invalid replacement!");
             }
