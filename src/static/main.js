@@ -2312,7 +2312,7 @@ this.Instant = function() {
               /* Perform plausibility check and obtain link node */
               var linkNode = makeLink(m);
               if (linkNode == null) {
-                out.append(m[0]);
+                out.push(m[0]);
                 return;
               }
               var url = linkNode.getAttribute('data-url');
