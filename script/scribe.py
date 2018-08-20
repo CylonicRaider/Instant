@@ -475,6 +475,7 @@ class Scribe(instabot.Bot):
         self.max_pings = kwds.get('max_pings', MAX_PINGS)
         self.push_logs = kwds.get('push_logs', [])
         self.reconnect = True
+        self._selecting_candidate = False
         self._cur_candidate = None
         self._already_loaded = {}
         self._logs_done = False
@@ -521,7 +522,7 @@ class Scribe(instabot.Bot):
     def handle_joined(self, content, rawmsg):
         instabot.Bot.handle_joined(self, content, rawmsg)
         data = content['data']
-        self._execute(self._process_nick, uid=data['id'], uuid=data['uuid'])
+        self._execute(self._process_joined, uid=data['id'], uuid=data['uuid'])
     def on_client_message(self, data, content, rawmsg):
         instabot.Bot.on_client_message(self, data, content, rawmsg)
         tp = data.get('type')
@@ -615,6 +616,10 @@ class Scribe(instabot.Bot):
         return self.send_unicast(peer, data, verbose=False)
     def _execute(self, func, *args, **kwds):
         self.scheduler.add_now(lambda: func(*args, **kwds))
+    def _process_joined(self, uid, uuid=None):
+        self._process_nick(uid, uuid=uuid)
+        if self._selecting_candidate:
+            self.send_unicast(uid, {'type': 'log-query'})
     def _process_nick(self, uid, nick=None, uuid=None):
         if nick:
             if uuid:
@@ -655,7 +660,8 @@ class Scribe(instabot.Bot):
     def _send_request(self, data, uid=None):
         if self._cur_candidate is not data:
             return
-        elif data is None or uid is None:
+        self._selecting_candidate = False
+        if data is None or uid is None:
             self._logs_finish()
             return
         self.send_unicast(uid, {'type': 'log-request', 'to': data['reqto']})
@@ -706,6 +712,7 @@ class Scribe(instabot.Bot):
         elif inquire:
             self.send_broadcast({'type': 'log-inquiry'})
     def _logs_begin(self):
+        self._selecting_candidate = True
         self._cur_candidate = None
         self.send_broadcast({'type': 'log-query'})
         self.scheduler.add(1, lambda: self._send_request(None))
