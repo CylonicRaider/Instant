@@ -489,7 +489,7 @@ this.Instant = function() {
             /* Update UUID cache */
             Instant.logs.addUUID(Instant.identity.id, Instant.identity.uuid);
             /* Initiate log pull */
-            Instant.logs.pull.start();
+            Instant.logs.pull._connected();
             break;
           case 'pong': /* Server responded to a ping */
             lastPong = [Date.now(), msg.timestamp];
@@ -499,6 +499,7 @@ this.Instant = function() {
             break;
           case 'joined': /* New user joined (might be ourself) */
             Instant.userList._onmessage(msg);
+            Instant.logs.pull._onmessage(msg);
             break;
           case 'left': /* User left */
             Instant.userList._onmessage(msg);
@@ -1083,8 +1084,11 @@ this.Instant = function() {
           _onmessage: function(msg) {
             if (msg.type == 'joined') {
               /* Someone joined */
-              Instant.userList.add(msg.data.id, '', msg.data.uuid);
               Instant.logs.addUUID(msg.data.id, msg.data.uuid);
+              if (Date.now() < pullStarted + WAIT_DEADLINE)
+                Instant.connection.sendUnicast(msg.data.id,
+                                               {type: 'log-query'});
+              return;
             } else if (msg.type == 'left') {
               /* Someone left */
               var upd = false;
@@ -1230,6 +1234,11 @@ this.Instant = function() {
             }
             /* Restart pull if necessary */
             if (goal) Instant.logs.pull.upto(goal, true);
+          },
+          /* Handler for connects */
+          _connected: function() {
+            pullType.after = true;
+            Instant.logs.pull._start();
           },
           /* Handler for disconnects */
           _disconnected: function() {
