@@ -3135,7 +3135,7 @@ this.Instant = function() {
       },
       /* Convenience wrapper for Instant.pane.saveScrollState() */
       saveScrollState: function(focus) {
-        return Instant.pane.saveScrollState(inputNode, 1, focus);
+        return Instant.pane.saveScrollState(inputNode, 1, true, focus);
       },
       /* Update the message bar sizer */
       _updateMessage: function(event) {
@@ -3400,25 +3400,32 @@ this.Instant = function() {
       },
       /* Save the current (vertical) scrolling position of the pane
        * containing the given node for later restoration
+       * If bottom is true, calculations are performed w.r.t. the bottom of
+       * the pane, which is assumed not have any nontrivial borders or
+       * paddings (note that the bottom does intentionally *not* include a
+       * potential scroll bar).
        * If focus is true, the currently focused element is saved as well.
        * The exact line to be stored is determined by hf, which can be
        * (for example):
        * 0.0 -- Restore the top of the child
        * 0.5 -- Restore the middle of the child
        * 1.0 -- Restore the bottom of the child */
-      saveScrollState: function(node, hf, focus) {
+      saveScrollState: function(node, hf, bottom, focus) {
         var pane = Instant.pane.getPane(node);
         var focused = focus && document.activeElement;
         var nodeRect = node.getBoundingClientRect();
         var paneRect = pane.getBoundingClientRect();
+        var height = (bottom) ? pane.clientHeight : 0;
         /* Cookie value stays invariant */
-        var cookie = nodeRect.top + nodeRect.height * hf - paneRect.top;
+        var cookie = nodeRect.top + nodeRect.height * hf - paneRect.top -
+          height;
         return function() {
           /* Restore values */
           nodeRect = node.getBoundingClientRect();
           paneRect = pane.getBoundingClientRect();
+          height = (bottom) ? pane.clientHeight : 0;
           pane.scrollTop = Math.round(pane.scrollTop + nodeRect.top +
-            nodeRect.height * hf - paneRect.top - cookie);
+            nodeRect.height * hf - paneRect.top - height - cookie);
           if (focused) focused.focus();
         };
       },

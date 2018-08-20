@@ -884,6 +884,7 @@ button.button-icon > img {
   min-height: 100%;
   box-sizing: border-box;
   padding: 5px 5px 5px 3.5em;
+  overflow: visible;
 }
 .message-pane > .message-box.notimes {
   padding-left: 5px;
