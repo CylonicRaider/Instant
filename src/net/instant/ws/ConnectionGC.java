@@ -42,7 +42,7 @@ public class ConnectionGC implements Runnable {
     }
 
     public void cleanup(ClientConnection r) {
-        LOGGER.info("Cleaned up connection " + r);
+        LOGGER.info("Cleaning up connection " + r);
         r.getConnection().close();
     }
 
