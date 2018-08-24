@@ -483,8 +483,7 @@ class Scribe(instabot.Bot):
         self._last_pong = None
         self._ping_lock = threading.RLock()
     def connect(self):
-        # HACK to avoid logging doubly
-        if not self.ws: log('CONNECT url=%r' % self.url)
+        log('CONNECT url=%r' % self.url)
         self.scheduler.set_forever(True)
         return instabot.Bot.connect(self)
     def on_open(self):
@@ -494,6 +493,8 @@ class Scribe(instabot.Bot):
     def on_message(self, rawmsg):
         log('MESSAGE content=%r' % (rawmsg,))
         instabot.Bot.on_message(self, rawmsg)
+    def on_connection_error(self, exc):
+        log_exception('ERROR', exc)
     def on_timeout(self, exc):
         log_exception('TIMEOUT', exc)
         instabot.Bot.on_timeout(self, exc)
@@ -797,24 +798,17 @@ def main():
         return
     sched = instabot.EventScheduler()
     bot = b(scheduler=sched, db=msgdb)
-    reconnect, thr = 0, None
+    thr = None
     try:
         while 1:
-            try:
-                ws = bot.connect()
-            except Exception as exc:
-                log_exception('ERROR', exc)
-                time.sleep(reconnect)
-                reconnect += 1
-                continue
-            reconnect = 0
             thr = bot.start()
             try:
                 sched.main()
             except websocket_server.ConnectionClosedError:
                 pass
             sched.clear()
-            ws.close_now()
+            ws = bot.ws
+            if ws: ws.close_now()
             thr.join(1)
             if not bot.reconnect: break
             time.sleep(1)

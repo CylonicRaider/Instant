@@ -153,6 +153,8 @@ class InstantClient(object):
         func(content, rawmsg)
     def on_frame(self, msgtype, content, final):
         pass
+    def on_connection_error(self, exc):
+        raise exc
     def on_timeout(self, exc):
         raise exc
     def on_error(self, exc):
@@ -209,7 +211,16 @@ class InstantClient(object):
             self.ws = None
     def run(self):
         try:
-            self.connect()
+            reconnect = 0
+            while 1:
+                try:
+                    self.connect()
+                except Exception as exc:
+                    self.on_connection_error(exc)
+                    time.sleep(reconnect)
+                    reconnect += 1
+                else:
+                    break
             self.on_open()
             while 1:
                 try:
