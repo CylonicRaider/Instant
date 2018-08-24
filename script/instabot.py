@@ -145,7 +145,8 @@ class InstantClient(object):
         msgt = content.get('type')
         func = {
             'identity': self.handle_identity, 'pong': self.handle_pong,
-            'joined': self.handle_joined, 'unicast': self.handle_unicast,
+            'joined': self.handle_joined, 'who': self.handle_who,
+            'unicast': self.handle_unicast,
             'broadcast': self.handle_broadcast,
             'response': self.handle_response, 'left': self.handle_left,
             'error': self.handle_error
@@ -166,6 +167,8 @@ class InstantClient(object):
     def handle_pong(self, content, rawmsg):
         pass
     def handle_joined(self, content, rawmsg):
+        pass
+    def handle_who(self, content, rawmsg):
         pass
     def handle_unicast(self, content, rawmsg):
         self.on_client_message(content['data'], content, rawmsg)
