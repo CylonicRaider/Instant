@@ -578,7 +578,8 @@ class Scribe(instabot.Bot):
     def run(self):
         try:
             instabot.Bot.run(self)
-        except Exception:
+        except Exception as exc:
+            log_exception('CRASHED', exc)
             sys.stderr.write('\n***EXCEPTION*** at %s\n' %
                 time.strftime('%Y-%m-%d %H:%M:%S Z', time.gmtime()))
             sys.stderr.flush()
@@ -819,7 +820,7 @@ def main():
         else:
             log('INTERRUPTED')
     except Exception as e:
-        log('CRASHED')
+        log_exception('CRASHED', e)
         sys.stderr.write('\n***CRASH*** at %s\n' %
             time.strftime('%Y-%m-%d %H:%M:%S Z', time.gmtime()))
         sys.stderr.flush()
