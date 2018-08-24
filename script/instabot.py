@@ -297,36 +297,44 @@ class HookBot(Bot):
             data['nick'] = nickname
         return self.send_broadcast(data)
 
-def format_log(o):
-    if isinstance(o, tuple):
-        return '(' + ','.join(map(repr, o)) + ')'
-    else:
-        return repr(o)
-def log(msg):
-    m = '[%s] %s\n' % (time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime()),
-                       msg)
-    sys.stdout.write(m.encode('ascii', 'backslashreplace').decode('ascii'))
-    sys.stdout.flush()
-def log_exception(name, exc, trailer=None):
-    try:
-        # frame is the frame where the exception is caught; cause is the
-        # frame where it originated. The former might be more useful in that
-        # it points into the user's code (instead of nested libraries).
-        frame = tuple(traceback.extract_tb(sys.exc_info()[2], 1)[-1])
-        cause = tuple(traceback.extract_tb(sys.exc_info()[2])[-1])
-    except:
-        frame, cause = None, None
-    # The exception is repr()-ed twice, since many of those objects have
-    # custom representations, which are not necessarily machine-readable,
-    # and str() is hardly appropriate.
-    if frame == cause:
-        msg = '%s reason=%r last-frame=%s' % (name, repr(exc),
-                                              format_log(frame))
-    else:
-        msg = '%s reason=%r last-frame=%s cause-frame=%s' % (name, repr(exc),
-            format_log(frame), format_log(cause))
-    if trailer is not None: msg += ' ' + trailer
-    log(msg)
+class Logger:
+    def __init__(self, stream):
+        self.stream = stream
+    def format(self, obj):
+        if isinstance(obj, tuple):
+            return '(' + ','.join(map(repr, obj)) + ')'
+        else:
+            return repr(obj)
+    def log(self, msg):
+        if self.stream is None: return
+        m = '[%s] %s\n' % (time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime()),
+                           msg)
+        self.stream.write(m.encode('ascii',
+                                   'backslashreplace').decode('ascii'))
+        self.stream.flush()
+    def log_exception(self, name, exc, trailer=None):
+        try:
+            # frame is the frame where the exception is caught; cause is the
+            # frame where it originated. The former might be more useful in
+            # that it points into the user's code (instead of nested
+            # libraries).
+            frame = tuple(traceback.extract_tb(sys.exc_info()[2], 1)[-1])
+            cause = tuple(traceback.extract_tb(sys.exc_info()[2])[-1])
+        except:
+            frame, cause = None, None
+        # The exception is repr()-ed twice, since many of those objects have
+        # custom representations, which are not necessarily machine-readable,
+        # and str() is hardly appropriate.
+        if frame == cause:
+            msg = '%s reason=%r last-frame=%s' % (name, repr(exc),
+                                                  self.format(frame))
+        else:
+            msg = '%s reason=%r last-frame=%s cause-frame=%s' % (name,
+                repr(exc), self.format(frame), self.format(cause))
+        if trailer is not None: msg += ' ' + trailer
+        self.log(msg)
+
+DEFAULT_LOGGER = Logger(sys.stdout)
 
 LOGLINE = re.compile(r'^\[([0-9 Z:-]+)\]\s+([A-Z0-9_-]+)(?:\s+(.*))?$')
 WHITESPACE = re.compile(r'\s+')

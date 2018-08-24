@@ -460,8 +460,8 @@ def read_posts_ex(src, maxlen=None):
 def read_posts(src, maxlen=None):
     return read_posts_ex(src, maxlen)[0]
 
-log = instabot.log
-log_exception = instabot.log_exception
+log = instabot.DEFAULT_LOGGER.log
+log_exception = instabot.DEFAULT_LOGGER.log_exception
 
 class Scribe(instabot.Bot):
     NICKNAME = NICKNAME
