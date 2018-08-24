@@ -2273,11 +2273,25 @@ this.Instant = function() {
         }
         /* Handle end-of-line for line patterns */
         function doEOL(stack, out, i) {
-          /* Terminate line-level emphasis */
-          while (stack.length && stack[stack.length - 1].line) {
+          /* Scan for line-level emphasis */
+          var lineAt = null;
+          for (var j = 0; j < stack.length; j++) {
+            if (stack[j].line) {
+              lineAt = j;
+              break;
+            }
+          }
+          if (lineAt == null) return;
+          /* Terminate or invalidate everything up to the first line-level
+           * emphasis marker */
+          while (stack.length > lineAt) {
             var el = stack.pop();
-            el.add = el.line;
-            out.splice(i++, 0, {rem: el.add});
+            if (el.line) {
+              el.add = el.line;
+              out.splice(i++, 0, {rem: el.add});
+            } else {
+              declassify(el);
+            }
           }
           return i;
         }
