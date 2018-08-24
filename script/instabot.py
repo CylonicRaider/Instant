@@ -265,15 +265,20 @@ class Bot(InstantClient):
             raise exc
     def handle_identity(self, content, rawmsg):
         self.identity = content['data']
-        if self.nickname is not None:
-            self.send_broadcast({'type': 'nick', 'nick': self.nickname,
-                                 'uuid': self.identity['uuid']})
+        self.send_nick()
     def on_client_message(self, data, content, rawmsg):
         peer = content['from']
         if (data.get('type') == 'who' and peer != self.identity['id'] and
                 self.nickname is not None):
-            self.send_unicast(peer, {'type': 'nick', 'nick': self.nickname,
-                                     'uuid': self.identity['uuid']})
+            self.send_nick(peer)
+    def send_nick(self, peer=None):
+        if self.nickname is None: return
+        data = {'type': 'nick', 'nick': self.nickname,
+                'uuid': self.identity['uuid']}
+        if peer is not None:
+            self.send_unicast(peer, data)
+        else:
+            self.send_broadcast(data)
 
 class HookBot(Bot):
     def __init__(self, url, nickname=Ellipsis, **kwds):
