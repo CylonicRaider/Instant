@@ -126,6 +126,7 @@ class InstantClient(object):
         self.url = url
         self.timeout = kwds.get('timeout', self.TIMEOUT)
         self.cookies = kwds.get('cookies', self.COOKIES)
+        self.keepalive = kwds.get('keepalive', False)
         self.ws = None
         self.sequence = AtomicSequence()
         self._wslock = threading.RLock()
@@ -160,7 +161,7 @@ class InstantClient(object):
         raise exc
     def on_error(self, exc):
         raise exc
-    def on_close(self):
+    def on_close(self, final):
         pass
     def handle_identity(self, content, rawmsg):
         pass
@@ -208,12 +209,13 @@ class InstantClient(object):
                              **kwds)
     def send_broadcast(self, data, **kwds):
         return self.send_seq({'type': 'broadcast', 'data': data}, **kwds)
-    def close(self):
+    def close(self, final=True):
         with self._wslock:
             if self.ws is not None: self.ws.close()
             self.ws = None
+            if final: self.keepalive = False
     def run(self):
-        try:
+        while 1:
             reconnect = 0
             while 1:
                 try:
@@ -224,30 +226,33 @@ class InstantClient(object):
                     reconnect += 1
                 else:
                     break
-            self.on_open()
-            while 1:
-                try:
-                    rawmsg = self.recv()
-                except socket.timeout as exc:
-                    self.on_timeout(exc)
-                    continue
-                if rawmsg is None:
-                    break
-                elif not rawmsg:
-                    continue
-                self.on_message(rawmsg)
-        except websocket_server.ConnectionClosedError:
-            # Server-side timeouts cause the connection to be dropped.
-            pass
-        except Exception as exc:
-            self.on_error(exc)
-        finally:
             try:
-                self.close()
+                self.on_open()
+                while 1:
+                    try:
+                        rawmsg = self.recv()
+                    except socket.timeout as exc:
+                        self.on_timeout(exc)
+                        continue
+                    if rawmsg is None:
+                        break
+                    elif not rawmsg:
+                        continue
+                    self.on_message(rawmsg)
+            except websocket_server.ConnectionClosedError:
+                # Server-side timeouts cause the connection to be dropped.
+                pass
             except Exception as exc:
                 self.on_error(exc)
             finally:
-                self.on_close()
+                final = not self.keepalive
+                try:
+                    self.close(final)
+                except Exception as exc:
+                    self.on_error(exc)
+                finally:
+                    self.on_close(final)
+            if final: break
     def start(self):
         thr = threading.Thread(target=self.run)
         thr.setDaemon(True)
@@ -304,9 +309,9 @@ class HookBot(Bot):
                                                 'rawmsg': rawmsg})
                 if res is not None:
                     self.send_post(res, content['id'])
-    def on_close(self):
-        Bot.on_close(self)
-        if self.close_cb is not None: self.close_cb(self)
+    def on_close(self, final):
+        Bot.on_close(self, final)
+        if self.close_cb is not None: self.close_cb(self, final)
     def send_post(self, text, parent=None, nickname=Ellipsis):
         data = {'type': 'post', 'text': text}
         if parent is not None: data['parent'] = parent

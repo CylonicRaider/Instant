@@ -798,7 +798,7 @@ def main():
         log('EXITING')
         return
     sched = instabot.EventScheduler()
-    bot = b(scheduler=sched, db=msgdb)
+    bot = b(scheduler=sched, db=msgdb, keepalive=False)
     thr = None
     try:
         while 1:
