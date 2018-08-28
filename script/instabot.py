@@ -52,6 +52,7 @@ class EventScheduler(object):
         self.time = time
         self.sleep = sleep
         self.forever = True
+        self.running = False
         self.cond = threading.Condition()
         self._seq = 0
     def __enter__(self):
@@ -69,7 +70,7 @@ class EventScheduler(object):
             evt = self.Event(timestamp, self._seq, callback)
             self._seq += 1
             heapq.heappush(self.pending, evt)
-            self.cond.notify()
+            self.cond.notifyAll()
             return evt
     def add(self, delay, callback):
         return self.add_abs(self.time() + delay, callback)
@@ -79,16 +80,22 @@ class EventScheduler(object):
         with self:
             event.canceled = True
             ret = (not event.handled)
-            self.cond.notify()
+            self.cond.notifyAll()
             return ret
     def clear(self):
         with self:
             self.pending[:] = []
-            self.cond.notify()
+            self.cond.notifyAll()
     def set_forever(self, v):
         with self:
             self.forever = v
-            self.cond.notify()
+            self.cond.notifyAll()
+    def shutdown(self):
+        self.set_forever(False)
+    def join(self):
+        with self:
+            while self.running:
+                self.cond.wait()
     def run(self, hangup=True):
         wait = None
         while 1:
@@ -106,9 +113,16 @@ class EventScheduler(object):
         if wait is None and not hangup: return False
         return self.sleep(wait)
     def main(self):
-        while 1:
-            f = self.forever
-            if not self.run(f) and not f: break
+        try:
+            with self:
+                self.running = True
+            while 1:
+                f = self.forever
+                if not self.run(f) and not f: break
+        finally:
+            with self:
+                self.running = False
+                self.cond.notifyAll()
 
 class AtomicSequence(object):
     def __init__(self):
