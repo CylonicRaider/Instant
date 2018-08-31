@@ -1238,6 +1238,7 @@ this.Instant = function() {
           /* Handler for connects */
           _connected: function() {
             pullType.after = true;
+            if (keys.length == 0) pullType.before = true;
             Instant.logs.pull._start();
           },
           /* Handler for disconnects */
