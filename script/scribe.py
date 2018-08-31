@@ -3,7 +3,7 @@
 
 # A log-keeping bot for Instant.
 
-import sys, os, time
+import sys, os, re, time
 import threading
 import bisect
 import contextlib
@@ -212,8 +212,8 @@ class LogDBSQLite(LogDB):
     def init(self):
         self.conn = sqlite3.connect(self.filename)
         # Allow tuning DB performance.
-        sync = os.environ.get('SCRIBE_DB_SYNC', '').upper()
-        if sync in ('OFF', 'NORMAL', 'FULL', 'EXTRA'):
+        sync = os.environ.get('SCRIBE_DB_SYNC', '')
+        if re.match(r'^[A-Za-z0-9]+$', sync):
             self.conn.execute('PRAGMA synchronous = ' + sync)
         # Create cursor.
         self.cursor = self.conn.cursor()
