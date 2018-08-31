@@ -506,8 +506,8 @@ class Scribe(instabot.Bot):
     def on_error(self, exc):
         log_exception('ERROR', exc)
         instabot.Bot.on_error(self, exc)
-    def on_close(self):
-        instabot.Bot.on_close(self)
+    def on_close(self, final):
+        instabot.Bot.on_close(self, final)
         log('CLOSED')
         with self._ping_lock:
             if self._ping_job is not None:
