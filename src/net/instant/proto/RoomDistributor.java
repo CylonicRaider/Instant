@@ -7,6 +7,7 @@ import net.instant.api.MessageContents;
 import net.instant.api.Room;
 import net.instant.api.RoomGroup;
 import net.instant.util.UniqueCounter;
+import org.java_websocket.exceptions.WebsocketNotConnectedException;
 
 public class RoomDistributor implements Room {
 
@@ -38,8 +39,13 @@ public class RoomDistributor implements Room {
                 "Trying to broadcast outside any room");
         String s = msg.toString();
         synchronized (this) {
-            for (ClientConnection conn : clients)
-                conn.getConnection().send(s);
+            for (ClientConnection conn : clients) {
+                try {
+                    conn.getConnection().send(s);
+                } catch (WebsocketNotConnectedException exc) {
+                    // Ensure the message reaches the remaining room members.
+                }
+            }
         }
     }
 
