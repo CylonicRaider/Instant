@@ -2492,17 +2492,12 @@ this.Instant = function() {
               out.push({line: 'heading'});
             },
             add: function(stack, status) {
-              status.headingLevel = (status.headingLevel || 0) + 1;
-              if (status.headingLevel == 1) {
-                status.emphLevel = (status.emphLevel || 0) + 2;
-                return makeNode(null, 'heading-line');
-              }
+              status.emphLevel = (status.emphLevel || 0) + 2;
+              return makeNode(null, 'heading-line');
             },
             rem: function(stack, status) {
-              if (status.headingLevel-- == 1) {
-                stack.pop();
-                status.emphLevel -= 2;
-              }
+              stack.pop();
+              status.emphLevel -= 2;
             }
           },
           { /* Quoted lines */
@@ -2513,17 +2508,12 @@ this.Instant = function() {
               out.push({line: 'quote'});
             },
             add: function(stack, status) {
-              status.quoteLevel = (status.quoteLevel || 0) + 1;
-              if (status.quoteLevel == 1) {
-                status.emphLevel = (status.emphLevel || 0) + 1;
-                return makeNode(null, 'quote-line');
-              }
+              status.emphLevel = (status.emphLevel || 0) + 1;
+              return makeNode(null, 'quote-line');
             },
             rem: function(stack, status) {
-              if (status.quoteLevel-- == 1) {
-                stack.pop();
-                status.emphLevel--;
-              }
+              stack.pop();
+              status.emphLevel--;
             }
           },
           { /* Monospace line */
