@@ -1265,7 +1265,20 @@ this.Instant = function() {
       },
       /* Return an @-mention of the given nick */
       makeMentionText: function(name) {
-        return '@' + name.replace(/[.,:;!?\s]+/g, '');
+        /* Keep in sync with Instant.message.parser.MENTION_RE. */
+        var parts = name.replace(/\s+|[\s.,:;!?]+$/g, '').split(/([()])/);
+        var hadParen = false;
+        return '@' + parts.map(function(part) {
+          var ret = part;
+          if (part == '(') {
+            ret = (hadParen) ? '' : '(';
+            hadParen = true;
+          } else if (part == ')') {
+            ret = (hadParen) ? ')' : '';
+            hadParen = false;
+          }
+          return ret;
+        }).join('');
       },
       /* Actual "raw" hue hash */
       _hueHash: function(name) {
