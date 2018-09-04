@@ -2375,7 +2375,8 @@ this.Instant = function() {
               var spaceAfter = /\s+$/.exec(m[0]);
               if (embedder) {
                 out.push({rem: 'embed'});
-                out.push({add: 'embed', embed: 'inner'});
+                out.push({add: 'embed', embed: 'inner',
+                  className: embedder.className});
                 var res = embedder.cb(url, out, status);
                 if (res != null) out.push(res);
                 out.push({rem: 'embed'});
@@ -2397,6 +2398,7 @@ this.Instant = function() {
                   clsname += ' hidden';
                 } else if (elem.embed == 'inner') {
                   clsname += ' no-copy';
+                  if (elem.className) clsname += ' ' + elem.className;
                 }
                 return makeNode(null, clsname);
               } else {
@@ -2841,6 +2843,9 @@ this.Instant = function() {
            * be present:
            * inline   : If true, the embed is displayed in line with
            *            surrounding text rather than on a line of its own.
+           * className: A CSS class to be added to the element immediately
+           *            wrapping the embed (can be used to e.g. modify the
+           *            border appearance).
            * normalize: If true, the URL regex is tested against is normalized
            *            by lowercasing the scheme and host (if any). This does
            *            not affect the "url" parameter of callback. */
