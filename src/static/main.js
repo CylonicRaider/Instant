@@ -2810,7 +2810,30 @@ this.Instant = function() {
           countLateMatchers: function() {
             return lateMatchers;
           },
-          /* Add an embedder */
+          /* Add an embedder
+           * regex is a regular expression that must match the tentative
+           * embed's URL in order to be handled by this embedded.
+           * callback is a function taking three parameters:
+           * url   : The (unmodified, aside from adding an http:// scheme is
+           *         none is specified in the original) URL being embedded.
+           * out   : An array representing the upcoming message's DOM
+           *         structure (in linear form). The embedder should not
+           *         modify this aside from optionally appending DOM nodes
+           *         (or strings, which are transformed into text nodes)
+           *         making up the embed.
+           * status: An object containing auxiliary data; not particularly
+           *         useful for embeds.
+           * The return value of callback, if not null, is appended to the
+           * out array; this may be a more convenient means of emitting a DOM
+           * node representing the embed.
+           * options is an object containing auxiliary configuration values.
+           * If omitted, a new object is created and used instead. regex and
+           * callback are inserted into options as the "re" and "cb",
+           * respectively, properties. The following additional properties may
+           * be present:
+           * normalize: If true, the URL regex is tested against is normalized
+           *            by lowercasing the scheme and host (if any). This does
+           *            not affect the "url" parameter of callback. */
           addEmbedder: function(regex, callback, options) {
             if (options == null) options = {};
             options.re = regex;
