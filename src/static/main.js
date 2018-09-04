@@ -2355,11 +2355,15 @@ this.Instant = function() {
               var url = linkNode.getAttribute('data-url');
               /* Find a matching embedder module */
               var embedder = Instant.message.parser.queryEmbedder(url);
+              var inline = embedder.inline;
               /* Disgorge the DOM structure */
               var spaceBefore = /^\s+/.exec(m[0]);
               if (embedder) {
-                out.push({add: 'embed', embed: 'outer'});
-                if (spaceBefore)
+                if (spaceBefore && inline)
+                  out.push(spaceBefore[0]);
+                out.push({add: 'embed', embed: 'outer',
+                  inline: embedder.inline});
+                if (spaceBefore && ! inline)
                   out.push(makeNode(spaceBefore[0], 'embed-space hidden'));
                 out.push({add: 'embed', embed: 'link'});
               } else if (spaceBefore) {
@@ -2375,9 +2379,11 @@ this.Instant = function() {
                 var res = embedder.cb(url, out, status);
                 if (res != null) out.push(res);
                 out.push({rem: 'embed'});
-                if (spaceAfter)
+                if (spaceAfter && ! inline)
                   out.push(makeNode(spaceAfter[0], 'embed-space hidden'));
                 out.push({rem: 'embed'});
+                if (spaceAfter && inline)
+                  out.push(spaceAfter[0]);
               } else if (spaceAfter) {
                 out.push(spaceAfter[0]);
               }
@@ -2385,7 +2391,9 @@ this.Instant = function() {
             add: function(stack, status, elem) {
               if (elem.embed) {
                 var clsname = 'embed-' + elem.embed;
-                if (elem.embed == 'link') {
+                if (elem.embed == 'outer') {
+                  clsname += ' embed-' + ((elem.inline) ? 'inline' : 'block');
+                } else if (elem.embed == 'link') {
                   clsname += ' hidden';
                 } else if (elem.embed == 'inner') {
                   clsname += ' no-copy';
@@ -2831,6 +2839,8 @@ this.Instant = function() {
            * callback are inserted into options as the "re" and "cb",
            * respectively, properties. The following additional properties may
            * be present:
+           * inline   : If true, the embed is displayed in line with
+           *            surrounding text rather than on a line of its own.
            * normalize: If true, the URL regex is tested against is normalized
            *            by lowercasing the scheme and host (if any). This does
            *            not affect the "url" parameter of callback. */

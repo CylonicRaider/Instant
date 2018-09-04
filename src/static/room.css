@@ -176,19 +176,24 @@ body {
  * For .embed-first, a negative top margin seems not to affect the embed (or
  * anything at all), so we transform the embed up instead, and cover the fact
  * up by a negative bottom margin. */
-.message > .line .content .message-text .embed-outer.embed-first {
+.message > .line .content .message-text .embed-block.embed-first {
   -webkit-transform: translateY(-1px);
   transform: translateY(-1px);
   margin: 0;
 }
-.message > .line .content .message-text .embed-outer.embed-first +
-.embed-outer {
+.message > .line .content .message-text .embed-block.embed-first +
+.embed-block {
   margin-top: 0;
 }
-.message > .line .content .message-text .embed-last {
+.message > .line .content .message-text .embed-block.embed-last {
   margin-bottom: -1px;
 }
-.message > .line .content .message-text .embed-outer.embed-first.embed-last {
+.message > .line .content .message-text .embed-block.embed-first.embed-last {
+  margin-bottom: -2px;
+}
+.message > .line .content .message-text .embed-inline.embed-first.embed-last {
+  -webkit-transform: translateY(-1px);
+  transform: translateY(-1px);
   margin-bottom: -2px;
 }
 
@@ -248,6 +253,10 @@ body {
   display: block;
   margin: 1px 0;
 }
+.message-text .embed-outer.embed-inline {
+  display: inline-block;
+  margin: 0;
+}
 .message-text .embed-outer.embed-first {
   margin-top: 0;
 }
@@ -261,6 +270,9 @@ body {
   color: black;
   background: white;
   margin-right: 1px;
+}
+.message-text .embed-outer.embed-inline .embed-inner {
+  margin-right: 0;
 }
 
 .message > .replies {
