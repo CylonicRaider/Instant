@@ -170,7 +170,8 @@ class InstantClient(object):
     def on_frame(self, msgtype, content, final):
         pass
     def on_connection_error(self, exc):
-        raise exc
+        if not self.keepalive:
+            raise exc
     def on_timeout(self, exc):
         raise exc
     def on_error(self, exc):
