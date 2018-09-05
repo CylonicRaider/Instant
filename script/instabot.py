@@ -301,6 +301,12 @@ class Bot(InstantClient):
             self.send_unicast(peer, data)
         else:
             self.send_broadcast(data)
+    def send_post(self, text, parent=None, nickname=Ellipsis):
+        data = {'type': 'post', 'text': text}
+        if parent is not None: data['parent'] = parent
+        if nickname is not Ellipsis: self.nickname = nickname
+        data['nick'] = self.nickname
+        return self.send_broadcast(data)
 
 class HookBot(Bot):
     def __init__(self, url, nickname=Ellipsis, **kwds):
@@ -326,14 +332,6 @@ class HookBot(Bot):
     def on_close(self, final):
         Bot.on_close(self, final)
         if self.close_cb is not None: self.close_cb(self, final)
-    def send_post(self, text, parent=None, nickname=Ellipsis):
-        data = {'type': 'post', 'text': text}
-        if parent is not None: data['parent'] = parent
-        if nickname is Ellipsis:
-            data['nick'] = self.nickname
-        else:
-            data['nick'] = nickname
-        return self.send_broadcast(data)
 
 class Logger:
     def __init__(self, stream):
