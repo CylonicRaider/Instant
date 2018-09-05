@@ -18,7 +18,7 @@ def main():
     b.make_parser(sys.argv[0],
                   desc='An Instant bot bouncing back received messages.')
     b.parse(sys.argv[1:])
-    bot = b(post_cb=post_cb)
+    bot = b(keepalive=True, post_cb=post_cb)
     try:
         bot.run()
     except KeyboardInterrupt:
