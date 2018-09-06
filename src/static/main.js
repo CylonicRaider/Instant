@@ -2202,8 +2202,9 @@ this.Instant = function() {
           level: level,
           onclick: function() {
             /* Go to the message */
-            Instant.input.jumpTo(msg);
+            Instant.input.moveTo(msg, true);
             Instant.input.focus();
+            Instant.pane.scrollIntoView(Instant.input.getNode());
           },
           data: {
             unreadMessages: 1,
