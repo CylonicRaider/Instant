@@ -21,7 +21,8 @@ public class RedirectHook extends HookAdapter {
         /* Continue with a GET to the given location (or repeat the request
          * to the given new location [HTTP/1.0]). */
         FOUND(302, "Found"),
-        /* Continue with a GET of the given location. */
+        /* Continue with a GET of the given location. May be used to redirect
+         * from HTML form submission endpoints. */
         SEE_OTHER(303, "See Other"),
         /* Repeat the request with the same method to the given location. */
         TEMPORARY(307, "Temporary Redirect"),
