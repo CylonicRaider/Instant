@@ -2692,9 +2692,7 @@ this.Instant = function() {
               var adv = matchers[minIdx].cb(match, out, status) || 0;
               idx = matches[minIdx].index + match[0].length + adv;
             }
-            /* Disable stray emphasis marks
-             * Those nested highlights actually form a context-free
-             * grammar. */
+            /* Perform various post-processing */
             var stack = [];
             for (var i = 0; i < out.length; i++) {
               var e = out[i];
@@ -2711,11 +2709,29 @@ this.Instant = function() {
               }
               /* Filter such that only user-made objects remain */
               if (typeof e != 'object' || e.nodeType !== undefined) continue;
-              /* Add or remove highlights, respectively */
-              if (e.add || e.line) {
+              /* Apply adding/removing/toggling to the stack */
+              if (e.toggle) {
+                /* Scan stack for matching add */
+                var idx;
+                for (idx = stack.length - 1; idx >= 0; idx--) {
+                  if (stack[idx].add == e.toggle) break;
+                }
+                if (idx != -1) {
+                  /* If there is an add, dispose of everything in between */
+                  e.rem = e.toggle;
+                  for (var j = idx + 1; j < stack.length; j++)
+                    declassify(stack[j]);
+                  stack = stack.slice(0, idx);
+                } else {
+                  /* Otherwise, this becomes the add */
+                  e.add = e.toggle;
+                  stack.push(e);
+                }
+              } else if (e.add || e.line) {
+                /* Adds or line-level adds always work (preliminarily) */
                 stack.push(e);
               } else if (e.rem) {
-                /* Check if it actually matches */
+                /* Check if the remove matches actually matches the stack */
                 if (stack.length && e.rem == stack[stack.length - 1].add) {
                   stack.pop();
                 } else {
