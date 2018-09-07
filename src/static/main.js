@@ -2431,17 +2431,15 @@ this.Instant = function() {
             cb: function(m, out) {
               /* Leading sigil */
               if (m[1] != null || m[2] != null) {
-                var node = makeSigil('`', 'mono-before');
-                out.push(node);
-                out.push({add: 'mono', nodes: [node]});
+                out.push({add: 'mono',
+                          nodes: [makeSigil('`', 'mono-before')]});
               }
               /* Embed actual text */
               out.push(m[1] || m[2] || m[3]);
               /* Trailing sigil */
               if (m[1] != null || m[3] != null) {
-                var node = makeSigil('`', 'mono-after');
-                out.push({rem: 'mono', nodes: [node]});
-                out.push(node);
+                out.push({rem: 'mono',
+                          nodes: [makeSigil('`', 'mono-after')]});
               }
             },
             add: function() {
@@ -2459,17 +2457,15 @@ this.Instant = function() {
               /* Sigils are in individual nodes so they can be selectively
                * disabled */
               for (var i = 0; i < pref; i++) {
-                var node = makeSigil('*', 'emph-before');
-                out.push(node);
-                out.push({add: 'emph', nodes: [node]});
+                out.push({add: 'emph',
+                          nodes: [makeSigil('*', 'emph-before')]});
               }
               /* Add actual text; which one does not matter */
               out.push(m[1] || m[2] || m[3]);
               /* Same as above for trailing sigil */
               for (var i = 0; i < suff; i++) {
-                var node = makeSigil('*', 'emph-after');
-                out.push({rem: 'emph', nodes: [node]});
-                out.push(node);
+                out.push({rem: 'emph',
+                          nodes: [makeSigil('*', 'emph-after')]});
               }
             },
             add: function(stack, status) {
@@ -2494,18 +2490,15 @@ this.Instant = function() {
             re: /```\n([\s\S]*?)\n```/,
             bef: /\W|^$/, aft: /\W|^$/,
             cb: function(m, out) {
-              var bnode = makeSigil('```', 'mono-block-before');
-              var bnl = makeNode('\n', 'hidden');
-              var anode = makeSigil('```', 'mono-block-after');
-              out.push(bnode);
-              out.push(bnl);
-              out.push({add: 'monoBlock', nodes: [bnode, bnl]});
+              out.push({add: 'monoBlock',
+                        nodes: [makeSigil('```', 'mono-block-before'),
+                                makeNode('\n', 'hidden')]});
               /* HACK: Using inline element for marginally better select-and-
                *       paste experience. */
               out.push(makeNode(m[1] + '\n', 'monospace monospace-block',
                                 null, 'code'));
-              out.push({rem: 'monoBlock', nodes: [anode]});
-              out.push(anode);
+              out.push({rem: 'monoBlock',
+                        nodes: [makeSigil('```', 'mono-block-after')]});
             }
           },
           { /* Subheadings */
@@ -2722,14 +2715,23 @@ this.Instant = function() {
                   for (var j = idx + 1; j < stack.length; j++)
                     declassify(stack[j]);
                   stack = stack.slice(0, idx);
+                  out.splice.apply(out, [i + 1, 0].concat(e.nodes || []));
                 } else {
                   /* Otherwise, this becomes the add */
                   e.add = e.toggle;
                   stack.push(e);
+                  if (e.nodes) {
+                    out.splice.apply(out, [i, 0].concat(e.nodes));
+                    i += e.nodes.length;
+                  }
                 }
               } else if (e.add || e.line) {
                 /* Adds or line-level adds always work (preliminarily) */
                 stack.push(e);
+                if (e.nodes) {
+                  out.splice.apply(out, [i, 0].concat(e.nodes));
+                  i += e.nodes.length;
+                }
               } else if (e.rem) {
                 /* Check if the remove matches actually matches the stack */
                 if (stack.length && e.rem == stack[stack.length - 1].add) {
@@ -2737,6 +2739,7 @@ this.Instant = function() {
                 } else {
                   declassify(e);
                 }
+                out.splice.apply(out, [i + 1, 0].concat(e.nodes || []));
               }
 
             }
