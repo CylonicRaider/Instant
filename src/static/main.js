@@ -2681,13 +2681,16 @@ this.Instant = function() {
                 break;
               }
               /* Insert text up to match */
-              if (matches[minIdx].index != idx)
+              var match = matches[minIdx];
+              if (match.index != idx)
                 out.push(text.substring(idx, matches[minIdx].index));
               /* Process match */
               status.id = minIdx;
-              var adv = matchers[minIdx].cb(matches[minIdx], out,
-                                            status) || 0;
-              idx = matches[minIdx].index + matches[minIdx][0].length + adv;
+              status.bef = (match.index == 0) ? '' :
+                text.substr(match.index - 1, 1);
+              status.aft = text.substr(match.index + match[0].length, 1);
+              var adv = matchers[minIdx].cb(match, out, status) || 0;
+              idx = matches[minIdx].index + match[0].length + adv;
             }
             /* Disable stray emphasis marks
              * Those nested highlights actually form a context-free
