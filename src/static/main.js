@@ -2426,20 +2426,23 @@ this.Instant = function() {
           },
           { /* Inline monospace */
             name: 'mono',
-            re: /`([^`\s]+)`|`([^`\s]+)|(?!\W+`\w)([^`\s]+)`/,
-            bef: /[^\w`]|^$/, aft: /[^\w`]|^$/,
-            cb: function(m, out) {
-              /* Leading sigil */
-              if (m[1] != null || m[2] != null) {
+            re: /`/,
+            bef: /[^`]|^$/, aft: /[^`]|^$/,
+            cb: function(m, out, status) {
+              /* Determine whether this is a leading, trailing, or ambiguous
+               * sigil */
+              var wb = /\w/.test(status.bef), wa = /\w/.test(status.aft);
+              if (wb && wa) {
+                out.push(m[0]);
+              } else if (wa) {
                 out.push({add: 'mono',
                           nodes: [makeSigil('`', 'mono-before')]});
-              }
-              /* Embed actual text */
-              out.push(m[1] || m[2] || m[3]);
-              /* Trailing sigil */
-              if (m[1] != null || m[3] != null) {
+              } else if (wb) {
                 out.push({rem: 'mono',
                           nodes: [makeSigil('`', 'mono-after')]});
+              } else {
+                out.push({toggle: 'mono',
+                          nodes: [makeSigil('`', 'mono-marker')]});
               }
             },
             add: function() {
