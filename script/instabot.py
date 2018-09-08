@@ -96,6 +96,8 @@ class EventScheduler(object):
         with self:
             while self.running:
                 self.cond.wait()
+    def on_error(self, exc):
+        raise exc
     def run(self, hangup=True):
         wait = None
         while 1:
@@ -109,7 +111,10 @@ class EventScheduler(object):
                 heapq.heappop(self.pending)
                 head.handled = True
                 if head.canceled: continue
-            head()
+            try:
+                head()
+            except Exception as exc:
+                self.on_error(exc)
         if wait is None and not hangup: return False
         return self.sleep(wait)
     def main(self):
