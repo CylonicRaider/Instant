@@ -2356,7 +2356,7 @@ this.Instant = function() {
               var url = linkNode.getAttribute('data-url');
               /* Find a matching embedder module */
               var embedder = Instant.message.parser.queryEmbedder(url);
-              var inline = embedder.inline;
+              var inline = embedder && embedder.inline;
               /* Disgorge the DOM structure */
               var spaceBefore = /^\s+/.exec(m[0]);
               if (embedder) {
