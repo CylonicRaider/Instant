@@ -2394,7 +2394,7 @@ this.Instant = function() {
               if (elem.embed) {
                 var clsname = 'embed-' + elem.embed;
                 if (elem.embed == 'outer') {
-                  clsname += ' embed-' + ((elem.inline) ? 'inline' : 'block');
+                  clsname += (elem.inline) ? ' embed-inline' : ' block';
                 } else if (elem.embed == 'link') {
                   clsname += ' hidden';
                 } else if (elem.embed == 'inner') {
@@ -2498,7 +2498,7 @@ this.Instant = function() {
                                 makeNode('\n', 'hidden')]});
               /* HACK: Using inline element for marginally better select-and-
                *       paste experience. */
-              out.push(makeNode(m[1] + '\n', 'monospace monospace-block',
+              out.push(makeNode(m[1] + '\n', 'monospace block',
                                 null, 'code'));
               out.push({rem: 'monoBlock',
                         nodes: [makeSigil('```', 'mono-block-after')]});

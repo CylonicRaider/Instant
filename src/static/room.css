@@ -202,6 +202,9 @@ body {
   white-space: pre-wrap;
   word-wrap: break-word;
 }
+.message-text .block {
+  display: block;
+}
 .message-text .mention, .message-text a {
   unicode-bidi: embed;
 }
@@ -243,14 +246,12 @@ body {
 .message-text .monospace {
   background: #f0f0f0;
 }
-.message-text .monospace.monospace-block {
-  display: block;
+.message-text .monospace.block {
   white-space: pre;
   overflow: auto;
 }
 
 .message-text .embed-outer {
-  display: block;
   margin: 1px 0;
 }
 .message-text .embed-outer.embed-inline {
