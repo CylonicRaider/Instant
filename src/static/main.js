@@ -2283,7 +2283,7 @@ this.Instant = function() {
           elem.disabled = true;
           var nodes = elem.nodes || [];
           for (var i = 0; i < nodes.length; i++) {
-            nodes[i].classList.add('false');
+            if (nodes[i].classList) nodes[i].classList.add('false');
           }
         }
         /* Handle end-of-line for line patterns */
@@ -2490,18 +2490,16 @@ this.Instant = function() {
           },
           { /* Monospace blocks */
             name: 'monoBlock',
-            re: /```\n([\s\S]*?)\n```/,
-            bef: /\W|^$/, aft: /\W|^$/,
+            re: /((?:(?!\n)\s)*)```(\s*?\n)?/,
+            bef: /[^`]|^$/, aft: /[^`]|^$/,
             cb: function(m, out) {
-              out.push({add: 'monoBlock',
-                        nodes: [makeSigil('```', 'mono-block-before'),
-                                makeNode('\n', 'hidden')]});
-              /* HACK: Using inline element for marginally better select-and-
-               *       paste experience. */
-              out.push(makeNode(m[1] + '\n', 'monospace block',
-                                null, 'code'));
-              out.push({rem: 'monoBlock',
-                        nodes: [makeSigil('```', 'mono-block-after')]});
+              var nodes = [makeSigil('```', 'mono-block-before')];
+              if (m[1]) nodes.unshift($text(m[1]));
+              if (m[2]) nodes.push($text(m[2]));
+              out.push({toggle: 'monoBlock', nodes: nodes});
+            },
+            add: function() {
+              return makeNode(null, 'monospace block', 'pre');
             }
           },
           { /* Subheadings */
