@@ -2707,9 +2707,9 @@ this.Instant = function() {
                 }
                 var idx = e.indexOf('\n');
                 if (idx != -1 && stack.some(isLine)) {
-                  out.splice(i++, 1, e.substring(0, idx));
+                  out.splice(i++, 1, e.substring(0, idx + 1));
                   i = doEOL(stack, out, i);
-                  out.splice(i, 0, e.substring(idx));
+                  out.splice(i, 0, e.substring(idx + 1));
                   continue;
                 }
               }
