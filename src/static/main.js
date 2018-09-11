@@ -2494,8 +2494,8 @@ this.Instant = function() {
             bef: /[^`]|^$/, aft: /[^`]|^$/,
             cb: function(m, out) {
               var nodes = [makeSigil('```', 'mono-block-before')];
-              if (m[1]) nodes.unshift($text(m[1]));
-              if (m[2]) nodes.push($text(m[2]));
+              if (m[1]) nodes.unshift(m[1]);
+              if (m[2]) nodes.push(m[2]);
               out.push({toggle: 'monoBlock', nodes: nodes});
             },
             add: function() {
@@ -2692,9 +2692,11 @@ this.Instant = function() {
               var e = out[i];
               /* Handle end-of-line */
               if (typeof e == 'string') {
+                function isLine(el) {
+                  return el.line;
+                }
                 var idx = e.indexOf('\n');
-                if (idx != -1 && stack.length &&
-                    stack[stack.length - 1].line) {
+                if (idx != -1 && stack.some(isLine)) {
                   out.splice(i++, 1, e.substring(0, idx));
                   i = doEOL(stack, out, i);
                   out.splice(i, 0, e.substring(idx));
