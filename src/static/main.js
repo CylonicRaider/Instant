@@ -2345,7 +2345,7 @@ this.Instant = function() {
           },
           { /* Embeds */
             name: 'embed',
-            re: new RegExp('\\s*<!' + URL_RE.source + '>\\s*'),
+            re: new RegExp('<!' + URL_RE.source + '>'),
             cb: function(m, out, status) {
               /* Perform plausibility check and obtain link node */
               var linkNode = makeLink(m);
@@ -2358,22 +2358,14 @@ this.Instant = function() {
               var embedder = Instant.message.parser.queryEmbedder(url);
               var inline = embedder && embedder.inline;
               /* Disgorge the DOM structure */
-              var spaceBefore = /^\s+/.exec(m[0]);
               if (embedder) {
-                if (spaceBefore && inline)
-                  out.push(spaceBefore[0]);
                 out.push({add: 'embed', embed: 'outer',
-                  inline: embedder.inline});
-                if (spaceBefore && ! inline)
-                  out.push(makeNode(spaceBefore[0], 'embed-space hidden'));
+                          inline: embedder.inline});
                 out.push({add: 'embed', embed: 'link'});
-              } else if (spaceBefore) {
-                out.push(spaceBefore[0]);
               }
               out.push(makeSigil('<!', 'embed-before'));
               out.push(linkNode);
               out.push(makeSigil('>', 'embed-after'));
-              var spaceAfter = /\s+$/.exec(m[0]);
               if (embedder) {
                 out.push({rem: 'embed'});
                 out.push({add: 'embed', embed: 'inner',
@@ -2381,13 +2373,7 @@ this.Instant = function() {
                 var res = embedder.cb(url, out, status);
                 if (res != null) out.push(res);
                 out.push({rem: 'embed'});
-                if (spaceAfter && ! inline)
-                  out.push(makeNode(spaceAfter[0], 'embed-space hidden'));
                 out.push({rem: 'embed'});
-                if (spaceAfter && inline)
-                  out.push(spaceAfter[0]);
-              } else if (spaceAfter) {
-                out.push(spaceAfter[0]);
               }
             },
             add: function(stack, status, elem) {
@@ -2566,8 +2552,32 @@ this.Instant = function() {
         /* Functions that may edit the resulting DOM node
          * The return values are ignored. */
         var processors = [
-          /* Coalesce embed containers and insert strut if necessary */
+          /* Coalesce embed containers and insert a strut if necessary */
           function(node) {
+            /* Coalesce adjacent text nodes
+             * This significantly simplifies the next step. */
+            node.normalize();
+            /* Let block embed containers swallow adjacent whitespace */
+            var blockContainers = $selAll('.embed-outer.block', node);
+            for (var i = 0; i < blockContainers.length; i++) {
+              var cur = blockContainers[i];
+              var pred = cur.previousSibling;
+              if (pred && pred.nodeType == Node.TEXT_NODE &&
+                  /\s+$/.test(pred.nodeValue)) {
+                var m = /(\S)\s*$/.exec(pred.nodeValue);
+                if (m) pred = pred.splitText(m.index + m[1].length);
+                var wrapper = $makeNode('span', 'embed-space hidden', [pred]);
+                cur.insertBefore(wrapper, cur.firstChild);
+              }
+              var succ = cur.nextSibling;
+              if (succ && succ.nodeType == Node.TEXT_NODE &&
+                  /^\s+/.test(succ.nodeValue)) {
+                var m = /^(\s*)\S/.exec(succ.nodeValue);
+                if (m) succ.splitText(m[1].length);
+                var wrapper = $makeNode('span', 'embed-space hidden', [succ]);
+                cur.appendChild(wrapper);
+              }
+            }
             /* Coalesce adjacent embed containers */
             var containers = $selAll('.embed-outer + .embed-outer', node);
             for (var i = 0; i < containers.length; i++) {
