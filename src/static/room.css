@@ -192,10 +192,11 @@ body {
 .embed-outer.block.embed-first.embed-last {
   margin-bottom: -2px;
 }
-.message > .line .content .message-text .embed-inline.embed-first.embed-last {
-  -webkit-transform: translateY(-1px);
-  transform: translateY(-1px);
-  margin-bottom: -2px;
+.message > .line .content .message-text .embed-inline.embed-first {
+  margin-top: -1px;
+}
+.message > .line .content .message-text .embed-inline.embed-last {
+  margin-bottom: -1px;
 }
 
 /* Keep in sync with copy formatting in main.js */
@@ -274,7 +275,8 @@ body {
   margin-right: 1px;
 }
 .message-text .embed-outer.embed-inline .embed-inner {
-  margin-right: 0;
+  vertical-align: baseline;
+  margin: 0;
 }
 
 .message > .replies {
