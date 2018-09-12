@@ -2709,7 +2709,7 @@ this.Instant = function() {
               var e = out[i];
               /* Handle end-of-line */
               if (typeof e == 'string') {
-                function isLine(el) {
+                var isLine = function(el) {
                   return el.line;
                 }
                 var idx = e.indexOf('\n');
