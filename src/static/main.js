@@ -2224,10 +2224,17 @@ this.Instant = function() {
         var pm = '[^()\\s]*', me = '[^.,:;!?()\\s]';
         var MENTION_RE = sm('%PM%(?:\\(%PM%\\)%PM%)*(?:\\(%PM%\\)|%ME%)');
         var PARTIAL_MENTION = sm('%PM%(?:\\(%PM%\\)%PM%)*(?:\\(%PM%)?');
-        var SMILEY_RE = new RegExp('[+-]1|<[/\\\\]?3|><>|<><|' +
+        var SMILEY_RE = new RegExp(
+          // Non-emoticons (+1, -1, hearts, Socrates, Plato).
+          '[+-]1|<[/\\\\]?3|<><|><>|' +
+          // Left-facing regular emoticons.
           '>?[:;=][\',]?[D)\\]}|{\\[/\\\\(cCsSPoO3]|' +
+          // Right-facing regular emoticons.
           '[sSD)\\\\/\\]}|{\\[(cCoO][\',]?[:=]<?|' +
+          // Extensible Japanese-style emoticons.
           '([\\^o0O~><*xX])(\\.|_+)\\1|>(\\.|_*)<|;(-|_*);|\\._+\\.|' +
+          // Non-extensible Japanese-style emoticons (laughing eyes, person
+          // extending arms outwards).
           '\\^\\^|\\\\o/');
         /* Smiley table */
         var SMILIES = {
