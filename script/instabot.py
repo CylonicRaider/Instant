@@ -253,7 +253,7 @@ class InstantClient(object):
                         rawmsg = self.recv()
                     except socket.timeout as exc:
                         self.on_timeout(exc)
-                        continue
+                        break
                     if rawmsg is None:
                         break
                     elif not rawmsg:
@@ -287,9 +287,7 @@ class Bot(InstantClient):
         self.nickname = nickname
         self.identity = None
     def on_timeout(self, exc):
-        if self.timeout is not None:
-            self.send_seq({'type': 'ping'})
-        else:
+        if self.timeout is None:
             raise exc
     def handle_identity(self, content, rawmsg):
         self.identity = content['data']
