@@ -5273,9 +5273,14 @@ this.Instant = function() {
         messageBox = msgNode;
         var pane = Instant.pane.getPane(messageBox);
         /* Pull more logs when scrolled to top */
+        var scheduled = null;
         pane.addEventListener('scroll', function(event) {
           if (pane.scrollTop == 0) Instant.logs.pull.more();
-          Instant.animation.offscreen.checkVisible();
+          if (scheduled != null) return;
+          scheduled = requestAnimationFrame(function() {
+            scheduled = null;
+            Instant.animation.offscreen.checkVisible();
+          });
         });
       },
       /* Flash something */
