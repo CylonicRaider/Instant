@@ -286,6 +286,7 @@ class Bot(InstantClient):
         InstantClient.__init__(self, url, **kwds)
         self.nickname = nickname
         self.identity = None
+        self._nicklock = threading.RLock()
     def on_timeout(self, exc):
         if self.timeout is None:
             raise exc
@@ -294,23 +295,26 @@ class Bot(InstantClient):
         self.send_nick()
     def on_client_message(self, data, content, rawmsg):
         peer = content['from']
-        if (data.get('type') == 'who' and peer != self.identity['id'] and
-                self.nickname is not None):
+        if data.get('type') == 'who' and peer != self.identity['id']:
             self.send_nick(peer)
     def send_nick(self, peer=None):
-        if self.nickname is None: return
-        data = {'type': 'nick', 'nick': self.nickname,
-                'uuid': self.identity['uuid']}
-        if peer is not None:
-            self.send_unicast(peer, data)
-        else:
-            self.send_broadcast(data)
+        with self._nicklock:
+            if self.nickname is None: return
+            data = {'type': 'nick', 'nick': self.nickname,
+                    'uuid': self.identity['uuid']}
+            if peer is not None:
+                self.send_unicast(peer, data)
+            else:
+                self.send_broadcast(data)
     def send_post(self, text, parent=None, nickname=Ellipsis):
         data = {'type': 'post', 'text': text}
-        if parent is not None: data['parent'] = parent
-        if nickname is not Ellipsis: self.nickname = nickname
-        data['nick'] = self.nickname
-        return self.send_broadcast(data)
+        if parent is not None:
+            data['parent'] = parent
+        with self._nicklock:
+            if nickname is not Ellipsis:
+                self.nickname = nickname
+            data['nick'] = self.nickname
+            return self.send_broadcast(data)
 
 class HookBot(Bot):
     def __init__(self, url, nickname=Ellipsis, **kwds):
