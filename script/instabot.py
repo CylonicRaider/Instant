@@ -98,7 +98,7 @@ class EventScheduler(object):
                 self.cond.wait()
     def on_error(self, exc):
         raise exc
-    def run(self, hangup=True):
+    def run_once(self, hangup=True):
         wait = None
         while 1:
             with self:
@@ -117,13 +117,13 @@ class EventScheduler(object):
                 self.on_error(exc)
         if wait is None and not hangup: return False
         return self.sleep(wait)
-    def main(self):
+    def run(self):
         try:
             with self:
                 self.running = True
             while 1:
                 f = self.forever
-                if not self.run(f) and not f: break
+                if not self.run_once(f) and not f: break
         finally:
             with self:
                 self.running = False

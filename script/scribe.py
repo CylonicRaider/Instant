@@ -809,7 +809,7 @@ def main():
         while 1:
             thr = bot.start()
             try:
-                sched.main()
+                sched.run()
             except websocket_server.ConnectionClosedError:
                 pass
             sched.clear()
