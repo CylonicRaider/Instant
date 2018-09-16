@@ -3030,6 +3030,9 @@ this.Instant = function() {
         });
         /* Handle special keys */
         inputMsg.addEventListener('keydown', Instant.input._onkeydown);
+        /* Handle paste events */
+        inputMsg.addEventListener('paste', Instant.input._onpaste);
+        inputMsg.addEventListener('drop', Instant.input._onpaste);
         /* Save the last focused node */
         inputNick.addEventListener('focus', updateFocus);
         inputMsg.addEventListener('focus', updateFocus);
@@ -3382,6 +3385,23 @@ this.Instant = function() {
               break;
           }
         }
+      },
+      /* Handler for drag-and-drop or paste events */
+      _onpaste: function(event) {
+        var transfer = event.clipboardData || event.dataTransfer;
+        /* Run external event handlers */
+        var evdata = {source: event,
+          _cancel: event.preventDefault.bind(event)};
+        if (Instant._fireListeners('input.paste', evdata).canceled) return;
+        /* Ensure this is a single URI */
+        var uris = transfer.getData('text/uri-list');
+        var text = transfer.getData('text/plain');
+        if (! uris || uris != text || ! /^[^#].*$/.test(uris)) return;
+        /* Prefix it depending on embeddability and insert it */
+        var embedder = Instant.message.parser.queryEmbedder(text);
+        var prefix = (embedder) ? '<!' : '<';
+        Instant.input.insertText(prefix + text + '>');
+        event.preventDefault();
       },
       /* Update the online status for display purposes */
       _setOnline: function(status) {
