@@ -1,0 +1,52 @@
+package net.instant.console;
+
+import javax.script.ScriptContext;
+import javax.script.ScriptEngine;
+import javax.script.ScriptEngineManager;
+import javax.script.ScriptException;
+
+public class ScriptRunner {
+
+    /* We remind the reader that Java and JavaScript are *not* related... */
+    public static final String DEFAULT_LANGUAGE = "JavaScript";
+
+    private static final ScriptEngineManager engineManager =
+        new ScriptEngineManager();
+
+    private static ScriptEngine engine;
+
+    public ScriptRunner(String language) {
+        engine = engineManager.getEngineByName(language);
+    }
+    public ScriptRunner() {
+        this(DEFAULT_LANGUAGE);
+    }
+
+    public ScriptEngine getEngine() {
+        return engine;
+    }
+
+    public Object getVariable(String name) {
+        return engine.getContext().getAttribute(name);
+    }
+    public void setVariable(String name, Object value) {
+        engine.getContext().setAttribute(name, value,
+                                         ScriptContext.ENGINE_SCOPE);
+    }
+
+    public Object execute(String script) throws ScriptException {
+        return engine.eval(script);
+    }
+    public Object executeSafe(String script) {
+        try {
+            return execute(script);
+        } catch (ScriptException exc) {
+            return exc;
+        }
+    }
+
+    public static ScriptEngineManager getEngineManager() {
+        return engineManager;
+    }
+
+}
