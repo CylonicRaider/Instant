@@ -10,13 +10,16 @@ public class BackendConsole {
     private final CommandHistory history;
     private final CapturingWriter writer;
 
-    public BackendConsole(BackendConsoleManager parent, int id) {
+    protected BackendConsole(BackendConsoleManager parent, int id) {
         this.parent = parent;
         this.id = id;
         this.runner = new ScriptRunner();
         this.history = new CommandHistory();
         this.writer = new CapturingWriter();
         runner.redirectOutput(writer);
+    }
+    public BackendConsole() {
+        this(null, -1);
     }
 
     public BackendConsoleManager getParent() {
@@ -62,7 +65,7 @@ public class BackendConsole {
     }
 
     public void close() {
-        parent.remove(this);
+        if (parent != null) parent.remove(this);
     }
 
 }
