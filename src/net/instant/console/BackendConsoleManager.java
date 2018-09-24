@@ -11,6 +11,7 @@ public class BackendConsoleManager {
     private final InstantRunner runner;
     private final Map<Integer, BackendConsole> consoles;
     private int nextID;
+    private boolean closed;
 
     public BackendConsoleManager(Main main, InstantRunner runner) {
         if (runner == null && main != null) runner = main.getRunner();
@@ -18,6 +19,7 @@ public class BackendConsoleManager {
         this.runner = runner;
         this.consoles = new HashMap<Integer, BackendConsole>();
         this.nextID = 1;
+        this.closed = false;
     }
 
     public Main getMain() {
@@ -41,6 +43,9 @@ public class BackendConsoleManager {
     }
 
     public synchronized BackendConsole newConsole() {
+        if (closed)
+            throw new IllegalStateException("Cannot create consoles when " +
+                                            "closed");
         int id = nextID++;
         BackendConsole ret = new BackendConsole(this, id);
         consoles.put(id, ret);
@@ -49,6 +54,15 @@ public class BackendConsoleManager {
 
     protected synchronized void remove(BackendConsole console) {
         consoles.remove(console.getID());
+    }
+
+    public synchronized void close() {
+        closed = true;
+        BackendConsole[] cleanup = consoles.values().toArray(
+            new BackendConsole[consoles.size()]);
+        for (BackendConsole cons : cleanup) {
+            cons.close();
+        }
     }
 
 }
