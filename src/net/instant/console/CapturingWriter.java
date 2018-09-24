@@ -33,7 +33,7 @@ public class CapturingWriter extends Writer {
     private final List<Listener> listeners;
 
     public CapturingWriter() {
-        this.listeners = new ArrayList<Listener>();
+        listeners = new ArrayList<Listener>();
     }
 
     public synchronized Listener[] getListeners() {
@@ -48,7 +48,7 @@ public class CapturingWriter extends Writer {
         listeners.remove(l);
     }
 
-    private synchronized void fireEvent(Event evt) {
+    protected synchronized void fireEvent(Event evt) {
         for (Listener l : getListeners()) {
             l.outputWritten(evt);
         }

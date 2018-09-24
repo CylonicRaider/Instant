@@ -5,10 +5,18 @@ import java.util.List;
 
 public class CommandHistory {
 
+    public interface Listener {
+
+        void historyChanged(CommandHistory history);
+
+    }
+
     private final List<String> entries;
+    private final List<Listener> listeners;
 
     public CommandHistory() {
         entries = new ArrayList<String>();
+        listeners = new ArrayList<Listener>();
     }
 
     public synchronized int size() {
@@ -24,6 +32,25 @@ public class CommandHistory {
                 entry.equals(entries.get(entries.size() - 1)))
             return;
         entries.add(entry);
+        fireEvent();
+    }
+
+    public synchronized Listener[] getListeners() {
+        return listeners.toArray(new Listener[listeners.size()]);
+    }
+
+    public synchronized void addListener(Listener l) {
+        listeners.add(l);
+    }
+
+    public synchronized void removeListener(Listener l) {
+        listeners.remove(l);
+    }
+
+    protected synchronized void fireEvent() {
+        for (Listener l : getListeners()) {
+            l.historyChanged(this);
+        }
     }
 
 }
