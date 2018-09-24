@@ -42,7 +42,7 @@ public class BackendConsole {
         return writer;
     }
 
-    public int historySize() {
+    public int getHistorySize() {
         return history.size();
     }
 
