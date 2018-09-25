@@ -4,8 +4,8 @@ public interface BackendConsoleManagerMXBean {
 
     int[] listConsoles();
 
-    BackendConsole getConsole(int id);
+    BackendConsoleMXBean getConsole(int id);
 
-    BackendConsole newConsole();
+    BackendConsoleMXBean newConsole();
 
 }

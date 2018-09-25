@@ -35,7 +35,7 @@ public class BackendConsole implements BackendConsoleMXBean,
         this.history = new CommandHistory();
         this.writer = new CapturingWriter();
         this.objName = Util.classObjectName(BackendConsole.class,
-                                            "id", String.valueOf(id));
+                                            "name", String.valueOf(id));
         this.notifications = new NotificationBroadcasterSupport(
             new MBeanNotificationInfo(
                 new String[] { AttributeChangeNotification.ATTRIBUTE_CHANGE },
