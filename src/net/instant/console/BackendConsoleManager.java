@@ -5,7 +5,7 @@ import java.util.Map;
 import net.instant.InstantRunner;
 import net.instant.Main;
 
-public class BackendConsoleManager {
+public class BackendConsoleManager implements BackendConsoleManagerMXBean {
 
     private final Main main;
     private final InstantRunner runner;

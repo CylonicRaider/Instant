@@ -48,6 +48,8 @@ public class CommandHistory {
     }
 
     protected synchronized void fireEvent() {
+        // NOTE: Some code relies on this always increasing the history size
+        //       by exactly 1.
         for (Listener l : getListeners()) {
             l.historyChanged(this);
         }
