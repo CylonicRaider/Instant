@@ -2,13 +2,16 @@ package net.instant.console;
 
 import java.io.IOException;
 import javax.management.AttributeChangeNotification;
+import javax.management.JMException;
 import javax.management.ListenerNotFoundException;
 import javax.management.MBeanNotificationInfo;
+import javax.management.MBeanServer;
 import javax.management.Notification;
 import javax.management.NotificationBroadcasterSupport;
 import javax.management.NotificationEmitter;
 import javax.management.NotificationFilter;
 import javax.management.NotificationListener;
+import javax.management.ObjectName;
 
 public class BackendConsole implements BackendConsoleMXBean,
         NotificationEmitter {
@@ -20,7 +23,9 @@ public class BackendConsole implements BackendConsoleMXBean,
     private final ScriptRunner runner;
     private final CommandHistory history;
     private final CapturingWriter writer;
+    private final ObjectName objName;
     private final NotificationBroadcasterSupport notifications;
+    private MBeanServer server;
     private long notificationSequence;
 
     protected BackendConsole(BackendConsoleManager parent, int id) {
@@ -29,6 +34,8 @@ public class BackendConsole implements BackendConsoleMXBean,
         this.runner = new ScriptRunner();
         this.history = new CommandHistory();
         this.writer = new CapturingWriter();
+        this.objName = Util.classObjectName(BackendConsole.class,
+                                            "id", String.valueOf(id));
         this.notifications = new NotificationBroadcasterSupport(
             new MBeanNotificationInfo(
                 new String[] { AttributeChangeNotification.ATTRIBUTE_CHANGE },
@@ -41,6 +48,7 @@ public class BackendConsole implements BackendConsoleMXBean,
                 "New text has been output on the console"
             )
         );
+        this.server = null;
         this.notificationSequence = 1;
         runner.redirectOutput(writer);
         history.addListener(new CommandHistory.Listener() {
@@ -78,6 +86,21 @@ public class BackendConsole implements BackendConsoleMXBean,
         return writer;
     }
 
+    public void install(MBeanServer server) {
+        if (server == null) return;
+        synchronized (this) {
+            if (this.server != null)
+                throw new IllegalStateException("Backend console manager " +
+                    "is already registered in an MBean server");
+            this.server = server;
+        }
+        try {
+            server.registerMBean(this, objName);
+        } catch (JMException exc) {
+            throw new RuntimeException(exc);
+        }
+    }
+
     public int getHistorySize() {
         return history.size();
     }
@@ -102,6 +125,18 @@ public class BackendConsole implements BackendConsoleMXBean,
 
     public void close() {
         if (parent != null) parent.remove(this);
+        MBeanServer server;
+        synchronized (this) {
+            server = this.server;
+            this.server = null;
+        }
+        if (server != null) {
+            try {
+                server.unregisterMBean(objName);
+            } catch (JMException exc) {
+                throw new RuntimeException(exc);
+            }
+        }
     }
 
     public MBeanNotificationInfo[] getNotificationInfo() {

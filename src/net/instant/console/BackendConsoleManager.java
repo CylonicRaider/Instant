@@ -2,6 +2,9 @@ package net.instant.console;
 
 import java.util.HashMap;
 import java.util.Map;
+import javax.management.JMException;
+import javax.management.MBeanServer;
+import javax.management.ObjectName;
 import net.instant.InstantRunner;
 import net.instant.Main;
 
@@ -10,16 +13,20 @@ public class BackendConsoleManager implements BackendConsoleManagerMXBean {
     private final Main main;
     private final InstantRunner runner;
     private final Map<Integer, BackendConsole> consoles;
+    private final ObjectName objName;
     private int nextID;
     private boolean closed;
+    private MBeanServer server;
 
     public BackendConsoleManager(Main main, InstantRunner runner) {
         if (runner == null && main != null) runner = main.getRunner();
         this.main = main;
         this.runner = runner;
         this.consoles = new HashMap<Integer, BackendConsole>();
+        this.objName = Util.classObjectName(BackendConsoleManager.class);
         this.nextID = 1;
         this.closed = false;
+        this.server = null;
     }
 
     public Main getMain() {
@@ -28,6 +35,21 @@ public class BackendConsoleManager implements BackendConsoleManagerMXBean {
 
     public InstantRunner getRunner() {
         return runner;
+    }
+
+    public void install(MBeanServer server) {
+        if (server == null) return;
+        synchronized (this) {
+            if (this.server != null)
+                throw new IllegalStateException("Backend console manager " +
+                    "is already registered in an MBean server");
+            this.server = server;
+        }
+        try {
+            server.registerMBean(this, objName);
+        } catch (JMException exc) {
+            throw new RuntimeException(exc);
+        }
     }
 
     public synchronized int[] listConsoles() {
@@ -42,13 +64,17 @@ public class BackendConsoleManager implements BackendConsoleManagerMXBean {
         return consoles.get(id);
     }
 
-    public synchronized BackendConsole newConsole() {
-        if (closed)
-            throw new IllegalStateException("Cannot create consoles when " +
-                                            "closed");
-        int id = nextID++;
-        BackendConsole ret = new BackendConsole(this, id);
-        consoles.put(id, ret);
+    public BackendConsole newConsole() {
+        BackendConsole ret;
+        synchronized (this) {
+            if (closed)
+                throw new IllegalStateException("Cannot create consoles " +
+                                                "when closed");
+            int id = nextID++;
+            ret = new BackendConsole(this, id);
+            consoles.put(id, ret);
+        }
+        ret.install(server);
         return ret;
     }
 
@@ -56,12 +82,24 @@ public class BackendConsoleManager implements BackendConsoleManagerMXBean {
         consoles.remove(console.getID());
     }
 
-    public synchronized void close() {
-        closed = true;
-        BackendConsole[] cleanup = consoles.values().toArray(
-            new BackendConsole[consoles.size()]);
-        for (BackendConsole cons : cleanup) {
-            cons.close();
+    public void close() {
+        MBeanServer server;
+        synchronized (this) {
+            this.closed = true;
+            server = this.server;
+            this.server = null;
+            BackendConsole[] cleanup = consoles.values().toArray(
+                new BackendConsole[consoles.size()]);
+            for (BackendConsole cons : cleanup) {
+                cons.close();
+            }
+        }
+        if (server != null) {
+            try {
+                server.unregisterMBean(objName);
+            } catch (JMException exc) {
+                throw new RuntimeException(exc);
+            }
         }
     }
 
