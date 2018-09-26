@@ -24,6 +24,7 @@ import net.instant.api.MessageHook;
 import net.instant.api.PluginData;
 import net.instant.api.RequestHook;
 import net.instant.api.RoomGroup;
+import net.instant.console.BackendConsoleManager;
 import net.instant.hooks.APIWebSocketHook;
 import net.instant.hooks.CodeHook;
 import net.instant.hooks.RedirectHook;
@@ -142,6 +143,7 @@ public class InstantRunner implements API1 {
     private ScheduledExecutorService jobScheduler;
     private ExecutorService taskRunner;
     private PluginManager plugins;
+    private BackendConsoleManager console;
 
     public InstantRunner() {
         host = null;
@@ -356,6 +358,19 @@ public class InstantRunner implements API1 {
             plugins = new PluginManager(this);
         }
         return plugins;
+    }
+
+    public BackendConsoleManager getConsole() {
+        return console;
+    }
+    public void setConsole(BackendConsoleManager mgr) {
+        console = mgr;
+    }
+    public BackendConsoleManager makeConsole() {
+        if (console == null) {
+            console = BackendConsoleManager.makeDefault(this);
+        }
+        return console;
     }
 
     public void addRequestHook(RequestHook hook) {

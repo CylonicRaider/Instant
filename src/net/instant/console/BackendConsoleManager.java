@@ -103,4 +103,11 @@ public class BackendConsoleManager implements BackendConsoleManagerMXBean {
         }
     }
 
+    public static BackendConsoleManager makeDefault(InstantRunner runner) {
+        return new BackendConsoleManager(null, runner);
+    }
+    public static BackendConsoleManager makeDefault(Main main) {
+        return new BackendConsoleManager(main, main.getRunner());
+    }
+
 }
