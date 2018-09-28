@@ -1,5 +1,6 @@
 package net.instant.console;
 
+import java.lang.management.ManagementFactory;
 import java.util.HashMap;
 import java.util.Map;
 import javax.management.JMException;
@@ -103,11 +104,20 @@ public class BackendConsoleManager implements BackendConsoleManagerMXBean {
         }
     }
 
-    public static BackendConsoleManager makeDefault(InstantRunner runner) {
-        return new BackendConsoleManager(null, runner);
+    public static BackendConsoleManager makeDefault(InstantRunner runner,
+                                                    boolean install) {
+        BackendConsoleManager ret = new BackendConsoleManager(null, runner);
+        if (install)
+            ret.install(ManagementFactory.getPlatformMBeanServer());
+        return ret;
     }
-    public static BackendConsoleManager makeDefault(Main main) {
-        return new BackendConsoleManager(main, main.getRunner());
+    public static BackendConsoleManager makeDefault(Main main,
+                                                    boolean install) {
+        BackendConsoleManager ret = new BackendConsoleManager(main,
+            main.getRunner());
+        if (install)
+            ret.install(ManagementFactory.getPlatformMBeanServer());
+        return ret;
     }
 
 }

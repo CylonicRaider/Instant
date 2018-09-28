@@ -368,7 +368,7 @@ public class InstantRunner implements API1 {
     }
     public BackendConsoleManager makeConsole() {
         if (console == null) {
-            console = BackendConsoleManager.makeDefault(this);
+            console = BackendConsoleManager.makeDefault(this, false);
         }
         return console;
     }
