@@ -8,6 +8,7 @@ import javax.management.MBeanServer;
 import javax.management.ObjectName;
 import net.instant.InstantRunner;
 import net.instant.Main;
+import net.instant.console.util.Util;
 
 public class BackendConsoleManager implements BackendConsoleManagerMXBean {
 

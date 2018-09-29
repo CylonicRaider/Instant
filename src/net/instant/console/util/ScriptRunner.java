@@ -1,4 +1,4 @@
-package net.instant.console;
+package net.instant.console.util;
 
 import java.io.IOException;
 import java.io.Writer;

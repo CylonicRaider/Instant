@@ -1,4 +1,4 @@
-package net.instant.console;
+package net.instant.console.util;
 
 import java.util.Hashtable;
 import javax.management.MalformedObjectNameException;

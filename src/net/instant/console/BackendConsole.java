@@ -12,6 +12,10 @@ import javax.management.NotificationEmitter;
 import javax.management.NotificationFilter;
 import javax.management.NotificationListener;
 import javax.management.ObjectName;
+import net.instant.console.util.CapturingWriter;
+import net.instant.console.util.CommandHistory;
+import net.instant.console.util.ScriptRunner;
+import net.instant.console.util.Util;
 
 public class BackendConsole implements BackendConsoleMXBean,
         NotificationEmitter {
