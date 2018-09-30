@@ -76,7 +76,8 @@ public final class Formats {
         }
         public static String formatDatetime(long ts) {
             // Obscure string formatting features FTW!
-            return String.format((Locale) null, "[%td/%<tb/%<tY:%<tT %<tz]", ts);
+            return String.format((Locale) null, "[%td/%<tb/%<tY:%<tT %<tz]",
+                                 ts);
         }
         public static String formatLength(long l) {
             return (l == -1) ? "-" : Long.toString(l);
@@ -129,6 +130,13 @@ public final class Formats {
     public static final Pattern HTTP_HEADERVALUE = Pattern.compile(
         String.format("\\s*(?<hvalue>[^;,]+)\\s*(;(?<hattrs>(%s)+))?\\s*" +
         "(?<hend>,|$)", HTTP_PARAM.pattern().replace(";|$", ";|,|$")));
+
+    public static final Pattern INETSOCKETADDRESS = Pattern.compile(
+        // According to RFCs 952 and 1123, host names may consist of ASCII
+        // letters, digits, and hyphens. The IP address matching is
+        // deliberately liberal.
+        "(?<hostname>[a-zA-Z0-9.-]*|\\*)?(?:\\[(?<addr>[0-9a-fA-F.:]+)\\])?" +
+        ":(?<port>[0-9]+)");
 
     private static final SimpleDateFormat HTTP_FORMAT;
 
@@ -215,6 +223,44 @@ public final class Formats {
 
     public static String formatHTTPLog(RequestResponseData req) {
         return HTTPLog.format(req);
+    }
+
+    public static String formatInetSocketAddress(InetSocketAddress addr,
+                                                 boolean extended) {
+        InetAddress baseAddr = addr.getAddress();
+        if (baseAddr.isAnyLocalAddress() && ! extended)
+            return "*:" + addr.getPort();
+        String hostname = baseAddr.getHostName();
+        String hostaddr = baseAddr.getHostAddress();
+        if (hostname.equals(hostaddr) || ! extended)
+            return hostname + ":" + addr.getPort();
+        return hostname + "[" + hostaddr + "]:" + addr.getPort();
+    }
+    public static String formatInetSocketAddress(InetSocketAddress addr) {
+        return formatInetSocketAddress(addr, true);
+    }
+    public static InetSocketAddress parseInetSocketAddress(String addr) {
+        Matcher m = INETSOCKETADDRESS.matcher(addr);
+        if (! m.matches())
+            throw new IllegalArgumentException("Invalid Internet socket " +
+                "address: " + addr);
+        int port;
+        try {
+            port = Integer.parseInt(m.group("port"));
+        } catch (NumberFormatException exc) {
+            throw new IllegalArgumentException("Invalid Internet socket " +
+                "port: " + m.group("port"), exc);
+        }
+        if (m.group("addr") != null) {
+            return new InetSocketAddress(m.group("addr"), port);
+        } else if (m.group("hostname") == null) {
+            throw new IllegalArgumentException("Internet socket address " +
+                "has neither hostname nor host address: " + addr);
+        } else if (m.group("hostname").equals("*")) {
+            return new InetSocketAddress(port);
+        } else {
+            return new InetSocketAddress(m.group("hostname"), port);
+        }
     }
 
 }

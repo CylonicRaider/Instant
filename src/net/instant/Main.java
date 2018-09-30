@@ -6,8 +6,6 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintStream;
-import java.net.InetAddress;
-import java.net.InetSocketAddress;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
@@ -205,7 +203,8 @@ public class Main implements Runnable {
         // Socket is only bound in run(), so we can create the server here.
         InstantWebSocketServer srv = runner.makeServer();
         if (startupCmd != null) runCommand(startupCmd);
-        LOGGER.info("Listening on " + formatAddress(srv.getAddress()));
+        LOGGER.info("Listening on " +
+            Formats.formatInetSocketAddress(srv.getAddress()));
         srv.spawn();
     }
 
@@ -237,17 +236,6 @@ public class Main implements Runnable {
             Thread.currentThread().interrupt();
             return Integer.MIN_VALUE + 1;
         }
-    }
-
-    private String formatAddress(InetSocketAddress addr) {
-        InetAddress baseAddr = addr.getAddress();
-        if (baseAddr.isAnyLocalAddress())
-            return "*:" + addr.getPort();
-        String hostname = baseAddr.getHostName();
-        String hostaddr = baseAddr.getHostAddress();
-        if (hostname.equals(hostaddr))
-            return hostname + ":" + addr.getPort();
-        return hostname + "[" + hostaddr + "]:" + addr.getPort();
     }
 
 }
