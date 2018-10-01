@@ -119,9 +119,9 @@ public class BackendConsoleManager implements BackendConsoleManagerMXBean {
     }
 
     public void exportOn(InetSocketAddress addr) throws IOException {
-        MBeanServer mbsrv = getInstalledServer();
-        if (mbsrv == null) return;
-        Util.exportMBeanServerRMI(mbsrv, addr, addr);
+        MBeanServer srv = getInstalledServer();
+        if (srv == null) return;
+        Util.exportMBeanServerRMI(srv, addr, addr);
     }
 
     public static BackendConsoleManager makeDefault(InstantRunner runner) {
@@ -129,6 +129,12 @@ public class BackendConsoleManager implements BackendConsoleManagerMXBean {
     }
     public static BackendConsoleManager makeDefault(Main main) {
         return new BackendConsoleManager(main, main.getRunner());
+    }
+
+    public static void exportPlatformManagement(InetSocketAddress addr)
+            throws IOException {
+        MBeanServer srv = ManagementFactory.getPlatformMBeanServer();
+        Util.exportMBeanServerRMI(srv, addr, addr);
     }
 
 }

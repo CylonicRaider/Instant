@@ -492,8 +492,7 @@ public class InstantRunner implements API1 {
                 "management interface";
             LOGGER.info("Exposing " + description + " on " +
                 Formats.formatInetSocketAddress(addr));
-            console.installPlatform();
-            console.exportOn(addr);
+            BackendConsoleManager.exportPlatformManagement(addr);
         }
     }
     public void setup() throws Exception {
