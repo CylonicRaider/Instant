@@ -40,7 +40,7 @@ operations on the VM the backend runs in and to access the backend console.
 
 **Note**: This uses unencrypted connections without client authentication; in
 order to use those features, employ the VM's native management capabilities
-instead.
+instead (and set `instant.console.enabled` if desired).
 
 **Note**: Communication with the console is based on the RMI technology; in
 particular, the `HOST` and `PORT` as specified above are sent to clients,
@@ -48,6 +48,12 @@ which then *attempt to connect there directly*. This may cause problems if
 `HOST` or `PORT` do not mean the same thing to the backend as they do to the
 client; if communication is to happen via proxies or tunnels, special care
 needs to be taken.
+
+### instant.console.enabled
+
+A Boolean indicating whether the backend console should be actually enabled.
+If this configuration value is not set, the console is enabled if-and-only-if
+`instant.console.addr` is set.
 
 ### instant.cookies.insecure
 
