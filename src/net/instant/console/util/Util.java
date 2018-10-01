@@ -66,6 +66,8 @@ public final class Util {
             System.setProperty("java.rmi.server.hostname",
                                endpoint.getHostName());
         /* Start the RMI registry. */
+        // NOTE: The JDK implementation's policy is to allow remote accesses
+        //       from any port of any address the local VM can bind to.
         LocateRegistry.createRegistry(registry.getPort(), null,
             new SingleAddressRMIServerSocketFactory(registry));
         /* Format the service URL. */
