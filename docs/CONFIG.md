@@ -27,13 +27,32 @@ values used by Instant are in the `instant` namespace in order to avoid
 clashes with (other) environment variables or system properties.
 
 Boolean values are considered true if their value is (case-insensitively) one
-of `true`, `yes`, `y`, `1`; all other values (in particular `false`, `no`, `n`,
-`0`) count as false (see `Utilities.isTrue` for the current implementation).
+of `true`, `yes`, `y`, `1`; all other values (in particular `false`, `no`,
+`n`, `0`) count as false (see `net.instant.api.Utilities.isTrue` for the
+current implementation).
+
+### instant.console.addr
+
+A `HOST:PORT` string indicating that the backend management console should be
+exported on the given address. Standard JMX client applications (such as
+`jconsole`) can connect to this address in order to perform management
+operations on the VM the backend runs in and to access the backend console.
+
+**Note**: This uses unencrypted connections without client authentication; in
+order to use those features, employ the VM's native management capabilities
+instead.
+
+**Note**: Communication with the console is based on the RMI technology; in
+particular, the `HOST` and `PORT` as specified above are sent to clients,
+which then *attempt to connect there directly*. This may cause problems if
+`HOST` or `PORT` do not mean the same thing to the backend as they do to the
+client; if communication is to happen via proxies or tunnels, special care
+needs to be taken.
 
 ### instant.cookies.insecure
 
-Boolean indicating whether to *not* set the `Secure` attribute on cookies set
-by the backend. May be used for debugging, but **should not** be used in
+A Boolean indicating whether to *not* set the `Secure` attribute on cookies
+set by the backend. May be used for debugging, but **should not** be used in
 production.
 
 ### instant.cookies.keyfile
@@ -45,12 +64,12 @@ the backend.
 
 ### instant.cookies.keyfile.create
 
-Boolean indicating whether to create the cookie key file if it is absent or
+A Boolean indicating whether to create the cookie key file if it is absent or
 invalid. The Instant process must have appropriate privileges for this to
 work (otherwise, a fatal error may occur).
 
 ### instant.http.maxCacheAge
 
-Integer setting the `max-age` parameter of the `Cache-Control` HTTP header
+An integer setting the `max-age` parameter of the `Cache-Control` HTTP header
 for static resources, i.e., controlling for how long (compliant) browsers
 will cache them.
