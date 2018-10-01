@@ -1,6 +1,8 @@
 package net.instant.console;
 
+import java.io.IOException;
 import java.lang.management.ManagementFactory;
+import java.net.InetSocketAddress;
 import java.util.HashMap;
 import java.util.Map;
 import javax.management.JMException;
@@ -39,6 +41,14 @@ public class BackendConsoleManager implements BackendConsoleManagerMXBean {
         return runner;
     }
 
+    public ObjectName getObjectName() {
+        return objName;
+    }
+
+    public MBeanServer getInstalledServer() {
+        return server;
+    }
+
     public void install(MBeanServer server) {
         if (server == null) return;
         synchronized (this) {
@@ -52,6 +62,9 @@ public class BackendConsoleManager implements BackendConsoleManagerMXBean {
         } catch (JMException exc) {
             throw new RuntimeException(exc);
         }
+    }
+    public void installPlatform() {
+        install(ManagementFactory.getPlatformMBeanServer());
     }
 
     public synchronized int[] listConsoles() {
@@ -105,20 +118,17 @@ public class BackendConsoleManager implements BackendConsoleManagerMXBean {
         }
     }
 
-    public static BackendConsoleManager makeDefault(InstantRunner runner,
-                                                    boolean install) {
-        BackendConsoleManager ret = new BackendConsoleManager(null, runner);
-        if (install)
-            ret.install(ManagementFactory.getPlatformMBeanServer());
-        return ret;
+    public void exportOn(InetSocketAddress addr) throws IOException {
+        MBeanServer mbsrv = getInstalledServer();
+        if (mbsrv == null) return;
+        Util.exportMBeanServerRMI(mbsrv, addr, addr);
     }
-    public static BackendConsoleManager makeDefault(Main main,
-                                                    boolean install) {
-        BackendConsoleManager ret = new BackendConsoleManager(main,
-            main.getRunner());
-        if (install)
-            ret.install(ManagementFactory.getPlatformMBeanServer());
-        return ret;
+
+    public static BackendConsoleManager makeDefault(InstantRunner runner) {
+        return new BackendConsoleManager(null, runner);
+    }
+    public static BackendConsoleManager makeDefault(Main main) {
+        return new BackendConsoleManager(main, main.getRunner());
     }
 
 }

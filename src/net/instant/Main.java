@@ -13,6 +13,7 @@ import java.util.jar.Manifest;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
+import net.instant.console.BackendConsoleManager;
 import net.instant.hooks.APIWebSocketHook;
 import net.instant.plugins.PluginException;
 import net.instant.util.Formats;
@@ -191,6 +192,8 @@ public class Main implements Runnable {
         ws.getWhitelist().add(Pattern.compile("/room/(" + ROOM_RE + ")/ws"),
                               "\\1");
         ws.getWhitelist().add("/api/ws", "");
+        if (runner.getConsole() == null)
+            runner.setConsole(BackendConsoleManager.makeDefault(this));
         try {
             runner.setup();
         } catch (PluginException exc) {

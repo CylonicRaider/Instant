@@ -95,6 +95,14 @@ public class BackendConsole implements BackendConsoleMXBean,
         return writer;
     }
 
+    public ObjectName getObjectName() {
+        return objName;
+    }
+
+    public MBeanServer getInstalledServer() {
+        return server;
+    }
+
     public void install(MBeanServer server) {
         if (server == null) return;
         synchronized (this) {

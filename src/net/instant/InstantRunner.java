@@ -35,7 +35,9 @@ import net.instant.plugins.PluginException;
 import net.instant.plugins.PluginManager;
 import net.instant.proto.APIHook;
 import net.instant.proto.MessageDistributor;
+import net.instant.util.Formats;
 import net.instant.util.UniqueCounter;
+import net.instant.util.Util;
 import net.instant.util.config.Configuration;
 import net.instant.util.config.DynamicConfiguration;
 import net.instant.util.config.PropertiesConfiguration;
@@ -53,6 +55,8 @@ import net.instant.ws.InstantWebSocketServer;
 public class InstantRunner implements API1 {
 
     private static final Logger LOGGER = Logger.getLogger("InstantRunner");
+
+    private static final String K_CONSOLE = "instant.console.addr";
 
     public static class APIFileCell extends FileCell {
 
@@ -368,7 +372,7 @@ public class InstantRunner implements API1 {
     }
     public BackendConsoleManager makeConsole() {
         if (console == null) {
-            console = BackendConsoleManager.makeDefault(this, false);
+            console = BackendConsoleManager.makeDefault(this);
         }
         return console;
     }
@@ -468,11 +472,22 @@ public class InstantRunner implements API1 {
         makePlugins().queueFetch(name);
     }
 
+    protected void setupConsole() throws IOException {
+        BackendConsoleManager console = makeConsole();
+        String addrStr = makeConfig().get(K_CONSOLE);
+        if (! Util.nonempty(addrStr)) return;
+        InetSocketAddress addr = Formats.parseInetSocketAddress(addrStr);
+        LOGGER.info("Starting backend console on " +
+            Formats.formatInetSocketAddress(addr));
+        console.installPlatform();
+        console.exportOn(addr);
+    }
     public void setup() throws Exception {
         makePlugins().setup();
         makeConfig().addSource(new PluginConfigSource(getPlugins()));
         makeJobScheduler();
         makeTaskRunner();
+        setupConsole();
         scheduleJob(makeFileHook().getProducer().getGCTask(),
                     FileProducer.GC_INTERVAL, FileProducer.GC_INTERVAL);
     }
