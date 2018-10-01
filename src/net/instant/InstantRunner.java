@@ -56,7 +56,8 @@ public class InstantRunner implements API1 {
 
     private static final Logger LOGGER = Logger.getLogger("InstantRunner");
 
-    private static final String K_CONSOLE = "instant.console.addr";
+    private static final String K_CONSOLE_ADDR = "instant.console.addr";
+    private static final String K_CONSOLE_ENABLED = "instant.console.enabled";
 
     public static class APIFileCell extends FileCell {
 
@@ -474,13 +475,26 @@ public class InstantRunner implements API1 {
 
     protected void setupConsole() throws IOException {
         BackendConsoleManager console = makeConsole();
-        String addrStr = makeConfig().get(K_CONSOLE);
-        if (! Util.nonempty(addrStr)) return;
-        InetSocketAddress addr = Formats.parseInetSocketAddress(addrStr);
-        LOGGER.info("Starting backend console on " +
-            Formats.formatInetSocketAddress(addr));
-        console.installPlatform();
-        console.exportOn(addr);
+        String enabledStr = makeConfig().get(K_CONSOLE_ENABLED);
+        String addrStr = makeConfig().get(K_CONSOLE_ADDR);
+        boolean enabled;
+        if (Util.nonempty(enabledStr)) {
+            enabled = Util.isTrue(enabledStr);
+        } else {
+            enabled = Util.nonempty(addrStr);
+        }
+        if (enabled) {
+            console.installPlatform();
+        }
+        if (Util.nonempty(addrStr)) {
+            InetSocketAddress addr = Formats.parseInetSocketAddress(addrStr);
+            String description = (enabled) ? "backend console" :
+                "management interface";
+            LOGGER.info("Exposing " + description + " on " +
+                Formats.formatInetSocketAddress(addr));
+            console.installPlatform();
+            console.exportOn(addr);
+        }
     }
     public void setup() throws Exception {
         makePlugins().setup();
