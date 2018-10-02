@@ -5,6 +5,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.ByteBuffer;
 import java.security.SecureRandom;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
@@ -40,7 +41,7 @@ public final class Util {
         }
     }
     public static void clear(byte[] arr) {
-        for (int i = 0; i < arr.length; i++) arr[i] = 0;
+        Arrays.fill(arr, (byte) 0);
     }
 
     public static boolean matchWhitelist(String probe, List<Pattern> list) {

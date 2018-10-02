@@ -2,6 +2,7 @@ package net.instant.util;
 
 import java.security.NoSuchAlgorithmException;
 import java.security.spec.InvalidKeySpecException;
+import java.util.Arrays;
 import javax.crypto.SecretKeyFactory;
 import javax.crypto.spec.PBEKeySpec;
 
@@ -62,7 +63,7 @@ public class PasswordHasher {
     }
 
     public static void clear(char[] data) {
-        for (int i = 0; i < data.length; i++) data[i] = '\0';
+        Arrays.fill(data, '\0');
     }
 
     private static String toMB64(byte[] data) {
