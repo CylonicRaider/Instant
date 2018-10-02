@@ -159,6 +159,14 @@ public final class Util {
         return ret;
     }
 
+    public static int countChars(String input, int ch) {
+        int ret = 0;
+        for (int i = 0, l = input.length(); i < l; i++) {
+            if (input.charAt(i) == ch) ret++;
+        }
+        return ret;
+    }
+
     public static boolean nonempty(String input) {
         return Utilities.nonempty(input);
     }

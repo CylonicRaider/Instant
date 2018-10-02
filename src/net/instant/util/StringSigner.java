@@ -40,7 +40,7 @@ public class StringSigner {
         try {
             return ((Mac) impl.clone()).doFinal(data);
         } catch (CloneNotSupportedException exc) {
-            return null;
+            throw new RuntimeException(exc);
         }
     }
 
