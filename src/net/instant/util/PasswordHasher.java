@@ -67,7 +67,7 @@ public class PasswordHasher {
     }
 
     public static void clear(char[] data) {
-        Arrays.fill(data, '\0');
+        if (data != null) Arrays.fill(data, '\0');
     }
 
     private static String toMB64(byte[] data) {
