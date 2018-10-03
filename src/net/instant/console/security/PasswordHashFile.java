@@ -4,7 +4,6 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.MalformedURLException;
-import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.Properties;
 import net.instant.util.PasswordHasher;
@@ -19,7 +18,6 @@ public class PasswordHashFile {
         this.url = url;
         this.hasher = hasher;
         this.data = null;
-        checkPresence();
     }
     public PasswordHashFile(File source, PasswordHasher hasher) {
         this(convertURL(source), hasher);
@@ -64,20 +62,6 @@ public class PasswordHashFile {
                 "password hasher");
         String hash = query(username);
         return (hash != null && hasher.verify(password, hash));
-    }
-
-    protected void checkPresence() {
-        if (! "file".equals(url.getProtocol())) return;
-        File f;
-        try {
-            f = new File(url.toURI());
-        } catch (URISyntaxException exc) {
-            // If the URL is really invalid, we will notice it when attempting
-            // to retrieve the password file.
-            return;
-        }
-        if (! f.exists())
-            throw new IllegalStateException("Password file does not exist");
     }
 
     private static URL convertURL(File source) {
