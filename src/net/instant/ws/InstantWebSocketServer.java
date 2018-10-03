@@ -214,7 +214,7 @@ public class InstantWebSocketServer extends WebSocketServer
         internalHooks.remove(hook);
     }
 
-    public void spawn() {
+    public void launch() {
         gc.start();
         run();
     }

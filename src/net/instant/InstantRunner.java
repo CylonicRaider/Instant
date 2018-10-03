@@ -142,6 +142,7 @@ public class InstantRunner implements API1 {
     private int port;
     private File webroot;
     private PrintStream httpLog;
+
     private DynamicConfiguration config;
     private InstantWebSocketServer server;
     private RedirectHook redirects;
@@ -155,6 +156,8 @@ public class InstantRunner implements API1 {
     private ExecutorService taskRunner;
     private PluginManager plugins;
     private BackendConsoleManager console;
+
+    private Runnable consoleSpawner;
 
     public InstantRunner() {
         host = null;
@@ -484,7 +487,7 @@ public class InstantRunner implements API1 {
         BackendConsoleManager console = makeConsole();
         String enabledStr = config.get(K_CONSOLE_ENABLED);
         String addrStr = config.get(K_CONSOLE_ADDR);
-        boolean enabled;
+        final boolean enabled;
         if (Util.nonempty(enabledStr)) {
             enabled = Util.isTrue(enabledStr);
         } else {
@@ -494,19 +497,30 @@ public class InstantRunner implements API1 {
             console.installPlatform();
         }
         if (Util.nonempty(addrStr)) {
-            InetSocketAddress addr = Formats.parseInetSocketAddress(addrStr);
-            String description = (enabled) ? "backend console" :
-                "management interface";
-            LOGGER.info("Exposing " + description + " on " +
-                Formats.formatInetSocketAddress(addr) + "...");
-            Map<String, Object> env = new HashMap<String, Object>();
+            final InetSocketAddress addr =
+                Formats.parseInetSocketAddress(addrStr);
+            final Map<String, Object> env = new HashMap<String, Object>();
             String pwFileStr = config.get(K_CONSOLE_PWFILE);
             if (Util.nonempty(pwFileStr)) {
                 URL pwFile = Util.makeURL(pwFileStr);
                 env.put(JMXConnectorServer.AUTHENTICATOR,
                         new PasswordHashAuthenticator(pwFile));
             }
-            BackendConsoleManager.exportPlatformManagement(addr, env);
+            consoleSpawner = new Runnable() {
+                public void run() {
+                    try {
+                        String description = (enabled) ? "backend console" :
+                            "management interface";
+                        LOGGER.info("Exposing " + description + " on " +
+                            Formats.formatInetSocketAddress(addr) + "...");
+                        BackendConsoleManager.exportPlatformManagement(addr,
+                                                                       env);
+                    } catch (IOException exc) {
+                        throw new RuntimeException("Error while spawning " +
+                            "console", exc);
+                    }
+                }
+            };
         }
     }
     public void setup() throws Exception {
@@ -514,9 +528,19 @@ public class InstantRunner implements API1 {
         makeConfig().addSource(new PluginConfigSource(getPlugins()));
         makeJobScheduler();
         makeTaskRunner();
+        makeServer();
         setupConsole();
         scheduleJob(makeFileHook().getProducer().getGCTask(),
                     FileProducer.GC_INTERVAL, FileProducer.GC_INTERVAL);
+    }
+    public void launch() {
+        InstantWebSocketServer srv = getServer();
+        if (consoleSpawner != null) consoleSpawner.run();
+        LOGGER.info("Listening on " +
+            Formats.formatInetSocketAddress(srv.getAddress()) + "...");
+        // The server socket is only actually bound when run() is invoked, so
+        // creating the server above is safe.
+        srv.launch();
     }
 
 }

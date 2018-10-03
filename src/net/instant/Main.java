@@ -25,7 +25,6 @@ import net.instant.util.argparse.ParseResult;
 import net.instant.util.argparse.ValueArgument;
 import net.instant.util.argparse.ValueOption;
 import net.instant.util.fileprod.FSResourceProducer;
-import net.instant.ws.InstantWebSocketServer;
 
 public class Main implements Runnable {
 
@@ -203,12 +202,8 @@ public class Main implements Runnable {
             exc.printStackTrace();
             System.exit(2);
         }
-        // Socket is only bound in run(), so we can create the server here.
-        InstantWebSocketServer srv = runner.makeServer();
         if (startupCmd != null) runCommand(startupCmd);
-        LOGGER.info("Listening on " +
-            Formats.formatInetSocketAddress(srv.getAddress()));
-        srv.spawn();
+        runner.launch();
     }
 
     private static PrintStream resolveLogFile(String path) {
