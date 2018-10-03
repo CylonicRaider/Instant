@@ -1,5 +1,9 @@
 package net.instant.util;
 
+import java.io.Console;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.Reader;
 import java.security.NoSuchAlgorithmException;
 import java.security.spec.InvalidKeySpecException;
 import java.util.Arrays;
@@ -92,6 +96,56 @@ public class PasswordHasher {
                     "component");
         }
         return Encodings.fromBase64(input.replace('.', '+').concat(pad));
+    }
+
+    private static char[] resizeBuffer(char[] buf, int oldSize, int newSize) {
+        char[] newbuf = new char[newSize];
+        System.arraycopy(buf, 0, newbuf, 0, oldSize);
+        clear(buf);
+        return newbuf;
+    }
+
+    public static char[] readPassword(Reader rd) {
+        char[] buf = new char[128];
+        int buflen = 0;
+        for (;;) {
+            int ch;
+            try {
+                ch = rd.read();
+                if (ch == -1 || ch == '\n' || ch == '\r') {
+                    break;
+                } else if (buflen == buf.length) {
+                    buf = resizeBuffer(buf, buflen, 2 * buflen);
+                }
+                buf[buflen++] = (char) ch;
+            } catch (IOException exc) {
+                throw new RuntimeException(exc);
+            } finally {
+                ch = 0;
+            }
+        }
+        if (buflen != buf.length) buf = resizeBuffer(buf, buflen, buflen);
+        return buf;
+    }
+
+    /* Run as a stand-alone program to generate hashes */
+    public static void main(String[] args) {
+        Console cons = System.console();
+        char[] pw;
+        if (cons != null) {
+            pw = cons.readPassword("Password: ");
+        } else {
+            pw = readPassword(new InputStreamReader(System.in));
+        }
+        if (pw == null) {
+            System.err.println("ERROR: No password given");
+            System.exit(1);
+        }
+        try {
+            System.out.println(getInstance().hash(pw));
+        } finally {
+            clear(pw);
+        }
     }
 
 }
