@@ -4,7 +4,10 @@ import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.net.InetSocketAddress;
+import java.net.URL;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -16,6 +19,7 @@ import java.util.jar.Attributes;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
+import javax.management.remote.JMXConnectorServer;
 import net.instant.api.API1;
 import net.instant.api.Counter;
 import net.instant.api.FileGenerator;
@@ -25,6 +29,7 @@ import net.instant.api.PluginData;
 import net.instant.api.RequestHook;
 import net.instant.api.RoomGroup;
 import net.instant.console.BackendConsoleManager;
+import net.instant.console.security.PasswordHashAuthenticator;
 import net.instant.hooks.APIWebSocketHook;
 import net.instant.hooks.CodeHook;
 import net.instant.hooks.RedirectHook;
@@ -56,8 +61,9 @@ public class InstantRunner implements API1 {
 
     private static final Logger LOGGER = Logger.getLogger("InstantRunner");
 
-    private static final String K_CONSOLE_ADDR = "instant.console.addr";
     private static final String K_CONSOLE_ENABLED = "instant.console.enabled";
+    private static final String K_CONSOLE_ADDR = "instant.console.addr";
+    private static final String K_CONSOLE_PWFILE = "instant.console.pwfile";
 
     public static class APIFileCell extends FileCell {
 
@@ -473,10 +479,11 @@ public class InstantRunner implements API1 {
         makePlugins().queueFetch(name);
     }
 
-    protected void setupConsole() throws IOException {
+    protected void setupConsole() throws Exception {
+        makeConfig();
         BackendConsoleManager console = makeConsole();
-        String enabledStr = makeConfig().get(K_CONSOLE_ENABLED);
-        String addrStr = makeConfig().get(K_CONSOLE_ADDR);
+        String enabledStr = config.get(K_CONSOLE_ENABLED);
+        String addrStr = config.get(K_CONSOLE_ADDR);
         boolean enabled;
         if (Util.nonempty(enabledStr)) {
             enabled = Util.isTrue(enabledStr);
@@ -491,8 +498,15 @@ public class InstantRunner implements API1 {
             String description = (enabled) ? "backend console" :
                 "management interface";
             LOGGER.info("Exposing " + description + " on " +
-                Formats.formatInetSocketAddress(addr));
-            BackendConsoleManager.exportPlatformManagement(addr);
+                Formats.formatInetSocketAddress(addr) + "...");
+            Map<String, Object> env = new HashMap<String, Object>();
+            String pwFileStr = config.get(K_CONSOLE_PWFILE);
+            if (Util.nonempty(pwFileStr)) {
+                URL pwFile = Util.makeURL(pwFileStr);
+                env.put(JMXConnectorServer.AUTHENTICATOR,
+                        new PasswordHashAuthenticator(pwFile));
+            }
+            BackendConsoleManager.exportPlatformManagement(addr, env);
         }
     }
     public void setup() throws Exception {

@@ -3,6 +3,8 @@ package net.instant.util;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.nio.ByteBuffer;
 import java.security.SecureRandom;
 import java.util.Arrays;
@@ -166,6 +168,10 @@ public final class Util {
             if (input.charAt(i) == ch) ret++;
         }
         return ret;
+    }
+
+    public static URL makeURL(String path) throws MalformedURLException {
+        return Utilities.makeURL(path);
     }
 
     public static boolean nonempty(String input) {

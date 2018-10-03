@@ -53,8 +53,8 @@ public final class Util {
     }
 
     public static void exportMBeanServerRMI(MBeanServer mbsrv,
-            InetSocketAddress endpoint, InetSocketAddress registry)
-            throws IOException {
+            InetSocketAddress endpoint, InetSocketAddress registry,
+            Map<String, Object> env) throws IOException {
         // Algorithm taken from the RMI documentation on mimicking
         // out-of-the-box management.
         /* Global system configuration. :( */
@@ -82,7 +82,7 @@ public final class Util {
             throw new RuntimeException(exc);
         }
         /* Configure an environment for the server. */
-        Map<String, Object> env = new HashMap<String, Object>();
+        if (env == null) env = new HashMap<String, Object>();
         env.put(RMIConnectorServer.RMI_SERVER_SOCKET_FACTORY_ATTRIBUTE,
                 new SingleAddressRMIServerSocketFactory(endpoint));
         /* Start the server. */
