@@ -28,7 +28,6 @@ public class PasswordHashLoginModule implements LoginModule {
     private Subject subject;
     private CallbackHandler callbacks;
     private PasswordHashFile database;
-    private PasswordHasher hasher;
 
     private String authName;
     private PasswordHashPrincipal principal;
@@ -55,7 +54,6 @@ public class PasswordHashLoginModule implements LoginModule {
         if (database == null)
             throw new IllegalArgumentException("Password database location " +
                 "not specified");
-        hasher = PasswordHasher.getInstance();
         authName = null;
         principal = null;
     }
@@ -79,14 +77,14 @@ public class PasswordHashLoginModule implements LoginModule {
         String name;
         char[] pwCopy = null;
         try {
+            database.load();
             name = nameCB.getName();
             if (name == null)
                 throw new NullPointerException("Username is null?!");
-            String hash = database.query(name);
             pwCopy = pwCB.getPassword();
             if (pwCopy == null)
                 throw new NullPointerException("Password is null?!");
-            if (hash == null || ! hasher.verify(pwCopy, hash))
+            if (! database.verify(name, pwCopy))
                 throw new FailedLoginException("Username or password " +
                     "incorrect");
         } catch (IOException exc) {
