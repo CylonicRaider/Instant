@@ -14,7 +14,7 @@ public class PasswordHashPrincipal implements Principal {
     }
 
     public String toString() {
-        return "PasswordHashPrincipal[" + getName() + "]";
+        return "PasswordHashPrincipal: " + getName();
     }
 
     public boolean equals(Object other) {
