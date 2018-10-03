@@ -38,14 +38,24 @@ public class PasswordHashLoginModule implements LoginModule {
         this.callbacks = callbacks;
         for (Map.Entry<String, ?> opt : options.entrySet()) {
             if (opt.getKey().equals("file")) {
-                URL url;
-                try {
-                    url = Utilities.makeURL((String) opt.getValue());
-                } catch (MalformedURLException exc) {
-                    throw new IllegalArgumentException("Invalid password " +
-                        "database URL", exc);
+                Object v = opt.getValue();
+                if (v instanceof String) {
+                    URL url;
+                    try {
+                        url = stringToURL((String) opt.getValue());
+                    } catch (MalformedURLException exc) {
+                        throw new IllegalArgumentException("Invalid " +
+                            "password database URL", exc);
+                    }
+                    database = new PasswordHashFile(url);
+                } else if (v instanceof URL) {
+                    database = new PasswordHashFile((URL) v);
+                } else if (v instanceof PasswordHashFile) {
+                    database = (PasswordHashFile) v;
+                } else {
+                    throw new ClassCastException("Unrecognized type of " +
+                        "\"file\" option value");
                 }
-                database = new PasswordHashFile(url);
             } else {
                 LOGGER.warning("Unrecognized option: " + opt.getKey() +
                     " = " + opt.getValue());
@@ -135,6 +145,10 @@ public class PasswordHashLoginModule implements LoginModule {
     private static <T extends Throwable> T withCause(T exc, Throwable cause) {
         exc.initCause(cause);
         return exc;
+    }
+
+    private static URL stringToURL(String s) throws MalformedURLException {
+        return Utilities.makeURL(s);
     }
 
 }
