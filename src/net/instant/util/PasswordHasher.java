@@ -14,7 +14,7 @@ public class PasswordHasher {
 
     public static final String ALGORITHM = "PBKDF2WithHmacSHA1";
     public static final int KEY_SIZE = 32; // in bytes
-    public static final int ITERATIONS = 1 << 12;
+    public static final int ITERATIONS = 1 << 16;
 
     private final SecretKeyFactory impl;
 
