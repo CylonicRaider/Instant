@@ -228,11 +228,11 @@ public final class Formats {
     public static String formatInetSocketAddress(InetSocketAddress addr,
                                                  boolean extended) {
         InetAddress baseAddr = addr.getAddress();
-        if (baseAddr.isAnyLocalAddress() && ! extended)
+        if (extended && baseAddr.isAnyLocalAddress())
             return "*:" + addr.getPort();
         String hostname = baseAddr.getHostName();
         String hostaddr = baseAddr.getHostAddress();
-        if (hostname.equals(hostaddr) || ! extended)
+        if (! extended || hostname.equals(hostaddr))
             return hostname + ":" + addr.getPort();
         return hostname + "[" + hostaddr + "]:" + addr.getPort();
     }
