@@ -3,8 +3,8 @@
 
 # An init script for running Instant and a number of bots.
 
-import re
-import os, signal
+import os, re
+import signal
 
 PID_LINE_RE = re.compile(r'^[0-9]+\s*$')
 
@@ -87,6 +87,27 @@ class Process:
                 os.kill(pid, signal.SIGTERM)
         self.set_pid(None)
         return 'OK'
+
+class ProcessGroup:
+    def __init__(self):
+        self.processes = []
+
+    def add(self, proc):
+        self.processes.append(proc)
+
+    def _for_each(self, handler, verbose=True):
+        for p in self.processes:
+            result = handler(p)
+            if verbose: print ('%s: %s' % (p.name, result))
+
+    def start(self, verbose=True):
+        self._for_each(lambda p: p.start(), verbose)
+
+    def stop(self, verbose=True):
+        self._for_each(lambda p: p.stop(), verbose)
+
+    def status(self, verbose=True):
+        self._for_each(lambda p: p.status(), verbose)
 
 def main():
     pass
