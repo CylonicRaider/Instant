@@ -6,6 +6,14 @@
 import os, re
 import signal
 
+try: # Py3K
+    from configparser import ConfigParser as _ConfigParser
+except ImportError: # Py2K
+    from ConfigParser import SafeConfigParser as _ConfigParser
+
+DEFAULT_CONFFILE = 'config/instant.ini'
+DEFAULT_PIDFILE_TEMPLATE = 'run/%s.pid'
+
 PID_LINE_RE = re.compile(r'^[0-9]+\s*$')
 
 class Process:
@@ -108,6 +116,32 @@ class ProcessGroup:
 
     def status(self, verbose=True):
         self._for_each(lambda p: p.status(), verbose)
+
+class InstantManager(ProcessGroup):
+    def __init__(self, conffile=None):
+        ProcessGroup.__init__(self)
+        if conffile is None: conffile = DEFAULT_CONFFILE
+        self.conffile = conffile
+        self.config = None
+
+    def init(self):
+        self.config = _ConfigParser()
+        self.config.read(self.conffile)
+        sections = [s for s in self.config.sections()
+                    if s == 'instant' or s.startswith('scribe-')]
+        sections.sort()
+        for s in sections:
+            values = dict(self.config.items(s))
+            try:
+                cmdline = values['cmdline']
+            except KeyError:
+                raise ConfigurationError('Missing required key "cmdline" in '
+                    'section "%s"' % s)
+            try:
+                pidfile = values['pidfile']
+            except KeyError:
+                pidfile = DEFAULT_PIDFILE_TEMPLATE % s
+            self.add(Process(s, cmdline, pidfile))
 
 def main():
     pass
