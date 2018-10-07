@@ -72,17 +72,6 @@ class Process:
         self.set_pid(self._child.pid)
         return 'OK'
 
-    def status(self):
-        pid = self.get_pid()
-        if pid is None:
-            return 'NOT_RUNNING'
-        try:
-            os.kill(pid, 0)
-            return 'RUNNING'
-        except OSError as e:
-            if e.errno == errno.ESRCH: return 'STALEFILE'
-            raise
-
     def stop(self, wait=True):
         status = None
         if self._child is not None:
@@ -98,6 +87,17 @@ class Process:
                 os.kill(pid, signal.SIGTERM)
         self.set_pid(None)
         return 'OK' + ('' if status is None else ' %s' % (status,))
+
+    def status(self):
+        pid = self.get_pid()
+        if pid is None:
+            return 'NOT_RUNNING'
+        try:
+            os.kill(pid, 0)
+            return 'RUNNING'
+        except OSError as e:
+            if e.errno == errno.ESRCH: return 'STALEFILE'
+            raise
 
 class ProcessGroup:
     def __init__(self):
