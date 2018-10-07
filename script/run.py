@@ -4,7 +4,9 @@
 # An init script for running Instant and a number of bots.
 
 import os, re
-import signal
+import errno, signal
+import subprocess
+import argparse
 
 try: # Py3K
     from configparser import ConfigParser as _ConfigParser
@@ -15,6 +17,10 @@ DEFAULT_CONFFILE = 'config/instant.ini'
 DEFAULT_PIDFILE_TEMPLATE = 'run/%s.pid'
 
 PID_LINE_RE = re.compile(r'^[0-9]+\s*$')
+
+class RunnerError(Exception): pass
+
+class ConfigurationError(RunnerError): pass
 
 class Process:
     def __init__(self, name, cmdline, pidfile):
@@ -64,11 +70,12 @@ class Process:
     def start(self):
         try:
             cur_status = self.status()
-            if status == 'RUNNING':
+            if cur_status == 'RUNNING':
                 return 'ALREADY_RUNNING'
         except IOError:
             pass
-        self._child = subprocess.Popen(self.cmdline, close_fds=False)
+        self._child = subprocess.Popen(self.cmdline, close_fds=False,
+                                       shell=True)
         self.set_pid(self._child.pid)
         return 'OK'
 
@@ -111,7 +118,7 @@ class ProcessGroup:
             try:
                 result = handler(p)
             except Exception as exc:
-                result = 'ERROR (%s: %s)' % (type(exc), exc)
+                result = 'ERROR (%s: %s)' % (type(exc).__name__, exc)
             if verbose:
                 print ('%s: %s' % (p.name, result))
 
@@ -150,7 +157,29 @@ class InstantManager(ProcessGroup):
                 pidfile = DEFAULT_PIDFILE_TEMPLATE % s
             self.add(Process(s, cmdline, pidfile))
 
+    def dispatch(self, cmd):
+        try:
+            func = {'start': self.start, 'stop': self.stop,
+                    'status': self.status}[cmd]
+        except KeyError:
+            raise RunnerError('Unknown command: ' + cmd)
+        func()
+
 def main():
-    pass
+    p = argparse.ArgumentParser(
+        description='Manage an Instant backend and a group of bots')
+    p.add_argument('--config', '-c', default=DEFAULT_CONFFILE,
+                   help='Configuration file location (default %(default)s)')
+    sp = p.add_subparsers(dest='cmd', description='The action to perform')
+    sp.add_parser('start', help='Start the backend and bots')
+    sp.add_parser('stop', help='Stop the backend and bots')
+    sp.add_parser('status', help='Check whether backend or bots are running')
+    arguments = p.parse_args()
+    mgr = InstantManager(arguments.config)
+    try:
+        mgr.init()
+    except ConfigurationError as exc:
+        raise SystemExit('Configuration error: ' + str(exc))
+    mgr.dispatch(arguments.cmd)
 
 if __name__ == '__main__': main()
