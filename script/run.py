@@ -67,7 +67,7 @@ class Process:
     def status(self):
         pid = self.get_pid()
         if pid is None:
-            return 'DEAD'
+            return 'NOT_RUNNING'
         try:
             os.kill(pid, 0)
             return 'RUNNING'
@@ -81,9 +81,12 @@ class Process:
             self._child = None
         else:
             pid = self.get_pid()
-            if pid is not None:
+            if pid is None:
+                return 'NOT_RUNNING'
+            else:
                 os.kill(pid, signal.SIGTERM)
         self.set_pid(None)
+        return 'OK'
 
 def main():
     pass
