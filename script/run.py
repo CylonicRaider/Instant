@@ -83,9 +83,12 @@ class Process:
             if e.errno == errno.ESRCH: return 'STALEFILE'
             raise
 
-    def stop(self):
+    def stop(self, wait=True):
+        status = None
         if self._child is not None:
             self._child.terminate()
+            if wait:
+                status = self._child.wait()
             self._child = None
         else:
             pid = self.get_pid()
@@ -94,7 +97,7 @@ class Process:
             else:
                 os.kill(pid, signal.SIGTERM)
         self.set_pid(None)
-        return 'OK'
+        return 'OK' + ('' if status is None else ' %s' % (status,))
 
 class ProcessGroup:
     def __init__(self):
@@ -105,14 +108,18 @@ class ProcessGroup:
 
     def _for_each(self, handler, verbose=True):
         for p in self.processes:
-            result = handler(p)
-            if verbose: print ('%s: %s' % (p.name, result))
+            try:
+                result = handler(p)
+            except Exception as exc:
+                result = 'ERROR (%s: %s)' % (type(exc), exc)
+            if verbose:
+                print ('%s: %s' % (p.name, result))
 
     def start(self, verbose=True):
         self._for_each(lambda p: p.start(), verbose)
 
-    def stop(self, verbose=True):
-        self._for_each(lambda p: p.stop(), verbose)
+    def stop(self, wait=True, verbose=True):
+        self._for_each(lambda p: p.stop(wait), verbose)
 
     def status(self, verbose=True):
         self._for_each(lambda p: p.status(), verbose)
