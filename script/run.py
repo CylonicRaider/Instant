@@ -29,6 +29,7 @@ class Process:
         self.pidfile = pidfile
         self._pid = Ellipsis
         self._child = None
+        self._prev_child = None
 
     def _read_pidfile(self):
         f = None
@@ -79,21 +80,34 @@ class Process:
         self.set_pid(self._child.pid)
         return 'OK'
 
-    def stop(self, wait=True):
-        status = None
+    def wait_start(self):
+        return None
+
+    def stop(self):
         if self._child is not None:
             self._child.terminate()
-            if wait:
-                status = self._child.wait()
+            self._prev_child = self._child
             self._child = None
         else:
+            # We could theoretically record the PID for wait_stop(), but that
+            # would be even more fragile than what we already do in status().
+            self._prev_child = None
             pid = self.get_pid()
             if pid is None:
                 return 'NOT_RUNNING'
             else:
                 os.kill(pid, signal.SIGTERM)
         self.set_pid(None)
-        return 'OK' + ('' if status is None else ' %s' % (status,))
+        return 'OK'
+
+    def wait_stop(self):
+        if self._prev_child:
+            raw_status = self._prev_child.wait()
+            status = 'OK %s' % (raw_status,)
+            self._prev_child = None
+        else:
+            status = None
+        return status
 
     def status(self):
         pid = self.get_pid()
@@ -120,15 +134,22 @@ class ProcessGroup:
             except Exception as exc:
                 result = 'ERROR (%s: %s)' % (type(exc).__name__, exc)
             if verbose:
+                if result is None: result = 'NA'
                 print ('%s: %s' % (p.name, result))
 
-    def start(self, verbose=True):
+    def start(self, verbose=False):
         self._for_each(lambda p: p.start(), verbose)
 
-    def stop(self, wait=True, verbose=True):
-        self._for_each(lambda p: p.stop(wait), verbose)
+    def wait_start(self, verbose=False):
+        self._for_each(lambda p: p.wait_start(), verbose)
 
-    def status(self, verbose=True):
+    def stop(self, verbose=False):
+        self._for_each(lambda p: p.stop(), verbose)
+
+    def wait_stop(self, verbose=False):
+        self._for_each(lambda p: p.wait_stop(), verbose)
+
+    def status(self, verbose=False):
         self._for_each(lambda p: p.status(), verbose)
 
 class InstantManager(ProcessGroup):
@@ -159,11 +180,20 @@ class InstantManager(ProcessGroup):
 
     def dispatch(self, cmd):
         try:
-            func = {'start': self.start, 'stop': self.stop,
-                    'status': self.status}[cmd]
+            func = {'start': self.do_start, 'stop': self.do_stop,
+                    'status': self.do_status}[cmd]
         except KeyError:
             raise RunnerError('Unknown command: ' + cmd)
         func()
+
+    def do_start(self):
+        self.start(verbose=True)
+
+    def do_stop(self):
+        self.stop(verbose=False)
+
+    def do_status(self):
+        self.status(verbose=True)
 
 def main():
     p = argparse.ArgumentParser(
