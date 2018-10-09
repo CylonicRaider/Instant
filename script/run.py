@@ -23,10 +23,12 @@ class RunnerError(Exception): pass
 class ConfigurationError(RunnerError): pass
 
 class Process:
-    def __init__(self, name, cmdline, pidfile):
+    def __init__(self, name, cmdline, config=None):
+        if config is None: config = {}
         self.name = name
         self.cmdline = cmdline
-        self.pidfile = pidfile
+        self.pidfile = config.get('pidfile', DEFAULT_PIDFILE_TEMPLATE % name)
+        self.workdir = config.get('workdir')
         self._pid = Ellipsis
         self._child = None
         self._prev_child = None
@@ -76,7 +78,7 @@ class Process:
         except IOError:
             pass
         self._child = subprocess.Popen(self.cmdline, close_fds=False,
-                                       shell=True)
+                                       shell=True, cwd=self.workdir)
         self.set_pid(self._child.pid)
         return 'OK'
 
@@ -172,11 +174,7 @@ class InstantManager(ProcessGroup):
             except KeyError:
                 raise ConfigurationError('Missing required key "cmdline" in '
                     'section "%s"' % s)
-            try:
-                pidfile = values['pidfile']
-            except KeyError:
-                pidfile = DEFAULT_PIDFILE_TEMPLATE % s
-            self.add(Process(s, cmdline, pidfile))
+            self.add(Process(s, cmdline, values))
 
     def dispatch(self, cmd):
         try:
