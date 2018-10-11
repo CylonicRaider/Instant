@@ -17,11 +17,51 @@ except ImportError: # Py2K
 DEFAULT_CONFFILE = 'config/instant.ini'
 DEFAULT_PIDFILE_TEMPLATE = 'run/%s.pid'
 
+REDIRECTION_RE = re.compile(r'^[<>|&]+')
 PID_LINE_RE = re.compile(r'^[0-9]+\s*$')
 
 class RunnerError(Exception): pass
 
 class ConfigurationError(RunnerError): pass
+
+class Redirection:
+    @classmethod
+    def parse(cls, text):
+        text = text.strip()
+        try:
+            constant = {'': None,
+                        'stdout': subprocess.STDOUT,
+                        'devnull': subprocess.DEVNULL}[text]
+        except KeyError:
+            pass
+        else:
+            return cls(constant)
+        m = REDIRECTION_RE.match(text)
+        if not m:
+            raise ValueError('Invalid redirection string: %r' % (text,))
+        prefix, filename = m.group(0), text[m.end():].strip()
+        try:
+            mode = {'<': 'rb', '>': 'wb', '>>': 'ab', '<>': 'r+'}[prefix]
+        except KeyError:
+            raise ValueError('Invalid redirection operator: %s' % prefix)
+        return cls(filename, mode)
+
+    def __init__(self, target, mode=None):
+        self.target = target
+        self.mode = mode
+
+    def open(self):
+        if isinstance(self.target, str):
+            return open(self.target, self.mode)
+        else:
+            return self.target
+
+    def close(self, fp):
+        if hasattr(fp, 'close'):
+            try:
+                fp.close()
+            except Exception:
+                pass
 
 class Process:
     def __init__(self, name, command, config=None):
