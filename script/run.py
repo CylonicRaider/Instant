@@ -247,7 +247,7 @@ class InstantManager(ProcessGroup):
         self.start(verbose=True)
 
     def do_stop(self):
-        self.stop(verbose=False)
+        self.stop(verbose=True)
 
     def do_status(self):
         self.status(verbose=True)
