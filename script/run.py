@@ -70,9 +70,15 @@ class Process:
         self.command = command
         self.pidfile = config.get('pidfile', DEFAULT_PIDFILE_TEMPLATE % name)
         self.workdir = config.get('workdir')
+        self.stdin = Redirection.parse(config.get('stdin', ''))
+        self.stdout = Redirection.parse(config.get('stdout', ''))
+        self.stderr = Redirection.parse(config.get('stderr', ''))
         self._pid = Ellipsis
         self._child = None
         self._prev_child = None
+
+    def _redirectors(self):
+        return (self.stdin, self.stdout, self.stderr)
 
     def _read_pidfile(self):
         f = None
@@ -118,8 +124,19 @@ class Process:
                 return 'ALREADY_RUNNING'
         except IOError:
             pass
-        self._child = subprocess.Popen(self.command, close_fds=False,
-                                       cwd=self.workdir)
+        files = []
+        try:
+            # NOTE: The finally clause relies on every file being added to
+            #       files as soon as it is created -- [r.open() for r in
+            #       self._redirectors()] may leak file descriptors.
+            for r in self._redirectors():
+                files.append(r.open())
+            self._child = subprocess.Popen(self.command, cwd=self.workdir,
+                close_fds=False, stdin=files[0], stdout=files[1],
+                stderr=files[2])
+        finally:
+            for r, f in zip(self._redirectors(), files):
+                r.close(f)
         self.set_pid(self._child.pid)
         return 'OK'
 
