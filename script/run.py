@@ -24,6 +24,20 @@ class RunnerError(Exception): pass
 
 class ConfigurationError(RunnerError): pass
 
+def open_mkdirs(path, mode, do_mkdirs=True):
+    try:
+        return open(path, mode)
+    except IOError as e:
+        if not (e.errno == errno.ENOENT and ('a' in mode or 'w' in mode) and
+                do_mkdirs):
+            raise
+    try:
+        os.makedirs(os.path.dirname(path))
+    except IOError as e:
+        if e.errno != errno.EEXIST:
+            raise
+    return open(path, mode)
+
 class Redirection:
     @classmethod
     def parse(cls, text):
@@ -41,7 +55,7 @@ class Redirection:
             raise ValueError('Invalid redirection string: %r' % (text,))
         prefix, filename = m.group(0), text[m.end():].strip()
         try:
-            mode = {'<': 'rb', '>': 'wb', '>>': 'ab', '<>': 'r+'}[prefix]
+            mode = {'<': 'rb', '>': 'wb', '>>': 'ab', '<>': 'r+b'}[prefix]
         except KeyError:
             raise ValueError('Invalid redirection operator: %s' % prefix)
         return cls(filename, mode)
@@ -49,10 +63,11 @@ class Redirection:
     def __init__(self, target, mode=None):
         self.target = target
         self.mode = mode
+        self.mkdirs = True
 
-    def open(self):
+    def open(self, _retry=True):
         if isinstance(self.target, str):
-            return open(self.target, self.mode)
+            return open_mkdirs(self.target, self.mode, self.mkdirs)
         else:
             return self.target
 
@@ -105,7 +120,7 @@ class Process:
                 if e.errno == e.ENOENT: return
                 raise
         else:
-            with open(self.pidfile, 'w') as f:
+            with open_mkdirs(self.pidfile, 'w') as f:
                 f.write('%s\n' % pid)
 
     def get_pid(self, force=False):
