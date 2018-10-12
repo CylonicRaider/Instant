@@ -209,7 +209,7 @@ class ProcessGroup:
             except Exception as exc:
                 result = 'ERROR (%s: %s)' % (type(exc).__name__, exc)
             if verbose:
-                if result is None: result = 'NA'
+                if result is None: result = 'OK'
                 print ('%s: %s' % (p.name, result))
 
     def start(self, verbose=False):
@@ -250,19 +250,30 @@ class InstantManager(ProcessGroup):
             command = tuple(shlex.split(cmdline))
             self.add(Process(s, command, values))
 
-    def dispatch(self, cmd):
+    def dispatch(self, cmd, arguments=None):
         try:
             func = {'start': self.do_start, 'stop': self.do_stop,
                     'status': self.do_status}[cmd]
         except KeyError:
             raise RunnerError('Unknown command: ' + cmd)
-        func()
+        kwds = {}
+        if cmd in ('start', 'stop'):
+            kwds['wait'] = getattr(arguments, 'wait')
+        func(**kwds)
 
-    def do_start(self):
-        self.start(verbose=True)
+    def do_start(self, wait=False):
+        if wait:
+            self.start()
+            self.wait_start(verbose=True)
+        else:
+            self.start(verbose=True)
 
-    def do_stop(self):
-        self.stop(verbose=True)
+    def do_stop(self, wait=False):
+        if wait:
+            self.stop()
+            self.wait_stop(verbose=True)
+        else:
+            self.stop(verbose=True)
 
     def do_status(self):
         self.status(verbose=True)
@@ -273,15 +284,20 @@ def main():
     p.add_argument('--config', '-c', default=DEFAULT_CONFFILE,
                    help='Configuration file location (default %(default)s)')
     sp = p.add_subparsers(dest='cmd', description='The action to perform')
-    sp.add_parser('start', help='Start the backend and bots')
-    sp.add_parser('stop', help='Stop the backend and bots')
-    sp.add_parser('status', help='Check whether backend or bots are running')
+    p_start = sp.add_parser('start', help='Start the backend and bots')
+    p_stop = sp.add_parser('stop', help='Stop the backend and bots')
+    p_status = sp.add_parser('status',
+                             help='Check whether backend or bots are running')
+    p_start.add_argument('--wait', action='store_true',
+                         help='Wait until the backend is up')
+    p_stop.add_argument('--wait', action='store_true',
+                        help='Wait until the backend is down')
     arguments = p.parse_args()
     mgr = InstantManager(arguments.config)
     try:
         mgr.init()
     except ConfigurationError as exc:
         raise SystemExit('Configuration error: ' + str(exc))
-    mgr.dispatch(arguments.cmd)
+    mgr.dispatch(arguments.cmd, arguments)
 
 if __name__ == '__main__': main()
