@@ -202,6 +202,7 @@ public class Main implements Runnable {
             exc.printStackTrace();
             System.exit(2);
         }
+        runner.registerShutdownHook();
         if (startupCmd != null) runCommand(startupCmd);
         runner.launch();
     }

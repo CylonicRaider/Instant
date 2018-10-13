@@ -65,6 +65,8 @@ public class InstantRunner implements API1 {
     private static final String K_CONSOLE_ADDR = "instant.console.addr";
     private static final String K_CONSOLE_PWFILE = "instant.console.pwfile";
 
+    public static final int SHUTDOWN_TIME = 1000;
+
     public static class APIFileCell extends FileCell {
 
         private final FileInfo wrapped;
@@ -480,6 +482,27 @@ public class InstantRunner implements API1 {
 
     public void addPlugin(String name) {
         makePlugins().queueFetch(name);
+    }
+
+    public void registerShutdownHook() {
+        Runtime.getRuntime().addShutdownHook(new Thread("Server closer") {
+
+            {
+                setPriority(MAX_PRIORITY);
+            }
+
+            public void run() {
+                InstantWebSocketServer srv = getServer();
+                if (srv == null) return;
+                try {
+                    srv.stop(SHUTDOWN_TIME);
+                } catch (InterruptedException exc) {
+                    // It's OK, the important part (freeing the port) should
+                    // already have happened.
+                }
+            }
+
+        });
     }
 
     protected void setupConsole() throws Exception {
