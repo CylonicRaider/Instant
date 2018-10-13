@@ -3,7 +3,7 @@
 
 # An init script for running Instant and a number of bots.
 
-import os, re
+import os, re, time
 import errno, signal
 import shlex
 import subprocess
@@ -87,10 +87,12 @@ class Process:
         self.workdir = config.get('workdir')
         self.stdin = Redirection.parse(config.get('stdin', ''))
         self.stdout = Redirection.parse(config.get('stdout', ''))
+        self.min_stop = float(config.get('min-stop', 0))
         self.stderr = Redirection.parse(config.get('stderr', ''))
         self._pid = Ellipsis
         self._child = None
         self._prev_child = None
+        self._stopping_since = None
 
     def _redirectors(self):
         return (self.stdin, self.stdout, self.stderr)
@@ -159,6 +161,7 @@ class Process:
         return None
 
     def stop(self):
+        self._stopping_since = time.time()
         if self._child is not None:
             self._child.terminate()
             self._prev_child = self._child
@@ -182,6 +185,10 @@ class Process:
             self._prev_child = None
         else:
             status = None
+        if self._stopping_since is not None:
+            delay = self._stopping_since + self.min_stop - time.time()
+            if delay > 0: time.sleep(delay)
+            self._stopping_since = None
         return status
 
     def status(self):
