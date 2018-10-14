@@ -268,14 +268,14 @@ class InstantManager(ProcessGroup):
             kwds['wait'] = getattr(arguments, 'wait')
         func(**kwds)
 
-    def do_start(self, wait=False):
+    def do_start(self, wait=True):
         if wait:
             self.start()
             self.wait_start(verbose=True)
         else:
             self.start(verbose=True)
 
-    def do_stop(self, wait=False):
+    def do_stop(self, wait=True):
         if wait:
             self.stop()
             self.wait_stop(verbose=True)
@@ -295,10 +295,10 @@ def main():
     p_stop = sp.add_parser('stop', help='Stop the backend and bots')
     p_status = sp.add_parser('status',
                              help='Check whether backend or bots are running')
-    p_start.add_argument('--wait', action='store_true',
-                         help='Wait until the backend is up')
-    p_stop.add_argument('--wait', action='store_true',
-                        help='Wait until the backend is down')
+    p_start.add_argument('--no-wait', action='store_false', dest='wait',
+                         help='Exit immediately after commencing the start')
+    p_stop.add_argument('--no-wait', action='store_false', dest='wait',
+                        help='Exit immediately after commencing the stop')
     arguments = p.parse_args()
     mgr = InstantManager(arguments.config)
     try:
