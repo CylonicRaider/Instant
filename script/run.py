@@ -263,7 +263,7 @@ class InstantManager(ProcessGroup):
     def dispatch(self, cmd, arguments=None):
         try:
             func = {'start': self.do_start, 'stop': self.do_stop,
-                    'status': self.do_status}[cmd]
+                    'restart': self.do_restart, 'status': self.do_status}[cmd]
         except KeyError:
             raise RunnerError('Unknown command: ' + cmd)
         kwds = {}
@@ -281,6 +281,12 @@ class InstantManager(ProcessGroup):
         if wait:
             self.wait_stop(verbose=True)
 
+    def do_restart(self):
+        self.stop(verbose=True)
+        self.wait_stop(verbose=True)
+        self.start(verbose=True)
+        self.wait_start(verbose=True)
+
     def do_status(self):
         self.status(verbose=True)
 
@@ -292,6 +298,8 @@ def main():
     sp = p.add_subparsers(dest='cmd', description='The action to perform')
     p_start = sp.add_parser('start', help='Start the backend and bots')
     p_stop = sp.add_parser('stop', help='Stop the backend and bots')
+    p_restart = sp.add_parser('restart',
+                              help='Perform "stop" and then "start"')
     p_status = sp.add_parser('status',
                              help='Check whether backend or bots are running')
     p_start.add_argument('--no-wait', action='store_false', dest='wait',
