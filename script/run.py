@@ -209,30 +209,33 @@ class ProcessGroup:
     def add(self, proc):
         self.processes.append(proc)
 
-    def _for_each(self, handler, verbose=True):
+    def _for_each(self, handler, tag, verbose):
+        tag_str = ' (%s)' % tag if tag else ''
         for p in self.processes:
+            force_display = False
             try:
                 result = handler(p)
             except Exception as exc:
+                force_display = True
                 result = 'ERROR (%s: %s)' % (type(exc).__name__, exc)
-            if verbose:
+            if verbose or force_display:
                 if result is None: result = 'OK'
-                print ('%s: %s' % (p.name, result))
+                print ('%s%s: %s' % (p.name, tag_str, result))
 
     def start(self, verbose=False):
-        self._for_each(lambda p: p.start(), verbose)
+        self._for_each(lambda p: p.start(), 'start', verbose)
 
     def wait_start(self, verbose=False):
-        self._for_each(lambda p: p.wait_start(), verbose)
+        self._for_each(lambda p: p.wait_start(), 'wait_start', verbose)
 
     def stop(self, verbose=False):
-        self._for_each(lambda p: p.stop(), verbose)
+        self._for_each(lambda p: p.stop(), 'stop', verbose)
 
     def wait_stop(self, verbose=False):
-        self._for_each(lambda p: p.wait_stop(), verbose)
+        self._for_each(lambda p: p.wait_stop(), 'wait_stop', verbose)
 
     def status(self, verbose=False):
-        self._for_each(lambda p: p.status(), verbose)
+        self._for_each(lambda p: p.status(), None, verbose)
 
 class InstantManager(ProcessGroup):
     def __init__(self, conffile=None):
@@ -269,18 +272,14 @@ class InstantManager(ProcessGroup):
         func(**kwds)
 
     def do_start(self, wait=True):
+        self.start(verbose=True)
         if wait:
-            self.start()
             self.wait_start(verbose=True)
-        else:
-            self.start(verbose=True)
 
     def do_stop(self, wait=True):
+        self.stop(verbose=True)
         if wait:
-            self.stop()
             self.wait_stop(verbose=True)
-        else:
-            self.stop(verbose=True)
 
     def do_status(self):
         self.status(verbose=True)
