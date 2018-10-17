@@ -1,19 +1,19 @@
 
 # -*- coding: ascii -*-
 
-# A generator-based coroutine framework.
+# A PEP 342 generator-based coroutine framework.
 
 import select
 
 class Executor:
     def __init__(self):
-        self.routines = {}
+        self.routines = set()
 
     def add(self, routine):
-        self.routines[routine] = True
+        self.routines.add(routine)
 
     def _remove(self, routine):
-        self.routines.pop(routine, None)
+        self.routines.discard(routine)
 
     def __call__(self):
         while self.routines:
