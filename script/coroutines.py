@@ -7,7 +7,7 @@ import time
 import heapq
 import select
 
-class Suspend:
+class Suspend(object):
     def apply(self, wake, executor, routine):
         raise NotImplementedError
 
@@ -31,7 +31,6 @@ class Sleep(Suspend):
     def __init__(self, waketime, absolute=False):
         if not absolute: waketime += time.time()
         self.waketime = waketime
-        self.callbacks = []
 
     def __lt__(self, other):
         return self.waketime <  other.waketime
@@ -46,16 +45,11 @@ class Sleep(Suspend):
     def __gt__(self, other):
         return self.waketime >  other.waketime
 
-    def add_callback(self, callback):
-        self.callbacks.append(callback)
-
-    def done(self, value=None):
-        callbacks, self.callbacks = self.callbacks, []
-        for callback in callbacks:
-            callback(value)
+    def done(self, value, executor):
+        executor.trigger(self, value)
 
     def apply(self, wake, executor, routine):
-        self.add_callback(wake)
+        executor.listen(self, wake)
         executor.add_sleep(self)
 
 class Executor:
@@ -102,7 +96,7 @@ class Executor:
         if now is None: now = time.time()
         while self.sleeps and self.sleeps[0].waketime <= now:
             sleep = heapq.heappop(self.sleeps)
-            sleep.done()
+            sleep.done(None, self)
 
     def __call__(self):
         def make_wake(routine):
