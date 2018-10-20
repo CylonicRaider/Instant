@@ -72,9 +72,10 @@ class Executor:
                 except StopIteration:
                     self._done(r)
                     continue
-                if suspend is None: continue
-                self._suspend(r)
-                suspend.apply(make_wake(r), self, r)
+                if suspend is None:
+                    continue
+                if not suspend.apply(make_wake(r), self, r):
+                    self._suspend(r)
 
 def run(routines):
     ex = Executor()
