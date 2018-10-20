@@ -3,6 +3,8 @@
 
 # A PEP 342 generator-based coroutine framework.
 
+import time
+import heapq
 import select
 
 class Suspend:
@@ -25,11 +27,43 @@ class Call(Suspend):
         executor.add(self.target)
         executor.listen(self.target, wake)
 
+class Sleep(Suspend):
+    def __init__(self, waketime, absolute=False):
+        if not absolute: waketime += time.time()
+        self.waketime = waketime
+        self.callbacks = []
+
+    def __lt__(self, other):
+        return self.waketime <  other.waketime
+    def __le__(self, other):
+        return self.waketime <= other.waketime
+    def __eq__(self, other):
+        return self.waketime == other.waketime
+    def __ne__(self, other):
+        return self.waketime != other.waketime
+    def __ge__(self, other):
+        return self.waketime >= other.waketime
+    def __gt__(self, other):
+        return self.waketime >  other.waketime
+
+    def add_callback(self, callback):
+        self.callbacks.append(callback)
+
+    def done(self, value=None):
+        callbacks, self.callbacks = self.callbacks, []
+        for callback in callbacks:
+            callback(value)
+
+    def apply(self, wake, executor, routine):
+        self.add_callback(wake)
+        executor.add_sleep(self)
+
 class Executor:
     def __init__(self):
         self.routines = {}
         self.suspended = set()
         self.listening = {}
+        self.sleeps = []
 
     def add(self, routine, value=None):
         self.routines[routine] = value
@@ -61,6 +95,15 @@ class Executor:
         for cb in self.listening.pop(event, ()):
             cb(result)
 
+    def add_sleep(self, sleep):
+        heapq.heappush(self.sleeps, sleep)
+
+    def finish_sleeps(self, now=None):
+        if now is None: now = time.time()
+        while self.sleeps and self.sleeps[0].waketime <= now:
+            sleep = heapq.heappop(self.sleeps)
+            sleep.done()
+
     def __call__(self):
         def make_wake(routine):
             return lambda value=None: self._wake(routine, value)
@@ -76,6 +119,9 @@ class Executor:
                     continue
                 if not suspend.apply(make_wake(r), self, r):
                     self._suspend(r)
+            if not self.routines and self.sleeps:
+                time.sleep(self.sleeps[0].waketime - time.time())
+            self.finish_sleeps()
 
 def run(routines):
     ex = Executor()
