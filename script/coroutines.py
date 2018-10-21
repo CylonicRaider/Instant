@@ -47,9 +47,6 @@ class Sleep(Suspend):
     def __gt__(self, other):
         return self.waketime >  other.waketime
 
-    def done(self, value, executor):
-        executor.trigger(self, value)
-
     def apply(self, wake, executor, routine):
         executor.listen(self, wake)
         executor.add_sleep(self)
@@ -94,11 +91,11 @@ class Executor:
     def add_sleep(self, sleep):
         heapq.heappush(self.sleeps, sleep)
 
-    def finish_sleeps(self, now=None):
+    def _finish_sleeps(self, now=None):
         if now is None: now = time.time()
         while self.sleeps and self.sleeps[0].waketime <= now:
             sleep = heapq.heappop(self.sleeps)
-            sleep.done(None, self)
+            self.trigger(sleep)
 
     def __call__(self):
         def make_wake(routine):
@@ -117,7 +114,7 @@ class Executor:
                     self._suspend(r)
             if not self.routines and self.sleeps:
                 time.sleep(self.sleeps[0].waketime - time.time())
-            self.finish_sleeps()
+            self._finish_sleeps()
 
 def run(routines):
     ex = Executor()
