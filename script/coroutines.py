@@ -11,7 +11,9 @@ class Suspend(object):
     def apply(self, wake, executor, routine):
         raise NotImplementedError
 
-class Exit(Suspend):
+class ControlSuspend(Suspend): pass
+
+class Exit(ControlSuspend):
     def __init__(self, result):
         self.result = result
 
@@ -19,7 +21,7 @@ class Exit(Suspend):
         routine.close()
         executor._done(routine, self.result)
 
-class Call(Suspend):
+class Call(ControlSuspend):
     def __init__(self, target):
         self.target = target
 
