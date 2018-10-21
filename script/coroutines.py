@@ -51,12 +51,26 @@ class Sleep(Suspend):
         executor.listen(self, wake)
         executor.add_sleep(self)
 
+class IOSuspend(Suspend):
+    SELECT_MODES = {'r': 0, 'w': 1, 'x': 2}
+
+    def __init__(self, file, mode):
+        if mode not in self.SELECT_MODES:
+            raise ValueError('Invalid I/O mode: %r' % (mode,))
+        self.file = file
+        self.mode = mode
+
+    def apply(self, wake, executor, routine):
+        executor.listen(self.file, wake)
+        executor.add_select(self.file, self.SELECT_MODES[self.mode])
+
 class Executor:
     def __init__(self):
         self.routines = {}
         self.suspended = set()
         self.listening = {}
         self.sleeps = []
+        self.selectfiles = ([], [], [])
 
     def add(self, routine, value=None):
         self.routines[routine] = value
@@ -97,6 +111,15 @@ class Executor:
             sleep = heapq.heappop(self.sleeps)
             self.trigger(sleep)
 
+    def add_select(self, file, index):
+        l = self.selectfiles[index]
+        if file not in l: l.append(file)
+
+    def _done_select(self, readable, writable, exceptable):
+        for f in readable: self.trigger(f, 'r')
+        for f in writable: self.trigger(f, 'w')
+        for f in exceptable: self.trigger(f, 'x')
+
     def __call__(self):
         def make_wake(routine):
             return lambda value=None: self._wake(routine, value)
@@ -112,7 +135,17 @@ class Executor:
                     continue
                 if not suspend.apply(make_wake(r), self, r):
                     self._suspend(r)
-            if not self.routines and self.sleeps:
+            if any(self.selectfiles):
+                if self.routines or not self.sleeps:
+                    timeout = 0
+                else:
+                    timeout = self.sleeps[0].waketime - time.time()
+                result = select.select(self.selectfiles[0],
+                                       self.selectfiles[1],
+                                       self.selectfiles[2],
+                                       timeout)
+                self._done_select(*result)
+            elif self.sleeps and not self.routines:
                 time.sleep(self.sleeps[0].waketime - time.time())
             self._finish_sleeps()
 
