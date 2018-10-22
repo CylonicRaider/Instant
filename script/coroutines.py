@@ -64,6 +64,30 @@ class IOSuspend(Suspend):
         executor.listen(self.file, wake)
         executor.add_select(self.file, self.SELECT_MODES[self.mode])
 
+class ReadFile(IOSuspend):
+    def __init__(self, readfile, length, selectfile=None):
+        if selectfile is None: selectfile = readfile
+        IOSuspend.__init__(self, selectfile, 'r')
+        self.readfile = readfile
+        self.length = length
+
+    def apply(self, wake, executor, routine):
+        def inner_wake(value):
+            wake(self.readfile.read(self.length))
+        return IOSuspend.apply(self, inner_wake, executor, routine)
+
+class WriteFile(IOSuspend):
+    def __init__(self, writefile, data, selectfile=None):
+        if selectfile is None: selectfile = writefile
+        IOSuspend.__init__(self, selectfile, 'w')
+        self.writefile = writefile
+        self.data = data
+
+    def apply(self, wake, executor, routine):
+        def inner_wake(value):
+            wake(self.writefile.write(self.data))
+        return IOSuspend.apply(self, inner_wake, executor, routine)
+
 class Executor:
     def __init__(self):
         self.routines = {}
