@@ -11,6 +11,24 @@ class Suspend(object):
     def apply(self, wake, executor, routine):
         raise NotImplementedError
 
+class CombinationSuspend(Suspend): pass
+
+class Any(CombinationSuspend):
+    def __init__(self, *suspends):
+        self.suspends = suspends
+        self._woken = False
+
+    def _wake(self, suspend, value, callback):
+        if self._woken: return
+        self._woken = True
+        callback((suspend, value))
+
+    def apply(self, wake, executor, routine):
+        def make_wake(suspend):
+            return lambda value: self._wake(suspend, value, wake)
+        for s in self.suspends:
+            s.apply(make_wake(s), executor, routine)
+
 class ControlSuspend(Suspend): pass
 
 class Exit(ControlSuspend):
@@ -150,7 +168,7 @@ class Executor:
 
     def __call__(self):
         def make_wake(routine):
-            return lambda value=None: self._wake(routine, value)
+            return lambda value: self._wake(routine, value)
         while self.routines or self.suspended:
             for r, v in tuple(self.routines.items()):
                 self.routines[r] = None
