@@ -29,6 +29,28 @@ class Any(CombinationSuspend):
         for s in self.suspends:
             s.apply(make_wake(s), executor, routine)
 
+class All(CombinationSuspend):
+    def __init__(self, *suspends):
+        self.suspends = suspends
+        self.result = [None] * len(suspends)
+        self._finished = [False] * len(suspends)
+        self._finishedCount = 0
+
+    def apply(self, wake, executor, routine):
+        def make_wake(index):
+            def callback(value):
+                if self._finished[index]:
+                    raise RuntimeError('Attempting to wake a coroutine more '
+                        'than once')
+                self.result[index] = value
+                self._finished[index] = True
+                self._finishedCount += 1
+                if self._finishedCount == len(self.suspends):
+                    wake(self.result)
+            return callback
+        for n, s in enumerate(self.suspends):
+            s.apply(make_wake(n), executor, routine)
+
 class ControlSuspend(Suspend): pass
 
 class Exit(ControlSuspend):
