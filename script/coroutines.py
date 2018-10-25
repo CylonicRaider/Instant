@@ -188,6 +188,17 @@ class Executor:
         for f in writable: self.trigger(f, 'w')
         for f in exceptable: self.trigger(f, 'x')
 
+    def close(self):
+        for r in self.routines:
+            r.close()
+        for r in self.suspended:
+            r.close()
+        self.routines = {}
+        self.suspended = set()
+        self.listening = {}
+        self.sleeps = []
+        self.selectfiles = ([], [], [])
+
     def __call__(self):
         def make_wake(routine):
             return lambda value: self._wake(routine, value)
