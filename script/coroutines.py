@@ -131,16 +131,19 @@ class WriteFile(IOSuspend):
 class Executor:
     def __init__(self):
         self.routines = {}
+        self.daemons = set()
         self.suspended = set()
         self.listening = {}
         self.sleeps = []
         self.selectfiles = ([], [], [])
 
-    def add(self, routine, value=None):
+    def add(self, routine, value=None, daemon=False):
         self.routines[routine] = value
+        if daemon: self.daemons.add(routine)
 
     def remove(self, routine):
         self.suspended.discard(routine)
+        self.daemons.discard(routine)
         return self.routines.pop(routine, None)
 
     def _suspend(self, routine):
@@ -203,7 +206,10 @@ class Executor:
         def make_wake(routine):
             return lambda value: self._wake(routine, value)
         while self.routines or self.suspended:
-            for r, v in tuple(self.routines.items()):
+            runqueue = tuple(self.routines.items())
+            if all(e[0] in self.daemons for e in runqueue):
+                break
+            for r, v in runqueue:
                 self.routines[r] = None
                 try:
                     suspend = r.send(v)
