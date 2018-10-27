@@ -61,12 +61,28 @@ class Exit(ControlSuspend):
         routine.close()
         executor._done(routine, self.result)
 
-class Call(ControlSuspend):
+class Join(ControlSuspend):
     def __init__(self, target):
         self.target = target
 
     def apply(self, wake, executor, routine):
-        executor.add(self.target)
+        executor.listen(self.target, wake)
+
+class Spawn(ControlSuspend):
+    def __init__(self, target, daemon=False):
+        self.target = target
+        self.daemon = daemon
+
+    def apply(self, wake, executor, routine):
+        executor.add(self.target, daemon=self.daemon)
+
+class Call(ControlSuspend):
+    def __init__(self, target, daemon=False):
+        self.target = target
+        self.daemon = daemon
+
+    def apply(self, wake, executor, routine):
+        executor.add(self.target, daemon=self.daemon)
         executor.listen(self.target, wake)
 
 class Sleep(Suspend):
