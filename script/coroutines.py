@@ -199,7 +199,7 @@ class Executor:
         if file not in l: l.append(file)
 
     def _done_select(self, readable, writable, exceptable):
-        def clear(lst, rem): lst[:] = [f in lst if f not in rem]
+        def clear(lst, rem): lst[:] = [f for f in lst if f not in rem]
         if readable: clear(self.selectfiles[0], frozenset(readable))
         if writable: clear(self.selectfiles[1], frozenset(writable))
         if exceptable: clear(self.selectfiles[2], frozenset(exceptable))
