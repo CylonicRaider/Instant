@@ -11,16 +11,25 @@ class Suspend(object):
     def apply(self, wake, executor, routine):
         raise NotImplementedError
 
-class CombinationSuspend(Suspend): pass
+    def cancel(self):
+        raise TypeError('Cannot cancel %s suspend' % self.__class__.__name__)
+
+class CombinationSuspend(Suspend):
+    def __init__(self, children):
+        self.children = children
+
+    def cancel(self):
+        for c in self.children:
+            c.cancel()
 
 class Any(CombinationSuspend):
     def __init__(self, *suspends):
         self.suspends = suspends
-        self._woken = False
+        self._do_wake = True
 
     def _wake(self, suspend, value, callback):
-        if self._woken: return
-        self._woken = True
+        if not self._do_wake: return
+        self._do_wake = False
         callback((suspend, value))
 
     def apply(self, wake, executor, routine):
@@ -29,6 +38,10 @@ class Any(CombinationSuspend):
         for s in self.suspends:
             s.apply(make_wake(s), executor, routine)
 
+    def cancel(self):
+        self._do_wake = False
+        CombinationSuspend.cancel(self)
+
 class All(CombinationSuspend):
     def __init__(self, *suspends):
         self.suspends = suspends
@@ -36,20 +49,25 @@ class All(CombinationSuspend):
         self._finished = [False] * len(suspends)
         self._finishedCount = 0
 
+    def _finish(self, index, value, callback):
+        if self._finished[index]:
+            raise RuntimeError('Attempting to wake a coroutine more than '
+                'once')
+        self.result[index] = value
+        self._finished[index] = True
+        self._finishedCount += 1
+        if self._finishedCount == len(self.suspends):
+            callback(self.result)
+
     def apply(self, wake, executor, routine):
         def make_wake(index):
-            def callback(value):
-                if self._finished[index]:
-                    raise RuntimeError('Attempting to wake a coroutine more '
-                        'than once')
-                self.result[index] = value
-                self._finished[index] = True
-                self._finishedCount += 1
-                if self._finishedCount == len(self.suspends):
-                    wake(self.result)
-            return callback
+            return lambda value: self._finish(index, value, wake)
         for n, s in enumerate(self.suspends):
             s.apply(make_wake(n), executor, routine)
+
+    def cancel(self):
+        self._finishedCount = -1
+        CombinationSuspend.cancel(self)
 
 class ControlSuspend(Suspend): pass
 
