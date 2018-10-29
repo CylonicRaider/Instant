@@ -31,6 +31,9 @@ class Any(CombinationSuspend):
         if not self._do_wake: return
         self._do_wake = False
         callback((suspend, value))
+        for s in self.suspends:
+            if s is not suspend:
+                s.cancel()
 
     def apply(self, wake, executor, routine):
         def make_wake(suspend):
