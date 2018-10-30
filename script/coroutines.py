@@ -110,6 +110,7 @@ class Sleep(Suspend):
     def __init__(self, waketime, absolute=False):
         if not absolute: waketime += time.time()
         self.waketime = waketime
+        self.cancelled = False
 
     def __lt__(self, other):
         return self.waketime <  other.waketime
@@ -124,8 +125,14 @@ class Sleep(Suspend):
     def __gt__(self, other):
         return self.waketime >  other.waketime
 
+    def cancel(self):
+        self.cancelled = True
+
     def apply(self, wake, executor, routine):
-        executor.listen(self, wake)
+        def inner_wake(value):
+            if not self.cancelled:
+                wake(value)
+        executor.listen(self, inner_wake)
         executor.add_sleep(self)
 
 class IOSuspend(Suspend):
@@ -147,10 +154,15 @@ class ReadFile(IOSuspend):
         IOSuspend.__init__(self, selectfile, 'r')
         self.readfile = readfile
         self.length = length
+        self.cancelled = False
+
+    def cancel(self):
+        self.cancelled = True
 
     def apply(self, wake, executor, routine):
         def inner_wake(value):
-            wake(self.readfile.read(self.length))
+            if not self.cancelled:
+                wake(self.readfile.read(self.length))
         return IOSuspend.apply(self, inner_wake, executor, routine)
 
 class WriteFile(IOSuspend):
@@ -159,10 +171,15 @@ class WriteFile(IOSuspend):
         IOSuspend.__init__(self, selectfile, 'w')
         self.writefile = writefile
         self.data = data
+        self.cancelled = False
+
+    def cancel(self):
+        self.cancelled = True
 
     def apply(self, wake, executor, routine):
         def inner_wake(value):
-            wake(self.writefile.write(self.data))
+            if not self.cancelled:
+                wake(self.writefile.write(self.data))
         return IOSuspend.apply(self, inner_wake, executor, routine)
 
 class Executor:
