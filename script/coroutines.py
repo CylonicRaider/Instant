@@ -22,29 +22,6 @@ class CombinationSuspend(Suspend):
         for c in self.children:
             c.cancel()
 
-class Any(CombinationSuspend):
-    def __init__(self, *suspends):
-        self.suspends = suspends
-        self._do_wake = True
-
-    def _wake(self, suspend, value, callback):
-        if not self._do_wake: return
-        self._do_wake = False
-        callback((suspend, value))
-        for s in self.suspends:
-            if s is not suspend:
-                s.cancel()
-
-    def apply(self, wake, executor, routine):
-        def make_wake(suspend):
-            return lambda value: self._wake(suspend, value, wake)
-        for s in self.suspends:
-            s.apply(make_wake(s), executor, routine)
-
-    def cancel(self):
-        self._do_wake = False
-        CombinationSuspend.cancel(self)
-
 class All(CombinationSuspend):
     def __init__(self, *suspends):
         self.suspends = suspends
@@ -70,6 +47,29 @@ class All(CombinationSuspend):
 
     def cancel(self):
         self._finishedCount = -1
+        CombinationSuspend.cancel(self)
+
+class Any(CombinationSuspend):
+    def __init__(self, *suspends):
+        self.suspends = suspends
+        self._do_wake = True
+
+    def _wake(self, suspend, value, callback):
+        if not self._do_wake: return
+        self._do_wake = False
+        callback((suspend, value))
+        for s in self.suspends:
+            if s is not suspend:
+                s.cancel()
+
+    def apply(self, wake, executor, routine):
+        def make_wake(suspend):
+            return lambda value: self._wake(suspend, value, wake)
+        for s in self.suspends:
+            s.apply(make_wake(s), executor, routine)
+
+    def cancel(self):
+        self._do_wake = False
         CombinationSuspend.cancel(self)
 
 class ControlSuspend(Suspend): pass
