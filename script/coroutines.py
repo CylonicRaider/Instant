@@ -72,6 +72,54 @@ class Any(CombinationSuspend):
         self._do_wake = False
         CombinationSuspend.cancel(self)
 
+class Selector(CombinationSuspend):
+    def __init__(self, *suspends):
+        self.suspends = suspends
+        self._applied = False
+        self._finished = 0
+        self._pending = {}
+        self._callback = None
+
+    def has_pending(self):
+        return (self._finished < len(self.suspends))
+
+    def _finish(self, item):
+        if self._finished >= len(self.suspends):
+            raise RuntimeError('Tried to wake coroutine more than once')
+        self._callback(item)
+        self._callback = None
+        self._finished += 1
+
+    def _wake(self, suspend, value):
+        if self._callback is None:
+            if suspend in self._pending:
+                raise RuntimeError('Trying to wake coroutine more than once')
+            self._pending[suspend] = value
+        else:
+            self._finish((suspend, value))
+
+    def apply(self, wake, executor, routine):
+        def make_wake(suspend):
+            return lambda value: self._wake(suspend, value)
+        if not self._applied:
+            for s in self.suspends:
+                s.apply(make_wake(s), executor, routine)
+            self._applied = True
+        if self._finished == len(self.suspends):
+            wake((None, None))
+            return
+        self._callback = wake
+        if self._pending:
+            self._finish(self._pending.popitem())
+
+    def cancel(self):
+        self._applied = True
+        self._finished = len(self.suspends)
+        self._pending.clear()
+        self._callback = None
+        for s in self.suspends:
+            s.cancel()
+
 class ControlSuspend(Suspend): pass
 
 class Exit(ControlSuspend):
