@@ -211,7 +211,7 @@ class ReadFile(IOSuspend):
         def inner_wake(value):
             if not self.cancelled:
                 wake(self.readfile.read(self.length))
-        return IOSuspend.apply(self, inner_wake, executor, routine)
+        IOSuspend.apply(self, inner_wake, executor, routine)
 
 class WriteFile(IOSuspend):
     def __init__(self, writefile, data, selectfile=None):
@@ -228,7 +228,7 @@ class WriteFile(IOSuspend):
         def inner_wake(value):
             if not self.cancelled:
                 wake(self.writefile.write(self.data))
-        return IOSuspend.apply(self, inner_wake, executor, routine)
+        IOSuspend.apply(self, inner_wake, executor, routine)
 
 class Executor:
     def __init__(self):
@@ -320,8 +320,8 @@ class Executor:
                     continue
                 if suspend is None:
                     continue
-                if not suspend.apply(make_wake(r), self, r):
-                    self._suspend(r)
+                self._suspend(r)
+                suspend.apply(make_wake(r), self, r)
             if any(self.selectfiles):
                 if self.routines or not self.sleeps:
                     timeout = 0
