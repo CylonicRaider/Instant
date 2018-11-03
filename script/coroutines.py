@@ -24,7 +24,7 @@ class CombinationSuspend(Suspend):
 
 class All(CombinationSuspend):
     def __init__(self, *suspends):
-        self.suspends = suspends
+        CombinationSuspend.__init__(self, suspends)
         self.result = [None] * len(suspends)
         self._finished = [False] * len(suspends)
         self._finishedCount = 0
@@ -36,13 +36,13 @@ class All(CombinationSuspend):
         self.result[index] = value
         self._finished[index] = True
         self._finishedCount += 1
-        if self._finishedCount == len(self.suspends):
+        if self._finishedCount == len(self.children):
             callback(self.result)
 
     def apply(self, wake, executor, routine):
         def make_wake(index):
             return lambda value: self._finish(index, value, wake)
-        for n, s in enumerate(self.suspends):
+        for n, s in enumerate(self.children):
             s.apply(make_wake(n), executor, routine)
 
     def cancel(self):
@@ -51,21 +51,22 @@ class All(CombinationSuspend):
 
 class Any(CombinationSuspend):
     def __init__(self, *suspends):
-        self.suspends = suspends
+        CombinationSuspend.__init__(self, suspends)
         self._do_wake = True
 
     def _wake(self, suspend, value, callback):
         if not self._do_wake: return
         self._do_wake = False
         callback((suspend, value))
-        for s in self.suspends:
+        for s in self.children:
             if s is not suspend:
                 s.cancel()
 
     def apply(self, wake, executor, routine):
         def make_wake(suspend):
             return lambda value: self._wake(suspend, value, wake)
-        for s in self.suspends:
+        for s in self.children:
+            if not self._do_wake: break
             s.apply(make_wake(s), executor, routine)
 
     def cancel(self):
@@ -74,17 +75,17 @@ class Any(CombinationSuspend):
 
 class Selector(CombinationSuspend):
     def __init__(self, *suspends):
-        self.suspends = suspends
+        CombinationSuspend.__init__(self, suspends)
         self._applied = False
         self._finished = 0
         self._pending = {}
         self._callback = None
 
     def has_pending(self):
-        return (self._finished < len(self.suspends))
+        return (self._finished < len(self.children))
 
     def _finish(self, item):
-        if self._finished >= len(self.suspends):
+        if self._finished >= len(self.children):
             raise RuntimeError('Tried to wake coroutine more than once')
         self._callback(item)
         self._callback = None
@@ -102,10 +103,10 @@ class Selector(CombinationSuspend):
         def make_wake(suspend):
             return lambda value: self._wake(suspend, value)
         if not self._applied:
-            for s in self.suspends:
+            for s in self.children:
                 s.apply(make_wake(s), executor, routine)
             self._applied = True
-        if self._finished == len(self.suspends):
+        if self._finished == len(self.children):
             wake((None, None))
             return
         self._callback = wake
@@ -114,11 +115,10 @@ class Selector(CombinationSuspend):
 
     def cancel(self):
         self._applied = True
-        self._finished = len(self.suspends)
+        self._finished = len(self.children)
         self._pending.clear()
         self._callback = None
-        for s in self.suspends:
-            s.cancel()
+        CombinationSuspend.cancel(self)
 
 class ControlSuspend(Suspend): pass
 
@@ -144,6 +144,7 @@ class Spawn(ControlSuspend):
 
     def apply(self, wake, executor, routine):
         executor.add(self.target, daemon=self.daemon)
+        wake(None)
 
 class Call(ControlSuspend):
     def __init__(self, target, daemon=False):
