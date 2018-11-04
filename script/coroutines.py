@@ -335,7 +335,7 @@ class Executor:
         self.sleeps = []
         self.selectfiles = ([], [], [])
 
-    def __call__(self):
+    def run(self):
         def make_wake(routine):
             return lambda value: self._wake(routine, value)
         while self.routines or self.suspended:
@@ -366,6 +366,9 @@ class Executor:
             elif self.sleeps and not self.routines:
                 time.sleep(self.sleeps[0].waketime - time.time())
             self._finish_sleeps()
+
+    def __call__(self):
+        self.run()
 
 def sigpipe_handler(rfp, wfp):
     try:
@@ -404,4 +407,7 @@ def set_sigpipe(executor, coroutine=sigpipe_handler):
 def run(routines):
     ex = Executor()
     for r in routines: ex.add(r)
-    ex()
+    try:
+        ex.run()
+    finally:
+        ex.close()
