@@ -382,6 +382,7 @@ def sigpipe_handler(rfp, wfp):
                 wakelist.append((ProcessTag(pid), code))
             yield Trigger(*wakelist)
     finally:
+        signal.set_wakeup_fd(-1)
         for fp in (rfp, wfp):
             try:
                 fp.close()
@@ -404,9 +405,10 @@ def set_sigpipe(executor, coroutine=sigpipe_handler):
         raise
     return inst
 
-def run(routines):
+def run(routines, sigpipe=False):
     ex = Executor()
     for r in routines: ex.add(r)
+    if sigpipe: set_sigpipe(ex)
     try:
         ex.run()
     finally:
