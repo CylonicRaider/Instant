@@ -122,6 +122,13 @@ class Selector(CombinationSuspend):
 
 class ControlSuspend(Suspend): pass
 
+class InstantSuspend(ControlSuspend):
+    def __init__(self, value=None):
+        self.value = value
+
+    def apply(self, wake, executor, routine):
+        wake(self.value)
+
 class Exit(ControlSuspend):
     def __init__(self, result):
         self.result = result
