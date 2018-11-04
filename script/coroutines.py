@@ -3,9 +3,22 @@
 
 # A PEP 342 generator-based coroutine framework.
 
-import time
+import os, time
 import heapq
-import select
+import signal, select
+
+class ProcessTag(object):
+    def __init__(self, pid):
+        self.pid = pid
+
+    def __hash__(self):
+        return hash(self.pid)
+
+    def __eq__(self, other):
+        return isinstance(other, ProcessTag) and other.pid == self.pid
+
+    def __ne__(self, other):
+        return not (self == other)
 
 class Suspend(object):
     def apply(self, wake, executor, routine):
@@ -128,6 +141,16 @@ class InstantSuspend(ControlSuspend):
 
     def apply(self, wake, executor, routine):
         wake(self.value)
+
+class Trigger(InstantSuspend):
+    def __init__(self, *triggers, **kwds):
+        InstantSuspend.__init__(self, **kwds)
+        self.triggers = triggers
+
+    def apply(self, wake, executor, routine):
+        for tag, value in self.triggers:
+            executor.trigger(tag, value)
+        InstantSuspend.apply(self, wake, executor, routine)
 
 class Exit(ControlSuspend):
     def __init__(self, result):
@@ -343,6 +366,40 @@ class Executor:
             elif self.sleeps and not self.routines:
                 time.sleep(self.sleeps[0].waketime - time.time())
             self._finish_sleeps()
+
+def sigpipe_handler(rfp, wfp):
+    try:
+        while 1:
+            yield ReadFile(rfp, 1)
+            wakelist = []
+            while 1:
+                pid, status = os.waitpid(-1, os.WNOHANG)
+                if pid == 0: break
+                code = status >> 8 if status & 0xFF00 else -status
+                wakelist.append((ProcessTag(pid), code))
+            yield Trigger(*wakelist)
+    finally:
+        for fp in (rfp, wfp):
+            try:
+                fp.close()
+            except IOError:
+                pass
+
+def set_sigpipe(executor, coroutine=sigpipe_handler):
+    rfd, wfd = os.pipe()
+    rfp, wfp = os.fdopen(rfd, 'rb', 0), os.fdopen(wfd, 'wb', 0)
+    try:
+        signal.set_wakeup_fd(wfd)
+        inst = coroutine(rfp, wfp)
+        executor.add(inst, daemon=True)
+    except Exception:
+        for fd in (rfd, wfd):
+            try:
+                os.close(fd)
+            except IOError:
+                pass
+        raise
+    return inst
 
 def run(routines):
     ex = Executor()
