@@ -88,23 +88,24 @@ class Any(CombinationSuspend):
 
 class Selector(CombinationSuspend):
     def __init__(self, *suspends):
-        CombinationSuspend.__init__(self, suspends)
-        self._applied = False
-        self._finished = 0
-        self._pending = {}
+        CombinationSuspend.__init__(self, list(suspends))
+        self._pending = set(suspends)
+        self._waiting = set()
+        self._finished = {}
         self._callback = None
 
-    def has_pending(self):
-        return (self._finished < len(self.children))
+    def is_empty(self):
+        return not (self._pending or self._waiting or self._finished)
 
-    def _finish(self, item):
-        if self._finished >= len(self.children):
-            raise RuntimeError('Tried to wake coroutine more than once')
-        self._callback(item)
-        self._callback = None
-        self._finished += 1
+    def add(self, suspend):
+        self.children.append(suspend)
+        self._pending.add(suspend)
 
     def _wake(self, suspend, value):
+        try:
+            self._waiting.remove(suspend)
+        except KeyError:
+            raise RuntimeError('Trying to wake non-suspended coroutine')
         if self._callback is None:
             if suspend in self._pending:
                 raise RuntimeError('Trying to wake coroutine more than once')
@@ -112,26 +113,38 @@ class Selector(CombinationSuspend):
         else:
             self._finish((suspend, value))
 
+    def _finish(self, item):
+        self._callback(item)
+        self._callback = None
+        self._finished.pop(item[0], None)
+        try:
+            self.children.remove(item[0])
+        except ValueError:
+            pass
+
     def apply(self, wake, executor, routine):
         def make_wake(suspend):
             return lambda value: self._wake(suspend, value)
-        if not self._applied:
-            for s in self.children:
-                s.apply(make_wake(s), executor, routine)
-            self._applied = True
-        if self._finished == len(self.children):
-            wake((None, None))
-            return
         self._callback = wake
         if self._pending:
-            self._finish(self._pending.popitem())
+            pending = tuple(self._pending)
+            self._pending.clear()
+            self._waiting.update(pending)
+            for p in pending:
+                p.apply(make_wake(p), executor, routine)
+        if self._finished:
+            self._finish(self._finished.popitem())
+        elif self.is_empty() and self._callback:
+            wake((None, None))
+            self._callback = None
 
     def cancel(self):
-        self._applied = True
-        self._finished = len(self.children)
         self._pending.clear()
+        self._waiting.clear()
+        self._finished.clear()
         self._callback = None
         CombinationSuspend.cancel(self)
+        self.children[:] = []
 
 class ControlSuspend(Suspend): pass
 
