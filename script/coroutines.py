@@ -315,15 +315,6 @@ class Executor:
         for cb in self.listening.pop(event, ()):
             cb(result)
 
-    def add_sleep(self, sleep):
-        heapq.heappush(self.sleeps, sleep)
-
-    def _finish_sleeps(self, now=None):
-        if now is None: now = time.time()
-        while self.sleeps and self.sleeps[0].waketime <= now:
-            sleep = heapq.heappop(self.sleeps)
-            self.trigger(sleep)
-
     def add_select(self, file, index):
         l = self.selectfiles[index]
         if file not in l: l.append(file)
@@ -336,6 +327,15 @@ class Executor:
         for f in readable: self.trigger(f, 'r')
         for f in writable: self.trigger(f, 'w')
         for f in exceptable: self.trigger(f, 'x')
+
+    def add_sleep(self, sleep):
+        heapq.heappush(self.sleeps, sleep)
+
+    def _finish_sleeps(self, now=None):
+        if now is None: now = time.time()
+        while self.sleeps and self.sleeps[0].waketime <= now:
+            sleep = heapq.heappop(self.sleeps)
+            self.trigger(sleep)
 
     def close(self):
         for r in self.routines:
