@@ -280,8 +280,9 @@ class Executor:
         self.daemons = set()
         self.suspended = set()
         self.listening = {}
-        self.sleeps = []
         self.selectfiles = ([], [], [])
+        self.sleeps = []
+        self.polls = set()
 
     def add(self, routine, value=None, daemon=False):
         self.routines[routine] = value
@@ -337,6 +338,16 @@ class Executor:
             sleep = heapq.heappop(self.sleeps)
             self.trigger(sleep)
 
+    def add_poll(self, poll):
+        self.polls.add(poll)
+
+    def remove_poll(self, poll):
+        self.polls.discard(poll)
+
+    def _do_polls(self):
+        for p in tuple(self.polls):
+            p(self)
+
     def close(self):
         for r in self.routines:
             r.close()
@@ -379,6 +390,7 @@ class Executor:
             elif self.sleeps and not self.routines:
                 time.sleep(self.sleeps[0].waketime - time.time())
             self._finish_sleeps()
+            self._do_polls()
 
     def __call__(self):
         self.run()
