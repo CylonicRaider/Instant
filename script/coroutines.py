@@ -346,7 +346,8 @@ class Executor:
 
     def _do_polls(self):
         for p in tuple(self.polls):
-            p(self)
+            if p(self):
+                self.remove_poll(p)
 
     def close(self):
         for r in self.routines:
