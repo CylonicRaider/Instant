@@ -396,11 +396,16 @@ class Executor:
     def __call__(self):
         self.run()
 
-def sigpipe_handler(rfp, wfp):
+def sigpipe_handler(rfp, wfp, waits):
     try:
         while 1:
             yield ReadFile(rfp, 1)
             wakelist = []
+            for w in tuple(waits):
+                res = w.poll()
+                if res is not None:
+                    waits.remove(w)
+                    wakelist.append((ProcessTag(w.pid), res))
             while 1:
                 pid, status = os.waitpid(-1, os.WNOHANG)
                 if pid == 0: break
@@ -418,10 +423,12 @@ def sigpipe_handler(rfp, wfp):
 def set_sigpipe(executor, coroutine=sigpipe_handler):
     rfd, wfd = os.pipe()
     rfp, wfp = os.fdopen(rfd, 'rb', 0), os.fdopen(wfd, 'wb', 0)
+    waits = set()
     try:
         signal.set_wakeup_fd(wfd)
-        inst = coroutine(rfp, wfp)
+        inst = coroutine(rfp, wfp, waits)
         executor.add(inst, daemon=True)
+        executor.waits = waits
     except Exception:
         for fd in (rfd, wfd):
             try:
@@ -429,6 +436,11 @@ def set_sigpipe(executor, coroutine=sigpipe_handler):
             except IOError:
                 pass
         raise
+    finally:
+        try:
+            del executor.waits
+        except AttributeError:
+            pass
     return inst
 
 def run(routines, sigpipe=False):
