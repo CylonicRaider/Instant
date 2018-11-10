@@ -274,6 +274,21 @@ class WriteFile(IOSuspend):
                 wake(self.writefile.write(self.data))
         IOSuspend.apply(self, inner_wake, executor, routine)
 
+class WaitProcess(Suspend):
+    def __init__(self, target):
+        self.target = target
+
+    def apply(self, wake, executor, routine):
+        if not hasattr(executor, 'waits'):
+            raise RuntimeError('Executor not equipped for waiting for '
+                'processes')
+        if hasattr(self.target, 'poll'):
+            executor.waits.add(self.target)
+            eff_target = self.target.pid
+        else:
+            eff_target = self.target
+        executor.listen(eff_target, wake)
+
 class Executor:
     def __init__(self):
         self.routines = {}
