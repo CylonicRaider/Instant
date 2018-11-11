@@ -414,7 +414,7 @@ class Executor:
 def sigpipe_handler(rfp, wfp, waits):
     try:
         while 1:
-            yield ReadFile(rfp, 1)
+            yield ReadFile(rfp, 1024)
             wakelist = []
             for w in tuple(waits):
                 res = w.poll()
