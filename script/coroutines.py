@@ -458,11 +458,16 @@ def set_sigpipe(executor, coroutine=sigpipe_handler):
             pass
     return inst
 
-def run(routines, sigpipe=False):
+def run(routines=(), main=None, sigpipe=False):
+    def main_routine():
+        result[0] = yield main
     ex = Executor()
     for r in routines: ex.add(r)
+    if main: ex.add(main_routine())
     if sigpipe: set_sigpipe(ex)
+    result = [None]
     try:
         ex.run()
     finally:
         ex.close()
+    return result[0]
