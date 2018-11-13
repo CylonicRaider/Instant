@@ -424,7 +424,7 @@ def sigpipe_handler(rfp, wfp, waits):
             while 1:
                 pid, status = os.waitpid(-1, os.WNOHANG)
                 if pid == 0: break
-                code = status >> 8 if status & 0xFF00 else -status
+                code = -(status & 0x7F) if status & 0xFF else status >> 8
                 wakelist.append((ProcessTag(pid), code))
             yield Trigger(*wakelist)
     finally:
