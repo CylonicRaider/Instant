@@ -46,7 +46,15 @@ class All(CombinationSuspend):
         if self._finished[index]:
             raise RuntimeError('Attempting to wake a coroutine more than '
                 'once')
-        self.result[index] = value
+        elif self._finishedCount == -1:
+            return
+        if value is None:
+            value = (0, None)
+        if value[0] == 1:
+            callback(value)
+            self._finishedCount = -1
+            return
+        self.result[index] = value[1]
         self._finished[index] = True
         self._finishedCount += 1
         if self._finishedCount == len(self.children):
@@ -70,7 +78,12 @@ class Any(CombinationSuspend):
     def _wake(self, suspend, value, callback):
         if not self._do_wake: return
         self._do_wake = False
-        callback((suspend, value))
+        if value is None:
+            value = (0, None)
+        if value[1] == 1:
+            callback(value)
+        else:
+            callback((0, (suspend, value[1])))
         for s in self.children:
             if s is not suspend:
                 s.cancel()
@@ -114,7 +127,11 @@ class Selector(CombinationSuspend):
             self._finish((suspend, value))
 
     def _finish(self, item):
-        self._callback(item)
+        value = (0, None) if item[1] is None else item[1]
+        if value[0] == 1:
+            self._callback(value)
+        else:
+            self._callback((0, item))
         self._callback = None
         self._finished.pop(item[0], None)
         try:
@@ -153,7 +170,7 @@ class InstantSuspend(ControlSuspend):
         self.value = value
 
     def apply(self, wake, executor, routine):
-        wake(self.value)
+        wake((0, self.value))
 
 class Trigger(InstantSuspend):
     def __init__(self, *triggers, **kwds):
@@ -162,7 +179,7 @@ class Trigger(InstantSuspend):
 
     def apply(self, wake, executor, routine):
         for tag, value in self.triggers:
-            executor.trigger(tag, value)
+            executor.trigger(tag, (0, value))
         InstantSuspend.apply(self, wake, executor, routine)
 
 class Exit(ControlSuspend):
@@ -254,7 +271,7 @@ class ReadFile(IOSuspend):
     def apply(self, wake, executor, routine):
         def inner_wake(value):
             if not self.cancelled:
-                wake(self.readfile.read(self.length))
+                wake((0, self.readfile.read(self.length)))
         IOSuspend.apply(self, inner_wake, executor, routine)
 
 class WriteFile(IOSuspend):
@@ -271,7 +288,7 @@ class WriteFile(IOSuspend):
     def apply(self, wake, executor, routine):
         def inner_wake(value):
             if not self.cancelled:
-                wake(self.writefile.write(self.data))
+                wake((0, self.writefile.write(self.data)))
         IOSuspend.apply(self, inner_wake, executor, routine)
 
 class WaitProcess(Suspend):
@@ -320,7 +337,7 @@ class Executor:
         self.suspended.discard(routine)
         self.routines[routine] = value
 
-    def _done(self, routine, result=None):
+    def _done(self, routine, result):
         self.trigger(routine, result)
         self.remove(routine)
 
@@ -329,7 +346,7 @@ class Executor:
 
     def trigger(self, event, result=None):
         for cb in self.listening.pop(event, ()):
-            cb(result)
+            self._run_callback(cb, result)
 
     def add_select(self, file, index):
         l = self.selectfiles[index]
@@ -340,9 +357,9 @@ class Executor:
         if readable: clear(self.selectfiles[0], frozenset(readable))
         if writable: clear(self.selectfiles[1], frozenset(writable))
         if exceptable: clear(self.selectfiles[2], frozenset(exceptable))
-        for f in readable: self.trigger(f, 'r')
-        for f in writable: self.trigger(f, 'w')
-        for f in exceptable: self.trigger(f, 'x')
+        for f in readable: self.trigger(f, (0, 'r'))
+        for f in writable: self.trigger(f, (0, 'w'))
+        for f in exceptable: self.trigger(f, (0, 'x'))
 
     def add_sleep(self, sleep):
         heapq.heappush(self.sleeps, sleep)
@@ -361,8 +378,15 @@ class Executor:
 
     def _do_polls(self):
         for p in tuple(self.polls):
-            if p(self):
+            res = self._run_callback(p, self)
+            if res[0] == 0 and res[1]:
                 self.remove_poll(p)
+
+    def _run_callback(self, func, *args, **kwds):
+        try:
+            return (0, func(*args, **kwds))
+        except Exception as exc:
+            return (1, exc)
 
     def close(self):
         for r in self.routines:
@@ -384,15 +408,19 @@ class Executor:
                 break
             for r, v in runqueue:
                 self.routines[r] = None
-                try:
-                    suspend = r.send(v)
-                except StopIteration:
-                    self._done(r)
+                if v is None: v = (0, None)
+                res = self._run_callback((r.send, r.throw)[v[0]], v[1])
+                if res[0] == 1:
+                    if isinstance(res[1], StopIteration): res = (0, None)
+                    self._done(r, res)
                     continue
-                if suspend is None:
+                elif res[1] is None:
                     continue
+                suspend = res[1]
                 self._suspend(r)
-                suspend.apply(make_wake(r), self, r)
+                res = self._run_callback(suspend.apply, make_wake(r), self, r)
+                if res[0] == 1:
+                    self._wake(r, res)
             if any(self.selectfiles):
                 if self.routines or not self.sleeps:
                     timeout = 0
