@@ -382,10 +382,14 @@ class Executor:
             if res[0] == 0 and res[1]:
                 self.remove_poll(p)
 
+    def on_error(self, exc):
+        pass
+
     def _run_callback(self, func, *args, **kwds):
         try:
             return (0, func(*args, **kwds))
         except Exception as exc:
+            self.on_error(exc)
             return (1, exc)
 
     def close(self):
