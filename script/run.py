@@ -9,6 +9,8 @@ import shlex
 import subprocess
 import argparse
 
+import coroutines
+
 try: # Py3K
     from configparser import ConfigParser as _ConfigParser
 except ImportError: # Py2K
@@ -134,11 +136,11 @@ class Process:
         self._pid = pid
         self._write_pidfile(pid)
 
-    def start(self):
+    def start(self, wait=True):
         try:
             cur_status = self.status()
             if cur_status == 'RUNNING':
-                return 'ALREADY_RUNNING'
+                yield coroutines.Exit('ALREADY_RUNNING')
         except IOError:
             pass
         files = []
@@ -155,51 +157,48 @@ class Process:
             for r, f in zip(self._redirectors(), files):
                 r.close(f)
         self.set_pid(self._child.pid)
-        return 'OK'
+        yield coroutines.Exit('OK')
 
-    def wait_start(self):
-        return None
-
-    def stop(self):
+    def stop(self, wait=True):
         self._stopping_since = time.time()
         if self._child is not None:
             self._child.terminate()
             self._prev_child = self._child
             self._child = None
         else:
-            # We could theoretically record the PID for wait_stop(), but that
-            # would be even more fragile than what we already do in status().
+            # We could theoretically wait for the PID below, but that would be
+            # even more fragile than what we already do in status().
             self._prev_child = None
             pid = self.get_pid()
             if pid is None:
-                return 'NOT_RUNNING'
+                yield coroutines.Exit('NOT_RUNNING')
             else:
                 os.kill(pid, signal.SIGTERM)
         self.set_pid(None)
-        return 'OK'
-
-    def wait_stop(self):
-        if self._prev_child:
-            raw_status = self._prev_child.wait()
-            status = 'OK %s' % (raw_status,)
-            self._prev_child = None
+        if wait:
+            if self._prev_child:
+                raw_status = yield coroutines.WaitProcess(self._prev_child)
+                status = 'OK %s' % (raw_status,)
+                self._prev_child = None
+            else:
+                status = None
+            if self._stopping_since is not None:
+                delay = self._stopping_since + self.min_stop - time.time()
+                if delay > 0: yield coroutines.Sleep(delay)
+                self._stopping_since = None
         else:
-            status = None
-        if self._stopping_since is not None:
-            delay = self._stopping_since + self.min_stop - time.time()
-            if delay > 0: time.sleep(delay)
-            self._stopping_since = None
-        return status
+            status = 'OK'
+        yield coroutines.Exit(status)
 
     def status(self):
         pid = self.get_pid()
         if pid is None:
-            return 'NOT_RUNNING'
+            yield coroutines.Exit('NOT_RUNNING')
         try:
             os.kill(pid, 0)
-            return 'RUNNING'
+            yield coroutines.Exit('RUNNING')
         except OSError as e:
-            if e.errno == errno.ESRCH: return 'STALEFILE'
+            if e.errno == errno.ESRCH: yield coroutines.Exit('STALEFILE')
             raise
 
 class ProcessGroup:
@@ -211,31 +210,21 @@ class ProcessGroup:
 
     def _for_each(self, handler, tag, verbose):
         tag_str = ' (%s)' % tag if tag else ''
-        for p in self.processes:
-            force_display = False
-            try:
-                result = handler(p)
-            except Exception as exc:
-                force_display = True
-                result = 'ERROR (%s: %s)' % (type(exc).__name__, exc)
-            if verbose or force_display:
-                if result is None: result = 'OK'
-                print ('%s%s: %s' % (p.name, tag_str, result))
+        calls = [coroutines.Call(handler(p)) for p in self.processes]
+        results = yield coroutines.All(calls)
+        if verbose:
+            for p, r in zip(self.processes, results):
+                if r is None: r = 'OK'
+                print ('%s%s: %s' % (p.name, tag_str, r))
 
-    def start(self, verbose=False):
-        self._for_each(lambda p: p.start(), 'start', verbose)
+    def start(self, wait=False, verbose=False):
+        return self._for_each(lambda p: p.start(), 'start', verbose)
 
-    def wait_start(self, verbose=False):
-        self._for_each(lambda p: p.wait_start(), 'wait_start', verbose)
-
-    def stop(self, verbose=False):
-        self._for_each(lambda p: p.stop(), 'stop', verbose)
-
-    def wait_stop(self, verbose=False):
-        self._for_each(lambda p: p.wait_stop(), 'wait_stop', verbose)
+    def stop(self, wait=False, verbose=False):
+        return self._for_each(lambda p: p.stop(wait), 'stop', verbose)
 
     def status(self, verbose=False):
-        self._for_each(lambda p: p.status(), None, verbose)
+        return self._for_each(lambda p: p.status(), None, verbose)
 
 class InstantManager(ProcessGroup):
     def __init__(self, conffile=None):
@@ -271,24 +260,21 @@ class InstantManager(ProcessGroup):
             kwds['wait'] = getattr(arguments, 'wait')
         func(**kwds)
 
+    def _run_routine(self, routine):
+        coroutines.run([routine], sigpipe=True)
+
     def do_start(self, wait=True):
-        self.start(verbose=True)
-        if wait:
-            self.wait_start(verbose=True)
+        self._run_routine(self.start(verbose=True))
 
     def do_stop(self, wait=True):
-        self.stop(verbose=True)
-        if wait:
-            self.wait_stop(verbose=True)
+        self._run_routine(self.stop(verbose=True))
 
     def do_restart(self):
-        self.stop(verbose=True)
-        self.wait_stop(verbose=True)
-        self.start(verbose=True)
-        self.wait_start(verbose=True)
+        self.do_stop()
+        self.do_start()
 
     def do_status(self):
-        self.status(verbose=True)
+        self._run_routine(self.status(verbose=True))
 
 def main():
     p = argparse.ArgumentParser(
