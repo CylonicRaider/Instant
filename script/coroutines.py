@@ -3,7 +3,8 @@
 
 # A PEP 342 generator-based coroutine framework.
 
-import os, time
+import sys, os, time
+import traceback
 import heapq
 import signal, select
 
@@ -338,15 +339,17 @@ class Executor:
         self.routines[routine] = value
 
     def _done(self, routine, result):
-        self.trigger(routine, result)
         self.remove(routine)
+        return self.trigger(routine, result)
 
     def listen(self, event, callback):
         self.listening.setdefault(event, []).append(callback)
 
     def trigger(self, event, result=None):
-        for cb in self.listening.pop(event, ()):
-            self._run_callback(cb, result)
+        callbacks = self.listening.pop(event, ())
+        for cb in callbacks:
+            self._run_callback(cb, (result,), final=True)
+        return len(callbacks)
 
     def add_select(self, file, index):
         l = self.selectfiles[index]
@@ -378,18 +381,21 @@ class Executor:
 
     def _do_polls(self):
         for p in tuple(self.polls):
-            res = self._run_callback(p, self)
-            if res[0] == 0 and res[1]:
+            res = self._run_callback(p, (self,), final=True)
+            if res[0] == 0 and res[1] or res[1] == 1:
                 self.remove_poll(p)
 
-    def on_error(self, exc):
-        pass
+    def on_error(self, exc, source):
+        lines = ['Uncaught exception in %r:\n' % (source,)]
+        lines.extend(traceback.format_exception(*sys.exc_info()))
+        sys.stderr.write(''.join(lines))
 
-    def _run_callback(self, func, *args, **kwds):
+    def _run_callback(self, func, args, kwds=None, final=False):
+        if kwds is None: kwds = {}
         try:
             return (0, func(*args, **kwds))
         except Exception as exc:
-            self.on_error(exc)
+            if final: self.on_error(exc, func)
             return (1, exc)
 
     def close(self):
@@ -413,16 +419,22 @@ class Executor:
             for r, v in runqueue:
                 self.routines[r] = None
                 if v is None: v = (0, None)
-                res = self._run_callback((r.send, r.throw)[v[0]], v[1])
-                if res[0] == 1:
-                    if isinstance(res[1], StopIteration): res = (0, None)
-                    self._done(r, res)
+                # Here, we cannot use _run_callback() since we need after the
+                # fact whether to run on_error() or not; as a bonus, we get
+                # a more precise error source.
+                try:
+                    resume = (r.send, r.throw)[v[0]]
+                    suspend = resume(v[1])
+                except StopIteration:
+                    self._done(r, None)
                     continue
-                elif res[1] is None:
+                except Exception as exc:
+                    if not self._done(r, res):
+                        self.on_error(exc, r)
                     continue
-                suspend = res[1]
                 self._suspend(r)
-                res = self._run_callback(suspend.apply, make_wake(r), self, r)
+                res = self._run_callback(suspend.apply, (make_wake(r), self,
+                                                         r))
                 if res[0] == 1:
                     self._wake(r, res)
             if any(self.selectfiles):
