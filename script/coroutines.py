@@ -59,7 +59,7 @@ class All(CombinationSuspend):
         self._finished[index] = True
         self._finishedCount += 1
         if self._finishedCount == len(self.children):
-            callback(self.result)
+            callback((0, self.result))
 
     def apply(self, wake, executor, routine):
         def make_wake(index):
@@ -189,7 +189,7 @@ class Exit(ControlSuspend):
 
     def apply(self, wake, executor, routine):
         routine.close()
-        executor._done(routine, self.result)
+        executor._done(routine, (0, self.result))
 
 class Join(ControlSuspend):
     def __init__(self, target):

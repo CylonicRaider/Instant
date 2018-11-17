@@ -211,7 +211,7 @@ class ProcessGroup:
     def _for_each(self, handler, tag, verbose):
         tag_str = ' (%s)' % tag if tag else ''
         calls = [coroutines.Call(handler(p)) for p in self.processes]
-        results = yield coroutines.All(calls)
+        results = yield coroutines.All(*calls)
         if verbose:
             for p, r in zip(self.processes, results):
                 if r is None: r = 'OK'
