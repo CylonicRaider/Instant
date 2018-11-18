@@ -40,6 +40,21 @@ def open_mkdirs(path, mode, do_mkdirs=True):
             raise
     return open(path, mode)
 
+class VerboseExit(coroutines.Exit):
+    def __init__(self, value, verbose=False, context=None):
+        coroutines.Exit.__init__(self, value)
+        self.verbose = verbose
+        self.context = context
+
+    def log(self):
+        if not self.verbose: return
+        context_str = '' if self.context is None else '%s: ' % (self.context,)
+        print ('%s%s' % (context_str, self.result))
+
+    def apply(self, wake, executor, routine):
+        self.log()
+        coroutines.Exit.apply(self, wake, executor, routine)
+
 class Redirection:
     @classmethod
     def parse(cls, text):
@@ -136,11 +151,23 @@ class Process:
         self._pid = pid
         self._write_pidfile(pid)
 
-    def start(self, wait=True):
+    def _make_exit(self, operation, verbose):
+        def callback(value):
+            return VerboseExit(value, verbose, context)
+        if verbose and operation:
+            context = '%s (%s)' % (self.name, operation)
+        elif verbose:
+            context = self.name
+        else:
+            context = None
+        return callback
+
+    def start(self, wait=True, verbose=False):
+        exit = self._make_exit('start', verbose)
         try:
             cur_status = self.status()
             if cur_status == 'RUNNING':
-                yield coroutines.Exit('ALREADY_RUNNING')
+                yield exit('ALREADY_RUNNING')
         except IOError:
             pass
         files = []
@@ -157,9 +184,10 @@ class Process:
             for r, f in zip(self._redirectors(), files):
                 r.close(f)
         self.set_pid(self._child.pid)
-        yield coroutines.Exit('OK')
+        yield exit('OK')
 
-    def stop(self, wait=True):
+    def stop(self, wait=True, verbose=False):
+        exit = self._make_exit('stop', verbose)
         self._stopping_since = time.time()
         if self._child is not None:
             self._child.terminate()
@@ -171,7 +199,7 @@ class Process:
             self._prev_child = None
             pid = self.get_pid()
             if pid is None:
-                yield coroutines.Exit('NOT_RUNNING')
+                yield exit('NOT_RUNNING')
             else:
                 os.kill(pid, signal.SIGTERM)
         self.set_pid(None)
@@ -188,17 +216,18 @@ class Process:
                 self._stopping_since = None
         else:
             status = 'OK'
-        yield coroutines.Exit(status)
+        yield exit(status)
 
-    def status(self):
+    def status(self, verbose=True):
+        exit = self._make_exit(None, verbose)
         pid = self.get_pid()
         if pid is None:
-            yield coroutines.Exit('NOT_RUNNING')
+            yield exit('NOT_RUNNING')
         try:
             os.kill(pid, 0)
-            yield coroutines.Exit('RUNNING')
+            yield exit('RUNNING')
         except OSError as e:
-            if e.errno == errno.ESRCH: yield coroutines.Exit('STALEFILE')
+            if e.errno == errno.ESRCH: yield exit('STALEFILE')
             raise
 
 class ProcessGroup:
@@ -208,23 +237,19 @@ class ProcessGroup:
     def add(self, proc):
         self.processes.append(proc)
 
-    def _for_each(self, handler, tag, verbose):
-        tag_str = ' (%s)' % tag if tag else ''
+    def _for_each(self, handler):
         calls = [coroutines.Call(handler(p)) for p in self.processes]
-        results = yield coroutines.All(*calls)
-        if verbose:
-            for p, r in zip(self.processes, results):
-                if r is None: r = 'OK'
-                print ('%s%s: %s' % (p.name, tag_str, r))
+        result = yield coroutines.All(*calls)
+        yield coroutines.Exit(result)
 
-    def start(self, wait=False, verbose=False):
-        return self._for_each(lambda p: p.start(), 'start', verbose)
+    def start(self, wait=True, verbose=False):
+        return self._for_each(lambda p: p.start(wait, verbose))
 
-    def stop(self, wait=False, verbose=False):
-        return self._for_each(lambda p: p.stop(wait), 'stop', verbose)
+    def stop(self, wait=True, verbose=False):
+        return self._for_each(lambda p: p.stop(wait, verbose))
 
-    def status(self, verbose=False):
-        return self._for_each(lambda p: p.status(), None, verbose)
+    def status(self, verbose=True):
+        return self._for_each(lambda p: p.status(verbose))
 
 class InstantManager(ProcessGroup):
     def __init__(self, conffile=None):
