@@ -108,8 +108,6 @@ class Process:
         self.stderr = Redirection.parse(config.get('stderr', ''))
         self._pid = Ellipsis
         self._child = None
-        self._prev_child = None
-        self._stopping_since = None
 
     def _redirectors(self):
         return (self.stdin, self.stdout, self.stderr)
@@ -188,15 +186,13 @@ class Process:
 
     def stop(self, wait=True, verbose=False):
         exit = self._make_exit('stop', verbose)
-        self._stopping_since = time.time()
+        prev_child = self._child
         if self._child is not None:
             self._child.terminate()
-            self._prev_child = self._child
             self._child = None
         else:
             # We could theoretically wait for the PID below, but that would be
             # even more fragile than what we already do in status().
-            self._prev_child = None
             pid = self.get_pid()
             if pid is None:
                 yield exit('NOT_RUNNING')
@@ -204,16 +200,13 @@ class Process:
                 os.kill(pid, signal.SIGTERM)
         self.set_pid(None)
         if wait:
-            if self._prev_child:
-                raw_status = yield coroutines.WaitProcess(self._prev_child)
+            if prev_child:
+                raw_status = yield coroutines.WaitProcess(prev_child)
                 status = 'OK %s' % (raw_status,)
-                self._prev_child = None
             else:
                 status = None
-            if self._stopping_since is not None:
-                delay = self._stopping_since + self.min_stop - time.time()
-                if delay > 0: yield coroutines.Sleep(delay)
-                self._stopping_since = None
+            delay = self.min_stop
+            if delay > 0: yield coroutines.Sleep(delay)
         else:
             status = 'OK'
         yield exit(status)
