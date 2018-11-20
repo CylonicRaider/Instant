@@ -162,12 +162,9 @@ class Process:
 
     def start(self, wait=True, verbose=False):
         exit = self._make_exit('start', verbose)
-        try:
-            cur_status = self.status()
-            if cur_status == 'RUNNING':
-                yield exit('ALREADY_RUNNING')
-        except IOError:
-            pass
+        cur_status = yield coroutines.Call(self.status(verbose=False))
+        if cur_status == 'RUNNING':
+            yield exit('ALREADY_RUNNING')
         files = []
         try:
             # NOTE: The finally clause relies on every file being added to
