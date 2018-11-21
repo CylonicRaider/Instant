@@ -222,6 +222,9 @@ class Sleep(Suspend):
         self.waketime = waketime
         self.cancelled = False
 
+    def __hash__(self):
+        return hash(self.waketime)
+
     def __lt__(self, other):
         return self.waketime <  other.waketime
     def __le__(self, other):
