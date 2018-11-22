@@ -432,7 +432,7 @@ class Executor:
                     self._done(r, None)
                     continue
                 except Exception as exc:
-                    if not self._done(r, res):
+                    if not self._done(r, (1, exc)):
                         self.on_error(exc, r)
                     continue
                 self._suspend(r)
