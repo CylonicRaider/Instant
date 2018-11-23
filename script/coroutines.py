@@ -243,8 +243,8 @@ class Sleep(Suspend):
 
     def apply(self, wake, executor, routine):
         def inner_wake(value):
-            if not self.cancelled:
-                wake(value)
+            if self.cancelled: return
+            wake(value)
         executor.listen(self, inner_wake)
         executor.add_sleep(self)
 
@@ -274,8 +274,8 @@ class ReadFile(IOSuspend):
 
     def apply(self, wake, executor, routine):
         def inner_wake(value):
-            if not self.cancelled:
-                wake((0, self.readfile.read(self.length)))
+            if self.cancelled: return
+            wake((0, self.readfile.read(self.length)))
         IOSuspend.apply(self, inner_wake, executor, routine)
 
 class WriteFile(IOSuspend):
@@ -291,8 +291,8 @@ class WriteFile(IOSuspend):
 
     def apply(self, wake, executor, routine):
         def inner_wake(value):
-            if not self.cancelled:
-                wake((0, self.writefile.write(self.data)))
+            if self.cancelled: return
+            wake((0, self.writefile.write(self.data)))
         IOSuspend.apply(self, inner_wake, executor, routine)
 
 class WaitProcess(Suspend):
