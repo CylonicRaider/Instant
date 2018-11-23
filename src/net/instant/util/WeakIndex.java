@@ -14,7 +14,7 @@ public class WeakIndex<K, V> {
     private final ReferenceQueue<V> queue;
     private final List<V> toRemove;
 
-    protected WeakIndex() {
+    public WeakIndex() {
         this.wrapped = new WeakHashMap<K, WeakReference<V>>();
         this.queue = new ReferenceQueue<V>();
         this.toRemove = new ArrayList<V>();
