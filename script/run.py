@@ -303,6 +303,7 @@ def main():
     p.add_argument('--config', '-c', default=DEFAULT_CONFFILE,
                    help='Configuration file location (default %(default)s)')
     sp = p.add_subparsers(dest='cmd', description='The action to perform')
+    sp.required = True
     p_start = sp.add_parser('start', help='Start the backend and bots')
     p_stop = sp.add_parser('stop', help='Stop the backend and bots')
     p_restart = sp.add_parser('restart',
