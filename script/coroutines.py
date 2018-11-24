@@ -298,6 +298,21 @@ class WriteFile(IOSuspend):
             wake((0, self.writefile.write(self.data)))
         IOSuspend.apply(self, inner_wake, executor, routine)
 
+class AcceptSocket(IOSuspend):
+    def __init__(self, sock, selectfile=None):
+        if selectfile is None: selectfile = sock
+        IOSuspend.__init__(self, selectfile, 'r')
+        self.sock = sock
+
+    def cancel(self):
+        self.cancelled = True
+
+    def apply(self, wake, executor, routine):
+        def inner_wake(value):
+            if self.cancelled: return
+            wake((0, self.sock.accept()))
+        IOSuspend.apply(self, inner_wake, executor, routine)
+
 class WaitProcess(Suspend):
     def __init__(self, target):
         self.target = target
