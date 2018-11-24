@@ -8,6 +8,9 @@ import traceback
 import heapq
 import signal, select
 
+SIGPIPE_CHUNK_SIZE = 1024
+LINEREADER_CHUNK_SIZE = 16384
+
 class ProcessTag(object):
     def __init__(self, pid):
         self.pid = pid
@@ -458,10 +461,59 @@ class Executor:
     def __call__(self):
         self.run()
 
+class BinaryLineReader(object):
+    class _Suspend(Suspend):
+        def __init__(self, parent):
+            self.parent = parent
+            self._delegate = None
+
+        def apply(self, wake, executor, routine):
+            def inner_wake(result):
+                if result[0] == 1:
+                    wake(result)
+                    return
+                elif result[1]:
+                    self.parent._buffer += result[1]
+                else:
+                    self.parent._eof = True
+                self.apply(wake, executor, routine)
+            line = self.parent._extract_line()
+            if line is None:
+                self._delegate = ReadFile(self.parent.file,
+                                          LINEREADER_CHUNK_SIZE)
+                self._delegate.apply(inner_wake, executor, routine)
+                return
+            wake((0, line))
+
+        def cancel(self):
+            if self._delegate is not None:
+                self._delegate.cancel()
+
+    def __init__(self, file, encoding=None, errors=None):
+        self.file = file
+        self.encoding = encoding
+        self.errors = errors
+        self.chunk_size = LINEREADER_CHUNK_SIZE
+        self._buffer = b''
+        self._eof = False
+
+    def _extract_line(self):
+        line, sep, rest = self._buffer.partition(b'\n')
+        if not sep and not self._eof:
+            return None
+        self._buffer = rest
+        line += sep
+        if self.encoding is not None:
+            line = line.decode(self.encoding, self.errors)
+        return line
+
+    def ReadLine(self):
+        return self._Suspend(self)
+
 def sigpipe_handler(rfp, wfp, waits):
     try:
         while 1:
-            yield ReadFile(rfp, 1024)
+            yield ReadFile(rfp, SIGPIPE_CHUNK_SIZE)
             wakelist = []
             for w in tuple(waits):
                 res = w.poll()
