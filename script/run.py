@@ -95,32 +95,20 @@ class Redirection:
             except Exception:
                 pass
 
-class Process:
-    def __init__(self, name, command, config=None):
-        if config is None: config = {}
-        self.name = name
-        self.command = command
-        self.pidfile = config.get('pidfile', DEFAULT_PIDFILE_TEMPLATE % name)
-        self.workdir = config.get('workdir')
-        self.stdin = Redirection.parse(config.get('stdin', ''))
-        self.stdout = Redirection.parse(config.get('stdout', ''))
-        self.min_stop = float(config.get('min-stop', 0))
-        self.stderr = Redirection.parse(config.get('stderr', ''))
+class PIDFile:
+    def __init__(self, path):
+        self.path = path
         self._pid = Ellipsis
-        self._child = None
 
-    def _redirectors(self):
-        return (self.stdin, self.stdout, self.stderr)
-
-    def _read_pidfile(self):
+    def _read_file(self):
         f = None
         try:
-            f = open(self.pidfile)
+            f = open(self.path)
             data = f.read()
             if not PID_LINE_RE.match(data):
                 raise ValueError('Invalid PID file contents')
             ret = int(data)
-            if ret < 0:
+            if ret <= 0:
                 raise ValueError('Invalid PID in PID file')
             return ret
         except IOError as e:
@@ -129,25 +117,42 @@ class Process:
         finally:
             if f: f.close()
 
-    def _write_pidfile(self, pid):
+    def _write_file(self, pid):
         if pid is None:
             try:
-                os.unlink(self.pidfile)
+                os.unlink(self.path)
             except OSError as e:
-                if e.errno == e.ENOENT: return
+                if e.errno == errno.ENOENT: return
                 raise
         else:
-            with open_mkdirs(self.pidfile, 'w') as f:
+            with open_mkdirs(self.path, 'w') as f:
                 f.write('%s\n' % pid)
 
     def get_pid(self, force=False):
         if self._pid is Ellipsis or force:
-            self._pid = self._read_pidfile()
+            self._pid = self._read_file()
         return self._pid
 
     def set_pid(self, pid):
         self._pid = pid
-        self._write_pidfile(pid)
+        self._write_file(pid)
+
+class Process:
+    def __init__(self, name, command, config=None):
+        if config is None: config = {}
+        self.name = name
+        self.command = command
+        self.pidfile = PIDFile(config.get('pidfile',
+                                          DEFAULT_PIDFILE_TEMPLATE % name))
+        self.workdir = config.get('workdir')
+        self.stdin = Redirection.parse(config.get('stdin', ''))
+        self.stdout = Redirection.parse(config.get('stdout', ''))
+        self.min_stop = float(config.get('min-stop', 0))
+        self.stderr = Redirection.parse(config.get('stderr', ''))
+        self._child = None
+
+    def _redirectors(self):
+        return (self.stdin, self.stdout, self.stderr)
 
     def _make_exit(self, operation, verbose):
         def callback(value):
@@ -178,7 +183,7 @@ class Process:
         finally:
             for r, f in zip(self._redirectors(), files):
                 r.close(f)
-        self.set_pid(self._child.pid)
+        self.pidfile.set_pid(self._child.pid)
         yield exit('OK')
 
     def stop(self, wait=True, verbose=False):
@@ -190,12 +195,12 @@ class Process:
         else:
             # We could theoretically wait for the PID below, but that would be
             # even more fragile than what we already do in status().
-            pid = self.get_pid()
+            pid = self.pidfile.get_pid()
             if pid is None:
                 yield exit('NOT_RUNNING')
             else:
                 os.kill(pid, signal.SIGTERM)
-        self.set_pid(None)
+        self.pidfile.set_pid(None)
         if wait:
             if prev_child:
                 raw_status = yield coroutines.WaitProcess(prev_child)
@@ -210,7 +215,7 @@ class Process:
 
     def status(self, verbose=True):
         exit = self._make_exit(None, verbose)
-        pid = self.get_pid()
+        pid = self.pidfile.get_pid()
         if pid is None:
             yield exit('NOT_RUNNING')
         try:
