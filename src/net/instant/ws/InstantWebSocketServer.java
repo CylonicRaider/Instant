@@ -6,13 +6,13 @@ import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.WeakHashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import net.instant.api.API1;
@@ -64,7 +64,7 @@ public class InstantWebSocketServer extends WebSocketServer
         hooks = new LinkedHashSet<RequestHook>();
         internalHooks = new LinkedHashSet<RequestHook>();
         assignments = Collections.synchronizedMap(
-            new HashMap<WebSocket, RequestHook>());
+            new WeakHashMap<WebSocket, RequestHook>());
         collector = new InformationCollector(this);
         gc = new ConnectionGC(api);
         cookies = new CookieHandler(makeStringSigner(api));
