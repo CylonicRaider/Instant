@@ -308,6 +308,27 @@ class AcceptSocket(IOSuspend):
     def _do_io(self, mode):
         return self.sock.accept()
 
+class WriteAll(Suspend):
+    def __init__(self, writefile, data, selectfile=None):
+        self.writefile = writefile
+        self.data = data
+        self.selectfile = selectfile
+        self.written = 0
+
+    def apply(self, wake, executor, routine):
+        def inner_wake(result):
+            if result is not None and result[0] == 1:
+                wake(result)
+                return
+            self.written += result[1]
+            self.apply(wake, executor, routine)
+        if self.written == len(self.data):
+            wake((0, self.written))
+            return
+        delegate = WriteFile(self.writefile, self.data[self.written:],
+                             self.selectfile)
+        delegate.apply(inner_wake, executor, routine)
+
 class WaitProcess(Suspend):
     def __init__(self, target):
         self.target = target
