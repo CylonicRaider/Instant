@@ -5,6 +5,7 @@
 
 import os, re, time
 import errno, signal
+import socket
 import shlex
 import subprocess
 import argparse
@@ -137,6 +138,82 @@ class PIDFile:
     def set_pid(self, pid):
         self._pid = pid
         self._write_file(pid)
+
+class Remote:
+    class RemoteServer:
+        def __init__(self, parent, path):
+            self.parent = parent
+            self.path = path
+            self.sock = None
+
+        def listen(self):
+            self.sock = socket.socket(socket.AF_UNIX)
+            try:
+                self.sock.bind(self.path)
+            except socket.error as e:
+                if e.errno != errno.EADDRINUSE: raise
+                os.unlink(self.path)
+                self.sock.bind(self.path)
+            self.sock.listen(5)
+
+        def accept(self):
+            sock, addr = self.sock.accept()
+            return self.parent.RemoteConnection(self.parent, self.path,
+                                                self.sock)
+
+        def close(self):
+            try:
+                os.unlink(self.path)
+            except IOError:
+                pass
+            try:
+                self.sock.close()
+            except IOError:
+                pass
+
+    class RemoteConnection:
+        def __init__(self, parent, path, sock=None):
+            self.parent = parent
+            self.path = path
+            self.sock = sock
+            self.rfile = None
+            self.wfile = None
+            if self.sock is not None: self._make_files()
+
+        def _make_files(self):
+            self.rfile = self.sock.makefile('rb', 0)
+            self.wfile = self.sock.makefile('wb', 0)
+
+        def connect(self):
+            self.sock = socket.socket(socket.AF_UNIX)
+            self.sock.connect(self.path)
+            self._make_files()
+
+        def close(self):
+            for item in (self.rfile, self.wfile, self.sock):
+                if isinstance(item, socket.socket):
+                    try:
+                        item.shutdown(socket.SHUT_RDWR)
+                    except IOError:
+                        pass
+                try:
+                    item.close()
+                except IOError:
+                    pass
+            self.rfile = self.wfile = self.sock = None
+
+    def __init__(self, path):
+        self.path = path
+
+    def listen(self):
+        res = self.RemoteServer(self, self.path)
+        res.listen()
+        return res
+
+    def connect(self):
+        res = self.RemoteConnection(self, self.path)
+        res.connect()
+        return res
 
 class Process:
     def __init__(self, name, command, config=None):
