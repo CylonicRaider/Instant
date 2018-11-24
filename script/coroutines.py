@@ -259,10 +259,25 @@ class IOSuspend(Suspend):
             raise ValueError('Invalid I/O mode: %r' % (mode,))
         self.file = file
         self.mode = mode
+        self.cancelled = False
+
+    def _do_io(self, mode):
+        return None
 
     def apply(self, wake, executor, routine):
-        executor.listen(self.file, wake)
+        def inner_wake(value):
+            if self.cancelled:
+                pass
+            elif value is not None and value[0] == 1:
+                wake(value)
+            else:
+                result = self._do_io(value[1])
+                wake((0, result))
+        executor.listen(self.file, inner_wake)
         executor.add_select(self.file, self.SELECT_MODES[self.mode])
+
+    def cancel(self):
+        self.cancelled = True
 
 class ReadFile(IOSuspend):
     def __init__(self, readfile, length, selectfile=None):
@@ -270,16 +285,9 @@ class ReadFile(IOSuspend):
         IOSuspend.__init__(self, selectfile, 'r')
         self.readfile = readfile
         self.length = length
-        self.cancelled = False
 
-    def cancel(self):
-        self.cancelled = True
-
-    def apply(self, wake, executor, routine):
-        def inner_wake(value):
-            if self.cancelled: return
-            wake((0, self.readfile.read(self.length)))
-        IOSuspend.apply(self, inner_wake, executor, routine)
+    def _do_io(self, mode):
+        return self.readfile.read(self.length)
 
 class WriteFile(IOSuspend):
     def __init__(self, writefile, data, selectfile=None):
@@ -287,16 +295,9 @@ class WriteFile(IOSuspend):
         IOSuspend.__init__(self, selectfile, 'w')
         self.writefile = writefile
         self.data = data
-        self.cancelled = False
 
-    def cancel(self):
-        self.cancelled = True
-
-    def apply(self, wake, executor, routine):
-        def inner_wake(value):
-            if self.cancelled: return
-            wake((0, self.writefile.write(self.data)))
-        IOSuspend.apply(self, inner_wake, executor, routine)
+    def _do_io(self, mode):
+        return self.writefile.write(self.data)
 
 class AcceptSocket(IOSuspend):
     def __init__(self, sock, selectfile=None):
@@ -304,14 +305,8 @@ class AcceptSocket(IOSuspend):
         IOSuspend.__init__(self, selectfile, 'r')
         self.sock = sock
 
-    def cancel(self):
-        self.cancelled = True
-
-    def apply(self, wake, executor, routine):
-        def inner_wake(value):
-            if self.cancelled: return
-            wake((0, self.sock.accept()))
-        IOSuspend.apply(self, inner_wake, executor, routine)
+    def _do_io(self, mode):
+        return self.sock.accept()
 
 class WaitProcess(Suspend):
     def __init__(self, target):
