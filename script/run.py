@@ -41,15 +41,16 @@ def open_mkdirs(path, mode, do_mkdirs=True):
     return open(path, mode)
 
 class VerboseExit(coroutines.Exit):
-    def __init__(self, value, verbose=False, context=None):
-        coroutines.Exit.__init__(self, value)
+    def __init__(self, result, verbose=False, context=None):
+        coroutines.Exit.__init__(self, result)
         self.verbose = verbose
         self.context = context
 
     def log(self):
         if not self.verbose: return
         context_str = '' if self.context is None else '%s: ' % (self.context,)
-        print ('%s%s' % (context_str, self.result))
+        result_str = 'OK' if self.result is None else str(self.result)
+        print (context_str + result_str)
 
     def apply(self, wake, executor, routine):
         self.log()
