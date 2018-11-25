@@ -167,6 +167,26 @@ class Selector(CombinationSuspend):
         CombinationSuspend.cancel(self)
         self.children[:] = []
 
+class WrapperSuspend(Suspend):
+    def __init__(self, wrapped, process=None):
+        self.wrapped = wrapped
+        self.process = process
+
+    def apply(self, wake, executor, routine):
+        def inner_wake(value):
+            if value is None:
+                value = (0, None)
+            elif value[0] == 1:
+                wake(value)
+                return
+            try:
+                if self.process is not None:
+                    value = (0, self.process(value[1]))
+            except Exception as exc:
+                value = (1, exc)
+            wake(value)
+        self.wrapped.apply(inner_wake, executor, routine)
+
 class ControlSuspend(Suspend): pass
 
 class InstantSuspend(ControlSuspend):
