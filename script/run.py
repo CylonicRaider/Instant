@@ -157,8 +157,10 @@ class Remote:
             self.sock.listen(5)
 
         def accept(self):
-            sock, addr = self.sock.accept()
-            return self.parent.Connection(self.parent, self.path, sock)
+            return self._create_handler(*self.sock.accept())
+
+        def _create_handler(self, sock, addr):
+            return self.parent.ClientHandler(self.parent, self.path, sock)
 
         def close(self):
             try:
@@ -170,6 +172,13 @@ class Remote:
             except IOError:
                 pass
 
+        def run(self):
+            while 1:
+                conn, addr = yield coroutines.AcceptSocket(self.sock)
+                handler = self._create_handler(conn, addr)
+                yield coroutines.Spawn(handler.run())
+                conn = addr = handler = None
+
     class Connection:
         def __init__(self, parent, path, sock=None):
             self.parent = parent
@@ -177,11 +186,13 @@ class Remote:
             self.sock = sock
             self.rfile = None
             self.wfile = None
+            self.reader = None
             if self.sock is not None: self._make_files()
 
         def _make_files(self):
             self.rfile = self.sock.makefile('rb', 0)
             self.wfile = self.sock.makefile('wb', 0)
+            self.reader = coroutines.BinaryLineReader(self.rfile)
 
         def connect(self):
             self.sock = socket.socket(socket.AF_UNIX)
@@ -200,6 +211,36 @@ class Remote:
                     pass
             self.rfile = self.wfile = self.sock = None
 
+        def ReadLineRaw(self):
+            return self.reader.ReadLine()
+
+        def WriteLineRaw(self, data):
+            return coroutines.WriteAll(self.wfile, data)
+
+        def ReadLine(self):
+            return coroutines.WrapperSuspend(self.ReadLineRaw(),
+                self.parent.parse_line)
+
+        def WriteLine(self, *items):
+            return self.WriteLine(self.parent.compose_line(items))
+
+    class ClientHandler(Connection):
+        def __init__(self, parent, path, sock):
+            Connection.__init__(self, parent, path, sock)
+
+        def run(self):
+            while 1:
+                line = yield self.ReadLine()
+                if line is None: break
+                command = None if len(line) == 0 else line[0]
+                result = yield coroutines.Call(self.handle_command(command,
+                                                                   *line[1:]))
+                if result is None: result = ()
+                yield self.WriteLine(*result)
+
+        def handle_command(self, command, *args):
+            yield coroutines.Exit(None)
+
     def __init__(self, path):
         self.path = path
 
@@ -208,10 +249,21 @@ class Remote:
         res.listen()
         return res
 
+    def run_server(self, srv=None):
+        if srv is None: srv = self.listen()
+        coroutines.run([srv.run()], sigpipe=True)
+
     def connect(self):
         res = self.Connection(self, self.path)
         res.connect()
         return res
+
+    def parse_line(self, data):
+        if not data: return None
+        return tuple(item.strip() for item in data.split())
+
+    def compose_line(self, items):
+        return ' '.join(items)
 
 class Process:
     def __init__(self, name, command, config=None):
