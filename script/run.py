@@ -140,7 +140,7 @@ class PIDFile:
         self._write_file(pid)
 
 class Remote:
-    class RemoteServer:
+    class Server:
         def __init__(self, parent, path):
             self.parent = parent
             self.path = path
@@ -158,8 +158,7 @@ class Remote:
 
         def accept(self):
             sock, addr = self.sock.accept()
-            return self.parent.RemoteConnection(self.parent, self.path,
-                                                self.sock)
+            return self.parent.Connection(self.parent, self.path, sock)
 
         def close(self):
             try:
@@ -171,7 +170,7 @@ class Remote:
             except IOError:
                 pass
 
-    class RemoteConnection:
+    class Connection:
         def __init__(self, parent, path, sock=None):
             self.parent = parent
             self.path = path
@@ -190,12 +189,11 @@ class Remote:
             self._make_files()
 
         def close(self):
+            try:
+                socket.sock.shutdown(socket.SHUT_RDWR)
+            except IOError:
+                pass
             for item in (self.rfile, self.wfile, self.sock):
-                if isinstance(item, socket.socket):
-                    try:
-                        item.shutdown(socket.SHUT_RDWR)
-                    except IOError:
-                        pass
                 try:
                     item.close()
                 except IOError:
@@ -206,12 +204,12 @@ class Remote:
         self.path = path
 
     def listen(self):
-        res = self.RemoteServer(self, self.path)
+        res = self.Server(self, self.path)
         res.listen()
         return res
 
     def connect(self):
-        res = self.RemoteConnection(self, self.path)
+        res = self.Connection(self, self.path)
         res.connect()
         return res
 
