@@ -233,13 +233,15 @@ class Remote:
                 line = yield self.ReadLine()
                 if line is None: break
                 command = None if len(line) == 0 else line[0]
-                result = yield coroutines.Call(self.handle_command(command,
-                                                                   *line[1:]))
+                handler = self.dispatch(command)
+                result = yield coroutines.Call(handler(command, *args))
                 if result is None: result = ()
                 yield self.WriteLine(*result)
 
-        def handle_command(self, command, *args):
-            yield coroutines.Exit(None)
+        def dispatch(self, command):
+            def dummy(command, *args):
+                yield corutines.Exit(None)
+            return dummy
 
     def __init__(self, path):
         self.path = path
