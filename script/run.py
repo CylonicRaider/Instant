@@ -139,6 +139,13 @@ class PIDFile:
         self._pid = pid
         self._write_file(pid)
 
+REMOTE_COMMANDS = {}
+def command(name):
+    def callback(func):
+        REMOTE_COMMANDS[name] = func
+        return func
+    return callback
+
 class Remote:
     class Server:
         def __init__(self, parent, path):
@@ -234,14 +241,15 @@ class Remote:
                 if line is None: break
                 command = None if len(line) == 0 else line[0]
                 handler = self.dispatch(command)
-                result = yield coroutines.Call(handler(command, *args))
+                result = yield coroutines.Call(handler(self, command, *args))
                 if result is None: result = ()
                 yield self.WriteLine(*result)
 
         def dispatch(self, command):
-            def dummy(command, *args):
-                yield corutines.Exit(None)
-            return dummy
+            def fallback(self, command, *args):
+                yield corutines.Exit(('ERROR', 'NXCMD', 'No such command'))
+            cmd = REMOTE_COMMANDS.get(command, fallback)
+            return cmd
 
     def __init__(self, path):
         self.path = path
