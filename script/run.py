@@ -146,6 +146,10 @@ def command(name):
         return func
     return callback
 
+@command('PING')
+def command_ping(self, cmd, *args):
+    return ('PONG',) + args
+
 class Remote:
     class Server:
         def __init__(self, parent, path):
