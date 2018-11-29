@@ -13,11 +13,14 @@ import argparse
 import coroutines
 
 try: # Py3K
-    from configparser import ConfigParser as _ConfigParser
+    from configparser import ConfigParser as _ConfigParser, \
+        NoSectionError as _NoSectionError
 except ImportError: # Py2K
-    from ConfigParser import SafeConfigParser as _ConfigParser
+    from ConfigParser import SafeConfigParser as _ConfigParser, \
+        NoSectionError as _NoSectionError
 
 DEFAULT_CONFFILE = 'config/instant.ini'
+DEFAULT_COMM_PATH = 'run/comm'
 DEFAULT_PIDFILE_TEMPLATE = 'run/%s.pid'
 
 REDIRECTION_RE = re.compile(r'^[<>|&]+')
@@ -255,8 +258,10 @@ class Remote:
             cmd = REMOTE_COMMANDS.get(command, fallback)
             return cmd
 
-    def __init__(self, path):
-        self.path = path
+    def __init__(self, config=None):
+        if config is None: config = {}
+        self.config = config
+        self.path = config.get('path', DEFAULT_COMM_PATH)
 
     def listen(self):
         res = self.Server(self, self.path)
@@ -402,7 +407,7 @@ class InstantManager(ProcessGroup):
                     if s == 'instant' or s.startswith('scribe-')]
         sections.sort()
         for s in sections:
-            values = dict(self.config.items(s))
+            values = self.config_section(s)
             try:
                 cmdline = values['cmdline']
             except KeyError:
@@ -411,10 +416,17 @@ class InstantManager(ProcessGroup):
             command = tuple(shlex.split(cmdline))
             self.add(Process(s, command, values))
 
+    def config_section(self, name):
+        try:
+            return dict(self.config.items(name))
+        except _NoSectionError:
+            return {}
+
     def dispatch(self, cmd, arguments=None):
         try:
-            func = {'start': self.do_start, 'stop': self.do_stop,
-                    'restart': self.do_restart, 'status': self.do_status}[cmd]
+            func = {'master': self.do_master, 'start': self.do_start,
+                    'stop': self.do_stop, 'restart': self.do_restart,
+                    'status': self.do_status}[cmd]
         except KeyError:
             raise RunnerError('Unknown command: ' + cmd)
         kwds = {}
@@ -424,6 +436,11 @@ class InstantManager(ProcessGroup):
 
     def _run_routine(self, routine):
         coroutines.run([routine], sigpipe=True)
+
+    def do_master(self):
+        config = self.config_section('master')
+        remote = Remote(config)
+        remote.run_server()
 
     def do_start(self, wait=True):
         self._run_routine(self.start(verbose=True))
@@ -445,6 +462,7 @@ def main():
                    help='Configuration file location (default %(default)s)')
     sp = p.add_subparsers(dest='cmd', description='The action to perform')
     sp.required = True
+    p_master = sp.add_parser('master', help='Start a job manager server')
     p_start = sp.add_parser('start', help='Start the backend and bots')
     p_stop = sp.add_parser('stop', help='Stop the backend and bots')
     p_restart = sp.add_parser('restart',
