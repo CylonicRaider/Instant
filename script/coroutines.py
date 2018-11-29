@@ -471,7 +471,7 @@ class Executor:
             return lambda value: self._wake(routine, value)
         while self.routines or self.suspended:
             runqueue = tuple(self.routines.items())
-            if all(e[0] in self.daemons for e in runqueue):
+            if runqueue and all(e[0] in self.daemons for e in runqueue):
                 break
             for r, v in runqueue:
                 self.routines[r] = None
@@ -495,10 +495,12 @@ class Executor:
                 if res[0] == 1:
                     self._wake(r, res)
             if any(self.selectfiles):
-                if self.routines or not self.sleeps:
+                if self.routines:
                     timeout = 0
-                else:
+                elif self.sleeps:
                     timeout = self.sleeps[0].waketime - time.time()
+                else:
+                    timeout = None
                 result = select.select(self.selectfiles[0],
                                        self.selectfiles[1],
                                        self.selectfiles[2],

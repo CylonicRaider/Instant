@@ -151,7 +151,7 @@ def command(name):
 
 @command('PING')
 def command_ping(self, cmd, *args):
-    return ('PONG',) + args
+    yield coroutines.Exit(('PONG',) + args)
 
 class Remote:
     class Server:
@@ -215,7 +215,7 @@ class Remote:
 
         def close(self):
             try:
-                socket.sock.shutdown(socket.SHUT_RDWR)
+                self.sock.shutdown(socket.SHUT_RDWR)
             except IOError:
                 pass
             for item in (self.rfile, self.wfile, self.sock):
@@ -236,25 +236,29 @@ class Remote:
                 self.parent.parse_line)
 
         def WriteLine(self, *items):
-            return self.WriteLine(self.parent.compose_line(items))
+            return self.WriteLineRaw(self.parent.compose_line(items))
 
     class ClientHandler(Connection):
         def __init__(self, parent, path, sock):
-            Connection.__init__(self, parent, path, sock)
+            Remote.Connection.__init__(self, parent, path, sock)
 
         def run(self):
-            while 1:
-                line = yield self.ReadLine()
-                if line is None: break
-                command = None if len(line) == 0 else line[0]
-                handler = self.dispatch(command)
-                result = yield coroutines.Call(handler(self, command, *args))
-                if result is None: result = ()
-                yield self.WriteLine(*result)
+            try:
+                while 1:
+                    line = yield self.ReadLine()
+                    if line is None: break
+                    command = None if len(line) == 0 else line[0]
+                    handler = self.dispatch(command)
+                    result = yield coroutines.Call(handler(self, command,
+                                                           *line[1:]))
+                    if result is None: result = ()
+                    yield self.WriteLine(*result)
+            finally:
+                self.close()
 
         def dispatch(self, command):
             def fallback(self, command, *args):
-                yield corutines.Exit(('ERROR', 'NXCMD', 'No such command'))
+                yield coroutines.Exit(('ERROR', 'NXCMD', 'No such command'))
             cmd = REMOTE_COMMANDS.get(command, fallback)
             return cmd
 
@@ -279,10 +283,10 @@ class Remote:
 
     def parse_line(self, data):
         if not data: return None
-        return tuple(item.strip() for item in data.split())
+        return tuple(item.strip() for item in data.decode('utf-8').split())
 
     def compose_line(self, items):
-        return ' '.join(items)
+        return ' '.join(items).encode('utf-8') + b'\n'
 
 class Process:
     def __init__(self, name, command, config=None):
