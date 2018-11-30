@@ -239,6 +239,13 @@ class Call(ControlSuspend):
         executor.add(self.target, daemon=self.daemon)
         executor.listen(self.target, wake)
 
+class Listen(Suspend):
+    def __init__(self, target):
+        self.target = target
+
+    def apply(self, wake, executor, routine):
+        executor.listen(self.target, wake)
+
 class Sleep(Suspend):
     def __init__(self, waketime, absolute=False):
         if not absolute: waketime += time.time()
