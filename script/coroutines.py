@@ -349,20 +349,41 @@ class WriteAll(Suspend):
                              self.selectfile)
         delegate.apply(inner_wake, executor, routine)
 
+class SpawnProcess(Suspend):
+    def __init__(self, **params):
+        self.params = params
+
+    def apply(self, wake, executor, routine):
+        proc = subprocess.Popen(**self.params)
+        if hasattr(executor, 'waits'):
+            executor.waits.add(proc)
+        wake((0, proc))
+
 class WaitProcess(Suspend):
     def __init__(self, target):
         self.target = target
+        self.cancelled = False
+
+    def cancel(self):
+        self.cancelled = True
 
     def apply(self, wake, executor, routine):
+        def inner_wake(value):
+            if self.cancelled: return
+            wake(value)
         if not hasattr(executor, 'waits'):
             raise RuntimeError('Executor not equipped for waiting for '
                 'processes')
         if hasattr(self.target, 'poll'):
+            res = self.target.poll()
+            if res is not None:
+                wake((0, res))
+                return
             executor.waits.add(self.target)
             eff_target = self.target.pid
         else:
             eff_target = self.target
-        executor.listen(eff_target, wake)
+        executor.listen(eff_target, inner_wake)
 
 class Executor:
     def __init__(self):

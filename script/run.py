@@ -328,8 +328,8 @@ class Process:
             #       self._redirectors()] may leak file descriptors.
             for r in self._redirectors():
                 files.append(r.open())
-            self._child = subprocess.Popen(self.command, cwd=self.workdir,
-                close_fds=False, stdin=files[0], stdout=files[1],
+            self._child = yield coroutines.SpawnProcess(args=self.command,
+                cwd=self.workdir, stdin=files[0], stdout=files[1],
                 stderr=files[2])
         finally:
             for r, f in zip(self._redirectors(), files):
