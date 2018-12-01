@@ -60,6 +60,25 @@ class VerboseExit(coroutines.Exit):
         self.log()
         coroutines.Exit.apply(self, wake, executor, routine)
 
+class Configuration:
+    def __init__(self, path=None):
+        if path is None: path = DEFAULT_CONFFILE
+        self.path = path
+        self.parser = None
+
+    def load(self):
+        self.parser = _ConfigParser()
+        self.parser.read(self.path)
+
+    def list_sections(self):
+        return self.parser.sections()
+
+    def get_section(self, name):
+        try:
+            return dict(self.parser.items(name))
+        except _NoSectionError:
+            return {}
+
 class Redirection:
     @classmethod
     def parse(cls, text):
@@ -453,20 +472,16 @@ class ProcessGroup:
         return self._for_each(lambda p: p.status(verbose))
 
 class InstantManager(ProcessGroup):
-    def __init__(self, conffile=None):
+    def __init__(self, config):
         ProcessGroup.__init__(self)
-        if conffile is None: conffile = DEFAULT_CONFFILE
-        self.conffile = conffile
-        self.config = None
+        self.config = config
 
     def init(self):
-        self.config = _ConfigParser()
-        self.config.read(self.conffile)
-        sections = [s for s in self.config.sections()
+        sections = [s for s in self.config.list_sections()
                     if s == 'instant' or s.startswith('scribe-')]
         sections.sort()
         for s in sections:
-            values = self.config_section(s)
+            values = self.config.get_section(s)
             try:
                 cmdline = values['cmdline']
             except KeyError:
@@ -474,12 +489,6 @@ class InstantManager(ProcessGroup):
                     'section "%s"' % s)
             command = tuple(shlex.split(cmdline))
             self.add(Process(s, command, values))
-
-    def config_section(self, name):
-        try:
-            return dict(self.config.items(name))
-        except _NoSectionError:
-            return {}
 
     def dispatch(self, cmd, arguments=None):
         try:
@@ -499,7 +508,7 @@ class InstantManager(ProcessGroup):
         coroutines.run([routine], sigpipe=True)
 
     def do_master(self):
-        config = self.config_section('master')
+        config = self.config.get_section('master')
         remote = Remote(config)
         remote.run_server()
 
@@ -507,7 +516,7 @@ class InstantManager(ProcessGroup):
         def wrapper():
             result = yield coroutines.Call(conn.do_command(*cmdline))
             print (remote.compose_line(result, encode=False))
-        config = self.config_section('master')
+        config = self.config.get_section('master')
         remote = Remote(config)
         conn = remote.connect()
         remote.run_routine(wrapper())
@@ -547,7 +556,8 @@ def main():
     p_stop.add_argument('--no-wait', action='store_false', dest='wait',
                         help='Exit immediately after commencing the stop')
     arguments = p.parse_args()
-    mgr = InstantManager(arguments.config)
+    config = Configuration(arguments.config)
+    mgr = InstantManager(config)
     try:
         mgr.init()
     except ConfigurationError as exc:
