@@ -266,6 +266,31 @@ class Remote:
         if config is None: config = {}
         self.config = config
         self.path = config.get('path', DEFAULT_COMM_PATH)
+        self.executor = None
+
+    def _prepare_executor(self):
+        if self.executor is None:
+            self.executor = coroutines.Executor()
+            coroutines.set_sigpipe(self.executor)
+        return self.executor
+
+    def _close_executor(self):
+        if self.executor is None: return
+        try:
+            self.executor.close()
+        finally:
+            self.executor = None
+
+    def _remove_selects(self, *files):
+        if self.executor is not None: self.executor.remove_selects(*files)
+
+    def _run_routine(self, routine):
+        try:
+            ex = self._prepare_executor()
+            ex.add(routine)
+            ex.run()
+        finally:
+            self._close_executor()
 
     def listen(self):
         res = self.Server(self, self.path)
@@ -274,7 +299,7 @@ class Remote:
 
     def run_server(self, srv=None):
         if srv is None: srv = self.listen()
-        coroutines.run([srv.run()], sigpipe=True)
+        self._run_routine(srv.run())
 
     def connect(self):
         res = self.Connection(self, self.path)
