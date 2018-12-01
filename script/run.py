@@ -302,10 +302,10 @@ class Remote:
             cmd = REMOTE_COMMANDS.get(command, fallback)
             return cmd
 
-    def __init__(self, config=None):
-        if config is None: config = {}
-        self.config = config
-        self.path = config.get('path', DEFAULT_COMM_PATH)
+    def __init__(self, conffile):
+        self.conffile = conffile
+        self.config = self.conffile.get_section('master')
+        self.path = self.config.get('path', DEFAULT_COMM_PATH)
         self.executor = None
         self._token = object()
 
@@ -472,16 +472,16 @@ class ProcessGroup:
         return self._for_each(lambda p: p.status(verbose))
 
 class InstantManager(ProcessGroup):
-    def __init__(self, config):
+    def __init__(self, conffile):
         ProcessGroup.__init__(self)
-        self.config = config
+        self.conffile = conffile
 
     def init(self):
-        sections = [s for s in self.config.list_sections()
+        sections = [s for s in self.conffile.list_sections()
                     if s == 'instant' or s.startswith('scribe-')]
         sections.sort()
         for s in sections:
-            values = self.config.get_section(s)
+            values = self.conffile.get_section(s)
             try:
                 cmdline = values['cmdline']
             except KeyError:
@@ -492,8 +492,7 @@ class InstantManager(ProcessGroup):
 
     def dispatch(self, cmd, arguments=None):
         try:
-            func = {'run-master': self.do_master, 'cmd': self.do_cmd,
-                    'start': self.do_start, 'stop': self.do_stop,
+            func = {'start': self.do_start, 'stop': self.do_stop,
                     'restart': self.do_restart, 'status': self.do_status}[cmd]
         except KeyError:
             raise RunnerError('Unknown command: ' + cmd)
@@ -506,20 +505,6 @@ class InstantManager(ProcessGroup):
 
     def _run_routine(self, routine):
         coroutines.run([routine], sigpipe=True)
-
-    def do_master(self):
-        config = self.config.get_section('master')
-        remote = Remote(config)
-        remote.run_server()
-
-    def do_cmd(self, cmdline):
-        def wrapper():
-            result = yield coroutines.Call(conn.do_command(*cmdline))
-            print (remote.compose_line(result, encode=False))
-        config = self.config.get_section('master')
-        remote = Remote(config)
-        conn = remote.connect()
-        remote.run_routine(wrapper())
 
     def do_start(self, wait=True):
         self._run_routine(self.start(verbose=True))
@@ -535,6 +520,9 @@ class InstantManager(ProcessGroup):
         self._run_routine(self.status(verbose=True))
 
 def main():
+    def command_wrapper(remote, conn, cmdline):
+        result = yield coroutines.Call(conn.do_command(*cmdline))
+        print (remote.compose_line(result, encode=False))
     p = argparse.ArgumentParser(
         description='Manage an Instant backend and a group of bots')
     p.add_argument('--config', '-c', default=DEFAULT_CONFFILE,
@@ -557,11 +545,20 @@ def main():
                         help='Exit immediately after commencing the stop')
     arguments = p.parse_args()
     config = Configuration(arguments.config)
-    mgr = InstantManager(config)
-    try:
-        mgr.init()
-    except ConfigurationError as exc:
-        raise SystemExit('Configuration error: ' + str(exc))
-    mgr.dispatch(arguments.cmd, arguments)
+    config.load()
+    if arguments.cmd == 'run-master':
+        remote = Remote(config)
+        remote.run_server()
+    elif arguments.cmd == 'cmd':
+        remote = Remote(config)
+        conn = remote.connect()
+        remote.run_routine(command_wrapper(remote, conn, arguments.cmdline))
+    else:
+        mgr = InstantManager(config)
+        try:
+            mgr.init()
+        except ConfigurationError as exc:
+            raise SystemExit('Configuration error: ' + str(exc))
+        mgr.dispatch(arguments.cmd, arguments)
 
 if __name__ == '__main__': main()
