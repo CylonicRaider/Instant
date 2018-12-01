@@ -153,6 +153,11 @@ def command(name):
 def command_ping(self, cmd, *args):
     yield coroutines.Exit(('PONG',) + args)
 
+@command('SHUTDOWN')
+def command_shutdown(self, cmd, *args):
+    yield self.parent.Stop()
+    yield coroutines.Exit(('OK',))
+
 class Remote:
     class Server:
         def __init__(self, parent, path):
@@ -185,13 +190,23 @@ class Remote:
                 self.sock.close()
             except IOError:
                 pass
+            self.parent._remove_selects(self.sock)
+            self.sock = None
 
         def run(self):
-            while 1:
-                conn, addr = yield coroutines.AcceptSocket(self.sock)
-                handler = self._create_handler(conn, addr)
-                yield coroutines.Spawn(handler.run())
-                conn = addr = handler = None
+            try:
+                while 1:
+                    suspend, result = yield coroutines.Any(
+                        coroutines.AcceptSocket(self.sock),
+                        self.parent.WaitStop())
+                    if isinstance(suspend, coroutines.Listen):
+                        break
+                    conn, addr = result
+                    handler = self._create_handler(conn, addr)
+                    yield coroutines.Spawn(handler.run())
+                    conn = addr = handler = None
+            finally:
+                self.close()
 
     class Connection:
         def __init__(self, parent, path, sock=None):
@@ -223,6 +238,7 @@ class Remote:
                     item.close()
                 except IOError:
                     pass
+            self.parent._remove_selects(self.rfile, self.wfile, self.sock)
             self.rfile = self.wfile = self.sock = None
 
         def ReadLineRaw(self):
@@ -267,6 +283,7 @@ class Remote:
         self.config = config
         self.path = config.get('path', DEFAULT_COMM_PATH)
         self.executor = None
+        self._token = object()
 
     def _prepare_executor(self):
         if self.executor is None:
@@ -291,6 +308,12 @@ class Remote:
             ex.run()
         finally:
             self._close_executor()
+
+    def Stop(self):
+        return coroutines.Trigger(self._token)
+
+    def WaitStop(self):
+        return coroutines.Listen(self._token)
 
     def listen(self):
         res = self.Server(self, self.path)
