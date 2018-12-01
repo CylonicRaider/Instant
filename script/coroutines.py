@@ -409,7 +409,7 @@ class Executor:
         self.daemons = set()
         self.suspended = set()
         self.listening = {}
-        self.selectfiles = ([], [], [])
+        self.selectfiles = (set(), set(), set())
         self.sleeps = []
         self.polls = set()
 
@@ -448,14 +448,19 @@ class Executor:
         return len(callbacks)
 
     def add_select(self, file, index):
-        l = self.selectfiles[index]
-        if file not in l: l.append(file)
+        self.selectfiles[index].add(file)
+
+    def remove_selects(self, *files):
+        self.selectfiles[0].difference_update(files)
+        self.selectfiles[1].difference_update(files)
+        self.selectfiles[2].difference_update(files)
+        result = (1, EOFError('File closed'))
+        for f in files: self.trigger(f, result)
 
     def _done_select(self, readable, writable, exceptable):
-        def clear(lst, rem): lst[:] = [f for f in lst if f not in rem]
-        if readable: clear(self.selectfiles[0], frozenset(readable))
-        if writable: clear(self.selectfiles[1], frozenset(writable))
-        if exceptable: clear(self.selectfiles[2], frozenset(exceptable))
+        self.selectfiles[0].difference_update(readable)
+        self.selectfiles[1].difference_update(writable)
+        self.selectfiles[2].difference_update(exceptable)
         for f in readable: self.trigger(f, (0, 'r'))
         for f in writable: self.trigger(f, (0, 'w'))
         for f in exceptable: self.trigger(f, (0, 'x'))
@@ -503,7 +508,7 @@ class Executor:
         self.suspended = set()
         self.listening = {}
         self.sleeps = []
-        self.selectfiles = ([], [], [])
+        self.selectfiles = (set(), set(), set())
 
     def run(self):
         def make_wake(routine):
@@ -540,10 +545,8 @@ class Executor:
                     timeout = self.sleeps[0].waketime - time.time()
                 else:
                     timeout = None
-                result = select.select(self.selectfiles[0],
-                                       self.selectfiles[1],
-                                       self.selectfiles[2],
-                                       timeout)
+                sf = self.selectfiles
+                result = select.select(sf[0], sf[1], sf[2], timeout)
                 self._done_select(*result)
             elif self.sleeps and not self.routines:
                 time.sleep(self.sleeps[0].waketime - time.time())
