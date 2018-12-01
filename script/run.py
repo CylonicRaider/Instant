@@ -254,6 +254,11 @@ class Remote:
         def WriteLine(self, *items):
             return self.WriteLineRaw(self.parent.compose_line(items))
 
+        def do_command(self, *cmdline):
+            yield self.WriteLine(*cmdline)
+            result = yield self.ReadLine()
+            yield coroutines.Exit(result)
+
     class ClientHandler(Connection):
         def __init__(self, parent, path, sock):
             Remote.Connection.__init__(self, parent, path, sock)
@@ -301,7 +306,7 @@ class Remote:
     def _remove_selects(self, *files):
         if self.executor is not None: self.executor.remove_selects(*files)
 
-    def _run_routine(self, routine):
+    def run_routine(self, routine):
         try:
             ex = self._prepare_executor()
             ex.add(routine)
@@ -322,7 +327,7 @@ class Remote:
 
     def run_server(self, srv=None):
         if srv is None: srv = self.listen()
-        self._run_routine(srv.run())
+        self.run_routine(srv.run())
 
     def connect(self):
         res = self.Connection(self, self.path)
@@ -333,8 +338,10 @@ class Remote:
         if not data: return None
         return tuple(item.strip() for item in data.decode('utf-8').split())
 
-    def compose_line(self, items):
-        return ' '.join(items).encode('utf-8') + b'\n'
+    def compose_line(self, items, encode=True):
+        res = ' '.join(items)
+        if encode: res = res.encode('utf-8') + b'\n'
+        return res
 
 class Process:
     def __init__(self, name, command, config=None):
@@ -476,14 +483,16 @@ class InstantManager(ProcessGroup):
 
     def dispatch(self, cmd, arguments=None):
         try:
-            func = {'master': self.do_master, 'start': self.do_start,
-                    'stop': self.do_stop, 'restart': self.do_restart,
-                    'status': self.do_status}[cmd]
+            func = {'run-master': self.do_master, 'cmd': self.do_cmd,
+                    'start': self.do_start, 'stop': self.do_stop,
+                    'restart': self.do_restart, 'status': self.do_status}[cmd]
         except KeyError:
             raise RunnerError('Unknown command: ' + cmd)
         kwds = {}
+        if cmd == 'cmd':
+            kwds['cmdline'] = arguments.cmdline
         if cmd in ('start', 'stop'):
-            kwds['wait'] = getattr(arguments, 'wait')
+            kwds['wait'] = arguments.wait
         func(**kwds)
 
     def _run_routine(self, routine):
@@ -493,6 +502,15 @@ class InstantManager(ProcessGroup):
         config = self.config_section('master')
         remote = Remote(config)
         remote.run_server()
+
+    def do_cmd(self, cmdline):
+        def wrapper():
+            result = yield coroutines.Call(conn.do_command(*cmdline))
+            print (remote.compose_line(result, encode=False))
+        config = self.config_section('master')
+        remote = Remote(config)
+        conn = remote.connect()
+        remote.run_routine(wrapper())
 
     def do_start(self, wait=True):
         self._run_routine(self.start(verbose=True))
@@ -514,13 +532,16 @@ def main():
                    help='Configuration file location (default %(default)s)')
     sp = p.add_subparsers(dest='cmd', description='The action to perform')
     sp.required = True
-    p_master = sp.add_parser('master', help='Start a job manager server')
+    p_master = sp.add_parser('run-master', help='Start a job manager server')
+    p_cmd = sp.add_parser('cmd',
+                          help='Execute a command in a job manager server')
     p_start = sp.add_parser('start', help='Start the backend and bots')
     p_stop = sp.add_parser('stop', help='Stop the backend and bots')
     p_restart = sp.add_parser('restart',
                               help='Perform "stop" and then "start"')
     p_status = sp.add_parser('status',
                              help='Check whether backend or bots are running')
+    p_cmd.add_argument('cmdline', nargs='+', help='Command line to execute')
     p_start.add_argument('--no-wait', action='store_false', dest='wait',
                          help='Exit immediately after commencing the start')
     p_stop.add_argument('--no-wait', action='store_false', dest='wait',
