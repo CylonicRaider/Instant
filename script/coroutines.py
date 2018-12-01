@@ -500,9 +500,9 @@ class Executor:
             return (1, exc)
 
     def close(self):
-        for r in self.routines:
+        for r in tuple(self.routines):
             r.close()
-        for r in self.suspended:
+        for r in tuple(self.suspended):
             r.close()
         self.routines = {}
         self.suspended = set()
@@ -511,12 +511,15 @@ class Executor:
         self.selectfiles = (set(), set(), set())
 
     def run(self):
+        def all_daemons():
+            return (self.daemons.issuperset(self.routines) and
+                    self.daemons.issuperset(self.suspended))
         def make_wake(routine):
             return lambda value: self._wake(routine, value)
         while self.routines or self.suspended:
-            runqueue = tuple(self.routines.items())
-            if runqueue and all(e[0] in self.daemons for e in runqueue):
+            if all_daemons():
                 break
+            runqueue = tuple(self.routines.items())
             for r, v in runqueue:
                 self.routines[r] = None
                 if v is None: v = (0, None)
@@ -538,6 +541,8 @@ class Executor:
                                                          r))
                 if res[0] == 1:
                     self._wake(r, res)
+            if all_daemons():
+                break
             if any(self.selectfiles):
                 if self.routines:
                     timeout = 0
