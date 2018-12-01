@@ -161,6 +161,163 @@ class PIDFile:
         self._pid = pid
         self._write_file(pid)
 
+class Process:
+    def __init__(self, name, command, config=None):
+        if config is None: config = {}
+        self.name = name
+        self.command = command
+        self.pidfile = PIDFile(config.get('pidfile',
+                                          DEFAULT_PIDFILE_TEMPLATE % name))
+        self.workdir = config.get('workdir')
+        self.stdin = Redirection.parse(config.get('stdin', ''))
+        self.stdout = Redirection.parse(config.get('stdout', ''))
+        self.min_stop = float(config.get('min-stop', 0))
+        self.stderr = Redirection.parse(config.get('stderr', ''))
+        self._child = None
+
+    def _redirectors(self):
+        return (self.stdin, self.stdout, self.stderr)
+
+    def _make_exit(self, operation, verbose):
+        def callback(value):
+            return VerboseExit(value, verbose, context)
+        if verbose and operation:
+            context = '%s (%s)' % (self.name, operation)
+        elif verbose:
+            context = self.name
+        else:
+            context = None
+        return callback
+
+    def start(self, wait=True, verbose=False):
+        exit = self._make_exit('start', verbose)
+        cur_status = yield coroutines.Call(self.status(verbose=False))
+        if cur_status == 'RUNNING':
+            yield exit('ALREADY_RUNNING')
+        files = []
+        try:
+            # NOTE: The finally clause relies on every file being added to
+            #       files as soon as it is created -- [r.open() for r in
+            #       self._redirectors()] may leak file descriptors.
+            for r in self._redirectors():
+                files.append(r.open())
+            self._child = yield coroutines.SpawnProcess(args=self.command,
+                cwd=self.workdir, stdin=files[0], stdout=files[1],
+                stderr=files[2])
+        finally:
+            for r, f in zip(self._redirectors(), files):
+                r.close(f)
+        self.pidfile.set_pid(self._child.pid)
+        yield exit('OK')
+
+    def stop(self, wait=True, verbose=False):
+        exit = self._make_exit('stop', verbose)
+        prev_child = self._child
+        if self._child is not None:
+            self._child.terminate()
+            self._child = None
+        else:
+            # We could theoretically wait for the PID below, but that would be
+            # even more fragile than what we already do in status().
+            pid = self.pidfile.get_pid()
+            if pid is None:
+                yield exit('NOT_RUNNING')
+            else:
+                os.kill(pid, signal.SIGTERM)
+        self.pidfile.set_pid(None)
+        if wait:
+            if prev_child:
+                raw_status = yield coroutines.WaitProcess(prev_child)
+                status = 'OK %s' % (raw_status,)
+            else:
+                status = None
+            delay = self.min_stop
+            if delay > 0: yield coroutines.Sleep(delay)
+        else:
+            status = 'OK'
+        yield exit(status)
+
+    def status(self, verbose=True):
+        exit = self._make_exit(None, verbose)
+        pid = self.pidfile.get_pid()
+        if pid is None:
+            yield exit('NOT_RUNNING')
+        try:
+            os.kill(pid, 0)
+            yield exit('RUNNING')
+        except OSError as e:
+            if e.errno == errno.ESRCH: yield exit('STALEFILE')
+            raise
+
+class ProcessGroup:
+    def __init__(self):
+        self.processes = []
+
+    def add(self, proc):
+        self.processes.append(proc)
+
+    def _for_each(self, handler):
+        calls = [coroutines.Call(handler(p)) for p in self.processes]
+        result = yield coroutines.All(*calls)
+        yield coroutines.Exit(result)
+
+    def start(self, wait=True, verbose=False):
+        return self._for_each(lambda p: p.start(wait, verbose))
+
+    def stop(self, wait=True, verbose=False):
+        return self._for_each(lambda p: p.stop(wait, verbose))
+
+    def status(self, verbose=True):
+        return self._for_each(lambda p: p.status(verbose))
+
+class InstantManager(ProcessGroup):
+    def __init__(self, conffile):
+        ProcessGroup.__init__(self)
+        self.conffile = conffile
+
+    def init(self):
+        sections = [s for s in self.conffile.list_sections()
+                    if s == 'instant' or s.startswith('scribe-')]
+        sections.sort()
+        for s in sections:
+            values = self.conffile.get_section(s)
+            try:
+                cmdline = values['cmdline']
+            except KeyError:
+                raise ConfigurationError('Missing required key "cmdline" in '
+                    'section "%s"' % s)
+            command = tuple(shlex.split(cmdline))
+            self.add(Process(s, command, values))
+
+    def dispatch(self, cmd, arguments=None):
+        try:
+            func = {'start': self.do_start, 'stop': self.do_stop,
+                    'restart': self.do_restart, 'status': self.do_status}[cmd]
+        except KeyError:
+            raise RunnerError('Unknown command: ' + cmd)
+        kwds = {}
+        if cmd == 'cmd':
+            kwds['cmdline'] = arguments.cmdline
+        if cmd in ('start', 'stop'):
+            kwds['wait'] = arguments.wait
+        func(**kwds)
+
+    def _run_routine(self, routine):
+        coroutines.run([routine], sigpipe=True)
+
+    def do_start(self, wait=True):
+        self._run_routine(self.start(verbose=True))
+
+    def do_stop(self, wait=True):
+        self._run_routine(self.stop(verbose=True))
+
+    def do_restart(self):
+        self.do_stop()
+        self.do_start()
+
+    def do_status(self):
+        self._run_routine(self.status(verbose=True))
+
 REMOTE_COMMANDS = {}
 def command(name):
     def callback(func):
@@ -361,163 +518,6 @@ class Remote:
         res = ' '.join(items)
         if encode: res = res.encode('utf-8') + b'\n'
         return res
-
-class Process:
-    def __init__(self, name, command, config=None):
-        if config is None: config = {}
-        self.name = name
-        self.command = command
-        self.pidfile = PIDFile(config.get('pidfile',
-                                          DEFAULT_PIDFILE_TEMPLATE % name))
-        self.workdir = config.get('workdir')
-        self.stdin = Redirection.parse(config.get('stdin', ''))
-        self.stdout = Redirection.parse(config.get('stdout', ''))
-        self.min_stop = float(config.get('min-stop', 0))
-        self.stderr = Redirection.parse(config.get('stderr', ''))
-        self._child = None
-
-    def _redirectors(self):
-        return (self.stdin, self.stdout, self.stderr)
-
-    def _make_exit(self, operation, verbose):
-        def callback(value):
-            return VerboseExit(value, verbose, context)
-        if verbose and operation:
-            context = '%s (%s)' % (self.name, operation)
-        elif verbose:
-            context = self.name
-        else:
-            context = None
-        return callback
-
-    def start(self, wait=True, verbose=False):
-        exit = self._make_exit('start', verbose)
-        cur_status = yield coroutines.Call(self.status(verbose=False))
-        if cur_status == 'RUNNING':
-            yield exit('ALREADY_RUNNING')
-        files = []
-        try:
-            # NOTE: The finally clause relies on every file being added to
-            #       files as soon as it is created -- [r.open() for r in
-            #       self._redirectors()] may leak file descriptors.
-            for r in self._redirectors():
-                files.append(r.open())
-            self._child = yield coroutines.SpawnProcess(args=self.command,
-                cwd=self.workdir, stdin=files[0], stdout=files[1],
-                stderr=files[2])
-        finally:
-            for r, f in zip(self._redirectors(), files):
-                r.close(f)
-        self.pidfile.set_pid(self._child.pid)
-        yield exit('OK')
-
-    def stop(self, wait=True, verbose=False):
-        exit = self._make_exit('stop', verbose)
-        prev_child = self._child
-        if self._child is not None:
-            self._child.terminate()
-            self._child = None
-        else:
-            # We could theoretically wait for the PID below, but that would be
-            # even more fragile than what we already do in status().
-            pid = self.pidfile.get_pid()
-            if pid is None:
-                yield exit('NOT_RUNNING')
-            else:
-                os.kill(pid, signal.SIGTERM)
-        self.pidfile.set_pid(None)
-        if wait:
-            if prev_child:
-                raw_status = yield coroutines.WaitProcess(prev_child)
-                status = 'OK %s' % (raw_status,)
-            else:
-                status = None
-            delay = self.min_stop
-            if delay > 0: yield coroutines.Sleep(delay)
-        else:
-            status = 'OK'
-        yield exit(status)
-
-    def status(self, verbose=True):
-        exit = self._make_exit(None, verbose)
-        pid = self.pidfile.get_pid()
-        if pid is None:
-            yield exit('NOT_RUNNING')
-        try:
-            os.kill(pid, 0)
-            yield exit('RUNNING')
-        except OSError as e:
-            if e.errno == errno.ESRCH: yield exit('STALEFILE')
-            raise
-
-class ProcessGroup:
-    def __init__(self):
-        self.processes = []
-
-    def add(self, proc):
-        self.processes.append(proc)
-
-    def _for_each(self, handler):
-        calls = [coroutines.Call(handler(p)) for p in self.processes]
-        result = yield coroutines.All(*calls)
-        yield coroutines.Exit(result)
-
-    def start(self, wait=True, verbose=False):
-        return self._for_each(lambda p: p.start(wait, verbose))
-
-    def stop(self, wait=True, verbose=False):
-        return self._for_each(lambda p: p.stop(wait, verbose))
-
-    def status(self, verbose=True):
-        return self._for_each(lambda p: p.status(verbose))
-
-class InstantManager(ProcessGroup):
-    def __init__(self, conffile):
-        ProcessGroup.__init__(self)
-        self.conffile = conffile
-
-    def init(self):
-        sections = [s for s in self.conffile.list_sections()
-                    if s == 'instant' or s.startswith('scribe-')]
-        sections.sort()
-        for s in sections:
-            values = self.conffile.get_section(s)
-            try:
-                cmdline = values['cmdline']
-            except KeyError:
-                raise ConfigurationError('Missing required key "cmdline" in '
-                    'section "%s"' % s)
-            command = tuple(shlex.split(cmdline))
-            self.add(Process(s, command, values))
-
-    def dispatch(self, cmd, arguments=None):
-        try:
-            func = {'start': self.do_start, 'stop': self.do_stop,
-                    'restart': self.do_restart, 'status': self.do_status}[cmd]
-        except KeyError:
-            raise RunnerError('Unknown command: ' + cmd)
-        kwds = {}
-        if cmd == 'cmd':
-            kwds['cmdline'] = arguments.cmdline
-        if cmd in ('start', 'stop'):
-            kwds['wait'] = arguments.wait
-        func(**kwds)
-
-    def _run_routine(self, routine):
-        coroutines.run([routine], sigpipe=True)
-
-    def do_start(self, wait=True):
-        self._run_routine(self.start(verbose=True))
-
-    def do_stop(self, wait=True):
-        self._run_routine(self.stop(verbose=True))
-
-    def do_restart(self):
-        self.do_stop()
-        self.do_start()
-
-    def do_status(self):
-        self._run_routine(self.status(verbose=True))
 
 def main():
     def command_wrapper(remote, conn, cmdline):
