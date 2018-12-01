@@ -202,7 +202,11 @@ class Trigger(InstantSuspend):
         self.triggers = triggers
 
     def apply(self, wake, executor, routine):
-        for tag, value in self.triggers:
+        for trig in self.triggers:
+            if isinstance(trig, (tuple, list)):
+                tag, value = trig
+            else:
+                tag, value = trig, None
             executor.trigger(tag, (0, value))
         InstantSuspend.apply(self, wake, executor, routine)
 
@@ -242,9 +246,16 @@ class Call(ControlSuspend):
 class Listen(Suspend):
     def __init__(self, target):
         self.target = target
+        self.cancelled = False
+
+    def cancel(self):
+        self.cancelled = True
 
     def apply(self, wake, executor, routine):
-        executor.listen(self.target, wake)
+        def inner_wake(value):
+            if self.cancelled: return
+            wake(value)
+        executor.listen(self.target, inner_wake)
 
 class Sleep(Suspend):
     def __init__(self, waketime, absolute=False):
