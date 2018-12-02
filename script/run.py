@@ -30,6 +30,12 @@ class RunnerError(Exception): pass
 
 class ConfigurationError(RunnerError): pass
 
+class RemoteError(RunnerError):
+    def __init__(self, code, message):
+        RunnerError.__init__(self, '[%s] %s' % (code, message))
+        self.code = code
+        self.message = message
+
 def open_mkdirs(path, mode, do_mkdirs=True):
     try:
         return open(path, mode)
@@ -333,9 +339,17 @@ class InstantManager(ProcessGroup):
         self._run_routine(self.status(verbose=True, selector=selector))
 
 REMOTE_COMMANDS = {}
-def command(name):
+def command(name, minargs=0, maxargs=None):
     def callback(func):
-        REMOTE_COMMANDS[name] = func
+        def wrapper(self, cmd, *args):
+            if len(args) < minargs:
+                return coroutines.constRaise(RemoteError('TFARGS', 'Too few '
+                    'arguments for command %s' % (cmd,)))
+            elif maxargs is not None and len(args) > maxargs:
+                return coroutines.constRaise(RemoteError('TMARGS', 'Too many '
+                    'arguments for command %s' % (cmd,)))
+            return func(self, cmd, *args)
+        REMOTE_COMMANDS[name] = wrapper
         return func
     return callback
 
@@ -343,10 +357,10 @@ def command(name):
 def command_ping(self, cmd, *args):
     yield coroutines.Exit(('PONG',) + args)
 
-@command('SHUTDOWN')
+@command('SHUTDOWN', maxargs=0)
 def command_shutdown(self, cmd, *args):
     yield self.parent.Stop()
-    yield coroutines.Exit(('OK',))
+    yield coroutines.Exit('OK')
 
 class Remote:
     class Server:
@@ -460,16 +474,22 @@ class Remote:
                     if line is None: break
                     command = None if len(line) == 0 else line[0]
                     handler = self.dispatch(command)
-                    result = yield coroutines.Call(handler(self, command,
-                                                           *line[1:]))
-                    if result is None: result = ()
+                    try:
+                        result = yield coroutines.Call(handler(self, command,
+                                                               *line[1:]))
+                    except RemoteError as exc:
+                        result = ('ERROR', exc.code, exc.message)
+                    if result is None:
+                        result = ()
+                    elif isinstance(result, str):
+                        result = (result,)
                     yield self.WriteLine(*result)
             finally:
                 self.close()
 
         def dispatch(self, command):
             def fallback(self, command, *args):
-                yield coroutines.Exit(('ERROR', 'NXCMD', 'No such command'))
+                yield RemoteError('NXCMD', 'No such command: %s' % (command,))
             cmd = REMOTE_COMMANDS.get(command, fallback)
             return cmd
 
