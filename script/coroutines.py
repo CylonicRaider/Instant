@@ -216,7 +216,7 @@ class Trigger(InstantSuspend):
         InstantSuspend.apply(self, wake, executor, routine)
 
 class Exit(ControlSuspend):
-    def __init__(self, result):
+    def __init__(self, result=None):
         self.result = result
 
     def apply(self, wake, executor, routine):
@@ -661,6 +661,13 @@ def set_sigpipe(executor, coroutine=sigpipe_handler):
         except AttributeError:
             pass
     return inst
+
+def const(value=None):
+    yield coroutines.Exit(value)
+
+def constRaise(exc):
+    yield
+    raise exc
 
 def run(routines=(), main=None, sigpipe=False):
     def main_routine():
