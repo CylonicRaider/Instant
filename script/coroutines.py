@@ -7,6 +7,7 @@ import sys, os, time
 import traceback
 import heapq
 import signal, select
+import subprocess
 
 SIGPIPE_CHUNK_SIZE = 1024
 LINEREADER_CHUNK_SIZE = 16384
@@ -55,13 +56,14 @@ class All(CombinationSuspend):
         if value is None:
             value = (0, None)
         if value[0] == 1:
-            callback(value)
             self._finishedCount = -1
+            callback(value)
             return
         self.result[index] = value[1]
         self._finished[index] = True
         self._finishedCount += 1
         if self._finishedCount == len(self.children):
+            self._finishedCount = -1
             callback((0, self.result))
 
     def apply(self, wake, executor, routine):
@@ -69,6 +71,9 @@ class All(CombinationSuspend):
             return lambda value: self._finish(index, value, wake)
         for n, s in enumerate(self.children):
             s.apply(make_wake(n), executor, routine)
+        if len(self.children) == self._finishedCount == 0:
+            self._finishedCount = -1
+            wake((0, self.result))
 
     def cancel(self):
         self._finishedCount = -1
