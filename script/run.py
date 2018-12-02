@@ -301,20 +301,25 @@ class InstantManager(ProcessGroup):
             kwds['cmdline'] = arguments.cmdline
         if cmd in ('start', 'stop'):
             kwds['wait'] = arguments.wait
+        if cmd in ('start', 'stop', 'restart'):
+            kwds['procs'] = arguments.procs
         func(**kwds)
 
     def _run_routine(self, routine):
         coroutines.run([routine], sigpipe=True)
 
-    def do_start(self, wait=True):
-        self._run_routine(self.start(verbose=True))
+    def do_start(self, wait=True, procs=None):
+        selector = None if procs is None else frozenset(procs).__contains__
+        self._run_routine(self.start(verbose=True, selector=selector))
 
-    def do_stop(self, wait=True):
-        self._run_routine(self.stop(verbose=True))
+    def do_stop(self, wait=True, procs=None):
+        selector = None if procs is None else frozenset(procs).__contains__
+        self._run_routine(self.stop(verbose=True, selector=selector))
 
-    def do_restart(self):
-        self.do_stop()
-        self.do_start()
+    def do_restart(self, procs=None):
+        selector = None if procs is None else frozenset(procs).__contains__
+        self.do_stop(selector=selector)
+        self.do_start(selector=selector)
 
     def do_status(self):
         self._run_routine(self.status(verbose=True))
@@ -533,17 +538,23 @@ def main():
     p_master = sp.add_parser('run-master', help='Start a job manager server')
     p_cmd = sp.add_parser('cmd',
                           help='Execute a command in a job manager server')
-    p_start = sp.add_parser('start', help='Start the backend and bots')
-    p_stop = sp.add_parser('stop', help='Stop the backend and bots')
-    p_restart = sp.add_parser('restart',
-                              help='Perform "stop" and then "start"')
-    p_status = sp.add_parser('status',
-                             help='Check whether backend or bots are running')
     p_cmd.add_argument('cmdline', nargs='+', help='Command line to execute')
+    p_start = sp.add_parser('start', help='Start the backend and bots')
     p_start.add_argument('--no-wait', action='store_false', dest='wait',
                          help='Exit immediately after commencing the start')
+    p_start.add_argument('procs', nargs='*', metavar='PROCESS',
+                         help='The processes to start (defaults to all)')
+    p_stop = sp.add_parser('stop', help='Stop the backend and bots')
+    p_stop.add_argument('procs', nargs='*', metavar='PROCESS',
+                         help='The processes to stop (defaults to all)')
     p_stop.add_argument('--no-wait', action='store_false', dest='wait',
                         help='Exit immediately after commencing the stop')
+    p_restart = sp.add_parser('restart',
+                              help='Perform "stop" and then "start"')
+    p_restart.add_argument('procs', nargs='*', metavar='PROCESS',
+                           help='The processes to restart (defaults to all)')
+    p_status = sp.add_parser('status',
+                             help='Check whether backend or bots are running')
     arguments = p.parse_args()
     config = Configuration(arguments.config)
     config.load()
