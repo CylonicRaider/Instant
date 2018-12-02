@@ -301,28 +301,36 @@ class InstantManager(ProcessGroup):
             kwds['cmdline'] = arguments.cmdline
         if cmd in ('start', 'stop'):
             kwds['wait'] = arguments.wait
-        if cmd in ('start', 'stop', 'restart'):
+        if cmd in ('start', 'stop', 'restart', 'status') and arguments.procs:
             kwds['procs'] = arguments.procs
         func(**kwds)
 
     def _run_routine(self, routine):
         coroutines.run([routine], sigpipe=True)
 
+    def _process_selector(self, procs):
+        if procs is None:
+            return None
+        else:
+            procs = frozenset(procs)
+            return lambda p: p.name in procs or p in procs
+
     def do_start(self, wait=True, procs=None):
-        selector = None if procs is None else frozenset(procs).__contains__
+        selector = self._process_selector(procs)
         self._run_routine(self.start(verbose=True, selector=selector))
 
     def do_stop(self, wait=True, procs=None):
-        selector = None if procs is None else frozenset(procs).__contains__
+        selector = self._process_selector(procs)
         self._run_routine(self.stop(verbose=True, selector=selector))
 
     def do_restart(self, procs=None):
-        selector = None if procs is None else frozenset(procs).__contains__
+        selector = self._process_selector(procs)
         self.do_stop(selector=selector)
         self.do_start(selector=selector)
 
-    def do_status(self):
-        self._run_routine(self.status(verbose=True))
+    def do_status(self, procs=None):
+        selector = self._process_selector(procs)
+        self._run_routine(self.status(verbose=True, selector=selector))
 
 REMOTE_COMMANDS = {}
 def command(name):
@@ -555,6 +563,9 @@ def main():
                            help='The processes to restart (defaults to all)')
     p_status = sp.add_parser('status',
                              help='Check whether backend or bots are running')
+    p_status.add_argument('procs', nargs='*', metavar='PROCESS',
+                          help='The processes to display status of (defaults '
+                              'to all)')
     arguments = p.parse_args()
     config = Configuration(arguments.config)
     config.load()
