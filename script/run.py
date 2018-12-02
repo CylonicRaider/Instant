@@ -256,19 +256,20 @@ class ProcessGroup:
     def add(self, proc):
         self.processes.append(proc)
 
-    def _for_each(self, handler):
-        calls = [coroutines.Call(handler(p)) for p in self.processes]
+    def _for_each(self, selector, handler):
+        calls = [coroutines.Call(handler(p))
+                 for p in filter(selector, self.processes)]
         result = yield coroutines.All(*calls)
         yield coroutines.Exit(result)
 
-    def start(self, wait=True, verbose=False):
-        return self._for_each(lambda p: p.start(wait, verbose))
+    def start(self, wait=True, verbose=False, selector=None):
+        return self._for_each(selector, lambda p: p.start(wait, verbose))
 
-    def stop(self, wait=True, verbose=False):
-        return self._for_each(lambda p: p.stop(wait, verbose))
+    def stop(self, wait=True, verbose=False, selector=None):
+        return self._for_each(selector, lambda p: p.stop(wait, verbose))
 
-    def status(self, verbose=True):
-        return self._for_each(lambda p: p.status(verbose))
+    def status(self, verbose=True, selector=None):
+        return self._for_each(selector, lambda p: p.status(verbose))
 
 class InstantManager(ProcessGroup):
     def __init__(self, conffile):
