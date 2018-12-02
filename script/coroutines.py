@@ -519,6 +519,9 @@ class Executor:
         def all_daemons():
             return (self.daemons.issuperset(self.routines) and
                     self.daemons.issuperset(self.suspended))
+        def abort_routine(r, exc):
+            if not self._done(r, (1, exc)):
+                self.on_error(exc, r)
         def make_wake(routine):
             return lambda value: self._wake(routine, value)
         while self.routines or self.suspended:
@@ -538,8 +541,12 @@ class Executor:
                     self._done(r, None)
                     continue
                 except Exception as exc:
-                    if not self._done(r, (1, exc)):
-                        self.on_error(exc, r)
+                    abort_routine(r, exc)
+                    continue
+                if suspend is None:
+                    continue
+                elif isinstance(suspend, BaseException):
+                    abort_routine(r, suspend)
                     continue
                 self._suspend(r)
                 res = self._run_callback(suspend.apply, (make_wake(r), self,
@@ -665,9 +672,10 @@ def set_sigpipe(executor, coroutine=sigpipe_handler):
 def const(value=None):
     yield coroutines.Exit(value)
 
-def constRaise(exc):
-    yield
-    raise exc
+def constRaise(exc, excclass=RuntimeError):
+    if not isinstance(exc, BaseException):
+        raise excclass(exc)
+    yield exc
 
 def run(routines=(), main=None, sigpipe=False):
     def main_routine():
