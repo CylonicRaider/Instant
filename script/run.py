@@ -296,21 +296,6 @@ class InstantManager(ProcessGroup):
             command = tuple(shlex.split(cmdline))
             self.add(Process(s, command, values))
 
-    def dispatch(self, cmd, arguments=None):
-        try:
-            func = {'start': self.do_start, 'stop': self.do_stop,
-                    'restart': self.do_restart, 'status': self.do_status}[cmd]
-        except KeyError:
-            raise RunnerError('Unknown command: ' + cmd)
-        kwds = {}
-        if cmd == 'cmd':
-            kwds['cmdline'] = arguments.cmdline
-        if cmd in ('start', 'stop'):
-            kwds['wait'] = arguments.wait
-        if cmd in ('start', 'stop', 'restart', 'status') and arguments.procs:
-            kwds['procs'] = arguments.procs
-        func(**kwds)
-
     def _run_routine(self, routine):
         coroutines.run([routine], sigpipe=True)
 
@@ -592,16 +577,26 @@ def main():
     if arguments.cmd == 'run-master':
         remote = Remote(config)
         remote.run_server()
+        return
     elif arguments.cmd == 'cmd':
         remote = Remote(config)
         conn = remote.connect()
         remote.run_routine(command_wrapper(remote, conn, arguments.cmdline))
-    else:
-        mgr = InstantManager(config)
-        try:
-            mgr.init()
-        except ConfigurationError as exc:
-            raise SystemExit('Configuration error: ' + str(exc))
-        mgr.dispatch(arguments.cmd, arguments)
+        return
+    mgr = InstantManager(config)
+    try:
+        mgr.init()
+    except ConfigurationError as exc:
+        raise SystemExit('Configuration error: ' + str(exc))
+    func = {'start': mgr.do_start, 'stop': mgr.do_stop,
+            'restart': mgr.do_restart, 'status': mgr.do_status}[arguments.cmd]
+    kwds = {}
+    if arguments.cmd == 'cmd':
+        kwds['cmdline'] = arguments.cmdline
+    if arguments.cmd in ('start', 'stop'):
+        kwds['wait'] = arguments.wait
+    if arguments.procs:
+        kwds['procs'] = arguments.procs
+    func(**kwds)
 
 if __name__ == '__main__': main()
