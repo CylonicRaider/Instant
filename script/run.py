@@ -300,11 +300,9 @@ class InstantManager(ProcessGroup):
         coroutines.run([routine], sigpipe=True)
 
     def _process_selector(self, procs):
-        if procs is None:
-            return None
-        else:
-            procs = frozenset(procs)
-            return lambda p: p.name in procs or p in procs
+        if not procs: return None
+        procs = frozenset(procs)
+        return lambda p: p.name in procs or p in procs
 
     def do_start(self, wait=True, procs=None):
         selector = self._process_selector(procs)
@@ -595,8 +593,7 @@ def main():
         kwds['cmdline'] = arguments.cmdline
     if arguments.cmd in ('start', 'stop'):
         kwds['wait'] = arguments.wait
-    if arguments.procs:
-        kwds['procs'] = arguments.procs
+    kwds['procs'] = arguments.procs
     func(**kwds)
 
 if __name__ == '__main__': main()
