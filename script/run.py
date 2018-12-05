@@ -36,6 +36,13 @@ class RemoteError(RunnerError):
         self.code = code
         self.message = message
 
+def find_dict_key(data, value):
+    try:
+        idx = data.values().index(value)
+    except ValueError:
+        raise LookupError(value)
+    return data.keys()[idx]
+
 def open_mkdirs(path, mode, do_mkdirs=True):
     try:
         return open(path, mode)
@@ -278,6 +285,54 @@ class ProcessGroup:
         return self._for_each(selector, lambda p: p.status(verbose))
 
 class InstantManager(ProcessGroup):
+    @classmethod
+    def parse_line(cls, line, types):
+        data, positional_key = {}, None
+        for word in line:
+            key, sep, value = word.partition('=')
+            if not sep:
+                if positional_key is None:
+                    try:
+                        positional_key = find_dict_key(types, list)
+                    except LookupError:
+                        raise ValueError('Positional argument specified '
+                            'although none are expected')
+                    data[positional_key] = []
+                data[positional_key].append(word)
+                continue
+            try:
+                tp = types[key]
+            except KeyError:
+                raise ValueError('Named argument %r not declared' % (key,))
+            if tp in (int, float):
+                value = tp(value)
+            elif tp == bool:
+                value = value.lower() in ('1', 'y', 't', 'yes', 'true')
+            elif tp == str:
+                pass
+            else:
+                raise TypeError('Unrecognized type: %r' % (tp,))
+            data[key] = value
+        return data
+
+    @classmethod
+    def compose_line(cls, data, types):
+        words, poswords = [], None
+        for k, v in data.items():
+            if k not in types:
+                raise KeyError('Named argument %r not declared' % (k,))
+            elif types[k] == list:
+                if poswords is not None:
+                    raise ValueError('Multiple sets of positional values '
+                        'specified')
+                poswords = v
+            elif types[k] in (int, float, bool, str):
+                words.append('%s=%s' % (k, v))
+            else:
+                raise TypeError('Unrecognized type: %r' % (types[k],))
+        if not poswords: poswords = []
+        return words + poswords
+
     def __init__(self, conffile):
         ProcessGroup.__init__(self)
         self.conffile = conffile
