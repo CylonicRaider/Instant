@@ -284,6 +284,16 @@ class ProcessGroup:
     def status(self, verbose=True, selector=None):
         return self._for_each(selector, lambda p: p.status(verbose))
 
+OPERATIONS = {}
+def operation():
+    def callback(func):
+        if not func.__name__.startswith('do_'):
+            raise ValueError('Unrecognized operation function name')
+        opname = func.__name__[3:].replace('_', '-')
+        OPERATIONS[opname] = {'cb': func}
+        return func
+    return callback
+
 class InstantManager(ProcessGroup):
     @classmethod
     def parse_line(cls, line, types):
@@ -359,19 +369,23 @@ class InstantManager(ProcessGroup):
         procs = frozenset(procs)
         return lambda p: p.name in procs or p in procs
 
+    @operation()
     def do_start(self, wait=True, procs=None):
         selector = self._process_selector(procs)
         self._run_routine(self.start(verbose=True, selector=selector))
 
+    @operation()
     def do_stop(self, wait=True, procs=None):
         selector = self._process_selector(procs)
         self._run_routine(self.stop(verbose=True, selector=selector))
 
+    @operation()
     def do_restart(self, procs=None):
         selector = self._process_selector(procs)
         self.do_stop(selector=selector)
         self.do_start(selector=selector)
 
+    @operation()
     def do_status(self, procs=None):
         selector = self._process_selector(procs)
         self._run_routine(self.status(verbose=True, selector=selector))
