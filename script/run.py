@@ -285,13 +285,19 @@ class ProcessGroup:
         return self._for_each(selector, lambda p: p.status(verbose))
 
 OPERATIONS = {}
-def operation():
+def operation(**params):
     def callback(func):
         if not func.__name__.startswith('do_'):
             raise ValueError('Unrecognized operation function name')
         opname = func.__name__[3:].replace('_', '-')
-        OPERATIONS[opname] = {'cb': func}
+        OPERATIONS[opname] = {'cb': func, 'doc': func.__doc__, 'types': types,
+                              'args': args}
         return func
+    types, args = {}, {}
+    for k, v in params.items():
+        type, help = v
+        types[k] = type
+        args[k] = help
     return callback
 
 class InstantManager(ProcessGroup):
@@ -369,24 +375,30 @@ class InstantManager(ProcessGroup):
         procs = frozenset(procs)
         return lambda p: p.name in procs or p in procs
 
-    @operation()
+    @operation(wait=(bool, 'Whether to wait for the start\'s completion'),
+               procs=(list, 'The processes to start (default: all)'))
     def do_start(self, wait=True, procs=None):
+        "Start the given processes"
         selector = self._process_selector(procs)
         self._run_routine(self.start(verbose=True, selector=selector))
 
-    @operation()
+    @operation(wait=(bool, 'Whether to wait for the stop\'s completion'),
+               procs=(list, 'The processes to stop (default: all)'))
     def do_stop(self, wait=True, procs=None):
+        "Stop the given processes"
         selector = self._process_selector(procs)
         self._run_routine(self.stop(verbose=True, selector=selector))
 
-    @operation()
+    @operation(procs=(list, 'The processes to restart (default: all)'))
     def do_restart(self, procs=None):
+        "Restart the given processes"
         selector = self._process_selector(procs)
         self.do_stop(selector=selector)
         self.do_start(selector=selector)
 
-    @operation()
+    @operation(procs=(list, 'The processes to query (default: all)'))
     def do_status(self, procs=None):
+        "Query the status of the given processes"
         selector = self._process_selector(procs)
         self._run_routine(self.status(verbose=True, selector=selector))
 
