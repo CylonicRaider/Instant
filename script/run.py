@@ -368,9 +368,6 @@ class InstantManager(ProcessGroup):
             command = tuple(shlex.split(cmdline))
             self.add(Process(s, command, values))
 
-    def _run_routine(self, routine):
-        coroutines.run([routine], sigpipe=True)
-
     def _process_selector(self, procs):
         if not procs: return None
         procs = frozenset(procs)
@@ -381,27 +378,27 @@ class InstantManager(ProcessGroup):
     def do_start(self, wait=True, procs=None):
         "Start the given processes"
         selector = self._process_selector(procs)
-        self._run_routine(self.start(verbose=True, selector=selector))
+        yield coroutines.Call(self.start(verbose=True, selector=selector))
 
     @operation(wait=(bool, 'Whether to wait for the stop\'s completion'),
                procs=(list, 'The processes to stop (default: all)'))
     def do_stop(self, wait=True, procs=None):
         "Stop the given processes"
         selector = self._process_selector(procs)
-        self._run_routine(self.stop(verbose=True, selector=selector))
+        yield coroutines.Call(self.stop(verbose=True, selector=selector))
 
     @operation(procs=(list, 'The processes to restart (default: all)'))
     def do_restart(self, procs=None):
         "Restart the given processes"
         selector = self._process_selector(procs)
-        self.do_stop(selector=selector)
-        self.do_start(selector=selector)
+        yield coroutines.Call(self.stop(selector=selector))
+        yield coroutines.Call(self.start(selector=selector))
 
     @operation(procs=(list, 'The processes to query (default: all)'))
     def do_status(self, procs=None):
         "Query the status of the given processes"
         selector = self._process_selector(procs)
-        self._run_routine(self.status(verbose=True, selector=selector))
+        yield coroutines.Call(self.status(verbose=True, selector=selector))
 
 REMOTE_COMMANDS = {}
 def command(name, minargs=0, maxargs=None):
@@ -417,6 +414,21 @@ def command(name, minargs=0, maxargs=None):
         REMOTE_COMMANDS[name] = wrapper
         return func
     return callback
+
+def _wrap_operation(opname, desc):
+    def handler(self, cmd, *args):
+        method = getattr(self.parent.manager, 'do_' + opname)
+        try:
+            kwds = self.parent.manager.parse_line(args, desc['types'])
+        except ValueError as exc:
+            raise RemoteError('SYNTAX', 'Bad command usage: %s: %s' %
+                              (exc.__class__.__name__, exc))
+        result = yield coroutines.Call(method(**kwds))
+        yield coroutines.Exit(result)
+    return command(opname.upper().replace('_', '-'))(handler)
+
+for _name, _desc in OPERATIONS.items(): _wrap_operation(_name, _desc)
+del _name, _desc
 
 @command('PING')
 def command_ping(self, cmd, *args):
@@ -502,12 +514,14 @@ class Remote:
 
         def close(self):
             try:
-                self.sock.shutdown(socket.SHUT_RDWR)
+                if self.sock is not None:
+                    self.sock.shutdown(socket.SHUT_RDWR)
             except IOError:
                 pass
             for item in (self.rfile, self.wfile, self.sock):
                 try:
-                    item.close()
+                    if item is not None:
+                        item.close()
                 except IOError:
                     pass
             self.parent._remove_selects(self.rfile, self.wfile, self.sock)
@@ -547,6 +561,11 @@ class Remote:
                                                                *line[1:]))
                     except RemoteError as exc:
                         result = ('ERROR', exc.code, exc.message)
+                    except Exception as exc:
+                        yield self.WriteLine('ERROR', 'INTERNAL',
+                                              '(internal error)')
+                        self.close()
+                        raise
                     if result is None:
                         result = ()
                     elif isinstance(result, str):
@@ -561,8 +580,9 @@ class Remote:
             cmd = REMOTE_COMMANDS.get(command, fallback)
             return cmd
 
-    def __init__(self, conffile):
+    def __init__(self, conffile, manager=None):
         self.conffile = conffile
+        self.manager = manager
         self.config = self.conffile.get_section('master')
         self.path = self.config.get('path', DEFAULT_COMM_PATH)
         self.executor = None
@@ -652,8 +672,13 @@ def main():
     arguments = p.parse_args()
     config = Configuration(arguments.config)
     config.load()
+    mgr = InstantManager(config)
+    try:
+        mgr.init()
+    except ConfigurationError as exc:
+        raise SystemExit('Configuration error: ' + str(exc))
     if arguments.cmd == 'run-master':
-        remote = Remote(config)
+        remote = Remote(config, mgr)
         remote.run_server()
         return
     elif arguments.cmd == 'cmd':
@@ -661,11 +686,6 @@ def main():
         conn = remote.connect()
         remote.run_routine(command_wrapper(remote, conn, arguments.cmdline))
         return
-    mgr = InstantManager(config)
-    try:
-        mgr.init()
-    except ConfigurationError as exc:
-        raise SystemExit('Configuration error: ' + str(exc))
     func = {'start': mgr.do_start, 'stop': mgr.do_stop,
             'restart': mgr.do_restart, 'status': mgr.do_status}[arguments.cmd]
     kwds = {}
@@ -674,6 +694,6 @@ def main():
     if arguments.cmd in ('start', 'stop'):
         kwds['wait'] = arguments.wait
     kwds['procs'] = arguments.procs
-    func(**kwds)
+    coroutines.run([func(**kwds)], sigpipe=True)
 
 if __name__ == '__main__': main()
