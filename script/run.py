@@ -294,7 +294,7 @@ def operation(**params):
     def callback(func):
         if not func.__name__.startswith('do_'):
             raise ValueError('Unrecognized operation function name')
-        opname = func.__name__[3:].replace('_', '-')
+        opname = func.__name__[3:]
         OPERATIONS[opname] = {'cb': func, 'doc': func.__doc__, 'types': types,
                               'params': params}
         return func
@@ -637,7 +637,7 @@ def main():
                           help='Execute a command in a job manager server')
     p_cmd.add_argument('cmdline', nargs='+', help='Command line to execute')
     for name, desc in sorted(OPERATIONS.items()):
-        cmdp = sp.add_parser(name, help=desc['doc'])
+        cmdp = sp.add_parser(name.replace('_', '-'), help=desc['doc'])
         for name, (tp, doc) in sorted(desc['params'].items()):
             prefix = '--'
             if tp == bool:
