@@ -36,6 +36,9 @@ class RemoteError(RunnerError):
         self.code = code
         self.message = message
 
+def is_true(s):
+    return s.lower() in ('1', 'y', 'yes', 'true')
+
 def find_dict_key(data, value):
     try:
         idx = data.values().index(value)
@@ -293,13 +296,9 @@ def operation(**params):
             raise ValueError('Unrecognized operation function name')
         opname = func.__name__[3:].replace('_', '-')
         OPERATIONS[opname] = {'cb': func, 'doc': func.__doc__, 'types': types,
-                              'args': args}
+                              'params': params}
         return func
-    types, args = {}, {}
-    for k, v in params.items():
-        type, help = v
-        types[k] = type
-        args[k] = help
+    types = {k: v[0] for k, v in params.items()}
     return callback
 
 class InstantManager(ProcessGroup):
@@ -325,7 +324,7 @@ class InstantManager(ProcessGroup):
             if tp in (int, float):
                 value = tp(value)
             elif tp == bool:
-                value = value.lower() in ('1', 'y', 't', 'yes', 'true')
+                value = is_true(value)
             elif tp == str:
                 pass
             else:
@@ -637,25 +636,19 @@ def main():
     p_cmd = sp.add_parser('cmd',
                           help='Execute a command in a job manager server')
     p_cmd.add_argument('cmdline', nargs='+', help='Command line to execute')
-    p_start = sp.add_parser('start', help='Start the backend and bots')
-    p_start.add_argument('--no-wait', action='store_false', dest='wait',
-                         help='Exit immediately after commencing the start')
-    p_start.add_argument('procs', nargs='*', metavar='PROCESS',
-                         help='The processes to start (defaults to all)')
-    p_stop = sp.add_parser('stop', help='Stop the backend and bots')
-    p_stop.add_argument('procs', nargs='*', metavar='PROCESS',
-                         help='The processes to stop (defaults to all)')
-    p_stop.add_argument('--no-wait', action='store_false', dest='wait',
-                        help='Exit immediately after commencing the stop')
-    p_restart = sp.add_parser('restart',
-                              help='Perform "stop" and then "start"')
-    p_restart.add_argument('procs', nargs='*', metavar='PROCESS',
-                           help='The processes to restart (defaults to all)')
-    p_status = sp.add_parser('status',
-                             help='Check whether backend or bots are running')
-    p_status.add_argument('procs', nargs='*', metavar='PROCESS',
-                          help='The processes to display status of (defaults '
-                              'to all)')
+    for name, desc in sorted(OPERATIONS.items()):
+        cmdp = sp.add_parser(name, help=desc['doc'])
+        for name, (tp, doc) in sorted(desc['params'].items()):
+            prefix = '--'
+            if tp == bool:
+                kwds = {'type': is_true, 'metavar': 'BOOL'}
+            elif tp == list:
+                prefix = ''
+                kwds = {'nargs': '*'}
+            else:
+                kwds = {'type': tp, 'metavar': tp.__name__.upper()}
+            cmdp.add_argument(prefix + name.replace('_', '-'), help=doc,
+                              **kwds)
     arguments = p.parse_args()
     config = Configuration(arguments.config)
     config.load()
