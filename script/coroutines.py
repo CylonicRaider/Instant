@@ -363,7 +363,10 @@ class WriteAll(Suspend):
             if result is not None and result[0] == 1:
                 wake(result)
                 return
-            self.written += result[1]
+            elif result[1] is None:
+                self.written = len(self.data)
+            else:
+                self.written += result[1]
             self.apply(wake, executor, routine)
         if self.written == len(self.data):
             wake((0, self.written))

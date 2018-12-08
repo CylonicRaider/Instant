@@ -99,7 +99,7 @@ class Redirection:
         try:
             constant = {'': None,
                         'stdout': subprocess.STDOUT,
-                        'devnull': subprocess.DEVNULL}[text]
+                        'devnull': Ellipsis}[text]
         except KeyError:
             pass
         else:
@@ -119,8 +119,10 @@ class Redirection:
         self.mode = mode
         self.mkdirs = True
 
-    def open(self, _retry=True):
-        if isinstance(self.target, str):
+    def open(self):
+        if self.target is Ellipsis:
+            return open(os.devnull, self.mode)
+        elif isinstance(self.target, str):
             return open_mkdirs(self.target, self.mode, self.mkdirs)
         else:
             return self.target
@@ -487,6 +489,9 @@ class Remote:
             if self.sock is not None: self._make_files()
 
         def _make_files(self):
+            # FIXME: Py2K does not perform partial reads on socket files even
+            #        if unbuffered mode is requested; this hangs coroutines'
+            #        main loop.
             self.rfile = self.sock.makefile('rb', 0)
             self.wfile = self.sock.makefile('wb', 0)
             self.reader = coroutines.BinaryLineReader(self.rfile)
@@ -620,7 +625,8 @@ class Remote:
 def main():
     def command_wrapper(remote, conn, cmdline):
         result = yield coroutines.Call(conn.do_command(*cmdline))
-        print (remote.compose_line(result, encode=False))
+        if result is not None:
+            print (remote.compose_line(result, encode=False))
     p = argparse.ArgumentParser(
         description='Manage an Instant backend and a group of bots')
     p.add_argument('--config', '-c', default=DEFAULT_CONFFILE,
