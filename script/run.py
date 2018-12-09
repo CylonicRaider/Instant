@@ -26,6 +26,9 @@ DEFAULT_PIDFILE_TEMPLATE = 'run/%s.pid'
 REDIRECTION_RE = re.compile(r'^[<>|&]+')
 PID_LINE_RE = re.compile(r'^[0-9]+\s*$')
 
+ESCAPE_PARSE_RE = re.compile(r' |\\.?')
+ESCAPE_CHARS = {'\\\\': '\\', '\\ ': ' ', '\\n': '\n', '\\z': ''}
+
 class RunnerError(Exception): pass
 
 class ConfigurationError(RunnerError): pass
@@ -580,6 +583,44 @@ class Remote:
             cmd = REMOTE_COMMANDS.get(command, fallback)
             return cmd
 
+    @classmethod
+    def parse_line(cls, data):
+        if not data: return None
+        data, ret = data.decode('utf-8').rstrip('\n'), []
+        idx, endidx, new_word = 0, len(data), True
+        while idx < endidx:
+            m = ESCAPE_PARSE_RE.search(data, idx)
+            if not m:
+                append = data[idx:]
+                idx = endidx
+                if not append: continue
+            elif m.group() == ' ':
+                append = data[idx:m.start()]
+                new_word = True
+                idx = m.end()
+                if not append: continue
+            else:
+                try:
+                    esc = ESCAPE_CHARS[m.group()]
+                except KeyError:
+                    raise ValueError('Invalid escape sequence: %s' %
+                                     m.group())
+                append = data[idx:m.start()] + esc
+                idx = m.end()
+            if new_word:
+                ret.append([append])
+                new_word = False
+            else:
+                ret[-1].append(append)
+        return tuple(''.join(l) for l in ret)
+
+    @classmethod
+    def compose_line(cls, items, encode=True):
+        res = ' '.join(i.replace('\\', '\\\\').replace(' ', '\\ ')
+                       .replace('\n', '\\n') or '\\z' for i in items)
+        if encode: res = res.encode('utf-8') + b'\n'
+        return res
+
     def __init__(self, conffile, manager=None):
         self.conffile = conffile
         self.manager = manager
@@ -630,15 +671,6 @@ class Remote:
     def connect(self):
         res = self.Connection(self, self.path)
         res.connect()
-        return res
-
-    def parse_line(self, data):
-        if not data: return None
-        return tuple(item.strip() for item in data.decode('utf-8').split())
-
-    def compose_line(self, items, encode=True):
-        res = ' '.join(items)
-        if encode: res = res.encode('utf-8') + b'\n'
         return res
 
 def main():
