@@ -659,17 +659,16 @@ def set_sigpipe(executor, coroutine=sigpipe_handler):
         executor.add(inst, daemon=True)
         executor.waits = waits
     except Exception:
+        try:
+            del executor.waits
+        except AttributeError:
+            pass
         for fd in (rfd, wfd):
             try:
                 os.close(fd)
             except IOError:
                 pass
         raise
-    finally:
-        try:
-            del executor.waits
-        except AttributeError:
-            pass
     return inst
 
 def const(value=None):

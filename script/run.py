@@ -43,11 +43,11 @@ def is_true(s):
     return s.lower() in ('1', 'y', 'yes', 'true')
 
 def find_dict_key(data, value):
-    try:
-        idx = data.values().index(value)
-    except ValueError:
+    for k, v in data.items():
+        if v == value:
+            return k
+    else:
         raise LookupError(value)
-    return data.keys()[idx]
 
 def open_mkdirs(path, mode, do_mkdirs=True):
     try:
@@ -587,7 +587,7 @@ class Remote:
     def parse_line(cls, data):
         if not data: return None
         data, ret = data.decode('utf-8').rstrip('\n'), []
-        idx, endidx, new_word = 0, len(data), True
+        idx, endidx, new_word = 0, len(data), False
         while idx < endidx:
             m = ESCAPE_PARSE_RE.search(data, idx)
             if not m:
@@ -607,11 +607,12 @@ class Remote:
                                      m.group())
                 append = data[idx:m.start()] + esc
                 idx = m.end()
+            if not ret:
+                ret.append([])
+            ret[-1].append(append)
             if new_word:
-                ret.append([append])
+                ret.append([])
                 new_word = False
-            else:
-                ret[-1].append(append)
         return tuple(''.join(l) for l in ret)
 
     @classmethod
@@ -643,7 +644,8 @@ class Remote:
             self.executor = None
 
     def _remove_selects(self, *files):
-        if self.executor is not None: self.executor.remove_selects(*files)
+        if self.executor is None: return
+        self.executor.remove_selects(*files)
 
     def run_routine(self, routine):
         try:
