@@ -73,11 +73,20 @@ class VerboseExit(coroutines.Exit):
         if not self.verbose: return
         context_str = '' if self.context is None else '%s: ' % (self.context,)
         result_str = 'OK' if self.result is None else str(self.result)
-        print (context_str + result_str)
+        output = context_str + result_str
+        if callable(self.verbose):
+            return self.verbose(output)
+        else:
+            print (output)
 
     def apply(self, wake, executor, routine):
-        self.log()
-        coroutines.Exit.apply(self, wake, executor, routine)
+        def inner_wake(value):
+            coroutines.Exit.apply(self, wake, executor, routine)
+        res = self.log()
+        if isinstance(res, coroutines.Suspend):
+            res.apply(inner_wake, executor, routine)
+        else:
+            inner_wake(None)
 
 class Configuration:
     def __init__(self, path=None):
@@ -379,30 +388,30 @@ class InstantManager(ProcessGroup):
 
     @operation(wait=(bool, 'Whether to wait for the start\'s completion'),
                procs=(list, 'The processes to start (default: all)'))
-    def do_start(self, wait=True, procs=None):
+    def do_start(self, wait=True, procs=None, verbose=False):
         "Start the given processes"
         selector = self._process_selector(procs)
-        yield coroutines.Call(self.start(verbose=True, selector=selector))
+        yield coroutines.Call(self.start(verbose=verbose, selector=selector))
 
     @operation(wait=(bool, 'Whether to wait for the stop\'s completion'),
                procs=(list, 'The processes to stop (default: all)'))
-    def do_stop(self, wait=True, procs=None):
+    def do_stop(self, wait=True, procs=None, verbose=False):
         "Stop the given processes"
         selector = self._process_selector(procs)
-        yield coroutines.Call(self.stop(verbose=True, selector=selector))
+        yield coroutines.Call(self.stop(verbose=verbose, selector=selector))
 
     @operation(procs=(list, 'The processes to restart (default: all)'))
-    def do_restart(self, procs=None):
+    def do_restart(self, procs=None, verbose=False):
         "Restart the given processes"
         selector = self._process_selector(procs)
-        yield coroutines.Call(self.stop(selector=selector))
-        yield coroutines.Call(self.start(selector=selector))
+        yield coroutines.Call(self.stop(verbose=verbose, selector=selector))
+        yield coroutines.Call(self.start(verbose=verbose, selector=selector))
 
     @operation(procs=(list, 'The processes to query (default: all)'))
-    def do_status(self, procs=None):
+    def do_status(self, procs=None, verbose=False):
         "Query the status of the given processes"
         selector = self._process_selector(procs)
-        yield coroutines.Call(self.status(verbose=True, selector=selector))
+        yield coroutines.Call(self.status(verbose=verbose, selector=selector))
 
 REMOTE_COMMANDS = {}
 def command(name, minargs=0, maxargs=None):
@@ -421,14 +430,21 @@ def command(name, minargs=0, maxargs=None):
 
 def _wrap_operation(opname, desc):
     def handler(self, cmd, *args):
+        def log_handler(text):
+            return self.WriteLine('<', text)
         method = getattr(self.parent.manager, 'do_' + opname)
         try:
             kwds = self.parent.manager.parse_line(args, desc['types'])
         except ValueError as exc:
             raise RemoteError('SYNTAX', 'Bad command usage: %s: %s' %
                               (exc.__class__.__name__, exc))
-        result = yield coroutines.Call(method(**kwds))
-        yield coroutines.Exit(result)
+        kwds['verbose'] = log_handler
+        try:
+            result = yield coroutines.Call(method(**kwds))
+        except RunnerError as exc:
+            raise RemoteError('UNK', str(exc))
+        else:
+            yield coroutines.Exit('OK')
     return command(opname.upper().replace('_', '-'))(handler)
 
 for _name, _desc in OPERATIONS.items(): _wrap_operation(_name, _desc)
@@ -501,6 +517,7 @@ class Remote:
             self.rfile = None
             self.wfile = None
             self.reader = None
+            self.report_handler = None
             if self.sock is not None: self._make_files()
 
         def _make_files(self):
@@ -546,8 +563,13 @@ class Remote:
 
         def do_command(self, *cmdline):
             yield self.WriteLine(*cmdline)
-            result = yield self.ReadLine()
-            yield coroutines.Exit(result)
+            while 1:
+                result = yield self.ReadLine()
+                if result and result[0] == '<':
+                    if self.report_handler:
+                        self.report_handler(result)
+                    continue
+                yield coroutines.Exit(result)
 
     class ClientHandler(Connection):
         def __init__(self, parent, path, sock):
@@ -677,10 +699,12 @@ class Remote:
         return res
 
 def main():
+    def report_handler(line):
+        if line is None or len(line) < 2: return
+        print (' '.join(line[1:]))
     def command_wrapper(remote, conn, cmdline):
         result = yield coroutines.Call(conn.do_command(*cmdline))
-        if result is not None:
-            print (remote.compose_line(result, encode=False))
+        report_handler(result)
     p = argparse.ArgumentParser(
         description='Manage an Instant backend and a group of bots')
     p.add_argument('--config', '-c', default=DEFAULT_CONFFILE,
@@ -719,10 +743,12 @@ def main():
     elif arguments.cmd == 'cmd':
         remote = Remote(config)
         conn = remote.connect()
+        conn.report_handler = report_handler
         remote.run_routine(command_wrapper(remote, conn, arguments.cmdline))
         return
     kwds = dict(arguments.__dict__)
     for k in ('config', 'cmd'): del kwds[k]
+    kwds['verbose'] = True
     func = getattr(mgr, 'do_' + arguments.cmd.replace('-', '_'))
     coroutines.run([func(**kwds)], sigpipe=True)
 
