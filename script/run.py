@@ -686,14 +686,9 @@ def main():
         conn = remote.connect()
         remote.run_routine(command_wrapper(remote, conn, arguments.cmdline))
         return
-    func = {'start': mgr.do_start, 'stop': mgr.do_stop,
-            'restart': mgr.do_restart, 'status': mgr.do_status}[arguments.cmd]
-    kwds = {}
-    if arguments.cmd == 'cmd':
-        kwds['cmdline'] = arguments.cmdline
-    if arguments.cmd in ('start', 'stop'):
-        kwds['wait'] = arguments.wait
-    kwds['procs'] = arguments.procs
+    kwds = dict(arguments.__dict__)
+    for k in ('config', 'cmd'): del kwds[k]
+    func = getattr(mgr, 'do_' + arguments.cmd.replace('-', '_'))
     coroutines.run([func(**kwds)], sigpipe=True)
 
 if __name__ == '__main__': main()
