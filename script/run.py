@@ -247,12 +247,13 @@ class Process:
                 os.kill(pid, signal.SIGTERM)
         self.pidfile.set_pid(None)
         if wait:
+            stopping_since = time.time()
             if prev_child:
                 raw_status = yield coroutines.WaitProcess(prev_child)
                 status = 'OK %s' % (raw_status,)
             else:
                 status = None
-            delay = self.min_stop
+            delay = stopping_since + self.min_stop - time.time()
             if delay > 0: yield coroutines.Sleep(delay)
         else:
             status = 'OK'
