@@ -355,6 +355,9 @@ class InstantManager(ProcessGroup):
                 if poswords is not None:
                     raise ValueError('Multiple sets of positional values '
                         'specified')
+                elif any('=' in w for w in v):
+                    raise ValueError('Positional values may not contain '
+                        '\'=\' characters')
                 poswords = v
             elif types[k] in (int, float, bool, str):
                 words.append('%s=%s' % (k, v))
@@ -699,6 +702,11 @@ class Remote:
         return res
 
 def main():
+    def str_no_equals(s):
+        if '=' in s:
+            raise ValueError('Positional arguments must not contain \'=\' '
+                'characters')
+        return s
     def report_handler(line):
         if line is None or len(line) < 2: return
         print (' '.join(line[1:]))
@@ -723,7 +731,7 @@ def main():
                 kwds = {'type': is_true, 'metavar': 'BOOL'}
             elif tp == list:
                 prefix = ''
-                kwds = {'nargs': '*'}
+                kwds = {'type': str_no_equals, 'nargs': '*'}
             else:
                 kwds = {'type': tp, 'metavar': tp.__name__.upper()}
             cmdp.add_argument(prefix + name.replace('_', '-'), help=doc,
