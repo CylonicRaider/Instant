@@ -576,8 +576,42 @@ class Executor:
     def __call__(self):
         self.run()
 
+class Lock(object):
+    class _Acquire(Suspend):
+        def __init__(self, parent):
+            self.parent = parent
+            self.cancelled = False
+
+        def apply(self, wake, executor, routine):
+            def try_wake(value):
+                if self.cancelled: return
+                self.apply(wake, executor, routine)
+            if self.parent.locked:
+                executor.listen(self.parent, try_wake)
+            else:
+                self.parent.locked = True
+                self.parent._trigger = lambda: executor.trigger(self.parent)
+                wake((0, None))
+
+        def cancel(self):
+            self.cancelled = True
+
+    def __init__(self):
+        self.locked = False
+        self._trigger = None
+
+    def Acquire(self):
+        return self._Acquire(self)
+
+    def release(self):
+        if not self.locked:
+            raise RuntimeError('Releasing already-released lock')
+        self.locked = False
+        callback, self._trigger = self._trigger, None
+        callback()
+
 class BinaryLineReader(object):
-    class _Suspend(Suspend):
+    class _ReadLine(Suspend):
         def __init__(self, parent):
             self.parent = parent
             self._delegate = None
@@ -623,7 +657,7 @@ class BinaryLineReader(object):
         return line
 
     def ReadLine(self):
-        return self._Suspend(self)
+        return self._ReadLine(self)
 
 def sigpipe_handler(rfp, wfp, waits):
     try:
