@@ -253,20 +253,21 @@ class Listen(Suspend):
         self.target = target
         self.cancelled = False
 
-    def cancel(self):
-        self.cancelled = True
-
     def apply(self, wake, executor, routine):
         def inner_wake(value):
             if self.cancelled: return
             wake(value)
         executor.listen(self.target, inner_wake)
 
+    def cancel(self):
+        self.cancelled = True
+
 class Sleep(Suspend):
     def __init__(self, waketime, absolute=False):
         if not absolute: waketime += time.time()
         self.waketime = waketime
         self.cancelled = False
+        self.token = object()
 
     def __hash__(self):
         return hash(self.waketime)
@@ -284,15 +285,15 @@ class Sleep(Suspend):
     def __gt__(self, other):
         return self.waketime >  other.waketime
 
-    def cancel(self):
-        self.cancelled = True
-
     def apply(self, wake, executor, routine):
         def inner_wake(value):
             if self.cancelled: return
             wake(value)
-        executor.listen(self, inner_wake)
+        executor.listen(self.token, inner_wake)
         executor.add_sleep(self)
+
+    def cancel(self):
+        self.cancelled = True
 
 class IOSuspend(Suspend):
     SELECT_MODES = {'r': 0, 'w': 1, 'x': 2}
@@ -480,7 +481,7 @@ class Executor:
         if now is None: now = time.time()
         while self.sleeps and self.sleeps[0].waketime <= now:
             sleep = heapq.heappop(self.sleeps)
-            self.trigger(sleep)
+            self.trigger(sleep.token)
 
     def add_poll(self, poll):
         self.polls.add(poll)
