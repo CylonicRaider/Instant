@@ -442,12 +442,15 @@ def _wrap_operation(opname, desc):
             raise RemoteError('SYNTAX', 'Bad command usage: %s: %s' %
                               (exc.__class__.__name__, exc))
         kwds['verbose'] = log_handler
+        self.parent.lock.Acquire()
         try:
             result = yield coroutines.Call(method(**kwds))
         except RunnerError as exc:
             raise RemoteError('UNK', str(exc))
         else:
             yield coroutines.Exit('OK')
+        finally:
+            self.parent.lock.release()
     return command(opname.upper().replace('_', '-'))(handler)
 
 for _name, _desc in OPERATIONS.items(): _wrap_operation(_name, _desc)
@@ -458,7 +461,7 @@ def command_ping(self, cmd, *args):
     yield coroutines.Exit(('PONG',) + args)
 
 @command('SHUTDOWN', maxargs=0)
-def command_shutdown(self, cmd, *args):
+def command_shutdown(self, cmd):
     yield self.parent.Stop()
     yield coroutines.Exit('OK')
 
@@ -653,6 +656,7 @@ class Remote:
         self.manager = manager
         self.config = self.conffile.get_section('master')
         self.path = self.config.get('path', DEFAULT_COMM_PATH)
+        self.lock = coroutines.Lock()
         self.executor = None
         self._token = object()
 
