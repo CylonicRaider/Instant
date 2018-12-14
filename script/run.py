@@ -7,6 +7,7 @@ import os, re, time
 import errno, signal
 import socket
 import shlex
+import logging
 import subprocess
 import argparse
 
@@ -40,7 +41,10 @@ class RemoteError(RunnerError):
         self.message = message
 
 def is_true(s):
-    return s.lower() in ('1', 'y', 'yes', 'true')
+    if isinstance(s, str):
+        return s.lower() in ('1', 'y', 'yes', 'true')
+    else:
+        return bool(s)
 
 def find_dict_key(data, value):
     for k, v in data.items():
@@ -471,6 +475,8 @@ class Remote:
             self.parent = parent
             self.path = path
             self.sock = None
+            self._next_id = 1
+            self.logger = logging.getLogger('server')
 
         def listen(self):
             self.sock = socket.socket(socket.AF_UNIX)
@@ -481,14 +487,19 @@ class Remote:
                 os.unlink(self.path)
                 self.sock.bind(self.path)
             self.sock.listen(5)
+            self.logger.info('Listening on %r' % (self.sock.getsockname(),))
 
         def accept(self):
             return self._create_handler(*self.sock.accept())
 
         def _create_handler(self, sock, addr):
-            return self.parent.ClientHandler(self.parent, self.path, sock)
+            ret = self.parent.ClientHandler(self.parent, self.path, sock,
+                                            id=self._next_id)
+            self._next_id += 1
+            return ret
 
         def close(self):
+            self.logger.info('Closing')
             try:
                 os.unlink(self.path)
             except IOError:
@@ -578,8 +589,11 @@ class Remote:
                 yield coroutines.Exit(result)
 
     class ClientHandler(Connection):
-        def __init__(self, parent, path, sock):
+        def __init__(self, parent, path, sock, id=None):
             Remote.Connection.__init__(self, parent, path, sock)
+            self.id = id
+            self.logger = logging.getLogger('client/%s' % ('???'
+                if id is None else id))
 
         def run(self):
             try:
@@ -596,12 +610,20 @@ class Remote:
                     except Exception as exc:
                         yield self.WriteLine('ERROR', 'INTERNAL',
                                               '(internal error)')
+                        self.logger.error('%r -> Internal error: %r' % (line,
+                                                                        exc))
                         self.close()
                         raise
                     if result is None:
                         result = ()
                     elif isinstance(result, str):
                         result = (result,)
+                    if result and result[0] == 'ERROR':
+                        comment = 'Error:'
+                    else:
+                        comment = 'OK,'
+                    self.logger.info('Command %r -> %s %r' % (line, comment,
+                                                              result))
                     yield self.WriteLine(*result)
             finally:
                 self.close()
@@ -705,6 +727,17 @@ class Remote:
         res.connect()
         return res
 
+def setup_logging(config, timestamps=None):
+    section = config.get_section('master')
+    if timestamps is None:
+        timestamps = is_true(section.get('log-timestamps', ''))
+    logfile = section.get('logfile') or None
+    loglevel = section.get('loglevel', 'INFO')
+    if loglevel.isdigit(): loglevel = int(loglevel)
+    logging.basicConfig(format='[' + ('%(asctime)s ' if timestamps else '') +
+        '%(name)s %(levelname)s] %(message)s', datefmt='%Y-%m-%d %H:%M:%S',
+        level=loglevel, filename=logfile)
+
 def main():
     def str_no_equals(s):
         if '=' in s:
@@ -721,9 +754,14 @@ def main():
         description='Manage an Instant backend and a group of bots')
     p.add_argument('--config', '-c', default=DEFAULT_CONFFILE,
                    help='Configuration file location (default %(default)s)')
-    sp = p.add_subparsers(dest='cmd', description='The action to perform')
+    sp = p.add_subparsers(dest='cmd',
+                          description='The action to perform (invoke with a '
+                              '--help option to see usage details)')
     sp.required = True
     p_master = sp.add_parser('run-master', help='Start a job manager server')
+    p_master.add_argument('--no-log-timestamps', action='store_false',
+                          dest='log_timestamps',
+                          help='Do not add timestamps to log messages')
     p_cmd = sp.add_parser('cmd',
                           help='Execute a command in a job manager server')
     p_cmd.add_argument('cmdline', nargs='+', help='Command line to execute')
@@ -749,6 +787,7 @@ def main():
     except ConfigurationError as exc:
         raise SystemExit('Configuration error: ' + str(exc))
     if arguments.cmd == 'run-master':
+        setup_logging(config, arguments.log_timestamps)
         remote = Remote(config, mgr)
         remote.run_server()
         return
