@@ -744,6 +744,14 @@ def main():
             raise ValueError('Positional arguments must not contain \'=\' '
                 'characters')
         return s
+    def interrupt(remote):
+        def interrupt_agent():
+            yield remote.Stop()
+        if remote.closing or not remote.executor:
+            raise KeyboardInterrupt
+        else:
+            remote.closing = True
+            remote.executor.add(interrupt_agent())
     def report_handler(line):
         if line is None or len(line) < 2: return
         print (' '.join(line[1:]))
@@ -789,6 +797,9 @@ def main():
     if arguments.cmd == 'run-master':
         setup_logging(config, arguments.log_timestamps)
         remote = Remote(config, mgr)
+        remote.closing = False
+        signal.signal(signal.SIGINT, lambda sn, f: interrupt(remote))
+        signal.signal(signal.SIGTERM, lambda sn, f: interrupt(remote))
         remote.run_server()
         return
     elif arguments.cmd == 'cmd':
