@@ -6,7 +6,7 @@
 import sys, os, time
 import traceback
 import heapq
-import signal, select
+import errno, signal, select
 import subprocess
 
 SIGPIPE_CHUNK_SIZE = 1024
@@ -567,8 +567,15 @@ class Executor:
                 else:
                     timeout = None
                 sf = self.selectfiles
-                result = select.select(sf[0], sf[1], sf[2], timeout)
-                self._done_select(*result)
+                try:
+                    result = select.select(sf[0], sf[1], sf[2], timeout)
+                except select.error as e:
+                    if hasattr(e, 'errno'): # Py3K
+                        if e.errno != errno.EINTR: raise
+                    else: # Py2K
+                        if e.args[0] != errno.EINTR: raise
+                else:
+                    self._done_select(*result)
             elif self.sleeps and not self.routines:
                 time.sleep(self.sleeps[0].waketime - time.time())
             self._finish_sleeps()
@@ -671,7 +678,11 @@ def sigpipe_handler(rfp, wfp, waits):
                     waits.remove(w)
                     wakelist.append((ProcessTag(w.pid), res))
             while 1:
-                pid, status = os.waitpid(-1, os.WNOHANG)
+                try:
+                    pid, status = os.waitpid(-1, os.WNOHANG)
+                except OSError as e:
+                    if e.errno != errno.ECHILD: raise
+                    break
                 if pid == 0: break
                 code = -(status & 0x7F) if status & 0xFF else status >> 8
                 wakelist.append((ProcessTag(pid), code))
