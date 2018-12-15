@@ -4,6 +4,7 @@
 # An init script for running Instant and a number of bots.
 
 import os, re, time
+import inspect
 import errno, signal
 import socket
 import shlex
@@ -312,8 +313,11 @@ def operation(**params):
         if not func.__name__.startswith('do_'):
             raise ValueError('Unrecognized operation function name')
         opname = func.__name__[3:]
+        argspec = inspect.getargspec(func)
+        defaultlist = argspec.defaults or ()
+        defaults = dict(zip(argspec.args[-len(defaultlist):], defaultlist))
         OPERATIONS[opname] = {'cb': func, 'doc': func.__doc__, 'types': types,
-                              'params': params}
+                              'params': params, 'defaults': defaults}
         return func
     types = {k: v[0] for k, v in params.items()}
     return callback
@@ -791,6 +795,8 @@ def main():
                 kwds = {'type': str_no_equals, 'nargs': '*'}
             else:
                 kwds = {'type': tp, 'metavar': tp.__name__.upper()}
+            if name in desc['defaults']:
+                kwds['default'] = desc['defaults'][name]
             cmdp.add_argument(prefix + name.replace('_', '-'), help=doc,
                               **kwds)
     arguments = p.parse_args()
