@@ -607,7 +607,7 @@ class Lock(object):
 
     def release(self):
         if not self.locked:
-            raise RuntimeError('Releasing already-released lock')
+            raise RuntimeError('Releasing unlocked lock')
         self.locked = False
         callback, self._trigger = self._trigger, None
         callback()
