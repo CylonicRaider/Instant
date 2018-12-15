@@ -438,6 +438,7 @@ def command(name, minargs=0, maxargs=None):
 def _wrap_operation(opname, desc):
     def handler(self, cmd, *args):
         def log_handler(text):
+            self.parent.manager_logger.info(text)
             return self.WriteLine('<', text)
         method = getattr(self.parent.manager, 'do_' + opname)
         try:
@@ -446,7 +447,8 @@ def _wrap_operation(opname, desc):
             raise RemoteError('SYNTAX', 'Bad command usage: %s: %s' %
                               (exc.__class__.__name__, exc))
         kwds['verbose'] = log_handler
-        self.parent.lock.Acquire()
+        yield self.parent.lock.Acquire()
+        self.parent.manager_logger.info('Doing ' + opname + '...')
         try:
             result = yield coroutines.Call(method(**kwds))
         except RunnerError as exc:
@@ -454,6 +456,7 @@ def _wrap_operation(opname, desc):
         else:
             yield coroutines.Exit('OK')
         finally:
+            self.parent.manager_logger.info('Done.')
             self.parent.lock.release()
     return command(opname.upper().replace('_', '-'))(handler)
 
@@ -678,6 +681,7 @@ class Remote:
         self.manager = manager
         self.config = self.conffile.get_section('master')
         self.path = self.config.get('path', DEFAULT_COMM_PATH)
+        self.manager_logger = logging.getLogger('manager')
         self.lock = coroutines.Lock()
         self.executor = None
         self._token = object()
