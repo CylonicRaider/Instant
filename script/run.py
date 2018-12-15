@@ -757,8 +757,11 @@ def main():
             remote.closing = True
             remote.executor.add(interrupt_agent())
     def report_handler(line):
-        if line is None or len(line) < 2: return
-        print (' '.join(line[1:]))
+        if line is None or len(line) <= 1:
+            return
+        elif line[0] == '<':
+            line = line[1:]
+        print (' '.join(line))
     def command_wrapper(remote, conn, cmdline):
         result = yield coroutines.Call(conn.do_command(*cmdline))
         report_handler(result)
