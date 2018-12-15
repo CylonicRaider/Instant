@@ -397,7 +397,9 @@ class WaitProcess(SimpleCancellable):
                 wake((0, res))
                 return
             executor.waits.add(self.target)
-            eff_target = self.target.pid
+            eff_target = ProcessTag(self.target.pid)
+        elif isinstance(self.target, int):
+            eff_target = ProcessTag(self.target)
         else:
             eff_target = self.target
         self.listen(executor, eff_target, wake)
@@ -661,7 +663,7 @@ class BinaryLineReader(object):
     def ReadLine(self):
         return self._ReadLine(self)
 
-def sigpipe_handler(rfp, wfp, waits):
+def sigpipe_handler(rfp, wfp, waits, cleanup):
     try:
         while 1:
             yield ReadFile(rfp, SIGPIPE_CHUNK_SIZE)
@@ -688,14 +690,18 @@ def sigpipe_handler(rfp, wfp, waits):
                 fp.close()
             except IOError:
                 pass
+        cleanup()
 
 def set_sigpipe(executor, coroutine=sigpipe_handler):
+    def restore_sigchld():
+        signal.signal(signal.SIGCHLD, old_handler)
     rfd, wfd = os.pipe()
     rfp, wfp = os.fdopen(rfd, 'rb', 0), os.fdopen(wfd, 'wb', 0)
     waits = set()
     try:
         signal.set_wakeup_fd(wfd)
-        inst = coroutine(rfp, wfp, waits)
+        old_handler = signal.signal(signal.SIGCHLD, lambda sn, f: None)
+        inst = coroutine(rfp, wfp, waits, restore_sigchld)
         executor.add(inst, daemon=True)
         executor.waits = waits
     except Exception:
