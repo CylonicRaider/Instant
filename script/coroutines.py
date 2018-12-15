@@ -269,9 +269,6 @@ class Sleep(Suspend):
         self.cancelled = False
         self.token = object()
 
-    def __hash__(self):
-        return hash(self.waketime)
-
     def __lt__(self, other):
         return self.waketime <  other.waketime
     def __le__(self, other):
