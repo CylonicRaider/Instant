@@ -248,25 +248,33 @@ class Call(ControlSuspend):
         executor.add(self.target, daemon=self.daemon)
         executor.listen(self.target, wake)
 
-class Listen(Suspend):
-    def __init__(self, target):
-        self.target = target
+class SimpleCancellable(Suspend):
+    def __init__(self):
         self.cancelled = False
-
-    def apply(self, wake, executor, routine):
-        def inner_wake(value):
-            if self.cancelled: return
-            wake(value)
-        executor.listen(self.target, inner_wake)
+        self._cancel_cb = None
 
     def cancel(self):
         self.cancelled = True
+        cb, self._cancel_cb = self._cancel_cb, None
+        if cb: cb()
 
-class Sleep(Suspend):
+    def listen(self, executor, target, callback):
+        executor.listen(target, callback)
+        self._cancel_cb = lambda: executor.stop_listening(target, callback)
+
+class Listen(SimpleCancellable):
+    def __init__(self, target):
+        SimpleCancellable.__init__(self)
+        self.target = target
+
+    def apply(self, wake, executor, routine):
+        self.listen(executor, self.target, wake)
+
+class Sleep(SimpleCancellable):
     def __init__(self, waketime, absolute=False):
         if not absolute: waketime += time.time()
+        SimpleCancellable.__init__(self)
         self.waketime = waketime
-        self.cancelled = False
         self.token = object()
 
     def __lt__(self, other):
@@ -283,24 +291,18 @@ class Sleep(Suspend):
         return self.waketime >  other.waketime
 
     def apply(self, wake, executor, routine):
-        def inner_wake(value):
-            if self.cancelled: return
-            wake(value)
-        executor.listen(self.token, inner_wake)
         executor.add_sleep(self)
+        self.listen(executor, self.token, wake)
 
-    def cancel(self):
-        self.cancelled = True
-
-class IOSuspend(Suspend):
+class IOSuspend(SimpleCancellable):
     SELECT_MODES = {'r': 0, 'w': 1, 'x': 2}
 
     def __init__(self, file, mode):
         if mode not in self.SELECT_MODES:
             raise ValueError('Invalid I/O mode: %r' % (mode,))
+        SimpleCancellable.__init__(self)
         self.file = file
         self.mode = mode
-        self.cancelled = False
 
     def _do_io(self, mode):
         return None
@@ -314,11 +316,8 @@ class IOSuspend(Suspend):
             else:
                 result = self._do_io(value[1])
                 wake((0, result))
-        executor.listen(self.file, inner_wake)
         executor.add_select(self.file, self.SELECT_MODES[self.mode])
-
-    def cancel(self):
-        self.cancelled = True
+        self.listen(executor, self.file, inner_wake)
 
 class ReadFile(IOSuspend):
     def __init__(self, readfile, length, selectfile=None):
@@ -383,18 +382,12 @@ class SpawnProcess(Suspend):
             executor.waits.add(proc)
         wake((0, proc))
 
-class WaitProcess(Suspend):
+class WaitProcess(SimpleCancellable):
     def __init__(self, target):
+        SimpleCancellable.__init__(self)
         self.target = target
-        self.cancelled = False
-
-    def cancel(self):
-        self.cancelled = True
 
     def apply(self, wake, executor, routine):
-        def inner_wake(value):
-            if self.cancelled: return
-            wake(value)
         if not hasattr(executor, 'waits'):
             raise RuntimeError('Executor not equipped for waiting for '
                 'processes')
@@ -407,7 +400,7 @@ class WaitProcess(Suspend):
             eff_target = self.target.pid
         else:
             eff_target = self.target
-        executor.listen(eff_target, inner_wake)
+        self.listen(executor, eff_target, wake)
 
 class Executor:
     def __init__(self):
@@ -445,7 +438,14 @@ class Executor:
         return self.trigger(routine, result)
 
     def listen(self, event, callback):
-        self.listening.setdefault(event, []).append(callback)
+        try:
+            self.listening[event].add(callback)
+        except KeyError:
+            self.listening[event] = set((callback,))
+
+    def stop_listening(self, event, callback):
+        if event not in self.listening: return
+        self.listening[event].discard(callback)
 
     def trigger(self, event, result=None):
         callbacks = self.listening.pop(event, ())
@@ -582,24 +582,21 @@ class Executor:
         self.run()
 
 class Lock(object):
-    class _Acquire(Suspend):
+    class _Acquire(SimpleCancellable):
         def __init__(self, parent):
+            SimpleCancellable.__init__(self)
             self.parent = parent
-            self.cancelled = False
 
         def apply(self, wake, executor, routine):
             def try_wake(value):
                 if self.cancelled: return
                 self.apply(wake, executor, routine)
             if self.parent.locked:
-                executor.listen(self.parent, try_wake)
+                self.listen(executor, self.parent, try_wake)
             else:
                 self.parent.locked = True
                 self.parent._trigger = lambda: executor.trigger(self.parent)
                 wake((0, None))
-
-        def cancel(self):
-            self.cancelled = True
 
     def __init__(self):
         self.locked = False
