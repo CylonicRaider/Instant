@@ -735,13 +735,12 @@ class Remote:
         res.connect()
         return res
 
-def setup_logging(config, timestamps=None):
+def setup_logging(config):
     section = config.get_section('master')
-    if timestamps is None:
-        timestamps = is_true(section.get('log-timestamps', ''))
-    logfile = section.get('logfile') or None
-    loglevel = section.get('loglevel', 'INFO')
+    logfile = section.get('log-file') or None
+    loglevel = section.get('log-level', 'INFO')
     if loglevel.isdigit(): loglevel = int(loglevel)
+    timestamps = is_true(section.get('log-timestamps', ''))
     logging.basicConfig(format='[' + ('%(asctime)s ' if timestamps else '') +
         '%(name)s %(levelname)s] %(message)s', datefmt='%Y-%m-%d %H:%M:%S',
         level=loglevel, filename=logfile)
@@ -778,9 +777,11 @@ def main():
                               '--help option to see usage details)')
     sp.required = True
     p_master = sp.add_parser('run-master', help='Start a job manager server')
-    p_master.add_argument('--no-log-timestamps', action='store_false',
-                          dest='log_timestamps',
-                          help='Do not add timestamps to log messages')
+    p_master.add_argument('--close-fds', action='store_true',
+                          help='Close standard input, standard output, and '
+                              'standard error (unless there is no log file '
+                              'specified) after creating the communication '
+                              'socket')
     p_cmd = sp.add_parser('cmd',
                           help='Execute a command in a job manager server')
     p_cmd.add_argument('cmdline', nargs='+', help='Command line to execute')
@@ -808,12 +809,20 @@ def main():
     except ConfigurationError as exc:
         raise SystemExit('Configuration error: ' + str(exc))
     if arguments.cmd == 'run-master':
-        setup_logging(config, arguments.log_timestamps)
+        setup_logging(config)
         remote = Remote(config, mgr)
         remote.closing = False
         signal.signal(signal.SIGINT, lambda sn, f: interrupt(remote))
         signal.signal(signal.SIGTERM, lambda sn, f: interrupt(remote))
-        remote.run_server()
+        srv = remote.listen()
+        if arguments.close_fds:
+            devnull_fd = os.open(os.devnull, os.O_RDWR)
+            os.dup2(devnull_fd, 0)
+            os.dup2(devnull_fd, 1)
+            if config.get_section('master').get('logfile'):
+                os.dup2(devnull_fd, 2)
+            os.close(devnull_fd)
+        remote.run_server(srv)
         return
     elif arguments.cmd == 'cmd':
         remote = Remote(config)
