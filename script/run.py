@@ -793,7 +793,7 @@ def main():
                 # Check if another process has taken over the PID file.
                 try:
                     do_delete = (pidfile.get_pid(True) == os.getpid())
-                except:
+                except Exception:
                     do_delete = False
                 if do_delete:
                     pidfile.set_pid(None)
