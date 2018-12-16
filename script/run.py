@@ -3,10 +3,8 @@
 
 # An init script for running Instant and a number of bots.
 
-import os, re, time
-import inspect
-import errno, signal
-import socket
+import sys, os, re, time, inspect
+import errno, signal, socket
 import shlex
 import logging
 import subprocess
@@ -690,13 +688,13 @@ class Remote:
         self.executor = None
         self._token = object()
 
-    def _prepare_executor(self):
+    def prepare_executor(self):
         if self.executor is None:
             self.executor = coroutines.Executor()
             coroutines.set_sigpipe(self.executor)
         return self.executor
 
-    def _close_executor(self):
+    def close_executor(self):
         if self.executor is None: return
         try:
             self.executor.close()
@@ -709,11 +707,11 @@ class Remote:
 
     def run_routine(self, routine):
         try:
-            ex = self._prepare_executor()
+            ex = self.prepare_executor()
             ex.add(routine)
             ex.run()
         finally:
-            self._close_executor()
+            self.close_executor()
 
     def Stop(self):
         return coroutines.Trigger(self._token)
@@ -740,7 +738,7 @@ def setup_logging(config):
     logfile = section.get('log-file') or None
     loglevel = section.get('log-level', 'INFO')
     if loglevel.isdigit(): loglevel = int(loglevel)
-    timestamps = is_true(section.get('log-timestamps', ''))
+    timestamps = is_true(section.get('log-timestamps', 'yes'))
     logging.basicConfig(format='[' + ('%(asctime)s ' if timestamps else '') +
         '%(name)s %(levelname)s] %(message)s', datefmt='%Y-%m-%d %H:%M:%S',
         level=loglevel, filename=logfile)
@@ -751,27 +749,55 @@ def main():
             raise ValueError('Positional arguments must not contain \'=\' '
                 'characters')
         return s
-    def interrupt(remote):
-        def interrupt_agent():
-            yield remote.Stop()
-        if remote.closing or not remote.executor:
-            raise KeyboardInterrupt
-        else:
-            remote.closing = True
-            remote.executor.add(interrupt_agent())
-    def report_handler(line):
-        if line is None or len(line) <= 1:
-            return
-        elif line[0] == '<':
-            line = line[1:]
-        print (' '.join(line))
-    def command_wrapper(remote, conn, cmdline):
-        result = yield coroutines.Call(conn.do_command(*cmdline))
-        report_handler(result)
+    def run_master(prepare=None):
+        def interrupt():
+            def interrupt_agent():
+                yield remote.Stop()
+            if remote.closing or not remote.executor:
+                raise KeyboardInterrupt
+            else:
+                remote.closing = True
+                remote.executor.add(interrupt_agent())
+        setup_logging(config)
+        remote = Remote(config, mgr)
+        remote.closing = False
+        signal.signal(signal.SIGINT, lambda sn, f: interrupt())
+        signal.signal(signal.SIGTERM, lambda sn, f: interrupt())
+        if prepare: prepare(remote)
+        srv = remote.listen()
+        if arguments.close_fds:
+            devnull_fd = os.open(os.devnull, os.O_RDWR)
+            os.dup2(devnull_fd, sys.stdin.fileno())
+            os.dup2(devnull_fd, sys.stdout.fileno())
+            if config.get_section('master').get('logfile'):
+                os.dup2(devnull_fd, sys.stderr.fileno())
+            os.close(devnull_fd)
+        remote.run_server(srv)
+    def run_client(cmdline):
+        def report_handler(line):
+            if line is None or len(line) <= 1:
+                return
+            elif line[0] == '<':
+                line = line[1:]
+            print (' '.join(line))
+        def command_wrapper():
+            result = yield coroutines.Call(conn.do_command(*cmdline))
+            report_handler(result)
+        conn.report_handler = report_handler
+        remote.run_routine(command_wrapper())
     p = argparse.ArgumentParser(
         description='Manage an Instant backend and a group of bots')
     p.add_argument('--config', '-c', default=DEFAULT_CONFFILE,
                    help='Configuration file location (default %(default)s)')
+    p.add_argument('--master', '-m', default='auto', choices=('off', 'auto',
+                       'spawn', 'fg', 'on'),
+                   help='Whether to offload actual process management to a '
+                       'background daemon (off = never use daemon; all '
+                       'remaining options use a daemon when available: '
+                       'auto = without daemon, run command locally; spawn = '
+                       'without daemon, spawn one in the background; fg = '
+                       'without daemon, become the daemon; on = without '
+                       'daemon, report an error; defaults to off)')
     sp = p.add_subparsers(dest='cmd',
                           description='The action to perform (invoke with a '
                               '--help option to see usage details)')
@@ -809,31 +835,57 @@ def main():
     except ConfigurationError as exc:
         raise SystemExit('Configuration error: ' + str(exc))
     if arguments.cmd == 'run-master':
-        setup_logging(config)
-        remote = Remote(config, mgr)
-        remote.closing = False
-        signal.signal(signal.SIGINT, lambda sn, f: interrupt(remote))
-        signal.signal(signal.SIGTERM, lambda sn, f: interrupt(remote))
-        srv = remote.listen()
-        if arguments.close_fds:
-            devnull_fd = os.open(os.devnull, os.O_RDWR)
-            os.dup2(devnull_fd, 0)
-            os.dup2(devnull_fd, 1)
-            if config.get_section('master').get('logfile'):
-                os.dup2(devnull_fd, 2)
-            os.close(devnull_fd)
-        remote.run_server(srv)
+        run_master()
         return
-    elif arguments.cmd == 'cmd':
+    if arguments.cmd == 'cmd':
+        if arguments.master == 'off':
+            raise SystemExit('ERROR: "--master=off" conflicts with "cmd"')
+        elif arguments.master == 'auto':
+            arguments.master = 'spawn'
+    remote, conn = None, None
+    if arguments.master != 'off':
         remote = Remote(config)
-        conn = remote.connect()
-        conn.report_handler = report_handler
-        remote.run_routine(command_wrapper(remote, conn, arguments.cmdline))
-        return
+        try:
+            conn = remote.connect()
+        except socket.error as exc:
+            if exc.errno != errno.ENOENT:
+                raise
+            elif arguments.master == 'on':
+                raise SystemExit('ERROR: Cannot connect to master process')
+        if arguments.master in ('spawn', 'fg'):
+            this_file = inspect.getfile(lambda: None)
+            cmdline = (sys.executable, this_file, '--config',
+                arguments.config, 'run-master', '--close-fds')
+            # The only real difference between spawn and fg is which process
+            # assumes which role.
+            rfd, wfd = os.pipe()
+            pid = os.fork()
+            if (pid == 0) == (arguments.master == 'spawn'):
+                # Assume the master role in the child process iff spawn is
+                # selected.
+                os.close(rfd)
+                os.dup2(wfd, sys.stdout.fileno())
+                os.execv(sys.executable, cmdline)
+                raise RuntimeError('exec() returned?!')
+            # Otherwise (in the child process), wait until the master process
+            # is ready (or dead), and try to connect again.
+            os.close(wfd)
+            os.read(rfd, 1)
+            os.close(rfd)
+            conn = remote.connect()
     kwds = dict(arguments.__dict__)
-    for k in ('config', 'cmd'): del kwds[k]
-    kwds['verbose'] = True
-    func = getattr(mgr, 'do_' + arguments.cmd.replace('-', '_'))
-    coroutines.run([func(**kwds)], sigpipe=True)
+    for k in ('config', 'master', 'cmd'): del kwds[k]
+    if conn is not None:
+        if arguments.cmd == 'cmd':
+            cmdline = arguments.cmdline
+        else:
+            opdesc = OPERATIONS[arguments.cmd.replace('-', '_')]
+            cmdline = ([arguments.cmd.upper()] +
+                       mgr.compose_line(kwds, opdesc['types']))
+        run_client(cmdline)
+    else:
+        kwds['verbose'] = True
+        func = getattr(mgr, 'do_' + arguments.cmd.replace('-', '_'))
+        coroutines.run([func(**kwds)], sigpipe=True)
 
 if __name__ == '__main__': main()
