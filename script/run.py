@@ -758,7 +758,7 @@ def main():
             raise ValueError('Positional arguments must not contain \'=\' '
                 'characters')
         return s
-    def run_master(prepare=None):
+    def run_master():
         def interrupt():
             def interrupt_agent():
                 yield remote.Stop()
@@ -772,7 +772,6 @@ def main():
         remote.closing = False
         signal.signal(signal.SIGINT, lambda sn, f: interrupt())
         signal.signal(signal.SIGTERM, lambda sn, f: interrupt())
-        if prepare: prepare(remote)
         srv = remote.listen()
         if arguments.close_fds:
             devnull_fd = os.open(os.devnull, os.O_RDWR)
