@@ -863,7 +863,7 @@ def main():
                 raise
             elif arguments.master == 'on':
                 raise SystemExit('ERROR: Cannot connect to master process')
-        if arguments.master in ('spawn', 'fg'):
+        if not conn and arguments.master in ('spawn', 'fg'):
             this_file = inspect.getfile(lambda: None)
             cmdline = (sys.executable, this_file, '--config',
                 arguments.config, 'run-master', '--close-fds')
