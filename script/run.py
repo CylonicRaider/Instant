@@ -781,7 +781,23 @@ def main():
             if config.get_section('master').get('logfile'):
                 os.dup2(devnull_fd, sys.stderr.fileno())
             os.close(devnull_fd)
-        remote.run_server(srv)
+        pidpath = remote.config.get('pidfile')
+        if pidpath:
+            pidfile = PIDFile(pidpath)
+            pidfile.set_pid(os.getpid())
+        else:
+            pidfile = None
+        try:
+            remote.run_server(srv)
+        finally:
+            if pidfile:
+                # Check if another process has taken over the PID file.
+                try:
+                    do_delete = (pidfile.get_pid(True) == os.getpid())
+                except:
+                    do_delete = False
+                if do_delete:
+                    pidfile.set_pid(None)
     def run_client(cmdline):
         def report_handler(line):
             if line is None or len(line) <= 1:
