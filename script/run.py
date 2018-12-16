@@ -498,6 +498,13 @@ class Remote:
                 self.sock.bind(self.path)
             except socket.error as e:
                 if e.errno != errno.EADDRINUSE: raise
+                # UNIX domain sockets are annoying...
+                try:
+                    self.sock.connect(self.path)
+                except socket.error as e:
+                    if e.errno != errno.ECONNREFUSED: raise
+                else:
+                    raise RunnerError('Communication socket is already bound')
                 os.unlink(self.path)
                 self.sock.bind(self.path)
             self.sock.listen(5)
