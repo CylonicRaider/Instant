@@ -256,7 +256,7 @@ class Process:
             for r, f in zip(self._redirectors(), files):
                 r.close(f)
         self.pidfile.set_pid(self._child.pid)
-        yield exit('OK')
+        yield exit('OK %s' % self._child.pid)
 
     def stop(self, wait=True, verbose=False):
         exit = self._make_exit('stop', verbose)
@@ -289,6 +289,7 @@ class Process:
     def status(self, verbose=True):
         exit = self._make_exit(None, verbose)
         pid, status = self.pidfile.get_status()
+        if pid is not None: status = '%s %s' % (status, pid)
         yield exit(status)
 
 class ProcessGroup:
