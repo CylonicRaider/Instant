@@ -190,6 +190,21 @@ class PIDFile:
             self._pid = self._read_file()
         return self._pid
 
+    def get_status(self, force_read=False):
+        pid = self.get_pid(force=force_read)
+        if pid is None:
+            return (pid, 'NOT_RUNNING')
+        try:
+            os.kill(pid, 0)
+            status = 'RUNNING'
+        except OSError as e:
+            if e.errno == errno.ESRCH:
+                status = 'STALEFILE'
+            elif e.errno == errno.EPERM:
+                status = 'RUNNING_PRIVILEGED'
+            raise
+        return (pid, status)
+
     def set_pid(self, pid):
         self._pid = pid
         self._write_file(pid)
@@ -273,15 +288,8 @@ class Process:
 
     def status(self, verbose=True):
         exit = self._make_exit(None, verbose)
-        pid = self.pidfile.get_pid()
-        if pid is None:
-            yield exit('NOT_RUNNING')
-        try:
-            os.kill(pid, 0)
-            yield exit('RUNNING')
-        except OSError as e:
-            if e.errno == errno.ESRCH: yield exit('STALEFILE')
-            raise
+        pid, status = self.pidfile.get_status()
+        yield exit(status)
 
 class ProcessGroup:
     def __init__(self):
