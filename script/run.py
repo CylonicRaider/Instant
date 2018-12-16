@@ -786,18 +786,20 @@ def main():
         conn.report_handler = report_handler
         remote.run_routine(command_wrapper())
     p = argparse.ArgumentParser(
-        description='Manage an Instant backend and a group of bots')
+        description='Manage an Instant backend and a group of bots',
+        epilog='The --master option can have the following values: off = '
+            'never use daemon; all remaining options use a daemon when '
+            'available: auto = without daemon, run command locally; spawn = '
+            'without daemon, spawn one in the background; fg = without '
+            'daemon, become the daemon; on = without daemon, report an '
+            'error; stop = equivalent to auto, but shuts the daemon down '
+            'when done.')
     p.add_argument('--config', '-c', default=DEFAULT_CONFFILE,
                    help='Configuration file location (default %(default)s)')
     p.add_argument('--master', '-m', default='auto', choices=('off', 'auto',
-                       'spawn', 'fg', 'on'),
+                       'spawn', 'fg', 'on', 'stop'),
                    help='Whether to offload actual process management to a '
-                       'background daemon (off = never use daemon; all '
-                       'remaining options use a daemon when available: '
-                       'auto = without daemon, run command locally; spawn = '
-                       'without daemon, spawn one in the background; fg = '
-                       'without daemon, become the daemon; on = without '
-                       'daemon, report an error; defaults to off)')
+                       'background daemon (defaults to auto)')
     sp = p.add_subparsers(dest='cmd',
                           description='The action to perform (invoke with a '
                               '--help option to see usage details)')
@@ -809,7 +811,13 @@ def main():
                               'specified) after creating the communication '
                               'socket')
     p_cmd = sp.add_parser('cmd',
-                          help='Execute a command in a job manager server')
+                          help='Execute a command in a job manager server',
+                          epilog='Some values of the --master option are '
+                              'treated specially: "off" is an error; "auto" '
+                              'is converted into "spawn"; "stop", '
+                              'consequently, starts a daemon (if there is '
+                              'none), executes the command, and tears the '
+                              'daemon (back) down.')
     p_cmd.add_argument('cmdline', nargs='+', help='Command line to execute')
     for name, desc in sorted(OPERATIONS.items()):
         cmdp = sp.add_parser(name.replace('_', '-'), help=desc['doc'])
@@ -837,6 +845,9 @@ def main():
     if arguments.cmd == 'run-master':
         run_master()
         return
+    stop_master = (arguments.master == 'stop')
+    if stop_master:
+        arguments.master = 'auto'
     if arguments.cmd == 'cmd':
         if arguments.master == 'off':
             raise SystemExit('ERROR: "--master=off" conflicts with "cmd"')
@@ -867,7 +878,7 @@ def main():
                 os.dup2(wfd, sys.stdout.fileno())
                 os.execv(sys.executable, cmdline)
                 raise RuntimeError('exec() returned?!')
-            # Otherwise (in the child process), wait until the master process
+            # Otherwise (in the client process), wait until the master process
             # is ready (or dead), and try to connect again.
             os.close(wfd)
             os.read(rfd, 1)
@@ -883,6 +894,8 @@ def main():
             cmdline = ([arguments.cmd.upper()] +
                        mgr.compose_line(kwds, opdesc['types']))
         run_client(cmdline)
+        if stop_master:
+            run_client(('SHUTDOWN',))
     else:
         kwds['verbose'] = True
         func = getattr(mgr, 'do_' + arguments.cmd.replace('-', '_'))
