@@ -219,7 +219,7 @@ class Process:
         self.workdir = config.get('workdir')
         self.stdin = Redirection.parse(config.get('stdin', ''))
         self.stdout = Redirection.parse(config.get('stdout', ''))
-        self.min_stop = float(config.get('min-stop', 0))
+        self.stop_delay = float(config.get('stop-wait', 0))
         self.stderr = Redirection.parse(config.get('stderr', ''))
         self._child = None
 
@@ -274,14 +274,13 @@ class Process:
                 os.kill(pid, signal.SIGTERM)
         self.pidfile.set_pid(None)
         if wait:
-            stopping_since = time.time()
             if prev_child:
                 raw_status = yield coroutines.WaitProcess(prev_child)
                 status = 'OK %s' % (raw_status,)
             else:
+                delay = self.stop_delay
+                if delay > 0: yield coroutines.Sleep(delay)
                 status = None
-            delay = stopping_since + self.min_stop - time.time()
-            if delay > 0: yield coroutines.Sleep(delay)
         else:
             status = 'OK'
         yield exit(status)
