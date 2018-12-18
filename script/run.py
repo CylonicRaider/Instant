@@ -214,13 +214,13 @@ class Process:
         if config is None: config = {}
         self.name = name
         self.command = command
-        self.pidfile = PIDFile(config.get('pidfile',
+        self.pidfile = PIDFile(config.get('pid-file',
                                           DEFAULT_PIDFILE_TEMPLATE % name))
-        self.workdir = config.get('workdir')
+        self.workdir = config.get('work-dir')
         self.stdin = Redirection.parse(config.get('stdin', ''))
         self.stdout = Redirection.parse(config.get('stdout', ''))
-        self.stop_delay = float(config.get('stop-wait', 0))
         self.stderr = Redirection.parse(config.get('stderr', ''))
+        self.stop_delay = float(config.get('stop-wait', 0))
         self._child = None
 
     def _redirectors(self):
@@ -783,10 +783,10 @@ def main():
             devnull_fd = os.open(os.devnull, os.O_RDWR)
             os.dup2(devnull_fd, sys.stdin.fileno())
             os.dup2(devnull_fd, sys.stdout.fileno())
-            if config.get_section('master').get('logfile'):
+            if config.get_section('master').get('log-file'):
                 os.dup2(devnull_fd, sys.stderr.fileno())
             os.close(devnull_fd)
-        pidpath = remote.config.get('pidfile')
+        pidpath = remote.config.get('pid-file')
         if pidpath:
             pidfile = PIDFile(pidpath)
             pidfile.set_pid(os.getpid())
