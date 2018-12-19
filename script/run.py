@@ -758,63 +758,66 @@ def setup_logging(config):
         '%(name)s %(levelname)s] %(message)s', datefmt='%Y-%m-%d %H:%M:%S',
         level=loglevel, filename=logfile)
 
+def run_master(mgr, close_fds=False):
+    def interrupt(signo, frame):
+        def interrupt_agent():
+            yield remote.Stop()
+        if remote.closing or not remote.executor:
+            raise KeyboardInterrupt
+        else:
+            remote.closing = True
+            remote.executor.add(interrupt_agent())
+    setup_logging(mgr.conffile)
+    remote = Remote(mgr.conffile, mgr)
+    remote.closing = False
+    signal.signal(signal.SIGINT, interrupt)
+    signal.signal(signal.SIGTERM, interrupt)
+    srv = remote.listen()
+    if close_fds:
+        devnull_fd = os.open(os.devnull, os.O_RDWR)
+        os.dup2(devnull_fd, sys.stdin.fileno())
+        os.dup2(devnull_fd, sys.stdout.fileno())
+        if remote.config.get('log-file'):
+            os.dup2(devnull_fd, sys.stderr.fileno())
+        os.close(devnull_fd)
+    pidpath = remote.config.get('pid-file')
+    if pidpath:
+        pidfile = PIDFile(pidpath)
+        pidfile.set_pid(os.getpid())
+    else:
+        pidfile = None
+    try:
+        remote.run_server(srv)
+    finally:
+        if pidfile:
+            # Check if another process has taken over the PID file.
+            try:
+                do_delete = (pidfile.get_pid(True) == os.getpid())
+            except Exception:
+                do_delete = False
+            if do_delete:
+                pidfile.set_pid(None)
+
+def run_client(conn, cmdline, close_conn=False):
+    def report_handler(line):
+        if line is None or len(line) <= 1:
+            return
+        elif line[0] == '<':
+            line = line[1:]
+        print (' '.join(line))
+    def command_wrapper():
+        result = yield coroutines.Call(conn.do_command(*cmdline))
+        report_handler(result)
+    conn.report_handler = report_handler
+    conn.parent.run_routine(command_wrapper())
+    if close_conn: conn.close()
+
 def main():
     def str_no_equals(s):
         if '=' in s:
             raise ValueError('Positional arguments must not contain \'=\' '
                 'characters')
         return s
-    def run_master():
-        def interrupt():
-            def interrupt_agent():
-                yield remote.Stop()
-            if remote.closing or not remote.executor:
-                raise KeyboardInterrupt
-            else:
-                remote.closing = True
-                remote.executor.add(interrupt_agent())
-        setup_logging(config)
-        remote = Remote(config, mgr)
-        remote.closing = False
-        signal.signal(signal.SIGINT, lambda sn, f: interrupt())
-        signal.signal(signal.SIGTERM, lambda sn, f: interrupt())
-        srv = remote.listen()
-        if arguments.close_fds:
-            devnull_fd = os.open(os.devnull, os.O_RDWR)
-            os.dup2(devnull_fd, sys.stdin.fileno())
-            os.dup2(devnull_fd, sys.stdout.fileno())
-            if config.get_section('master').get('log-file'):
-                os.dup2(devnull_fd, sys.stderr.fileno())
-            os.close(devnull_fd)
-        pidpath = remote.config.get('pid-file')
-        if pidpath:
-            pidfile = PIDFile(pidpath)
-            pidfile.set_pid(os.getpid())
-        else:
-            pidfile = None
-        try:
-            remote.run_server(srv)
-        finally:
-            if pidfile:
-                # Check if another process has taken over the PID file.
-                try:
-                    do_delete = (pidfile.get_pid(True) == os.getpid())
-                except Exception:
-                    do_delete = False
-                if do_delete:
-                    pidfile.set_pid(None)
-    def run_client(cmdline):
-        def report_handler(line):
-            if line is None or len(line) <= 1:
-                return
-            elif line[0] == '<':
-                line = line[1:]
-            print (' '.join(line))
-        def command_wrapper():
-            result = yield coroutines.Call(conn.do_command(*cmdline))
-            report_handler(result)
-        conn.report_handler = report_handler
-        remote.run_routine(command_wrapper())
     p = argparse.ArgumentParser(
         description='Manage an Instant backend and a group of bots',
         epilog='The --master option can have the following values: off = '
@@ -873,7 +876,7 @@ def main():
     except ConfigurationError as exc:
         raise SystemExit('Configuration error: ' + str(exc))
     if arguments.cmd == 'run-master':
-        run_master()
+        run_master(mgr, close_fds=arguments.close_fds)
         return
     stop_master = (arguments.master == 'stop')
     if stop_master:
@@ -923,9 +926,9 @@ def main():
             opdesc = OPERATIONS[arguments.cmd.replace('-', '_')]
             cmdline = ([arguments.cmd.upper()] +
                        mgr.compose_line(kwds, opdesc['types']))
-        run_client(cmdline)
-        if stop_master:
-            run_client(('SHUTDOWN',))
+        run_client(conn, cmdline)
+        if stop_master: run_client(conn, ('SHUTDOWN',))
+        conn.close()
     else:
         kwds['verbose'] = True
         func = getattr(mgr, 'do_' + arguments.cmd.replace('-', '_'))
