@@ -12,18 +12,20 @@ import subprocess
 SIGPIPE_CHUNK_SIZE = 1024
 LINEREADER_CHUNK_SIZE = 16384
 
-class ProcessTag(object):
-    def __init__(self, pid):
-        self.pid = pid
+class Tag(object):
+    def __init__(self, value):
+        self.value = value
 
     def __hash__(self):
-        return hash(self.pid)
+        return hash((type(self), self.value))
 
     def __eq__(self, other):
-        return isinstance(other, ProcessTag) and other.pid == self.pid
+        return type(other) == type(self) and other.value == self.value
 
     def __ne__(self, other):
-        return not (self == other)
+        return type(other) != type(self) or other.value != self.value
+
+class ProcessTag(Tag): pass
 
 class Suspend(object):
     def apply(self, wake, executor, routine):
