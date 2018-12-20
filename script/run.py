@@ -4,6 +4,7 @@
 # An init script for running Instant and a number of bots.
 
 import sys, os, re, time, inspect
+import uuid
 import errno, signal, socket
 import shlex
 import logging
@@ -22,12 +23,15 @@ except ImportError: # Py2K
 DEFAULT_CONFFILE = 'config/instant.ini'
 DEFAULT_COMM_PATH = 'run/comm'
 DEFAULT_PIDFILE_TEMPLATE = 'run/%s.pid'
+WARMUP_PIDFILE_SUFFIX = '.new'
 
 REDIRECTION_RE = re.compile(r'^[<>|&]+')
 PID_LINE_RE = re.compile(r'^[0-9]+\s*$')
 
 ESCAPE_PARSE_RE = re.compile(r' |\\.?')
 ESCAPE_CHARS = {'\\\\': '\\', '\\ ': ' ', '\\n': '\n', '\\z': ''}
+
+THIS_FILE = os.path.abspath(inspect.getfile(lambda: None))
 
 class RunnerError(Exception): pass
 
@@ -209,19 +213,32 @@ class PIDFile:
         self._pid = pid
         self._write_file(pid)
 
+    def move_to(self, other):
+        try:
+            os.rename(self.path, other.path)
+        except OSError as e:
+            if e.errno != errno.ENOENT: raise
+            other.set_pid(None)
+        other._pid, self._pid = self._pid, Ellipsis
+
 class Process:
     def __init__(self, name, command, config=None):
         if config is None: config = {}
         self.name = name
         self.command = command
         self.pidfile = PIDFile(config.get('pid-file',
-                                          DEFAULT_PIDFILE_TEMPLATE % name))
+            DEFAULT_PIDFILE_TEMPLATE % name))
+        self.pidfile_next = PIDFile(config.get('pid-file-warmup',
+            self.pidfile.path + WARMUP_PIDFILE_SUFFIX))
         self.workdir = config.get('work-dir')
         self.stdin = Redirection.parse(config.get('stdin', ''))
         self.stdout = Redirection.parse(config.get('stdout', ''))
         self.stderr = Redirection.parse(config.get('stderr', ''))
         self.stop_delay = float(config.get('stop-wait', 0))
+        self.startup_notify = config.get('startup-notify')
+        self.uuid = uuid.uuid4()
         self._child = None
+        self._next_child = None
 
     def _redirectors(self):
         return (self.stdin, self.stdout, self.stderr)
@@ -237,11 +254,9 @@ class Process:
             context = None
         return callback
 
-    def start(self, wait=True, verbose=False):
-        exit = self._make_exit('start', verbose)
-        cur_status = yield coroutines.Call(self.status(verbose=False))
-        if cur_status == 'RUNNING':
-            yield exit('ALREADY_RUNNING')
+    def _spawn_process(self, extra_args=None):
+        cmdline = self.command
+        if extra_args: cmdline = tuple(cmdline) + tuple(extra_args)
         files = []
         try:
             # NOTE: The finally clause relies on every file being added to
@@ -249,12 +264,40 @@ class Process:
             #       self._redirectors()] may leak file descriptors.
             for r in self._redirectors():
                 files.append(r.open())
-            self._child = yield coroutines.SpawnProcess(args=self.command,
+            proc = yield coroutines.SpawnProcess(args=cmdline,
                 cwd=self.workdir, stdin=files[0], stdout=files[1],
                 stderr=files[2])
+            yield coroutines.Exit(proc)
         finally:
             for r, f in zip(self._redirectors(), files):
                 r.close(f)
+
+    def warmup(self, wait=True, verbose=False):
+        exit = self._make_exit('warmup', verbose)
+        if (not self.startup_notify or ' ' in sys.executable or
+                ' ' in THIS_FILE):
+            yield exit('NOT_SUPPORTED')
+        pid, status = self.pidfile_next.get_status()
+        if status == 'RUNNING' or self._next_child:
+            yield exit('ALREADY_RUNNING')
+        extra_args = (self.startup_notify, '%s %s %s %s' % (
+            sys.executable, THIS_FILE, 'notify', self.uuid
+        ))
+        self._next_child = yield coroutines.Call(self._spawn_process(
+            extra_args=extra_args))
+        self.pidfile_next.set_pid(self._next_child.pid)
+        yield exit('OK %s' % self._next_child.pid)
+
+    def start(self, wait=True, verbose=False):
+        exit = self._make_exit('start', verbose)
+        pid, status = self.pidfile.get_status()
+        if status == 'RUNNING':
+            yield exit('ALREADY_RUNNING')
+        if self._next_child:
+            self._child, self._next_child = self._next_child, None
+            self.pidfile_next.move_to(self.pidfile)
+            yield exit('OK %s' % self._child.pid)
+        self._child = yield coroutines.Call(self._spawn_process())
         self.pidfile.set_pid(self._child.pid)
         yield exit('OK %s' % self._child.pid)
 
@@ -285,7 +328,7 @@ class Process:
             status = 'OK'
         yield exit(status)
 
-    def status(self, verbose=True):
+    def status(self, verbose=False):
         exit = self._make_exit(None, verbose)
         pid, status = self.pidfile.get_status()
         if pid is not None: status = '%s %s' % (status, pid)
@@ -832,8 +875,7 @@ def main():
                 raise SystemExit('ERROR: Cannot connect to master process')
         # Otherwise, if selected, start a server and connect to it.
         if mode not in ('spawn', 'fg'): return None
-        this_file = inspect.getfile(lambda: None)
-        cmdline = (sys.executable, this_file, '--config',
+        cmdline = (sys.executable, THIS_FILE, '--config',
             conffile_path, 'run-master', '--close-fds')
         # The only real difference between spawn and fg is which process
         # assumes which role.
