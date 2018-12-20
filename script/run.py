@@ -818,6 +818,40 @@ def main():
             raise ValueError('Positional arguments must not contain \'=\' '
                 'characters')
         return s
+    def do_connect(mode, conffile_path):
+        # No connections if disabled.
+        if mode == 'off': return None
+        remote = Remote(config)
+        # First, try to connect right away.
+        try:
+            return remote.connect()
+        except socket.error as exc:
+            if exc.errno != errno.ENOENT:
+                raise
+            elif mode == 'on':
+                raise SystemExit('ERROR: Cannot connect to master process')
+        # Otherwise, if selected, start a server and connect to it.
+        if mode not in ('spawn', 'fg'): return None
+        this_file = inspect.getfile(lambda: None)
+        cmdline = (sys.executable, this_file, '--config',
+            conffile_path, 'run-master', '--close-fds')
+        # The only real difference between spawn and fg is which process
+        # assumes which role.
+        rfd, wfd = os.pipe()
+        pid = os.fork()
+        if (pid == 0) == (mode == 'spawn'):
+            # Assume the master role in the child process iff spawn is
+            # selected.
+            os.close(rfd)
+            os.dup2(wfd, sys.stdout.fileno())
+            os.execv(sys.executable, cmdline)
+            raise RuntimeError('exec() returned?!')
+        # In the client process, wait until the master process is ready (or
+        # dead), and try to connect again.
+        os.close(wfd)
+        os.read(rfd, 1)
+        os.close(rfd)
+        return remote.connect()
     p = argparse.ArgumentParser(
         description='Manage an Instant backend and a group of bots',
         epilog='The --master option can have the following values: off = '
@@ -886,37 +920,7 @@ def main():
             raise SystemExit('ERROR: "--master=off" conflicts with "cmd"')
         elif arguments.master == 'auto':
             arguments.master = 'spawn'
-    remote, conn = None, None
-    if arguments.master != 'off':
-        remote = Remote(config)
-        try:
-            conn = remote.connect()
-        except socket.error as exc:
-            if exc.errno != errno.ENOENT:
-                raise
-            elif arguments.master == 'on':
-                raise SystemExit('ERROR: Cannot connect to master process')
-        if not conn and arguments.master in ('spawn', 'fg'):
-            this_file = inspect.getfile(lambda: None)
-            cmdline = (sys.executable, this_file, '--config',
-                arguments.config, 'run-master', '--close-fds')
-            # The only real difference between spawn and fg is which process
-            # assumes which role.
-            rfd, wfd = os.pipe()
-            pid = os.fork()
-            if (pid == 0) == (arguments.master == 'spawn'):
-                # Assume the master role in the child process iff spawn is
-                # selected.
-                os.close(rfd)
-                os.dup2(wfd, sys.stdout.fileno())
-                os.execv(sys.executable, cmdline)
-                raise RuntimeError('exec() returned?!')
-            # Otherwise (in the client process), wait until the master process
-            # is ready (or dead), and try to connect again.
-            os.close(wfd)
-            os.read(rfd, 1)
-            os.close(rfd)
-            conn = remote.connect()
+    conn = do_connect(arguments.master, conffile_path=arguments.config)
     kwds = dict(arguments.__dict__)
     for k in ('config', 'master', 'cmd'): del kwds[k]
     if conn is not None:
