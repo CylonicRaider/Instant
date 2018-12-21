@@ -222,10 +222,10 @@ class PIDFile:
         other._pid, self._pid = self._pid, Ellipsis
 
 class Process:
-    def __init__(self, name, command, config=None):
-        if config is None: config = {}
+    def __init__(self, name, command, config, manager=None):
         self.name = name
         self.command = command
+        self.manager = manager
         self.pidfile = PIDFile(config.get('pid-file',
             DEFAULT_PIDFILE_TEMPLATE % name))
         self.pidfile_next = PIDFile(config.get('pid-file-warmup',
@@ -239,6 +239,9 @@ class Process:
         self.uuid = uuid.uuid4()
         self._child = None
         self._next_child = None
+        self._next_switcher = coroutines.StateSwitcher('')
+        if manager:
+            manager.register_notify(str(self.uuid), self._next_switcher)
 
     def _redirectors(self):
         return (self.stdin, self.stdout, self.stderr)
@@ -274,18 +277,24 @@ class Process:
 
     def warmup(self, wait=True, verbose=False):
         exit = self._make_exit('warmup', verbose)
-        if (not self.startup_notify or ' ' in sys.executable or
-                ' ' in THIS_FILE):
+        if wait and (not self.startup_notify or ' ' in sys.executable or
+                ' ' in THIS_FILE or not self.manager or
+                not self.manager.has_notify):
             yield exit('NOT_SUPPORTED')
         pid, status = self.pidfile_next.get_status()
         if status == 'RUNNING' or self._next_child:
             yield exit('ALREADY_RUNNING')
-        extra_args = (self.startup_notify, '%s %s %s %s' % (
-            sys.executable, THIS_FILE, 'notify', self.uuid
-        ))
+        if wait:
+            yield self._next_switcher.Set('STARTING')
+            extra_args = (self.startup_notify, '%s %s cmd NOTIFY %s' % (
+                sys.executable, THIS_FILE, self.uuid))
+        else:
+            extra_args = ()
         self._next_child = yield coroutines.Call(self._spawn_process(
             extra_args=extra_args))
         self.pidfile_next.set_pid(self._next_child.pid)
+        if wait:
+            yield self._next_switcher.Toggle('READY', 'STANDBY', True)
         yield exit('OK %s' % self._next_child.pid)
 
     def start(self, wait=True, verbose=False):
@@ -296,6 +305,7 @@ class Process:
         if self._next_child:
             self._child, self._next_child = self._next_child, None
             self.pidfile_next.move_to(self.pidfile)
+            yield self._next_switcher.Toggle('STANDBY', '')
             yield exit('OK %s' % self._child.pid)
         self._child = yield coroutines.Call(self._spawn_process())
         self.pidfile.set_pid(self._child.pid)
@@ -430,6 +440,8 @@ class ProcessManager:
         if group is None: group = ProcessGroup()
         self.conffile = conffile
         self.group = group
+        self.has_notify = False
+        self.notifies = {}
 
     def init(self):
         sections = [s for s in self.conffile.list_sections()
@@ -443,7 +455,13 @@ class ProcessManager:
                 raise ConfigurationError('Missing required key "cmdline" in '
                     'section "%s"' % s)
             command = tuple(shlex.split(cmdline))
-            self.group.add(Process(s, command, values))
+            self.group.add(Process(s, command, values, self))
+
+    def register_notify(self, key, obj):
+        self.notifies[key] = obj
+
+    def get_notify(self, key):
+        return self.notifies.get(key)
 
     def _process_selector(self, procs):
         if not procs: return None
@@ -532,6 +550,17 @@ def command_ping(self, cmd, *args):
 @command('SHUTDOWN', maxargs=0)
 def command_shutdown(self, cmd):
     yield self.parent.Stop()
+    yield coroutines.Exit('OK')
+
+@command('NOTIFY', minargs=1, maxargs=1)
+def command_notify(self, cmd, key):
+    switcher = self.parent.manager.get_notify(key)
+    if not switcher:
+        raise RemoteError('NXNOTIFY', 'No such notification endpoint')
+    res = yield switcher.Toggle('STARTING', 'READY')
+    if not res:
+        yield coroutines.Exit('FAIL')
+    yield switcher.Wait('')
     yield coroutines.Exit('OK')
 
 class Remote:
@@ -961,6 +990,7 @@ def main():
     except ConfigurationError as exc:
         raise SystemExit('Configuration error: ' + str(exc))
     if arguments.cmd == 'run-master':
+        mgr.has_notify = True
         run_master(mgr, close_fds=arguments.close_fds)
         return
     stop_master = (arguments.master == 'stop')
