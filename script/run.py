@@ -493,6 +493,18 @@ class ProcessManager:
         yield coroutines.Call(self.group.start(verbose=verbose,
                                                selector=selector))
 
+    @operation(procs=(list, 'The processes to restart (default: all)'))
+    def do_bg_restart(self, procs=None, verbose=False):
+        "Restart the given processes with pre-loading the new instances"
+        selector = self._process_selector(procs)
+        yield coroutines.Call(self.group.warmup(verbose=verbose,
+                                                selector=selector))
+        yield coroutines.Call(self.group.stop(verbose=verbose,
+                                              selector=selector))
+        yield coroutines.Call(self.group.start(verbose=verbose,
+                                               selector=selector))
+
+
     @operation(procs=(list, 'The processes to query (default: all)'))
     def do_status(self, procs=None, verbose=False):
         "Query the status of the given processes"
