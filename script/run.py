@@ -347,13 +347,16 @@ class ProcessGroup:
         result = yield coroutines.All(*calls)
         yield coroutines.Exit(result)
 
+    def warmup(self, wait=True, verbose=False, selector=None):
+        return self._for_each(selector, lambda p: p.warmup(wait, verbose))
+
     def start(self, wait=True, verbose=False, selector=None):
         return self._for_each(selector, lambda p: p.start(wait, verbose))
 
     def stop(self, wait=True, verbose=False, selector=None):
         return self._for_each(selector, lambda p: p.stop(wait, verbose))
 
-    def status(self, verbose=True, selector=None):
+    def status(self, verbose=False, selector=None):
         return self._for_each(selector, lambda p: p.status(verbose))
 
 OPERATIONS = {}
