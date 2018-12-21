@@ -371,7 +371,7 @@ def operation(**params):
     types = {k: v[0] for k, v in params.items()}
     return callback
 
-class InstantManager(ProcessGroup):
+class ProcessManager:
     @classmethod
     def parse_line(cls, line, types):
         data, positional_key = {}, None
@@ -423,9 +423,10 @@ class InstantManager(ProcessGroup):
         if not poswords: poswords = []
         return words + poswords
 
-    def __init__(self, conffile):
-        ProcessGroup.__init__(self)
+    def __init__(self, conffile, group=None):
+        if group is None: group = ProcessGroup()
         self.conffile = conffile
+        self.group = group
 
     def init(self):
         sections = [s for s in self.conffile.list_sections()
@@ -439,7 +440,7 @@ class InstantManager(ProcessGroup):
                 raise ConfigurationError('Missing required key "cmdline" in '
                     'section "%s"' % s)
             command = tuple(shlex.split(cmdline))
-            self.add(Process(s, command, values))
+            self.group.add(Process(s, command, values))
 
     def _process_selector(self, procs):
         if not procs: return None
@@ -451,27 +452,32 @@ class InstantManager(ProcessGroup):
     def do_start(self, wait=True, procs=None, verbose=False):
         "Start the given processes"
         selector = self._process_selector(procs)
-        yield coroutines.Call(self.start(verbose=verbose, selector=selector))
+        yield coroutines.Call(self.group.start(verbose=verbose,
+                                               selector=selector))
 
     @operation(wait=(bool, 'Whether to wait for the stop\'s completion'),
                procs=(list, 'The processes to stop (default: all)'))
     def do_stop(self, wait=True, procs=None, verbose=False):
         "Stop the given processes"
         selector = self._process_selector(procs)
-        yield coroutines.Call(self.stop(verbose=verbose, selector=selector))
+        yield coroutines.Call(self.group.stop(verbose=verbose,
+                                              selector=selector))
 
     @operation(procs=(list, 'The processes to restart (default: all)'))
     def do_restart(self, procs=None, verbose=False):
         "Restart the given processes"
         selector = self._process_selector(procs)
-        yield coroutines.Call(self.stop(verbose=verbose, selector=selector))
-        yield coroutines.Call(self.start(verbose=verbose, selector=selector))
+        yield coroutines.Call(self.group.stop(verbose=verbose,
+                                              selector=selector))
+        yield coroutines.Call(self.group.start(verbose=verbose,
+                                               selector=selector))
 
     @operation(procs=(list, 'The processes to query (default: all)'))
     def do_status(self, procs=None, verbose=False):
         "Query the status of the given processes"
         selector = self._process_selector(procs)
-        yield coroutines.Call(self.status(verbose=verbose, selector=selector))
+        yield coroutines.Call(self.group.status(verbose=verbose,
+                                                selector=selector))
 
 REMOTE_COMMANDS = {}
 def command(name, minargs=0, maxargs=None):
@@ -946,7 +952,7 @@ def main():
     arguments = p.parse_args()
     config = Configuration(arguments.config)
     config.load()
-    mgr = InstantManager(config)
+    mgr = ProcessManager(config)
     try:
         mgr.init()
     except ConfigurationError as exc:
