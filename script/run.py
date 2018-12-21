@@ -397,7 +397,8 @@ def operation(**params):
         defaultlist = argspec.defaults or ()
         defaults = dict(zip(argspec.args[-len(defaultlist):], defaultlist))
         OPERATIONS[opname] = {'cb': func, 'doc': func.__doc__, 'types': types,
-                              'params': params, 'defaults': defaults}
+                              'params': params, 'defaults': defaults,
+                              'index': len(OPERATIONS)}
         return func
     types = {k: v[0] for k, v in params.items()}
     return callback
@@ -983,6 +984,22 @@ def main():
                           description='The action to perform (invoke with a '
                               '--help option to see usage details)')
     sp.required = True
+    for name, desc in sorted(OPERATIONS.items(),
+                             key=lambda item: item[1]['index']):
+        cmdp = sp.add_parser(name.replace('_', '-'), help=desc['doc'])
+        for name, (tp, doc) in sorted(desc['params'].items()):
+            prefix = '--'
+            if tp == bool:
+                kwds = {'type': is_true, 'metavar': 'BOOL'}
+            elif tp == list:
+                prefix = ''
+                kwds = {'type': str_no_equals, 'nargs': '*'}
+            else:
+                kwds = {'type': tp, 'metavar': tp.__name__.upper()}
+            if name in desc['defaults']:
+                kwds['default'] = desc['defaults'][name]
+            cmdp.add_argument(prefix + name.replace('_', '-'), help=doc,
+                              **kwds)
     p_master = sp.add_parser('run-master', help='Start a job manager server')
     p_master.add_argument('--close-fds', action='store_true',
                           help='Close standard input, standard output, and '
@@ -998,21 +1015,6 @@ def main():
                               'none), executes the command, and tears the '
                               'daemon (back) down.')
     p_cmd.add_argument('cmdline', nargs='+', help='Command line to execute')
-    for name, desc in sorted(OPERATIONS.items()):
-        cmdp = sp.add_parser(name.replace('_', '-'), help=desc['doc'])
-        for name, (tp, doc) in sorted(desc['params'].items()):
-            prefix = '--'
-            if tp == bool:
-                kwds = {'type': is_true, 'metavar': 'BOOL'}
-            elif tp == list:
-                prefix = ''
-                kwds = {'type': str_no_equals, 'nargs': '*'}
-            else:
-                kwds = {'type': tp, 'metavar': tp.__name__.upper()}
-            if name in desc['defaults']:
-                kwds['default'] = desc['defaults'][name]
-            cmdp.add_argument(prefix + name.replace('_', '-'), help=doc,
-                              **kwds)
     arguments = p.parse_args()
     config = Configuration(arguments.config)
     config.load()
