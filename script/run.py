@@ -904,6 +904,8 @@ def run_client(conn, cmdline, close_conn=False):
             return
         elif line[0] == '<':
             line = line[1:]
+        elif line[0] == 'ERROR' and len(line) == 3:
+            raise RemoteError(line[1], line[2])
         print (' '.join(line))
     def command_wrapper():
         result = yield coroutines.Call(conn.do_command(*cmdline))
@@ -918,6 +920,17 @@ def main():
             raise ValueError('Positional arguments must not contain \'=\' '
                 'characters')
         return s
+    def coroutines_error_handler(exc, source):
+        if isinstance(exc, RemoteError):
+            orig_message = re.sub(r'^\[[A-za-z0-9-]+\] ', '', str(exc))
+            raise SystemExit('ERROR: ' + orig_message)
+        elif isinstance(exc, RunnerError):
+            raise SystemExit('ERROR: ' + str(exc))
+    def try_call(func, *args, **kwds):
+        try:
+            return func(*args, **kwds)
+        except RunnerError as exc:
+            coroutines_error_handler(exc, None)
     def do_connect(mode, conffile_path):
         # No connections if disabled.
         if mode == 'off': return None
@@ -1020,22 +1033,27 @@ def main():
             raise SystemExit('ERROR: "--master=off" conflicts with "cmd"')
         elif arguments.master == 'auto':
             arguments.master = 'spawn'
-    conn = do_connect(arguments.master, conffile_path=arguments.config)
+    conn = try_call(do_connect, arguments.master,
+                    conffile_path=arguments.config)
     kwds = dict(arguments.__dict__)
     for k in ('config', 'master', 'cmd'): del kwds[k]
     if conn is not None:
+        conn.parent.prepare_executor().error_cb = coroutines_error_handler
         if arguments.cmd == 'cmd':
             cmdline = arguments.cmdline
         else:
             opdesc = OPERATIONS[arguments.cmd.replace('-', '_')]
             cmdline = ([arguments.cmd.upper()] +
                        mgr.compose_line(kwds, opdesc['types']))
-        run_client(conn, cmdline)
-        if stop_master: run_client(conn, ('SHUTDOWN',))
-        conn.close()
+        try:
+            try_call(run_client, conn, cmdline)
+        finally:
+            if stop_master: try_call(run_client, conn, ('SHUTDOWN',))
+            conn.close()
     else:
         kwds['verbose'] = True
         func = getattr(mgr, 'do_' + arguments.cmd.replace('-', '_'))
-        coroutines.run([func(**kwds)], sigpipe=True)
+        try_call(coroutines.run, [func(**kwds)], sigpipe=True,
+                 on_error=coroutines_error_handler)
 
 if __name__ == '__main__': main()

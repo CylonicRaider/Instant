@@ -415,6 +415,7 @@ class Executor:
         self.selectfiles = (set(), set(), set())
         self.sleeps = []
         self.polls = set()
+        self.error_cb = None
 
     def add(self, routine, value=None, daemon=False):
         self.routines[routine] = value
@@ -497,6 +498,7 @@ class Executor:
                 self.remove_poll(p)
 
     def on_error(self, exc, source):
+        if self.error_cb and self.error_cb(exc, source): return
         lines = ['Uncaught exception in %r:\n' % (source,)]
         lines.extend(traceback.format_exception(*sys.exc_info()))
         sys.stderr.write(''.join(lines))
@@ -785,13 +787,14 @@ def constRaise(exc, excclass=RuntimeError):
         raise excclass(exc)
     yield exc
 
-def run(routines=(), main=None, sigpipe=False):
+def run(routines=(), main=None, sigpipe=False, on_error=None):
     def main_routine():
         result[0] = yield main
     ex = Executor()
     for r in routines: ex.add(r)
     if main: ex.add(main_routine())
     if sigpipe: set_sigpipe(ex)
+    if on_error is not None: ex.error_cb = on_error
     result = [None]
     try:
         ex.run()
