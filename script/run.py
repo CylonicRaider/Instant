@@ -37,6 +37,13 @@ class RunnerError(Exception): pass
 
 class ConfigurationError(RunnerError): pass
 
+class NoSuchProcessesError(RunnerError):
+    def __init__(self, proclist):
+        RunnerError.__init__(self, 'Unknown process%s: %s' % (
+                             'es' if len(proclist) != 1 else '',
+                             ', '.join(map(str, sorted(proclist)))))
+        self.proclist = proclist
+
 class RemoteError(RunnerError):
     def __init__(self, code, message):
         RunnerError.__init__(self, '[%s] %s' % (code, message))
@@ -351,23 +358,34 @@ class ProcessGroup:
     def add(self, proc):
         self.processes.append(proc)
 
-    def _for_each(self, selector, handler):
-        calls = [coroutines.Call(handler(p))
-                 for p in filter(selector, self.processes)]
+    def _for_each(self, procs, handler):
+        if procs is None:
+            eff_procs = self.processes
+        else:
+            eff_procs = []
+            procs = set(procs)
+            for p in self.processes:
+                if p in procs or p.name in procs:
+                    eff_procs.append(p)
+                    procs.discard(p)
+                    procs.discard(p.name)
+            if procs:
+                raise NoSuchProcessesError(procs)
+        calls = [coroutines.Call(handler(p)) for p in eff_procs]
         result = yield coroutines.All(*calls)
         yield coroutines.Exit(result)
 
-    def warmup(self, wait=True, verbose=False, selector=None):
-        return self._for_each(selector, lambda p: p.warmup(wait, verbose))
+    def warmup(self, wait=True, verbose=False, procs=None):
+        return self._for_each(procs, lambda p: p.warmup(wait, verbose))
 
-    def start(self, wait=True, verbose=False, selector=None):
-        return self._for_each(selector, lambda p: p.start(wait, verbose))
+    def start(self, wait=True, verbose=False, procs=None):
+        return self._for_each(procs, lambda p: p.start(wait, verbose))
 
-    def stop(self, wait=True, verbose=False, selector=None):
-        return self._for_each(selector, lambda p: p.stop(wait, verbose))
+    def stop(self, wait=True, verbose=False, procs=None):
+        return self._for_each(procs, lambda p: p.stop(wait, verbose))
 
-    def status(self, verbose=False, selector=None):
-        return self._for_each(selector, lambda p: p.status(verbose))
+    def status(self, verbose=False, procs=None):
+        return self._for_each(procs, lambda p: p.status(verbose))
 
 OPERATIONS = {}
 def operation(**params):
@@ -463,54 +481,41 @@ class ProcessManager:
     def get_notify(self, key):
         return self.notifies.get(key)
 
-    def _process_selector(self, procs):
-        if not procs: return None
-        procs = frozenset(procs)
-        return lambda p: p.name in procs or p in procs
-
     @operation(wait=(bool, 'Whether to wait for the start\'s completion'),
                procs=(list, 'The processes to start (default: all)'))
     def do_start(self, wait=True, procs=None, verbose=False):
         "Start the given processes"
-        selector = self._process_selector(procs)
-        yield coroutines.Call(self.group.start(verbose=verbose,
-                                               selector=selector))
+        kwds = {'procs': procs, 'verbose': verbose}
+        yield coroutines.Call(self.group.start(**kwds))
 
     @operation(wait=(bool, 'Whether to wait for the stop\'s completion'),
                procs=(list, 'The processes to stop (default: all)'))
     def do_stop(self, wait=True, procs=None, verbose=False):
         "Stop the given processes"
-        selector = self._process_selector(procs)
-        yield coroutines.Call(self.group.stop(verbose=verbose,
-                                              selector=selector))
+        kwds = {'procs': procs, 'verbose': verbose}
+        yield coroutines.Call(self.group.stop(**kwds))
 
     @operation(procs=(list, 'The processes to restart (default: all)'))
     def do_restart(self, procs=None, verbose=False):
         "Restart the given processes"
-        selector = self._process_selector(procs)
-        yield coroutines.Call(self.group.stop(verbose=verbose,
-                                              selector=selector))
-        yield coroutines.Call(self.group.start(verbose=verbose,
-                                               selector=selector))
+        kwds = {'procs': procs, 'verbose': verbose}
+        yield coroutines.Call(self.group.stop(**kwds))
+        yield coroutines.Call(self.group.start(**kwds))
 
     @operation(procs=(list, 'The processes to restart (default: all)'))
     def do_bg_restart(self, procs=None, verbose=False):
         "Restart the given processes with pre-loading the new instances"
-        selector = self._process_selector(procs)
-        yield coroutines.Call(self.group.warmup(verbose=verbose,
-                                                selector=selector))
-        yield coroutines.Call(self.group.stop(verbose=verbose,
-                                              selector=selector))
-        yield coroutines.Call(self.group.start(verbose=verbose,
-                                               selector=selector))
+        kwds = {'procs': procs, 'verbose': verbose}
+        yield coroutines.Call(self.group.warmup(**kwds))
+        yield coroutines.Call(self.group.stop(**kwds))
+        yield coroutines.Call(self.group.start(**kwds))
 
 
     @operation(procs=(list, 'The processes to query (default: all)'))
     def do_status(self, procs=None, verbose=False):
         "Query the status of the given processes"
-        selector = self._process_selector(procs)
-        yield coroutines.Call(self.group.status(verbose=verbose,
-                                                selector=selector))
+        kwds = {'procs': procs, 'verbose': verbose}
+        yield coroutines.Call(self.group.status(**kwds))
 
 REMOTE_COMMANDS = {}
 def command(name, minargs=0, maxargs=None):
@@ -543,6 +548,8 @@ def _wrap_operation(opname, desc):
         self.parent.manager_logger.info('Doing ' + opname + '...')
         try:
             result = yield coroutines.Call(method(**kwds))
+        except NoSuchProcessesError as exc:
+            raise RemoteError('NXPROCS', str(exc))
         except RunnerError as exc:
             raise RemoteError('UNK', str(exc))
         else:
