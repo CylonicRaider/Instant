@@ -616,6 +616,64 @@ class Lock(object):
         callback, self._trigger = self._trigger, None
         callback()
 
+class StateSwitcher(object):
+    class _Wait(SimpleCancellable):
+        def __init__(self, parent, match):
+            SimpleCancellable.__init__(self)
+            self.parent = parent
+            self.match = match
+
+        def apply(self, wake, executor, routine):
+            def inner_wake(value):
+                self.apply(wake, executor, routine)
+            if self.parent.state == self.match:
+                wake((0, None))
+            else:
+                self.listen(executor, self.parent, inner_wake)
+
+    class _Toggle(SimpleCancellable):
+        def __init__(self, parent, match, new, wait):
+            SimpleCancellable.__init__(self)
+            self.parent = parent
+            self.match = match
+            self.new = new
+            self.wait = wait
+
+        def apply(self, wake, executor, routine):
+            def inner_wake(value):
+                self.apply(wake, executor, routine)
+            if self.parent.state == self.match:
+                self.parent.state = self.new
+                executor.trigger(self.parent, (0, self.new))
+                wake((0, True))
+            elif not self.wait:
+                wake((0, False))
+            else:
+                self.listen(executor, self.parent, inner_wake)
+
+    class _Set(Suspend):
+        def __init__(self, parent, new):
+            self.parent = parent
+            self.new = new
+
+        def apply(self, wake, executor, routine):
+            prev_state = self.parent.state
+            self.parent.state = self.new
+            executor.trigger(self.parent, (0, self.new))
+            wake((0, prev_state))
+
+    def __init__(self, state=None):
+        self.state = state
+
+    def Wait(self, match):
+        return self._Wait(self, match)
+
+    def Toggle(self, match, new, wait=False):
+        return self._Toggle(self, match, new, wait)
+
+    def Set(self, new):
+        return self._Set(self, new)
+
 class BinaryLineReader(object):
     class _ReadLine(Suspend):
         def __init__(self, parent):
