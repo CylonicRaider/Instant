@@ -4,9 +4,9 @@
 # A PEP 342 generator-based coroutine framework.
 
 import sys, os, time
-import traceback
 import heapq
-import errno, signal, select
+import traceback
+import errno, signal, socket, select
 import subprocess
 
 SIGPIPE_CHUNK_SIZE = 1024
@@ -329,7 +329,13 @@ class ReadFile(IOSuspend):
         self.length = length
 
     def _do_io(self, mode):
-        return self.readfile.read(self.length)
+        try:
+            return self.readfile.read(self.length)
+        except AttributeError:
+            try:
+                return self.readfile.recv(self.length)
+            except AttributeError:
+                return os.read(self.readfile, self.length)
 
 class WriteFile(IOSuspend):
     def __init__(self, writefile, data, selectfile=None):
@@ -339,7 +345,13 @@ class WriteFile(IOSuspend):
         self.data = data
 
     def _do_io(self, mode):
-        return self.writefile.write(self.data)
+        try:
+            return self.writefile.write(self.data)
+        except AttributeError:
+            try:
+                return self.writefile.send(self.data)
+            except AttributeError:
+                return os.write(self.writefile, self.data)
 
 class AcceptSocket(IOSuspend):
     def __init__(self, sock, selectfile=None):
@@ -725,10 +737,10 @@ class BinaryLineReader(object):
     def ReadLine(self):
         return self._ReadLine(self)
 
-def sigpipe_handler(rfp, wfp, waits, cleanup):
+def sigpipe_handler(rfd, waits, cleanup):
     try:
         while 1:
-            yield ReadFile(rfp, SIGPIPE_CHUNK_SIZE)
+            yield ReadFile(rfd, SIGPIPE_CHUNK_SIZE)
             wakelist = []
             for w in tuple(waits):
                 res = w.poll()
@@ -746,36 +758,32 @@ def sigpipe_handler(rfp, wfp, waits, cleanup):
                 wakelist.append((ProcessTag(pid), code))
             yield Trigger(*wakelist)
     finally:
-        signal.set_wakeup_fd(-1)
-        for fp in (rfp, wfp):
-            try:
-                fp.close()
-            except IOError:
-                pass
         cleanup()
 
 def set_sigpipe(executor, coroutine=sigpipe_handler):
-    def restore_sigchld():
-        signal.signal(signal.SIGCHLD, old_handler)
-    rfd, wfd = os.pipe()
-    rfp, wfp = os.fdopen(rfd, 'rb', 0), os.fdopen(wfd, 'wb', 0)
-    waits = set()
-    try:
-        signal.set_wakeup_fd(wfd)
-        old_handler = signal.signal(signal.SIGCHLD, lambda sn, f: None)
-        inst = coroutine(rfp, wfp, waits, restore_sigchld)
-        executor.add(inst, daemon=True)
-        executor.waits = waits
-    except Exception:
-        try:
-            del executor.waits
-        except AttributeError:
-            pass
+    def cleanup(reset_signals=True):
+        if reset_signals:
+            signal.signal(signal.SIGCHLD, old_handler)
+            signal.set_wakeup_fd(-1)
         for fd in (rfd, wfd):
             try:
                 os.close(fd)
             except IOError:
                 pass
+        try:
+            del executor.waits
+        except AttributeError:
+            pass
+    rfd, wfd = os.pipe()
+    waits = set()
+    try:
+        signal.set_wakeup_fd(wfd)
+        old_handler = signal.signal(signal.SIGCHLD, lambda sn, f: None)
+        inst = coroutine(rfd, waits, cleanup)
+        executor.add(inst, daemon=True)
+        executor.waits = waits
+    except Exception:
+        cleanup(False)
         raise
     return inst
 
