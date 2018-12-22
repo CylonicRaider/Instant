@@ -707,8 +707,6 @@ class Remote:
             self.parent = parent
             self.path = path
             self.sock = sock
-            self.rfile = None
-            self.wfile = None
             self.reader = None
             self.report_handler = None
             if self.sock is not None: self._make_files()
@@ -717,9 +715,7 @@ class Remote:
             # FIXME: Py2K does not perform partial reads on socket files even
             #        if unbuffered mode is requested; this hangs coroutines'
             #        main loop.
-            self.rfile = self.sock.makefile('rb', 0)
-            self.wfile = self.sock.makefile('wb', 0)
-            self.reader = coroutines.BinaryLineReader(self.rfile)
+            self.reader = coroutines.BinaryLineReader(self.sock)
 
         def connect(self):
             self.sock = socket.socket(socket.AF_UNIX)
@@ -727,25 +723,23 @@ class Remote:
             self._make_files()
 
         def close(self):
-            try:
-                if self.sock is not None:
-                    self.sock.shutdown(socket.SHUT_RDWR)
-            except IOError:
-                pass
-            for item in (self.rfile, self.wfile, self.sock):
+            if self.sock is not None:
                 try:
-                    if item is not None:
-                        item.close()
+                    self.sock.shutdown(socket.SHUT_RDWR)
                 except IOError:
                     pass
-            self.parent._remove_selects(self.rfile, self.wfile, self.sock)
-            self.rfile = self.wfile = self.sock = None
+                try:
+                    self.sock.close()
+                except IOError:
+                    pass
+            self.parent._remove_selects(self.sock)
+            self.sock = None
 
         def ReadLineRaw(self):
             return self.reader.ReadLine()
 
         def WriteLineRaw(self, data):
-            return coroutines.WriteAll(self.wfile, data)
+            return coroutines.WriteAll(self.sock, data)
 
         def ReadLine(self):
             return coroutines.WrapperSuspend(self.ReadLineRaw(),
