@@ -1086,14 +1086,15 @@ def main():
             arguments.master = 'spawn'
     conn = try_call(do_connect, arguments.master,
                     conffile_path=arguments.config)
-    opname = arguments.cmd.replace('-', '_')
-    optypes = OPERATIONS[opname]['types']
     kwds = dict(arguments.__dict__)
     for k in ('config', 'master', 'cmd'):
         del kwds[k]
-    for k, v in tuple(kwds.items()):
-        if optypes[k] == list and not v:
-            del kwds[k]
+    if arguments.cmd != 'cmd':
+        opname = arguments.cmd.replace('-', '_')
+        optypes = OPERATIONS[opname]['types']
+        for k, v in tuple(kwds.items()):
+            if optypes[k] == list and not v:
+                del kwds[k]
     if conn is not None:
         conn.parent.prepare_executor().error_cb = coroutines_error_handler
         if arguments.cmd == 'cmd':
