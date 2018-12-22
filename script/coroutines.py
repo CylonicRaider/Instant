@@ -47,38 +47,43 @@ class All(CombinationSuspend):
         CombinationSuspend.__init__(self, suspends)
         self.result = [None] * len(suspends)
         self._finished = [False] * len(suspends)
-        self._finishedCount = 0
+        self._finished_count = 0
+        self._raised = False
 
     def _finish(self, index, value, callback):
         if self._finished[index]:
             raise RuntimeError('Attempting to wake a coroutine more than '
                 'once')
-        elif self._finishedCount == -1:
+        elif self._finished_count == -1:
             return
         if value is None:
             value = (0, None)
         if value[0] == 1:
-            self._finishedCount = -1
+            self._finished_count = -1
+            self._raised = True
             callback(value)
             return
         self.result[index] = value[1]
         self._finished[index] = True
-        self._finishedCount += 1
-        if self._finishedCount == len(self.children):
-            self._finishedCount = -1
+        self._finished_count += 1
+        if self._finished_count == len(self.children):
+            self._finished_count = -1
             callback((0, self.result))
 
     def apply(self, wake, executor, routine):
         def make_wake(index):
             return lambda value: self._finish(index, value, wake)
         for n, s in enumerate(self.children):
+            if self._raised: break
             s.apply(make_wake(n), executor, routine)
-        if len(self.children) == self._finishedCount == 0:
-            self._finishedCount = -1
+        if self._raised:
+            self.cancel()
+        elif len(self.children) == self._finished_count == 0:
+            self._finished_count = -1
             wake((0, self.result))
 
     def cancel(self):
-        self._finishedCount = -1
+        self._finished_count = -1
         CombinationSuspend.cancel(self)
 
 class Any(CombinationSuspend):
@@ -91,7 +96,7 @@ class Any(CombinationSuspend):
         self._do_wake = False
         if value is None:
             value = (0, None)
-        if value[1] == 1:
+        if value[0] == 1:
             callback(value)
         else:
             callback((0, (suspend, value[1])))
@@ -135,10 +140,11 @@ class Selector(CombinationSuspend):
                 raise RuntimeError('Trying to wake coroutine more than once')
             self._pending[suspend] = value
         else:
-            self._finish((suspend, value))
+            self._finish(suspend, value)
 
-    def _finish(self, item):
-        value = (0, None) if item[1] is None else item[1]
+    def _finish(self, suspend, value):
+        if value is None:
+            value = (0, None)
         if value[0] == 1:
             self._callback(value)
         else:
@@ -161,7 +167,7 @@ class Selector(CombinationSuspend):
             for p in pending:
                 p.apply(make_wake(p), executor, routine)
         if self._finished:
-            self._finish(self._finished.popitem())
+            self._finish(*self._finished.popitem())
         elif self.is_empty() and self._callback:
             wake((None, None))
             self._callback = None
