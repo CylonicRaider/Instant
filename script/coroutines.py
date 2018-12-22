@@ -174,9 +174,9 @@ class Selector(CombinationSuspend):
         CombinationSuspend.cancel(self)
         self.children[:] = []
 
-class WrapperSuspend(Suspend):
+class WrapperSuspend(CombinationSuspend):
     def __init__(self, wrapped, process=None):
-        self.wrapped = wrapped
+        CombinationSuspend.__init__(self, (wrapped,))
         self.process = process
 
     def apply(self, wake, executor, routine):
@@ -192,20 +192,12 @@ class WrapperSuspend(Suspend):
             except Exception as exc:
                 value = (1, exc)
             wake(value)
-        self.wrapped.apply(inner_wake, executor, routine)
+        self.children[0].apply(inner_wake, executor, routine)
 
 class ControlSuspend(Suspend): pass
 
-class InstantSuspend(ControlSuspend):
-    def __init__(self, value=None):
-        self.value = value
-
-    def apply(self, wake, executor, routine):
-        wake((0, self.value))
-
-class Trigger(InstantSuspend):
-    def __init__(self, *triggers, **kwds):
-        InstantSuspend.__init__(self, **kwds)
+class Trigger(ControlSuspend):
+    def __init__(self, *triggers):
         self.triggers = triggers
 
     def apply(self, wake, executor, routine):
@@ -215,7 +207,7 @@ class Trigger(InstantSuspend):
             else:
                 tag, value = trig, None
             executor.trigger(tag, (0, value))
-        InstantSuspend.apply(self, wake, executor, routine)
+        wake((0, None))
 
 class Exit(ControlSuspend):
     def __init__(self, result=None):
@@ -225,13 +217,6 @@ class Exit(ControlSuspend):
         routine.close()
         executor._done(routine, (0, self.result))
 
-class Join(ControlSuspend):
-    def __init__(self, target):
-        self.target = target
-
-    def apply(self, wake, executor, routine):
-        executor.listen(self.target, wake)
-
 class Spawn(ControlSuspend):
     def __init__(self, target, daemon=False):
         self.target = target
@@ -240,15 +225,6 @@ class Spawn(ControlSuspend):
     def apply(self, wake, executor, routine):
         executor.add(self.target, daemon=self.daemon)
         wake(None)
-
-class Call(ControlSuspend):
-    def __init__(self, target, daemon=False):
-        self.target = target
-        self.daemon = daemon
-
-    def apply(self, wake, executor, routine):
-        executor.add(self.target, daemon=self.daemon)
-        executor.listen(self.target, wake)
 
 class SimpleCancellable(Suspend):
     def __init__(self):
@@ -264,7 +240,16 @@ class SimpleCancellable(Suspend):
         executor.listen(target, callback)
         self._cancel_cb = lambda: executor.stop_listening(target, callback)
 
-class Listen(SimpleCancellable):
+class Call(ControlSuspend, SimpleCancellable):
+    def __init__(self, target, daemon=False):
+        self.target = target
+        self.daemon = daemon
+
+    def apply(self, wake, executor, routine):
+        executor.add(self.target, daemon=self.daemon)
+        self.listen(executor, self.target, wake)
+
+class Listen(ControlSuspend, SimpleCancellable):
     def __init__(self, target):
         SimpleCancellable.__init__(self)
         self.target = target
@@ -272,12 +257,14 @@ class Listen(SimpleCancellable):
     def apply(self, wake, executor, routine):
         self.listen(executor, self.target, wake)
 
+class Join(Listen): pass
+
 class Sleep(SimpleCancellable):
     def __init__(self, waketime, absolute=False):
         if not absolute: waketime += time.time()
         SimpleCancellable.__init__(self)
         self.waketime = waketime
-        self.token = object()
+        self._token = object()
 
     def __lt__(self, other):
         return self.waketime <  other.waketime
@@ -292,18 +279,21 @@ class Sleep(SimpleCancellable):
     def __gt__(self, other):
         return self.waketime >  other.waketime
 
+    def get_wake_token(self):
+        return self._token
+
     def apply(self, wake, executor, routine):
         executor.add_sleep(self)
-        self.listen(executor, self.token, wake)
+        self.listen(executor, self.get_wake_token(), wake)
 
 class IOSuspend(SimpleCancellable):
     SELECT_MODES = {'r': 0, 'w': 1, 'x': 2}
 
-    def __init__(self, file, mode):
+    def __init__(self, selectfile, mode):
         if mode not in self.SELECT_MODES:
             raise ValueError('Invalid I/O mode: %r' % (mode,))
         SimpleCancellable.__init__(self)
-        self.file = file
+        self.selectfile = selectfile
         self.mode = mode
 
     def _do_io(self, mode):
@@ -318,8 +308,8 @@ class IOSuspend(SimpleCancellable):
             else:
                 result = self._do_io(value[1])
                 wake((0, result))
-        executor.add_select(self.file, self.SELECT_MODES[self.mode])
-        self.listen(executor, self.file, inner_wake)
+        executor.add_select(self.selectfile, self.SELECT_MODES[self.mode])
+        self.listen(executor, self.selectfile, inner_wake)
 
 class ReadFile(IOSuspend):
     def __init__(self, readfile, length, selectfile=None):
@@ -362,7 +352,9 @@ class AcceptSocket(IOSuspend):
     def _do_io(self, mode):
         return self.sock.accept()
 
-class WriteAll(Suspend):
+class UtilitySuspend(Suspend): pass
+
+class WriteAll(UtilitySuspend):
     def __init__(self, writefile, data, selectfile=None):
         self.writefile = writefile
         self.data = data
@@ -374,7 +366,7 @@ class WriteAll(Suspend):
             if result is not None and result[0] == 1:
                 wake(result)
                 return
-            elif result[1] is None:
+            elif result is None or result[1] is None:
                 self.written = len(self.data)
             else:
                 self.written += result[1]
@@ -386,7 +378,7 @@ class WriteAll(Suspend):
                              self.selectfile)
         delegate.apply(inner_wake, executor, routine)
 
-class SpawnProcess(Suspend):
+class SpawnProcess(UtilitySuspend):
     def __init__(self, **params):
         self.params = params
 
@@ -396,7 +388,7 @@ class SpawnProcess(Suspend):
             executor.waits.add(proc)
         wake((0, proc))
 
-class WaitProcess(SimpleCancellable):
+class WaitProcess(UtilitySuspend, SimpleCancellable):
     def __init__(self, target):
         SimpleCancellable.__init__(self)
         self.target = target
@@ -495,7 +487,7 @@ class Executor:
         if now is None: now = time.time()
         while self.sleeps and self.sleeps[0].waketime <= now:
             sleep = heapq.heappop(self.sleeps)
-            self.trigger(sleep.token)
+            self.trigger(sleep.get_wake_token())
 
     def add_poll(self, poll):
         self.polls.add(poll)
