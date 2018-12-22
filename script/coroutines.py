@@ -456,7 +456,6 @@ class Executor:
         self.listening = {}
         self.selectfiles = (set(), set(), set())
         self.sleeps = []
-        self.polls = set()
         self.error_cb = None
 
     def add(self, routine, value=None, daemon=False):
@@ -526,18 +525,6 @@ class Executor:
         while self.sleeps and self.sleeps[0].waketime <= now:
             sleep = heapq.heappop(self.sleeps)
             self.trigger(sleep.get_wake_token())
-
-    def add_poll(self, poll):
-        self.polls.add(poll)
-
-    def remove_poll(self, poll):
-        self.polls.discard(poll)
-
-    def _do_polls(self):
-        for p in tuple(self.polls):
-            res = self._run_callback(p, (self,), final=True)
-            if res[0] == 0 and res[1] or res[1] == 1:
-                self.remove_poll(p)
 
     def on_error(self, exc, source):
         if self.error_cb and self.error_cb(exc, source): return
@@ -624,7 +611,6 @@ class Executor:
             elif self.sleeps and not self.routines:
                 time.sleep(self.sleeps[0].waketime - time.time())
             self._finish_sleeps()
-            self._do_polls()
 
     def __call__(self):
         self.run()
