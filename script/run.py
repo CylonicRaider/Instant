@@ -511,7 +511,6 @@ class ProcessManager:
         yield coroutines.Call(self.group.stop(**kwds))
         yield coroutines.Call(self.group.start(**kwds))
 
-
     @operation(procs=(list, 'The processes to query (default: all)'))
     def do_status(self, procs=None, verbose=False):
         "Query the status of the given processes"
