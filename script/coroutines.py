@@ -354,6 +354,36 @@ class AcceptSocket(IOSuspend):
 
 class UtilitySuspend(Suspend): pass
 
+class ReadAll(UtilitySuspend):
+    def __init__(self, readfile, length, selectfile=None):
+        self.readfile = readfile
+        self.length = length
+        self.selectfile = selectfile
+        self.read = None
+
+    def apply(self, wake, executor, routine):
+        def inner_wake(result):
+            if result is not None and result[0] == 1:
+                wake(result)
+                return
+            elif result is None:
+                result = (0, result)
+            if self.read is None:
+                self.read = result[1]
+            else:
+                self.read += result[1]
+            if result[1]:
+                self.apply(wake, executor, routine)
+            else:
+                wake((0, self.read))
+        length = 0 if self.read is None else len(self.read)
+        if length == self.length:
+            wake((0, self.read))
+            return
+        delegate = ReadFile(self.readfile, self.length - length,
+                            self.selectfile)
+        delegate.apply(inner_wake, executor, routine)
+
 class WriteAll(UtilitySuspend):
     def __init__(self, writefile, data, selectfile=None):
         self.writefile = writefile
