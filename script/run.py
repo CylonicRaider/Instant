@@ -210,7 +210,7 @@ class Redirection:
             return self.target
 
     def close(self, fp):
-        if hasattr(fp, 'close'):
+        if fp is not self.target and hasattr(fp, 'close'):
             try:
                 fp.close()
             except Exception:
@@ -303,9 +303,6 @@ class Process:
         if manager:
             manager.register_notify(str(self.uuid), self._next_switcher)
 
-    def _redirectors(self):
-        return (self.stdin, self.stdout, self.stderr)
-
     def _make_exit(self, operation, verbose):
         def callback(value):
             return VerboseExit(value, verbose, context)
@@ -320,19 +317,20 @@ class Process:
     def _spawn_process(self, extra_args=None):
         cmdline = self.command
         if extra_args: cmdline = tuple(cmdline) + tuple(extra_args)
+        redirections = (self.stdin, self.stdout, self.stderr)
         files = []
         try:
             # NOTE: The finally clause relies on every file being added to
             #       files as soon as it is created -- [r.open() for r in
-            #       self._redirectors()] may leak file descriptors.
-            for r in self._redirectors():
+            #       redirections] may leak file descriptors.
+            for r in redirections:
                 files.append(r.open())
             proc = yield coroutines.SpawnProcess(args=cmdline,
                 cwd=self.workdir, stdin=files[0], stdout=files[1],
                 stderr=files[2])
             yield coroutines.Exit(proc)
         finally:
-            for r, f in zip(self._redirectors(), files):
+            for r, f in zip(redirections, files):
                 r.close(f)
 
     def warmup(self, wait=True, verbose=False):
