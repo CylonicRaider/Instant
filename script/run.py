@@ -1036,16 +1036,21 @@ def main():
             arguments.master = 'spawn'
     conn = try_call(do_connect, arguments.master,
                     conffile_path=arguments.config)
+    opname = arguments.cmd.replace('-', '_')
+    optypes = OPERATIONS[opname]['types']
     kwds = dict(arguments.__dict__)
-    for k in ('config', 'master', 'cmd'): del kwds[k]
+    for k in ('config', 'master', 'cmd'):
+        del kwds[k]
+    for k, v in tuple(kwds.items()):
+        if optypes[k] == list and not v:
+            del kwds[k]
     if conn is not None:
         conn.parent.prepare_executor().error_cb = coroutines_error_handler
         if arguments.cmd == 'cmd':
             cmdline = arguments.cmdline
         else:
-            opdesc = OPERATIONS[arguments.cmd.replace('-', '_')]
             cmdline = ([arguments.cmd.upper()] +
-                       mgr.compose_line(kwds, opdesc['types']))
+                       mgr.compose_line(kwds, optypes))
         try:
             try_call(run_client, conn, cmdline)
         finally:
@@ -1053,7 +1058,7 @@ def main():
             conn.close()
     else:
         kwds['verbose'] = True
-        func = getattr(mgr, 'do_' + arguments.cmd.replace('-', '_'))
+        func = getattr(mgr, 'do_' + opname)
         try_call(coroutines.run, [func(**kwds)], sigpipe=True,
                  on_error=coroutines_error_handler)
 
