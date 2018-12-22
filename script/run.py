@@ -4,7 +4,7 @@
 # An init script for running Instant and a number of bots.
 
 import sys, os, re, time, inspect
-import uuid
+import string, uuid
 import errno, signal, socket
 import shlex
 import logging
@@ -24,6 +24,7 @@ DEFAULT_CONFFILE = 'config/instant.ini'
 DEFAULT_COMM_PATH = 'run/comm'
 DEFAULT_PIDFILE_TEMPLATE = 'run/%s.pid'
 WARMUP_PIDFILE_SUFFIX = '.new'
+PROCESS_SECTIONS = ('proc', 'instant', 'bot')
 
 REDIRECTION_RE = re.compile(r'^[<>|&]+')
 PID_LINE_RE = re.compile(r'^[0-9]+\s*$')
@@ -103,23 +104,75 @@ class VerboseExit(coroutines.Exit):
             inner_wake(None)
 
 class Configuration:
+    class _InterpolatingDict(dict):
+        def __init__(self, base, extra):
+            dict.__init__(self, extra)
+            self.base = base
+
+        def __missing__(self, key):
+            rawvalue = self.base[key]
+            ret = string.Template(rawvalue).substitute(self)
+            self[key] = ret
+            return ret
+
+    @classmethod
+    def validate_name(cls, name):
+        if not name or '//' in name or name.startswith('/'):
+            raise ConfigurationError('Invalid section name: %r' % name)
+
+    @classmethod
+    def split_name(cls, name):
+        return name.strip('/').split('/')
+
     def __init__(self, path=None):
         if path is None: path = DEFAULT_CONFFILE
         self.path = path
         self.parser = None
+        self._raw_cache = None
+        self._cache = None
 
     def load(self):
         self.parser = _ConfigParser()
         self.parser.read(self.path)
+        for name in self.parser.sections():
+            self.validate_name(name)
+        self._raw_cache = {}
+        self._cache = {}
 
     def list_sections(self):
-        return self.parser.sections()
+        return [name for name in self.parser.sections()
+                if not name.endswith('/')]
+
+    def get_raw_section(self, name):
+        if name in self._raw_cache:
+            return self._raw_cache[name]
+        self.validate_name(name)
+        idx = name.rfind('/')
+        if idx == -1:
+            ret = {}
+        elif idx == len(name) - 1:
+            ret = dict(self.get_raw_section(name[:idx]))
+        else:
+            ret = dict(self.get_raw_section(name[:idx + 1]))
+        try:
+            ret.update(self.parser.items(name, raw=True))
+        except _NoSectionError:
+            pass
+        self._raw_cache[name] = ret
+        return ret
 
     def get_section(self, name):
-        try:
-            return dict(self.parser.items(name))
-        except _NoSectionError:
-            return {}
+        if name in self._cache: return self._cache[name]
+        rawdata = self.get_raw_section(name)
+        splname = self.split_name(name)
+        interpolator = self._InterpolatingDict(rawdata,
+            {'__fullname__': name, '__name__': splname[-1]})
+        ret = {}
+        # Manually copying entries because _InterpolatingDict does not
+        # redefine key enumeration.
+        for k in rawdata: ret[k] = interpolator[k]
+        self._cache[name] = ret
+        return ret
 
 class Redirection:
     @classmethod
@@ -464,17 +517,22 @@ class ProcessManager:
 
     def init(self):
         sections = [s for s in self.conffile.list_sections()
-                    if s == 'instant' or s.startswith('scribe-')]
+                    if self.conffile.split_name(s)[0] in PROCESS_SECTIONS]
         sections.sort()
         for s in sections:
             values = self.conffile.get_section(s)
             try:
+                name = values['name']
+            except KeyError:
+                raise ConfigurationError('Missing required key "name" in '
+                    'section %r' % s)
+            try:
                 cmdline = values['cmdline']
             except KeyError:
                 raise ConfigurationError('Missing required key "cmdline" in '
-                    'section "%s"' % s)
+                    'section %r' % s)
             command = tuple(shlex.split(cmdline))
-            self.group.add(Process(s, command, values, self))
+            self.group.add(Process(name, command, values, self))
 
     def register_notify(self, key, obj):
         self.notifies[key] = obj
