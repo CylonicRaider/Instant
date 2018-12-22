@@ -240,6 +240,10 @@ class SimpleCancellable(Suspend):
         executor.listen(target, callback)
         self._cancel_cb = lambda: executor.stop_listening(target, callback)
 
+    def listen_reapply(self, wake, executor, routine, target):
+        self.listen(executor, target,
+                    lambda v: self.apply(wake, executor, routine))
+
 class Call(ControlSuspend, SimpleCancellable):
     def __init__(self, target, daemon=False):
         self.target = target
@@ -301,9 +305,7 @@ class IOSuspend(SimpleCancellable):
 
     def apply(self, wake, executor, routine):
         def inner_wake(value):
-            if self.cancelled:
-                pass
-            elif value is not None and value[0] == 1:
+            if value is not None and value[0] == 1:
                 wake(value)
             else:
                 result = self._do_io(value[1])
@@ -628,11 +630,8 @@ class Lock(object):
             self.parent = parent
 
         def apply(self, wake, executor, routine):
-            def try_wake(value):
-                if self.cancelled: return
-                self.apply(wake, executor, routine)
             if self.parent.locked:
-                self.listen(executor, self.parent, try_wake)
+                self.listen_reapply(wake, executor, routine, self.parent)
             else:
                 self.parent.locked = True
                 self.parent._trigger = lambda: executor.trigger(self.parent)
@@ -660,12 +659,10 @@ class StateSwitcher(object):
             self.match = match
 
         def apply(self, wake, executor, routine):
-            def inner_wake(value):
-                self.apply(wake, executor, routine)
             if self.parent.state == self.match:
                 wake((0, None))
             else:
-                self.listen(executor, self.parent, inner_wake)
+                self.listen_reapply(wake, executor, routine, self.parent)
 
     class _Toggle(SimpleCancellable):
         def __init__(self, parent, match, new, wait):
@@ -676,8 +673,6 @@ class StateSwitcher(object):
             self.wait = wait
 
         def apply(self, wake, executor, routine):
-            def inner_wake(value):
-                self.apply(wake, executor, routine)
             if self.parent.state == self.match:
                 self.parent.state = self.new
                 executor.trigger(self.parent, (0, self.new))
@@ -685,7 +680,7 @@ class StateSwitcher(object):
             elif not self.wait:
                 wake((0, False))
             else:
-                self.listen(executor, self.parent, inner_wake)
+                self.listen_reapply(wake, executor, routine, self.parent)
 
     class _Set(Suspend):
         def __init__(self, parent, new):
@@ -725,14 +720,15 @@ class BinaryLineReader(object):
                     self.parent._buffer += result[1]
                 else:
                     self.parent._eof = True
+                self._delegate = None
                 self.apply(wake, executor, routine)
             line = self.parent._extract_line()
-            if line is None:
-                self._delegate = ReadFile(self.parent.file,
-                                          LINEREADER_CHUNK_SIZE)
-                self._delegate.apply(inner_wake, executor, routine)
+            if line is not None:
+                wake((0, line))
                 return
-            wake((0, line))
+            self._delegate = ReadFile(self.parent.file,
+                                      LINEREADER_CHUNK_SIZE)
+            self._delegate.apply(inner_wake, executor, routine)
 
         def cancel(self):
             if self._delegate is not None:
