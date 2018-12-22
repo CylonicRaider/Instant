@@ -263,10 +263,12 @@ class PIDFile:
             status = 'RUNNING'
         except OSError as e:
             if e.errno == errno.ESRCH:
-                status = 'STALEFILE'
+                pid = None
+                status = 'NOT_FOUND'
             elif e.errno == errno.EPERM:
                 status = 'RUNNING_PRIVILEGED'
-            raise
+            else:
+                raise
         return (pid, status)
 
     def set_pid(self, pid):
@@ -372,6 +374,7 @@ class Process:
     def stop(self, wait=True, verbose=False):
         exit = self._make_exit('stop', verbose)
         prev_child = self._child
+        status = 'OK'
         if self._child is not None:
             self._child.terminate()
             self._child = None
@@ -382,18 +385,20 @@ class Process:
             if pid is None:
                 yield exit('NOT_RUNNING')
             else:
-                os.kill(pid, signal.SIGTERM)
+                try:
+                    os.kill(pid, signal.SIGTERM)
+                except OSError as e:
+                    if e.errno != errno.ESRCH: raise
+                    status = 'NOT_FOUND'
         self.pidfile.set_pid(None)
         if wait:
             if prev_child:
                 raw_status = yield coroutines.WaitProcess(prev_child)
                 status = 'OK %s' % (raw_status,)
-            else:
+            elif status == 'OK':
                 delay = self.stop_delay
                 if delay > 0: yield coroutines.Sleep(delay)
                 status = None
-        else:
-            status = 'OK'
         yield exit(status)
 
     def status(self, verbose=False):
