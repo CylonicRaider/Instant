@@ -396,15 +396,38 @@ class WrapperSuspend(CombinationSuspend):
             wake(value)
         self.children[0].apply(inner_wake, executor, routine)
 
-class ControlSuspend(Suspend): pass
+class ControlSuspend(Suspend):
+    """
+    This is an umbrella class used as a base of suspends that roughly
+    correspond to control flow constructs
+    """
 
 class Trigger(ControlSuspend):
+    """
+    Trigger(*triggers) -> new instance
+
+    Invoke listeners for some objects with optional associated values
+
+    When applied, each of the given triggers is split into a "tag" and an
+    "associated value": If the trigger is a tuple, it must have two entries,
+    the first being the tag and the other the associated value; otherwise, the
+    tag is the trigger object and the associated value is None. For each of
+    those pairs, the tag object is "triggered", notifying all listeners
+    registered with the executor for it.
+
+    Together with Listen, this allows a simple form of inter-coroutine
+    communication by passing associated values to other coroutines listening
+    on some predefined tag.
+    """
+
     def __init__(self, *triggers):
+        "Initializer; see class docstring for details"
         self.triggers = triggers
 
     def apply(self, wake, executor, routine):
+        "Apply this suspend; see class docstring for details"
         for trig in self.triggers:
-            if isinstance(trig, (tuple, list)):
+            if isinstance(trig, tuple):
                 tag, value = trig
             else:
                 tag, value = trig, None
@@ -412,19 +435,49 @@ class Trigger(ControlSuspend):
         wake((0, None))
 
 class Exit(ControlSuspend):
+    """
+    Exit(result=None) -> new instance
+
+    Finish this coroutine and return the given result
+
+    The calling routine is close()d (raising a GeneratorExit exception), and
+    the given result is passed to all listeners registered for the coroutine
+    object (as if Trigger had been used on it).
+
+    Together with Call, this can be used to implement subroutine calls using
+    coroutines.
+    """
+
     def __init__(self, result=None):
+        "Initializer; see class docstring for details"
         self.result = result
 
     def apply(self, wake, executor, routine):
+        "Apply this suspend; see class docstring for details"
         routine.close()
         executor._done(routine, (0, self.result))
 
 class Spawn(ControlSuspend):
+    """
+    Spawn(target, daemon=False) -> new instance
+
+    Add target to the list of running coroutines and finish immediately
+
+    daemon specifies whether the coroutine is daemonic or not; when only
+    daemonic coroutines are left, the executor stops running.
+
+    The return value of target cannot be reliably retrieved since it could
+    exit immediately. A single object cannot be used as a coroutine more than
+    once.
+    """
+
     def __init__(self, target, daemon=False):
+        "Initializer; see class docstring for details"
         self.target = target
         self.daemon = daemon
 
     def apply(self, wake, executor, routine):
+        "Apply this suspend; see class docstring for details"
         executor.add(self.target, daemon=self.daemon)
         wake(None)
 
@@ -447,23 +500,61 @@ class SimpleCancellable(Suspend):
                     lambda v: self.apply(wake, executor, routine))
 
 class Call(ControlSuspend, SimpleCancellable):
+    """
+    Call(target, daemon=False) -> new instance
+
+    Spawn the given coroutine, wait for it to finish, and return its result
+
+    daemon specifies whether the new coroutine should be daemonic; when only
+    daemonic coroutines are left, the executor stops running.
+
+    This is somewhat similar to a Spawn and a Join, but without race
+    conditions. The same object may not be used as a coroutine more than once.
+    """
+
     def __init__(self, target, daemon=False):
+        "Initializer; see class docstring for details"
         self.target = target
         self.daemon = daemon
 
     def apply(self, wake, executor, routine):
+        "Apply this suspend; see class docstring for details"
         executor.add(self.target, daemon=self.daemon)
         self.listen(executor, self.target, wake)
 
 class Listen(ControlSuspend, SimpleCancellable):
+    """
+    Listen(target) -> new instance
+
+    Wait until target is "triggered" and return the associated value
+
+    This is the counterpart of the Trigger suspend. When the latter is
+    invoked, all "listeners" registered for a "tag" (called target here) are
+    invoked with some "associated value" which was passed to Trigger; Listen
+    returns the associated value to its caller.
+
+    Together with Trigger, this allows a simple form of inter-coroutine
+    communication by passing associated values between listeners and
+    triggers.
+    """
+
     def __init__(self, target):
+        "Initializer; see class docstring for details"
         SimpleCancellable.__init__(self)
         self.target = target
 
     def apply(self, wake, executor, routine):
+        "Apply this suspend; see class docstring for details"
         self.listen(executor, self.target, wake)
 
-class Join(Listen): pass
+class Join(Listen):
+    """
+    A thin wrapper around Listen
+
+    Waiting for a coroutine to finish is exactly equivalent to Listen-ing on
+    it; this class is provided for similarity with the join() method from
+    Python's threading module.
+    """
 
 class Sleep(SimpleCancellable):
     def __init__(self, waketime, absolute=False):
