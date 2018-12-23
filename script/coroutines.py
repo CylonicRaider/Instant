@@ -482,20 +482,60 @@ class Spawn(ControlSuspend):
         wake(None)
 
 class SimpleCancellable(Suspend):
+    """
+    An abstract class for cancellable suspends
+
+    This class provides an implementation of the cancel() method that sets a
+    flag on the instance and invokes (and clears) an optional callback.
+
+    Convenience methods are provided for extending classes; these should not
+    be invoked by external code.
+
+    Instances of this class have a "cancelled" attribute, which indicates
+    whether the suspend has been cancelled, and a "_cancel_cb" attribute,
+    which is used by cancel() to undo any changes performed in apply().
+    """
+
     def __init__(self):
+        "Initializer; see class docstring for details"
         self.cancelled = False
         self._cancel_cb = None
 
     def cancel(self):
+        """
+        Cancel this suspend
+
+        The "cancelled" instance attribute is set to True; the _cancel_cb
+        instance attribute, if it is true, is invoked, and replaced with None
+        (before being called) in any case.
+        """
         self.cancelled = True
         cb, self._cancel_cb = self._cancel_cb, None
         if cb: cb()
 
     def listen(self, executor, target, callback):
+        """
+        Convenience function for cancellably listening on target
+
+        Unless the suspend is cancelled in the meantime, callback is invoked
+        when the executor triggers the given target.
+
+        This invokes executor's listen() method on target and callback, and
+        sets the _cancel_cb instance attribute to an anonymous function that
+        invokes the executor's stop_listening() on them.
+        """
         executor.listen(target, callback)
         self._cancel_cb = lambda: executor.stop_listening(target, callback)
 
     def listen_reapply(self, wake, executor, routine, target):
+        """
+        Convenience function for waiting for something
+
+        A somewhat common pattern for a suspend is to listen on a certain
+        object until some criterion is met; this method facilitates the
+        pattern by listen()ing on the target and re-invoking the suspend's
+        apply() method with the given arguments when the target is triggered.
+        """
         self.listen(executor, target,
                     lambda v: self.apply(wake, executor, routine))
 
@@ -557,7 +597,19 @@ class Join(Listen):
     """
 
 class Sleep(SimpleCancellable):
+    """
+    Sleep(waketime, absolute=False) -> new instance
+
+    Suspends the calling coroutine either for or until the given waketime
+
+    If absolute is true, waketime is interpreted as a UNIX timestamp (in
+    seconds) after which to wake the routine; otherwise, it is interpreted
+    relative to the current time. The "waketime" instance attribute always
+    holds an absolute timestamp.
+    """
+
     def __init__(self, waketime, absolute=False):
+        "Initializer; see class docstring for details"
         if not absolute: waketime += time.time()
         SimpleCancellable.__init__(self)
         self.waketime = waketime
@@ -579,40 +631,85 @@ class Sleep(SimpleCancellable):
         return (self.waketime, id(self)) >  (other.waketime, id(other))
 
     def apply(self, wake, executor, routine):
+        "Apply this suspend; see class docstring for details"
         executor.add_sleep(self)
         self.listen(executor, self, wake)
 
 class IOSuspend(SimpleCancellable):
+    """
+    IOSuspend(selectfile, mode) -> new instance
+
+    A suspend that ties into the executor's select loop to perform I/O
+
+    When applied, an IOSuspend waits for the given selectfile (a file
+    descriptor, something with a fileno() method, or anything accepted by
+    select.select()) to become ready for the given mode of I/O, which must
+    be one of the strings 'r', 'w', or 'x' (for reading/writing/exceptional
+    conditions, respectively), and invokes the do_io() method.
+
+    The default implementation does not actually perform any I/O, but can be
+    used to wait for a file descriptor's readiness.
+    """
+
     SELECT_MODES = {'r': 0, 'w': 1, 'x': 2}
 
     def __init__(self, selectfile, mode):
+        "Initializer; see class docstring for details"
         if mode not in self.SELECT_MODES:
             raise ValueError('Invalid I/O mode: %r' % (mode,))
         SimpleCancellable.__init__(self)
         self.selectfile = selectfile
         self.mode = mode
 
-    def _do_io(self, mode):
+    def do_io(self, mode):
+        """
+        Perform I/O and return its result
+
+        mode is the mode (one of 'r', 'w', or 'x') for which readiness was
+        indicated by select(); since this class only registers for one
+        specific mode of I/O, this will usually be equal to the same-named
+        instance attribute.
+
+        The code may throw an IOError, which is caught and propagated via the
+        exception return channel; raising other exceptions will result in
+        unpredictable behavior.
+        """
         return None
 
     def apply(self, wake, executor, routine):
+        "Apply this suspend; see class docstring for details"
         def inner_wake(value):
             if value is not None and value[0] == 1:
                 wake(value)
-            else:
-                result = self._do_io(value[1])
+                return
+            try:
+                result = self.do_io(value[1])
                 wake((0, result))
+            except IOError as exc:
+                wake((1, exc))
         executor.add_select(self.selectfile, self.SELECT_MODES[self.mode])
         self.listen(executor, self.selectfile, inner_wake)
 
 class ReadFile(IOSuspend):
+    """
+    ReadFile(readfile, length, selectfile=None) -> new instance
+
+    Read up to length bytes from readfile
+
+    readfile may be a file object (which must be unbuffered to avoid blocking
+    the executor), a socket.socket object, or a file descriptor. selectfile is
+    passed on to IOSuspend's initializer and defaults to readfile.
+    """
+
     def __init__(self, readfile, length, selectfile=None):
+        "Initializer; see class docstring for details"
         if selectfile is None: selectfile = readfile
         IOSuspend.__init__(self, selectfile, 'r')
         self.readfile = readfile
         self.length = length
 
-    def _do_io(self, mode):
+    def do_io(self, mode):
+        "Perform I/O; see class docstring for details"
         try:
             return self.readfile.read(self.length)
         except AttributeError:
@@ -622,13 +719,25 @@ class ReadFile(IOSuspend):
                 return os.read(self.readfile, self.length)
 
 class WriteFile(IOSuspend):
+    """
+    WriteFile(writefile, data, selectfile=None) -> new instance
+
+    Write some leading bytes from data to writefile
+
+    writefile may be a file object (which must be unbuffered to avoid blocking
+    the executor), a socket.socket object, or a file descriptior. selectfile
+    is passed on to IOSuspend's initializer and defaults to writefile.
+    """
+
     def __init__(self, writefile, data, selectfile=None):
+        "Initializer; see class docstring for details"
         if selectfile is None: selectfile = writefile
         IOSuspend.__init__(self, selectfile, 'w')
         self.writefile = writefile
         self.data = data
 
-    def _do_io(self, mode):
+    def do_io(self, mode):
+        "Perform I/O; see class docstring for details"
         try:
             return self.writefile.write(self.data)
         except AttributeError:
@@ -638,12 +747,22 @@ class WriteFile(IOSuspend):
                 return os.write(self.writefile, self.data)
 
 class AcceptSocket(IOSuspend):
+    """
+    AcceptSocket(sock, selectfile=None) -> new instance
+
+    Accept a connection on a listening socket
+
+    sock should be a socket.socket object; selectfile defaults to it.
+    """
+
     def __init__(self, sock, selectfile=None):
+        "Initializer; see class docstring for details"
         if selectfile is None: selectfile = sock
         IOSuspend.__init__(self, selectfile, 'r')
         self.sock = sock
 
-    def _do_io(self, mode):
+    def do_io(self, mode):
+        "Perform I/O; see class docstring for details"
         return self.sock.accept()
 
 class UtilitySuspend(Suspend): pass
