@@ -911,7 +911,27 @@ class WaitProcess(UtilitySuspend, SimpleCancellable):
         self.listen(executor, eff_target, wake)
 
 class Executor:
+    """
+    Executor() -> new instance
+
+    Main class coordinating the execution of coroutines
+
+    A coroutine Executor provides the following facilities:
+    - Coroutine management: Coroutines (regular or "daemonic" ones) can be
+      added and removed, and, most importantly, executed.
+    - Event management: Arbitrary hashable objects can be "listened" upon,
+      and the listeners can be "triggered", passing them some user-defined
+      value.
+    - Select loop and sleeping: Coroutines can wait for I/O to become
+      available or sleep for some wall-clock time interval.
+    - Error handling: A handler for uncaught exceptions in coroutines is
+      provided.
+    - Coroutine running: An Executor object's main loop can be started by
+      calling the run() method or by calling the Executor object itself.
+    """
+
     def __init__(self):
+        "Initializer; see class docstring for details"
         self.routines = {}
         self.daemons = set()
         self.suspended = set()
@@ -921,50 +941,118 @@ class Executor:
         self.error_cb = None
 
     def add(self, routine, value=None, daemon=False):
+        """
+        Add the given coroutine to the executor
+
+        When the routine is next resumed, value is passed to it via send() or
+        throw() (see the listen() method for more details); for newly-created
+        coroutines made from generator functions, this must be None. daemon
+        specifies whether the coroutine should be "daemonic" or not; when no
+        non-daemonic coroutines are left, the executor main loop stops.
+        """
         self.routines[routine] = value
         if daemon: self.daemons.add(routine)
 
     def remove(self, routine):
+        """
+        Remove the given routine from the executor
+
+        Returns the value the routine would have been resumed with next.
+
+        Remark that this operation may be dangerous; other coroutines might
+        wait on the routine or it might have started a nontrivial suspend,
+        which would effectively raise the routine from the dead when done.
+        """
         self.suspended.discard(routine)
         self.daemons.discard(routine)
         return self.routines.pop(routine, None)
 
     def _suspend(self, routine):
+        "Suspend the given routine"
         if routine not in self.routines:
             raise RuntimeError('Suspending not-running routine')
         del self.routines[routine]
         self.suspended.add(routine)
 
     def _wake(self, routine, value):
+        "Wake the given routine with the given value"
         if routine in self.routines:
-            raise RuntimeError('Waking already-woken routine')
+            raise RuntimeError('Waking already-running routine')
         self.suspended.discard(routine)
         self.routines[routine] = value
 
     def _done(self, routine, result):
+        "Clean up after this (finished) routine"
         self.remove(routine)
         return self.trigger(routine, result)
 
     def listen(self, event, callback):
+        """
+        Register callback to be invoked when the given event is triggered
+
+        event is an arbitrary hashable object. callback is a callable that
+        receives exactly one argument -- the "associated value" --, which is
+        specified when the event is triggered. A particular callback may be
+        registered for an event at most once. All callbacks are removed after
+        an event is triggered (and must be re-added as necessary).
+
+        The built-in triggers follow the "two return channels" convention: The
+        associated value is either 2-tuple (code, value) or the None singleton
+        (which is equivalent to (0, None)); code must be either 0 for a normal
+        value or 1 for an exception being raised (those two are not equivalent
+        given that an exception can be both used as a value and raised); value
+        is an arbitrary object if code is 0 or an instance of BaseException if
+        code is 1.
+        """
         try:
             self.listening[event].add(callback)
         except KeyError:
             self.listening[event] = set((callback,))
 
     def stop_listening(self, event, callback):
+        """
+        Remove the given callback from event's listener set
+        """
         if event not in self.listening: return
         self.listening[event].discard(callback)
 
     def trigger(self, event, result=None):
+        """
+        Trigger the given event with the given associated value
+
+        Returns the amount of callbacks that were invoked. See listen() for a
+        description of permissible associated values.
+        """
         callbacks = self.listening.pop(event, ())
         for cb in callbacks:
             self._run_callback(cb, (result,), final=True)
         return len(callbacks)
 
     def add_select(self, file, index):
+        """
+        Register file to be selected upon in category index
+
+        file is a file-like object, or a file descriptor, or anything accepted
+        by the select.select() function. index is an index into the select()
+        parameter list (with 0 for "reading"); see IOSuspend.SELECT_MODES for
+        a mapping from mnemonic strings to valid indices.
+
+        A file may be present in the select set for a given index at most
+        once. Like listeners after triggers, selected files are removed once
+        they become ready; they must be re-added if they should be waited upon
+        again.
+        """
         self.selectfiles[index].add(file)
 
     def remove_selects(self, *files):
+        """
+        Abort any selecting on the given files
+
+        The given files are removed from all select sets and any listeners
+        waiting for them are triggered with an EOFError exception indicating
+        that the file closed (which is the case in which this method should be
+        used).
+        """
         self.selectfiles[0].difference_update(files)
         self.selectfiles[1].difference_update(files)
         self.selectfiles[2].difference_update(files)
@@ -972,6 +1060,7 @@ class Executor:
         for f in files: self.trigger(f, result)
 
     def _done_select(self, readable, writable, exceptable):
+        "Internal helper for handling successfully select()ed files"
         self.selectfiles[0].difference_update(readable)
         self.selectfiles[1].difference_update(writable)
         self.selectfiles[2].difference_update(exceptable)
@@ -980,21 +1069,49 @@ class Executor:
         for f in exceptable: self.trigger(f, (0, 'x'))
 
     def add_sleep(self, sleep):
+        """
+        Register the given sleep with the executor
+
+        sleep should be an instance of the Sleep suspend (or something having
+        a compatible API, i.e., having a waketime attribute as described for
+        Sleep, being hashable, and having comparison operators corresponding
+        to those of its waketime attribute).
+
+        Sleeps are held in a priority queue with the sleep with the smallest
+        waketime being "woken" first; they determine the timeout of the
+        select() call or of a sleep() call when there are no running
+        coroutines. When a sleep's waketime has passed, it is trigger()ed with
+        an associated value of None.
+        """
         heapq.heappush(self.sleeps, sleep)
 
     def _finish_sleeps(self, now=None):
+        "Internal function actually waking finished sleeps"
         if now is None: now = time.time()
         while self.sleeps and self.sleeps[0].waketime <= now:
             sleep = heapq.heappop(self.sleeps)
             self.trigger(sleep)
 
     def on_error(self, exc, source):
+        """
+        Handle an otherwise unhandled error
+
+        exc is an exception object detailing the error; source is some object
+        describing the "source" of the error.
+
+        The default implementation invokes a user-specifiable callback and
+        printes a stack trace to standard error. The user-specifiable callback
+        is the error_cb attribute; if it is true (instead of None), it is
+        invoked with the same arguments as on_error(); if the return value of
+        that is true, the printing to standard error is suppressed.
+        """
         if self.error_cb and self.error_cb(exc, source): return
         lines = ['Uncaught exception in %r:\n' % (source,)]
         lines.extend(traceback.format_exception(*sys.exc_info()))
         sys.stderr.write(''.join(lines))
 
     def _run_callback(self, func, args, kwds=None, final=False):
+        "Helper function for running a call-back."
         if kwds is None: kwds = {}
         try:
             return (0, func(*args, **kwds))
@@ -1003,6 +1120,11 @@ class Executor:
             return (1, exc)
 
     def close(self):
+        """
+        Close the executor and reset all of its internal state
+
+        All running and suspended coroutines are immediately closed.
+        """
         for r in tuple(self.routines):
             r.close()
         for r in tuple(self.suspended):
@@ -1014,6 +1136,11 @@ class Executor:
         self.selectfiles = (set(), set(), set())
 
     def run(self):
+        """
+        Perform the executor's main loop
+
+        See the class docstring for details.
+        """
         def all_daemons():
             return (self.daemons.issuperset(self.routines) and
                     self.daemons.issuperset(self.suspended))
@@ -1074,8 +1201,9 @@ class Executor:
                 time.sleep(self.sleeps[0].waketime - time.time())
             self._finish_sleeps()
 
-    def __call__(self):
-        self.run()
+    def __call__(self, *args, **kwds):
+        "Invoke this instance; an alias for run()"
+        self.run(*args, **kwds)
 
 class Lock(object):
     class _Acquire(SimpleCancellable):
