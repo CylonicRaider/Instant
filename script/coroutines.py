@@ -27,7 +27,7 @@ class Tag(object):
     """
 
     def __init__(self, value):
-        "Constructor; see class docstring for details"
+        "Initializer; see class docstring for details"
         self.value = value
 
     def __hash__(self):
@@ -118,15 +118,47 @@ class Suspend(object):
         raise TypeError('Cannot cancel %s suspend' % self.__class__.__name__)
 
 class CombinationSuspend(Suspend):
+    """
+    CombinationSuspend(children) -> new instance
+
+    A CombinationSuspend composes multiple nested suspends
+
+    This class provides a standartized attribute for holding the "children"
+    this suspend composes and an implementation of the cancel() method;
+    apply() is kept abstract.
+    """
+
     def __init__(self, children):
+        "Initializer; see class docstring for details"
         self.children = children
 
     def cancel(self):
+        """
+        Cancel this suspend
+
+        The default implementation cancels each child.
+        """
         for c in self.children:
             c.cancel()
 
 class All(CombinationSuspend):
+    """
+    All(*suspends) -> new instance
+
+    Wait for all suspends to finish and return their results as a list
+
+    When any of the nested suspends raises an exception, it is propagated to
+    the caller and all other suspends are cancelled. When all nested suspends
+    finish normally, a list consisting of their results (in the same order as
+    the suspends) is returned. Cancelling an All suspend cancels all of its
+    children.
+    """
+
+    # All is the suspend incarnation of product types -- the result is a tuple
+    # (implemented as a Python list) of the results of the nested suspends.
+
     def __init__(self, *suspends):
+        "Initializer; see class docstring for details"
         CombinationSuspend.__init__(self, suspends)
         self.result = [None] * len(suspends)
         self._finished = [False] * len(suspends)
@@ -134,6 +166,7 @@ class All(CombinationSuspend):
         self._raised = False
 
     def _finish(self, index, value, callback):
+        "Internal callback invoked when a nested suspend finishes"
         if self._finished[index]:
             raise RuntimeError('Attempting to wake a coroutine more than '
                 'once')
@@ -154,6 +187,7 @@ class All(CombinationSuspend):
             callback((0, self.result))
 
     def apply(self, wake, executor, routine):
+        "Apply this suspend; see class docstring for details"
         def make_wake(index):
             return lambda value: self._finish(index, value, wake)
         for n, s in enumerate(self.children):
@@ -166,15 +200,33 @@ class All(CombinationSuspend):
             wake((0, self.result))
 
     def cancel(self):
+        "Cancel this suspend"
         self._finished_count = -1
         CombinationSuspend.cancel(self)
 
 class Any(CombinationSuspend):
+    """
+    Any(*suspends) -> new instance
+
+    Wait for the first suspend to finish and return its result (along with it)
+
+    When a suspend finishes normally, a 2-tuple consisting of the suspend and
+    its result is returned to the caller. When a suspend finishes with an
+    exception, it is propagated directly. In either case, all other suspends
+    are cancelled. Cancelling an Any suspend cancels all of its children.
+    """
+
+    # Any is the suspend incarnation of coproduct types (tagged unions) -- the
+    # result is, as noted, an index (the suspend) together with the
+    # corresponding value.
+
     def __init__(self, *suspends):
+        "Initializer; see class docstring for details"
         CombinationSuspend.__init__(self, suspends)
         self._do_wake = True
 
     def _wake(self, suspend, value, callback):
+        "Internal callback invoked when a nested suspend finishes"
         if not self._do_wake: return
         self._do_wake = False
         if value is None:
@@ -188,6 +240,7 @@ class Any(CombinationSuspend):
                 s.cancel()
 
     def apply(self, wake, executor, routine):
+        "Apply this suspend; see the class docstring for details"
         def make_wake(suspend):
             return lambda value: self._wake(suspend, value, wake)
         for s in self.children:
@@ -195,11 +248,32 @@ class Any(CombinationSuspend):
             s.apply(make_wake(s), executor, routine)
 
     def cancel(self):
+        "Cancel this suspend"
         self._do_wake = False
         CombinationSuspend.cancel(self)
 
 class Selector(CombinationSuspend):
+    """
+    Selector(*suspends) -> new instance
+
+    A Selector allows running multiple suspends in parallel and retrieving
+    their results whenever they arrive
+
+    When apply()ed -- which, as an exception, may happen multiple times --, a
+    Selector will apply() all pending child suspends (i.e. suspends added via
+    the constructor or add() that have not been apply()ed yet) and return the
+    result of a finished child (or suspend the calling routine until there is
+    one); if it has no children at all, the Selector will finish immediately.
+    Since it never cancels children (unless cancelled itself), a Selector may
+    be used to provide functionality similar to Any with children that cannot
+    be cancelled.
+
+    The result of each child suspend is reported as a 2-tuple (child, value),
+    where child is the child suspend that finished and value is its result.
+    """
+
     def __init__(self, *suspends):
+        "Initializer; see class docstring for details"
         CombinationSuspend.__init__(self, list(suspends))
         self._pending = set(suspends)
         self._waiting = set()
@@ -207,13 +281,28 @@ class Selector(CombinationSuspend):
         self._callback = None
 
     def is_empty(self):
+        """
+        Test whether this Selector is empty
+
+        A Selector is empty if it has no children pending to be apply()ed, no
+        children currently running, and no finished children pending retrieval
+        of their results.
+        """
         return not (self._pending or self._waiting or self._finished)
 
     def add(self, suspend):
+        """
+        Add a new child suspend to this Selector
+
+        A child is initially in a "pending" state, until it is apply()ed on
+        the next apply() of the Selector. A child is automatically removed
+        when its result is retrieved via apply().
+        """
         self.children.append(suspend)
         self._pending.add(suspend)
 
     def _wake(self, suspend, value):
+        "Internal callback invoked whenever a nested suspend finishes"
         try:
             self._waiting.remove(suspend)
         except KeyError:
@@ -223,9 +312,10 @@ class Selector(CombinationSuspend):
                 raise RuntimeError('Trying to wake coroutine more than once')
             self._pending[suspend] = value
         else:
-            self._finish(suspend, value)
+            self._report(suspend, value)
 
-    def _finish(self, suspend, value):
+    def _report(self, suspend, value):
+        "Internal; reports a child's result to the Selector's caller"
         if value is None:
             value = (0, None)
         if value[0] == 1:
@@ -240,6 +330,7 @@ class Selector(CombinationSuspend):
             pass
 
     def apply(self, wake, executor, routine):
+        "Apply this suspend; see the class docstring for details"
         def make_wake(suspend):
             return lambda value: self._wake(suspend, value)
         self._callback = wake
@@ -250,12 +341,18 @@ class Selector(CombinationSuspend):
             for p in pending:
                 p.apply(make_wake(p), executor, routine)
         if self._finished:
-            self._finish(*self._finished.popitem())
+            self._report(*self._finished.popitem())
         elif self.is_empty() and self._callback:
             wake((None, None))
             self._callback = None
 
     def cancel(self):
+        """
+        Cancel this suspend
+
+        This cancels all children and resets all internal state (including the
+        child list).
+        """
         self._pending.clear()
         self._waiting.clear()
         self._finished.clear()
@@ -264,11 +361,27 @@ class Selector(CombinationSuspend):
         self.children[:] = []
 
 class WrapperSuspend(CombinationSuspend):
+    """
+    WrapperSuspend(wrapped, process=None) -> new instance
+
+    Perform a suspend and pass its result through a function
+
+    When applied, this suspend first applies the wrapped suspend; if that
+    results in an exception, it is passed through unmodified; otherwise,
+    process is invoked with the result value as the only positional argument
+    and the result of that is the final result of this suspend. A process of
+    None is equivalent to passing through the value unmodified. Exceptions
+    (deriving from the Exception class) produced when process is invoked are
+    captured and propagated to the caller instead of process' return value.
+    """
+
     def __init__(self, wrapped, process=None):
+        "Initializer; see the class docstring for details"
         CombinationSuspend.__init__(self, (wrapped,))
         self.process = process
 
     def apply(self, wake, executor, routine):
+        "Apply this suspend; see the class docstring for details"
         def inner_wake(value):
             if value is None:
                 value = (0, None)
