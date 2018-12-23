@@ -1020,7 +1020,7 @@ def main():
         os.close(rfd)
         return remote.connect()
     p = argparse.ArgumentParser(
-        description='Manage an Instant backend and a group of bots',
+        description='Manage a number of processes',
         epilog='The --master option can have the following values: off = '
             'never use daemon; all remaining options use a daemon when '
             'available: auto = without daemon, run command locally; spawn = '
