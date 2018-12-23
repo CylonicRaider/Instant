@@ -13,25 +13,108 @@ SIGPIPE_CHUNK_SIZE = 1024
 LINEREADER_CHUNK_SIZE = 16384
 
 class Tag(object):
+    """
+    Tag(value) -> new instance
+
+    A strongly typed comparable wrapper around an object
+
+    A Tag compares equal to another object iff the other object is of the same
+    type as the Tag and has an equal value; for example, this can be used to
+    differentiate file descriptors from process ID-s.
+
+    The value passed to the constructor is available as the "value" instance
+    attribute.
+    """
+
     def __init__(self, value):
+        "Constructor; see class docstring for details"
         self.value = value
 
     def __hash__(self):
-        return hash((type(self), self.value))
+        "Compute a hash code of this instance"
+        return hash((self.__class__, self.value))
 
     def __eq__(self, other):
-        return type(other) == type(self) and other.value == self.value
+        "Test whether this instance is equal to other"
+        return other.__class__ == self.__class__ and other.value == self.value
 
     def __ne__(self, other):
-        return type(other) != type(self) or other.value != self.value
+        "Test whether this instance is not equal to other"
+        return other.__class__ != self.__class__ or other.value != self.value
 
-class ProcessTag(Tag): pass
+class ProcessTag(Tag):
+    "A Tag subclass for labeling process ID-s"
 
 class Suspend(object):
+    """
+    A Suspend encapsulates a temporary interruption of a coroutine's execution
+    in order to perform some spcecial action
+
+    "Special actions" include blocking I/O (which is multiplexed through a
+    central select() loop), sleeping (which would make other coroutines
+    unresponsive otherwise), and inter-coroutine communication. Suspends can
+    be composed in various ways enabling concurrent execution of multiple
+    actions; see CombinationSuspend subclasses for that. A Suspend may only
+    be used (i.e. yielded from a coroutine) only once (unless otherwise
+    noted); attempting to use it multiple times will result in unpredictable
+    behavior.
+
+    The Suspend class is abstract; subclasses should override the apply()
+    method to specialize what they actually do.
+
+    Some Suspend subclasses may allow "cancelling" their instances; this
+    should abort any pending actions corresponding to the suspend. Cancelling
+    enables suspends like Any to "race" multiple suspends against each other
+    and to only commit the first suspend to finish.
+    """
+
     def apply(self, wake, executor, routine):
+        """
+        Initiate the action corresponding to this suspend
+
+        wake is a callback to be invoked when the action is done; it must be
+        used to report results back to the caller. executor is the Executor
+        instance this suspend is invoked in; its facilities (like listen() --
+        trigger()) may be used. routine is the coroutine that this suspend
+        originates from; only a few specialized suspends use this. The return
+        value is ignored.
+
+        The wake callback accepts a single positional argument that is a
+        2-tuple (code, value) or the None singleton (which is equivalent to
+        (0, None), but must be handled by consumers of the argument). The code
+        field represents the "return channel" employed; it must be 0 for a
+        normal returned value or 1 for a raised exception (note that an
+        exception object may be returned regularly or raised, so that this
+        distinction is necessary). The value field is the actual value being
+        passed to the callback. The return value of the callback is ignored.
+        When a composing suspend encounters an exception, it should propagate
+        it to its callback and cancel any pending nested suspends.
+
+        This implementation of the method is abstract; invoking it raises a
+        NotImplementedError.
+
+        The action may finish asynchronously or immediately (invoking wake
+        before apply() returns). When composing suspends, the wake callback
+        may be wrapped in another function to provide specialized behavior,
+        while executor and routine should be passed on unmodified (unless
+        there is a particular reason not to do so).
+        """
         raise NotImplementedError
 
     def cancel(self):
+        """
+        Abort any pending actions associated with this suspend
+
+        After cancel() is called, a suspend should never invoke the wake
+        callback passed to it in its apply() method. This method may be
+        invoked after apply() or without a preceding call to apply();
+        composing suspends should not apply() suspends after having cancelled
+        them.
+
+        The default implementation raises a TypeError; cancellable suspends
+        must implement this method themselves (or inherit it from, e.g.,
+        SimpleCancellable).
+        """
         raise TypeError('Cannot cancel %s suspend' % self.__class__.__name__)
 
 class CombinationSuspend(Suspend):
