@@ -274,27 +274,26 @@ class Sleep(SimpleCancellable):
         if not absolute: waketime += time.time()
         SimpleCancellable.__init__(self)
         self.waketime = waketime
-        self._token = object()
+
+    def __hash__(self):
+        return hash((self.waketime, id(self)))
 
     def __lt__(self, other):
-        return self.waketime <  other.waketime
+        return (self.waketime, id(self)) <  (other.waketime, id(other))
     def __le__(self, other):
-        return self.waketime <= other.waketime
+        return (self.waketime, id(self)) <= (other.waketime, id(other))
     def __eq__(self, other):
-        return self.waketime == other.waketime
+        return (self.waketime, id(self)) == (other.waketime, id(other))
     def __ne__(self, other):
-        return self.waketime != other.waketime
+        return (self.waketime, id(self)) != (other.waketime, id(other))
     def __ge__(self, other):
-        return self.waketime >= other.waketime
+        return (self.waketime, id(self)) >= (other.waketime, id(other))
     def __gt__(self, other):
-        return self.waketime >  other.waketime
-
-    def get_wake_token(self):
-        return self._token
+        return (self.waketime, id(self)) >  (other.waketime, id(other))
 
     def apply(self, wake, executor, routine):
         executor.add_sleep(self)
-        self.listen(executor, self.get_wake_token(), wake)
+        self.listen(executor, self, wake)
 
 class IOSuspend(SimpleCancellable):
     SELECT_MODES = {'r': 0, 'w': 1, 'x': 2}
@@ -524,7 +523,7 @@ class Executor:
         if now is None: now = time.time()
         while self.sleeps and self.sleeps[0].waketime <= now:
             sleep = heapq.heappop(self.sleeps)
-            self.trigger(sleep.get_wake_token())
+            self.trigger(sleep)
 
     def on_error(self, exc, source):
         if self.error_cb and self.error_cb(exc, source): return
