@@ -765,16 +765,30 @@ class AcceptSocket(IOSuspend):
         "Perform I/O; see class docstring for details"
         return self.sock.accept()
 
-class UtilitySuspend(Suspend): pass
+class UtilitySuspend(Suspend):
+    """
+    An umbrella class covering miscellaneous suspends
+    """
 
 class ReadAll(UtilitySuspend):
+    """
+    ReadAll(readfile, length, selectfile=None) -> new instance
+
+    Read from readfile until length bytes are read or EOF is reached
+
+    Multiple partial reads may be performed and are transparently coalesced.
+    The arguments are the same as for ReadFile.
+    """
+
     def __init__(self, readfile, length, selectfile=None):
+        "Initializer; see class docstring for details"
         self.readfile = readfile
         self.length = length
         self.selectfile = selectfile
         self.read = None
 
     def apply(self, wake, executor, routine):
+        "Apply this suspend; see the class docstring for details"
         def inner_wake(result):
             if result is not None and result[0] == 1:
                 wake(result)
@@ -798,13 +812,24 @@ class ReadAll(UtilitySuspend):
         delegate.apply(inner_wake, executor, routine)
 
 class WriteAll(UtilitySuspend):
+    """
+    WriteAll(writefile, data, selectfile=None) -> new instance
+
+    Write all of data to writefile
+
+    Multiple partial writes may be performed internally. The arguments are the
+    same as for WriteFile.
+    """
+
     def __init__(self, writefile, data, selectfile=None):
+        "Initializer; see class docstring for details"
         self.writefile = writefile
         self.data = data
         self.selectfile = selectfile
         self.written = 0
 
     def apply(self, wake, executor, routine):
+        "Apply this suspend; see the class docstring for details"
         def inner_wake(result):
             if result is not None and result[0] == 1:
                 wake(result)
@@ -822,21 +847,53 @@ class WriteAll(UtilitySuspend):
         delegate.apply(inner_wake, executor, routine)
 
 class SpawnProcess(UtilitySuspend):
+    """
+    SpawnProcess(**params) -> new instance
+
+    Create a new child process and register it with the coroutine executor
+
+    params are passed on to subprocess.Popen(); the process object is returned
+    to the caller. If the coroutine executor has been prepared for signal
+    reception using set_sigpipe(), the process is registered to be wait()-ed
+    upon whenever thec process hosting the executor receives a SIGCHLD.
+    """
+
     def __init__(self, **params):
+        "Initializer; see class docstring for details"
         self.params = params
 
     def apply(self, wake, executor, routine):
+        "Apply this suspend; see the class docstring for details"
         proc = subprocess.Popen(**self.params)
         if hasattr(executor, 'waits'):
             executor.waits.add(proc)
         wake((0, proc))
 
 class WaitProcess(UtilitySuspend, SimpleCancellable):
+    """
+    WaitProcess(target) -> new instance
+
+    Wait for a child process and return its exit status
+
+    If target has a "poll" attribute, it is assumed to be a subprocess.Popen
+    instance, polled immediately, and registered for being waited upon.
+    Otherwise, target is assumed to be an integral PID (or a ProcessTag
+    instance) and is listened upon; the generic wait pool will trigger it
+    whenever a process with that ID exits.
+
+    Note that there is a race condition between the individual polls and the
+    generic wait pool (a process might exit just after it had been polled
+    individually). If the executor has not been prepared for signal reception
+    using set_sigpipe(), applying this raises a RuntimeError.
+    """
+
     def __init__(self, target):
+        "Initializer; see class docstring for details"
         SimpleCancellable.__init__(self)
         self.target = target
 
     def apply(self, wake, executor, routine):
+        "Apply this suspend; see the class docstring for details"
         if not hasattr(executor, 'waits'):
             raise RuntimeError('Executor not equipped for waiting for '
                 'processes')
