@@ -567,9 +567,9 @@ class Executor:
             for r, v in runqueue:
                 self.routines[r] = None
                 if v is None: v = (0, None)
-                # Here, we cannot use _run_callback() since we need after the
-                # fact whether to run on_error() or not; as a bonus, we get
-                # a more precise error source.
+                # Here, we cannot use _run_callback() since we need to know
+                # after the fact whether to run on_error() or not; as a bonus,
+                # we get a more precise error source.
                 try:
                     resume = (r.send, r.throw)[v[0]]
                     suspend = resume(v[1])
