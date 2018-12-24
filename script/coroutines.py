@@ -131,18 +131,20 @@ class Suspend(object):
     central select() loop), sleeping (which would make other coroutines
     unresponsive otherwise), and inter-coroutine communication. Suspends can
     be composed in various ways enabling concurrent execution of multiple
-    actions; see CombinationSuspend subclasses for that. A Suspend may only
-    be used (i.e. yielded from a coroutine) only once (unless otherwise
-    noted); attempting to use it multiple times will result in unpredictable
-    behavior.
-
-    The Suspend class is abstract; subclasses should override the apply()
-    method to specialize what they actually do.
+    actions; see CombinationSuspend subclasses for that. A Suspend may be used
+    (i.e. yielded from a coroutine) only once (unless otherwise noted);
+    attempting to use it multiple times will result in unpredictable behavior.
 
     Some Suspend subclasses may allow "cancelling" their instances; this
     should abort any pending actions corresponding to the suspend. Cancelling
     enables suspends like Any to "race" multiple suspends against each other
-    and to only commit the first suspend to finish.
+    and to only commit the first suspend which finishes.
+
+    The Suspend class is abstract; subclasses should override the apply()
+    method to specialize what they actually do. Suspend objects must be
+    hashable and usable as dictionary keys; while they may override comparison
+    operators (like Sleep does), different Suspend objects (w.r.t. the
+    identity comparison "is") must always be unequal.
     """
 
     def apply(self, wake, executor, routine):
