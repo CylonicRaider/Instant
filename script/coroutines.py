@@ -1532,7 +1532,7 @@ def const(value=None):
     """
     yield coroutines.Exit(value)
 
-def constRaise(exc, excclass=RuntimeError):
+def const_raise(exc, excclass=RuntimeError):
     """
     A coroutine that immediately raises the given exception
 

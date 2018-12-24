@@ -583,11 +583,11 @@ def command(name, minargs=0, maxargs=None):
     def callback(func):
         def wrapper(self, cmd, *args):
             if len(args) < minargs:
-                return coroutines.constRaise(RemoteError('TFARGS', 'Too few '
+                return coroutines.const_raise(RemoteError('TFARGS', 'Too few '
                     'arguments for command %s' % (cmd,)))
             elif maxargs is not None and len(args) > maxargs:
-                return coroutines.constRaise(RemoteError('TMARGS', 'Too many '
-                    'arguments for command %s' % (cmd,)))
+                return coroutines.const_raise(RemoteError('TMARGS', 'Too '
+                    'many arguments for command %s' % (cmd,)))
             return func(self, cmd, *args)
         REMOTE_COMMANDS[name] = wrapper
         return func
