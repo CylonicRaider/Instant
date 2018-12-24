@@ -1206,12 +1206,30 @@ class Executor:
         self.run(*args, **kwds)
 
 class Lock(object):
+    """
+    Lock() -> new instance
+
+    A mutex for coroutines
+
+    Lock implements mutual exclusion of coroutines -- at most one coroutine
+    can "hold" a lock at once. Use Acquire() to get hold of a lock -- which
+    may block the coroutine until the lock is available -- and release() to
+    release it back.
+
+    Initially, a lock is unlocked. Locks are not reentrant -- acquiring a lock
+    already held by the current coroutine will cause a deadlock.
+    """
+
     class _Acquire(SimpleCancellable):
+        "Helper class representing an Acquire() operation; see there"
+
         def __init__(self, parent):
+            "Initializer"
             SimpleCancellable.__init__(self)
             self.parent = parent
 
         def apply(self, wake, executor, routine):
+            "Apply this suspend; see Acquire() for details"
             if self.parent.locked:
                 self.listen_reapply(wake, executor, routine, self.parent)
             else:
@@ -1220,13 +1238,26 @@ class Lock(object):
                 wake((0, None))
 
     def __init__(self):
+        "Initializer; see class docstring for details"
         self.locked = False
         self._trigger = None
 
     def Acquire(self):
+        """
+        Acquire the lock
+
+        This will suspend the current coroutine until the lock is available if
+        necessary. This returns a coroutine suspend.
+        """
         return self._Acquire(self)
 
     def release(self):
+        """
+        Release the lock
+
+        This operation never blocks. Releasing a lock that is not locked will
+        cause a RuntimeError to be raised.
+        """
         if not self.locked:
             raise RuntimeError('Releasing unlocked lock')
         self.locked = False
@@ -1234,20 +1265,41 @@ class Lock(object):
         callback()
 
 class StateSwitcher(object):
+    """
+    StateSwitcher(state=None) -> new instance
+
+    Manage a variable transitioning between different values
+
+    A StateSwitcher encloses a state variable and provides methods for waiting
+    until it reaches a particular value, changing its value, and an atomical
+    compare-and-swap operation.
+
+    The "state" constructor parameter sets the initial state; the state can be
+    queried using the same-named instance attribute, but should be assigned
+    using the Set() method.
+    """
+
     class _Wait(SimpleCancellable):
+        "Helper class representing a Wait() operation; see there"
+
         def __init__(self, parent, match):
+            "Initializer"
             SimpleCancellable.__init__(self)
             self.parent = parent
             self.match = match
 
         def apply(self, wake, executor, routine):
+            "Apply this suspend; see Wait() for details"
             if self.parent.state == self.match:
                 wake((0, None))
             else:
                 self.listen_reapply(wake, executor, routine, self.parent)
 
     class _Toggle(SimpleCancellable):
+        "Helper class representing a Toggle() operation; see there"
+
         def __init__(self, parent, match, new, wait):
+            "Initializer"
             SimpleCancellable.__init__(self)
             self.parent = parent
             self.match = match
@@ -1255,6 +1307,7 @@ class StateSwitcher(object):
             self.wait = wait
 
         def apply(self, wake, executor, routine):
+            "Apply this suspend; see Toggle() for details"
             if self.parent.state == self.match:
                 self.parent.state = self.new
                 executor.trigger(self.parent, (0, self.new))
@@ -1265,35 +1318,81 @@ class StateSwitcher(object):
                 self.listen_reapply(wake, executor, routine, self.parent)
 
     class _Set(Suspend):
+        "Helper class representing a Set() operation; see there"
+
         def __init__(self, parent, new):
+            "Initializer"
             self.parent = parent
             self.new = new
 
         def apply(self, wake, executor, routine):
+            "Apply this suspend; see Set() for details"
             prev_state = self.parent.state
             self.parent.state = self.new
             executor.trigger(self.parent, (0, self.new))
             wake((0, prev_state))
 
     def __init__(self, state=None):
+        "Initializer; see class docstring for details"
         self.state = state
 
     def Wait(self, match):
+        """
+        Wait until the state variable matches the given value
+
+        This returns a coroutine suspend.
+        """
         return self._Wait(self, match)
 
     def Toggle(self, match, new, wait=False):
+        """
+        If the state variable is equal to match, set it to new
+
+        The comparison and the setting happen atomically. If wait is true,
+        waits until the state variable is equal to match. This returns a
+        coroutine suspend; when used, the suspend returns whether the
+        operation succeeded (this always happens if wait is true).
+        """
         return self._Toggle(self, match, new, wait)
 
     def Set(self, new):
+        """
+        Set the state variable to the given new value
+
+        This returns a coroutine suspend.
+        """
         return self._Set(self, new)
 
 class BinaryLineReader(object):
+    """
+    BinaryLineReader(file, encoding=None, errors=None) -> new instance
+
+    Convenience object for reading lines in a coroutine-safe way
+
+    file is a file to read from; it must be open in binary mode. encoding and
+    errors, if not None, indicate that individual lines (!) should be decoded
+    with the given encoding and error handling mode.
+
+    Data are read in (binary) chunks whose size is defermined by the
+    chunk_size instance attribute; it defaults to the LINEREADER_CHUNK_SIZE
+    module-level constant.
+
+    Line splitting is performed on line feed (0x0A) bytes *before* data are
+    decoded. This class avoids the potential blocking of file object methods
+    like readline(), which would block the entire coroutine executor by
+    extension.
+    """
+
     class _ReadLine(Suspend):
+        "Helper class for ReadLine(); see there"
+
         def __init__(self, parent):
+            "Initializer"
             self.parent = parent
             self._delegate = None
 
         def apply(self, wake, executor, routine):
+            "Apply this suspend; see ReadLine() for details"
             def inner_wake(result):
                 if result[0] == 1:
                     wake(result)
@@ -1309,7 +1408,7 @@ class BinaryLineReader(object):
                 wake((0, line))
                 return
             self._delegate = ReadFile(self.parent.file,
-                                      LINEREADER_CHUNK_SIZE)
+                                      self.parent.chunk_size)
             self._delegate.apply(inner_wake, executor, routine)
 
         def cancel(self):
@@ -1317,6 +1416,7 @@ class BinaryLineReader(object):
                 self._delegate.cancel()
 
     def __init__(self, file, encoding=None, errors=None):
+        "Initializer; see class docstring for details"
         self.file = file
         self.encoding = encoding
         self.errors = errors
@@ -1325,6 +1425,7 @@ class BinaryLineReader(object):
         self._eof = False
 
     def _extract_line(self):
+        "Helper: Extract (and decode) a line from the buffer or return None"
         line, sep, rest = self._buffer.partition(b'\n')
         if not sep and not self._eof:
             return None
@@ -1335,6 +1436,12 @@ class BinaryLineReader(object):
         return line
 
     def ReadLine(self):
+        """
+        Read a single line
+
+        This returns a coroutine suspend, which returns the (possibly decoded)
+        line when finished.
+        """
         return self._ReadLine(self)
 
 def sigpipe_handler(rfd, waits, cleanup):
