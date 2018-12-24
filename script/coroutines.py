@@ -342,13 +342,14 @@ class Selector(CombinationSuspend):
     Selector will apply() all pending child suspends (i.e. suspends added via
     the constructor or add() that have not been apply()ed yet) and return the
     result of a finished child (or suspend the calling routine until there is
-    one); if it has no children at all, the Selector will finish immediately.
-    Since it never cancels children (unless cancelled itself), a Selector may
-    be used to provide functionality similar to Any with children that cannot
-    be cancelled.
+    one); if it has no children at all, the Selector will finish immediately,
+    returning a (None, None) tuple. Since Selector never cancels its children
+    (unless cancelled itself), one can use it to provide something similar to
+    the Any suspend with children that cannot be cancelled.
 
     The result of each child suspend is reported as a 2-tuple (child, value),
-    where child is the child suspend that finished and value is its result.
+    where child is the child suspend that finished and value is its result;
+    if a child suspend resulted in an exception, it is re-raised instead.
     """
 
     def __init__(self, *suspends):
@@ -400,11 +401,11 @@ class Selector(CombinationSuspend):
         if value[0] == 1:
             self._callback(value)
         else:
-            self._callback((0, item))
+            self._callback((0, (suspend, value[1])))
         self._callback = None
-        self._finished.pop(item[0], None)
+        self._finished.pop(suspend, None)
         try:
-            self.children.remove(item[0])
+            self.children.remove(suspend)
         except ValueError:
             pass
 
