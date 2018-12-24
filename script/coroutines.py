@@ -1,7 +1,84 @@
 
 # -*- coding: ascii -*-
 
-# A PEP 342 generator-based coroutine framework.
+"""
+A PEP 342 generator-based coroutine framework
+
+This module implements the cooperative multitasking in Python using generator
+functions. Multiple coroutines can run concurrently, exchanging control with
+each other by suspending themselves regularly, all staying within the same
+thread of execution. Coroutines perform potentially blocking operations (such
+as I/O or sleeping) by suspending themselves and letting the executor together
+with special "suspend" objects manage the actual operations.
+
+A listing of the important classes and functions follows; for a more lengthy
+introduction to the library, read on.
+Executor        : Schedules coroutines and provides various services to them;
+                  one main entry point into the module.
+Suspend         : The base class of all suspend objects; see its subclasses
+                  for functionality available to coroutines.
+Lock            : Provides mutex-like functionality (across multiple suspends)
+                  to coroutines.
+StateSwitcher   : Provides management of a state variable to synchronize
+                  multiple coroutines.
+BinaryLineReader: Convenience class implementing reading lines from a file (or
+                  socket) based on more "primitive" coroutine suspends.
+set_sigpipe     : Configures an Executor to be able to wait() for child
+                  processes (this requires changing global state and is thus
+                  a module-level function).
+const           : Trivial coroutine always exiting with a given value.
+const_raise     : Trivial coroutine always raising an exception.
+run             : Convenience function for constructing, configuring, running,
+                  and cleaning up an Executor.
+
+As remarked above, coroutines are implemented as generator functions, like the
+following example:
+
+    def ticker(delay, output):
+        while 1:
+            print ('Tick!')
+            yield Sleep(delay)
+            print ('Tock!')
+            yield Sleep(delay)
+
+This function regularly writes strings to standard output (remark that the
+example uses the blocking print since it is assumed to be fast enough) and
+sleeps in between them by using a suspend object. Suspend objects can perform
+various things; aside from the already-mentioned I/O and sleeping, suspends
+can also perform inter-coroutine communication (with less overhead than
+regular polling of shared variables) or compose other suspends. For example,
+the following suspend reads from a file with a timeout:
+
+    suspend, result = yield Any(ReadFile(f, 1024), Sleep(5))
+
+The Any suspend returns the first suspend to finish along with its result: if
+the ReadFile does not finish within five seconds, the Sleep's result is
+reported instead. The other sub-suspend of the Any is *cancelled* (which is an
+operation not supported by all suspends), so that no data are actually read
+should the sleep finish first. As seen in the example above, suspends can
+return values to the invoking coroutine (or to enclosing suspends); composing
+suspends can manipulate the return values of their nested suspends.
+
+In order to become effective, a suspend object must be yielded (recall that
+coroutines are implemented as generators) from a coroutine to its executor,
+which schedules the coroutines and provides services to suspend objects, such
+as a central select loop (which is used by ReadFile etc.). Once yielded, it is
+up to the suspend to wake up the coroutine whenever the suspend is done (which
+might be immediately or, for the Exit suspend, never).
+
+A coroutine can also use a bare "yield" to suspend itself without performing
+any special action; it will be immediately resumed after other coroutines have
+had a chance to run (which happens every time a coroutine yields).
+
+The use of generator functions as coroutines forces some restrictions upon
+language features; in particular, generator functions cannot both be
+coroutines and be used for their original purpose of driving a for loop, and
+coroutines cannot directly call other coroutines. No means of working around
+the for loop restriction are provided by the framework; subroutines can be
+implemented using the Call suspend. Additionally, coroutines cannot directly
+return values (since returning a non-None value is not permitted for a
+generator); the Exit suspend provides that functionality instead.
+"""
 
 import sys, os, time
 import heapq
