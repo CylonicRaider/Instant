@@ -86,6 +86,11 @@ import traceback
 import errno, signal, socket, select
 import subprocess
 
+try:
+    import fcntl
+except ImportError:
+    fcntl = None
+
 SIGPIPE_CHUNK_SIZE = 1024
 LINEREADER_CHUNK_SIZE = 16384
 
@@ -1524,6 +1529,23 @@ class BinaryLineReader(object):
         """
         return self._ReadLine(self)
 
+def make_nonblocking(fp):
+    """
+    Make fp non-blocking
+
+    If fp is a socket.socket instance, its setblocking() method is invoked;
+    otherwise, the fcntl module is used if available; otherwise, a
+    RuntimeError is raised.
+    """
+    if isinstance(fp, socket.socket):
+        fp.setblocking(0)
+    elif fcntl:
+        flags = fcntl.fcntl(fp, fcntl.F_GETFL)
+        flags |= os.O_NONBLOCK
+        fcntl.fcntl(fp, fcntl.F_SETFL, flags)
+    else:
+        raise RuntimeError()
+
 def sigpipe_handler(rfd, waits, cleanup):
     """
     Helper coroutine for set_sigpipe()
@@ -1596,6 +1618,7 @@ def set_sigpipe(executor, coroutine=sigpipe_handler):
     rfd, wfd = os.pipe()
     waits = set()
     try:
+        make_nonblocking(wfd)
         signal.set_wakeup_fd(wfd)
         old_handler = signal.signal(signal.SIGCHLD, lambda sn, f: None)
         inst = coroutine(rfd, waits, cleanup)
