@@ -1445,6 +1445,19 @@ class BinaryLineReader(object):
         return self._ReadLine(self)
 
 def sigpipe_handler(rfd, waits, cleanup):
+    """
+    Helper coroutine for set_sigpipe()
+
+    This is expected to do the following things in a loop:
+    - Read from rfd.
+    - Invoke the poll() method of every object in waits (which is a set) and
+      discard those objects whose poll() method does not return None.
+    - Employ os.waitpid() to wait for any stray child processes.
+    - Trigger ProcessTag-s constructed from the PID-s of all finished child
+      processes with the respective exit codes as associated values.
+    When the coroutine is terminated, it is expected to invoke the cleanup()
+    callback (which expects no paramaters).
+    """
     try:
         while 1:
             yield ReadFile(rfd, SIGPIPE_CHUNK_SIZE)
@@ -1468,7 +1481,26 @@ def sigpipe_handler(rfd, waits, cleanup):
         cleanup()
 
 def set_sigpipe(executor, coroutine=sigpipe_handler):
+    """
+    Install a signal wake-up pipe into the given executor
+
+    Invoking this function on an executor enables coroutines inside the
+    executor to wait for child processes. The global (!) configuration
+    associated with that is undone when the executor is closed.
+
+    coroutine is instantiated with the parameters elaborated upon in
+    sigpipe_handler() and run daemonically in the executor.
+
+    This installs a do-nothing handler for the SIGCHLD signal (the handler
+    in place previously is reinstated when the executor is closed);
+    additionally, signal.set_wakeup_fd() is used to wake up the executor's
+    select loop whenever a signal arrives. Since these are global state, this
+    is a module-level function. The executor gains a "waits" attribute, which
+    is a set of subprocess.Popen instances to be regularly polled for having
+    finished by coroutine.
+    """
     def cleanup(reset_signals=True):
+        "Callback for cleaning up when the executor is shut down"
         if reset_signals:
             signal.signal(signal.SIGCHLD, old_handler)
             signal.set_wakeup_fd(-1)
@@ -1495,15 +1527,34 @@ def set_sigpipe(executor, coroutine=sigpipe_handler):
     return inst
 
 def const(value=None):
+    """
+    A coroutine that immediately returns the given value
+    """
     yield coroutines.Exit(value)
 
 def constRaise(exc, excclass=RuntimeError):
+    """
+    A coroutine that immediately raises the given exception
+
+    If exc is not actually an exception, excclass is instantiated using it
+    as the only parameter and raised.
+    """
     if not isinstance(exc, BaseException):
         raise excclass(exc)
     yield exc
 
 def run(routines=(), main=None, sigpipe=False, on_error=None):
+    """
+    Convenience function for running a coroutine executor
+
+    routines is an iterable of coroutines to run. main (if not None) is a
+    suspend (!) to be applied in an additional coroutine; its return value is
+    returned from run(). If sigpipe is true, set_sigpipe() is applied to the
+    executor prior to starting it. on_error, if not None, is installed as the
+    executor's error_cb.
+    """
     def main_routine():
+        "Wrapper coroutine for the main suspend"
         result[0] = yield main
     ex = Executor()
     for r in routines: ex.add(r)
