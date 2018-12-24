@@ -529,6 +529,9 @@ class ProcessManager:
             except KeyError:
                 raise ConfigurationError('Missing required key "name" in '
                     'section %r' % s)
+            if '=' in name:
+                raise ConfigurationError('Invalid process name in section '
+                    '%r: %r contains equals sign (=)' % (s, name))
             try:
                 cmdline = values['cmdline']
             except KeyError:
