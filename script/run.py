@@ -547,36 +547,41 @@ class ProcessManager:
         return self.notifies.get(key)
 
     @operation(wait=(bool, 'Whether to wait for the start\'s completion'),
+               verbose=(bool, 'Whether to output status reports'),
                procs=(list, 'The processes to start (default: all)'))
-    def do_start(self, wait=True, procs=None, verbose=False):
+    def do_start(self, wait=True, procs=None, verbose=True):
         "Start the given processes"
         kwds = {'procs': procs, 'verbose': verbose}
         yield coroutines.Call(self.group.start(**kwds))
 
     @operation(wait=(bool, 'Whether to wait for the stop\'s completion'),
+               verbose=(bool, 'Whether to output status reports'),
                procs=(list, 'The processes to stop (default: all)'))
-    def do_stop(self, wait=True, procs=None, verbose=False):
+    def do_stop(self, wait=True, procs=None, verbose=True):
         "Stop the given processes"
         kwds = {'procs': procs, 'verbose': verbose}
         yield coroutines.Call(self.group.stop(**kwds))
 
-    @operation(procs=(list, 'The processes to restart (default: all)'))
-    def do_restart(self, procs=None, verbose=False):
+    @operation(verbose=(bool, 'Whether to output status reports'),
+               procs=(list, 'The processes to restart (default: all)'))
+    def do_restart(self, procs=None, verbose=True):
         "Restart the given processes"
         kwds = {'procs': procs, 'verbose': verbose}
         yield coroutines.Call(self.group.stop(**kwds))
         yield coroutines.Call(self.group.start(**kwds))
 
-    @operation(procs=(list, 'The processes to restart (default: all)'))
-    def do_bg_restart(self, procs=None, verbose=False):
+    @operation(verbose=(bool, 'Whether to output status reports'),
+               procs=(list, 'The processes to restart (default: all)'))
+    def do_bg_restart(self, procs=None, verbose=True):
         "Restart the given processes with pre-loading the new instances"
         kwds = {'procs': procs, 'verbose': verbose}
         yield coroutines.Call(self.group.warmup(**kwds))
         yield coroutines.Call(self.group.stop(**kwds))
         yield coroutines.Call(self.group.start(**kwds))
 
-    @operation(procs=(list, 'The processes to query (default: all)'))
-    def do_status(self, procs=None, verbose=False):
+    @operation(verbose=(bool, 'Whether to output status reports'),
+               procs=(list, 'The processes to query (default: all)'))
+    def do_status(self, procs=None, verbose=True):
         "Query the status of the given processes"
         kwds = {'procs': procs, 'verbose': verbose}
         yield coroutines.Call(self.group.status(**kwds))
@@ -600,13 +605,15 @@ def _wrap_operation(opname, desc):
     def handler(self, cmd, *args):
         def log_handler(text):
             self.parent.manager_logger.info(text)
-            return self.WriteLine('<', text)
+            if orig_verbose:
+                return self.WriteLine('<', text)
         method = getattr(self.parent.manager, 'do_' + opname)
         try:
             kwds = self.parent.manager.parse_line(args, desc['types'])
         except ValueError as exc:
             raise RemoteError('SYNTAX', 'Bad command usage: %s: %s' %
                               (exc.__class__.__name__, exc))
+        orig_verbose = kwds['verbose']
         kwds['verbose'] = log_handler
         yield self.parent.lock.Acquire()
         self.parent.manager_logger.info('Doing ' + opname + '...')
@@ -1116,7 +1123,6 @@ def main():
             if stop_master: try_call(run_client, conn, ('SHUTDOWN',))
             conn.close()
     else:
-        kwds['verbose'] = True
         func = getattr(mgr, 'do_' + opname)
         try_call(coroutines.run, [func(**kwds)], sigpipe=True,
                  on_error=coroutines_error_handler)
