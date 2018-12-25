@@ -566,6 +566,32 @@ class Spawn(ControlSuspend):
         executor.add(self.target, daemon=self.daemon)
         wake(None)
 
+class CallbackSuspend(ControlSuspend):
+    """
+    CallbackSuspend(callback) -> new instance
+
+    Execute an arbitrary synchronous function in the context of a suspend
+
+    When applied, this suspend forwards the "executor" and "routine" arguemnts
+    of its apply() method to callback and finishes with the value callback
+    returns (or the exception it raises). This is useful for performing
+    actions which are not covered by other suspends and are simple enough not
+    to require a dedicated suspend class.
+    """
+
+    def __init__(self, callback):
+        "Initializer; see class docstring for details"
+        self.callback = callback
+
+    def apply(self, wake, executor, routine):
+        "Apply this suspend; see class docstring for details"
+        try:
+            result = self.callback(executor, routine)
+        except Exception as exc:
+            wake((1, exc))
+        else:
+            wake((0, result))
+
 class SimpleCancellable(Suspend):
     """
     An abstract class for cancellable suspends
