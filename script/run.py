@@ -291,10 +291,11 @@ class PIDFile:
         other._pid, self._pid = self._pid, Ellipsis
 
 class Process:
-    def __init__(self, name, command, config, manager=None):
+    def __init__(self, name, command, env, config, manager=None):
         self.name = name
         self.command = command
         self.manager = manager
+        self.env = env
         self.pidfile = PIDFile(config.get('pid-file',
             DEFAULT_PIDFILE_TEMPLATE % name))
         self.pidfile_next = PIDFile(config.get('pid-file-warmup',
@@ -334,7 +335,9 @@ class Process:
             #       redirections] may leak file descriptors.
             for r in redirections:
                 files.append(r.open())
-            proc = yield coroutines.SpawnProcess(args=cmdline,
+            final_env = dict(os.environ)
+            final_env.update(self.env)
+            proc = yield coroutines.SpawnProcess(args=cmdline, env=final_env,
                 cwd=self.workdir, stdin=files[0], stdout=files[1],
                 stderr=files[2])
             yield coroutines.Exit(proc)
@@ -529,23 +532,32 @@ class ProcessManager:
         sections = [s for s in self.conffile.list_sections()
                     if self.conffile.split_name(s)[0] in PROCESS_SECTIONS]
         sections.sort()
-        for s in sections:
-            values = self.conffile.get_section(s)
+        for secname in sections:
+            values = self.conffile.get_section(secname)
             try:
                 name = values['name']
             except KeyError:
                 raise ConfigurationError('Missing required key "name" in '
-                    'section %r' % s)
+                    'section %r' % secname)
             if '=' in name:
                 raise ConfigurationError('Invalid process name in section '
-                    '%r: %r contains equals sign (=)' % (s, name))
+                    '%r: %r contains equals sign (=)' % (secname, name))
             try:
                 cmdline = values['cmdline']
             except KeyError:
                 raise ConfigurationError('Missing required key "cmdline" in '
-                    'section %r' % s)
+                    'section %r' % secname)
             command = tuple(shlex.split(cmdline))
-            self.group.add(Process(name, command, values, self))
+            raw_env = tuple(shlex.split(values.get('env', '')))
+            env = {}
+            for entry in raw_env:
+                k, s, v = entry.partition('=')
+                if not s:
+                    raise ConfigurationError('Missing equals sign in '
+                        'environment entry %r in section %r' % (entry,
+                        secname))
+                env[k] = v
+            self.group.add(Process(name, command, env, values, self))
 
     def register_notify(self, key, obj):
         self.notifies[key] = obj
