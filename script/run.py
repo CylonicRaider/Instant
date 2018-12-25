@@ -802,6 +802,28 @@ def command_notify(self, cmd, key):
     yield switcher.Wait('')
     yield coroutines.Exit('OK')
 
+@command('RESTART-MASTER', maxargs=0)
+def command_restart_daemon(self, cmd):
+    yield self.parent.lock.Acquire()
+    # Ignoring other coroutines from here on.
+    self.parent.manager_logger.info('Restarting server!')
+    mgr = self.parent.manager
+    data = mgr.prepare_inherit()
+    rfd, wfd = os.pipe()
+    cmdline = (sys.executable, THIS_FILE, '--config', mgr.conffile.path,
+               'run-master', '--restore', str(rfd))
+    pid = os.fork()
+    if pid == 0:
+        # In the child, we push the data into a pipe and exit.
+        os.close(rfd)
+        with os.fdopen(wfd, 'w') as f:
+            f.write(data)
+        # The fdopen()ed file closes wfd automatically.
+        os._exit(0)
+    os.close(wfd)
+    os.execv(sys.executable, cmdline)
+    raise RuntimeError('exec() returned?!')
+
 class Remote:
     class Server:
         def __init__(self, parent, path):
@@ -1223,6 +1245,10 @@ def main():
                               'standard error (unless there is no log file '
                               'specified) after creating the communication '
                               'socket')
+    p_master.add_argument('--restore-fd', type=int, metavar='FD',
+                          help='(internal) Load a state dump in some '
+                              'internal format from the given file '
+                              'descriptor')
     p_cmd = sp.add_parser('cmd',
                           help='Execute a command in a job manager server',
                           epilog='Some values of the --master option are '
@@ -1242,6 +1268,9 @@ def main():
         raise SystemExit('Configuration error: ' + str(exc))
     if arguments.cmd == 'run-master':
         mgr.has_notify = True
+        if arguments.restore_fd is not None:
+            with os.fdopen(arguments.restore_fd) as f:
+                mgr.restore_inherit(f.read())
         run_master(mgr, close_fds=arguments.close_fds)
         return
     stop_master = (arguments.master == 'stop')
