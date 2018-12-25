@@ -632,7 +632,7 @@ def _wrap_operation(opname, desc):
         except ValueError as exc:
             raise RemoteError('SYNTAX', 'Bad command usage: %s: %s' %
                               (exc.__class__.__name__, exc))
-        orig_verbose = kwds['verbose']
+        orig_verbose = kwds.get('verbose')
         kwds['verbose'] = log_handler
         yield self.parent.lock.Acquire()
         self.parent.manager_logger.info('Doing ' + opname + '...')
