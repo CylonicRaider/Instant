@@ -290,28 +290,35 @@ class PIDFile:
             other.set_pid(None)
         other._pid, self._pid = self._pid, Ellipsis
 
-class Process:
-    def __init__(self, name, command, env, config, manager=None):
+class BaseProcess:
+    class DummyPopen:
+        def __init__(self, pid):
+            self.pid = pid
+            self.returncode = None
+
+        def poll(self):
+            if self.returncode is None:
+                pid, status = os.waitpid(self.pid, os.WNOHANG)
+                if pid != 0:
+                    code = -(status & 0x7F) if status & 0xFF else status >> 8
+                    self.returncode = code
+            return self.returncode
+
+        def terminate(self):
+            if self.returncode is None:
+                os.kill(self.pid, signal.SIGTERM)
+
+        def kill(self):
+            if self.returncode is None:
+                os.kill(self.pid, signal.SIGKILL)
+
+    def __init__(self, name, pidfile, manager=None, inherited_pid=None):
         self.name = name
-        self.command = command
+        self.pidfile = pidfile
         self.manager = manager
-        self.env = env
-        self.pidfile = PIDFile(config.get('pid-file',
-            DEFAULT_PIDFILE_TEMPLATE % name))
-        self.pidfile_next = PIDFile(config.get('pid-file-warmup',
-            self.pidfile.path + WARMUP_PIDFILE_SUFFIX))
-        self.workdir = config.get('work-dir')
-        self.stdin = Redirection.parse(config.get('stdin', ''))
-        self.stdout = Redirection.parse(config.get('stdout', ''))
-        self.stderr = Redirection.parse(config.get('stderr', ''))
-        self.stop_delay = float(config.get('stop-wait', 0))
-        self.startup_notify = config.get('startup-notify')
-        self.uuid = uuid.uuid4()
         self._child = None
-        self._next_child = None
-        self._next_switcher = coroutines.StateSwitcher('')
-        if manager:
-            manager.register_notify(str(self.uuid), self._next_switcher)
+        if inherited_pid is not None:
+            self._child = self.DummyPopen(inherited_pid)
 
     def _make_exit(self, operation, verbose):
         def callback(value):
@@ -323,6 +330,48 @@ class Process:
         else:
             context = None
         return callback
+
+    def init(self):
+        def add_child(executor, routine):
+            executor.waits.add(self._child)
+        if self._child is not None:
+            yield coroutines.CallbackSuspend(add_child)
+
+    def warmup(self, wait=True, verbose=False):
+        raise NotImplementedError
+
+    def start(self, wait=True, verbose=False):
+        raise NotImplementedError
+
+    def stop(self, wait=True, verbose=False):
+        raise NotImplementedError
+
+    def status(self, verbose=False):
+        exit = self._make_exit(None, verbose)
+        pid, status = self.pidfile.get_status()
+        if pid is not None: status = '%s %s' % (status, pid)
+        yield exit(status)
+
+class Process(BaseProcess):
+    def __init__(self, name, command, env, config, manager=None,
+                 inherited_pid=None):
+        BaseProcess.__init__(self, name, PIDFile(config.get('pid-file',
+            DEFAULT_PIDFILE_TEMPLATE % name)), manager, inherited_pid)
+        self.command = command
+        self.env = env
+        self.pidfile_next = PIDFile(config.get('pid-file-warmup',
+            self.pidfile.path + WARMUP_PIDFILE_SUFFIX))
+        self.workdir = config.get('work-dir')
+        self.stdin = Redirection.parse(config.get('stdin', ''))
+        self.stdout = Redirection.parse(config.get('stdout', ''))
+        self.stderr = Redirection.parse(config.get('stderr', ''))
+        self.stop_delay = float(config.get('stop-wait', 0))
+        self.startup_notify = config.get('startup-notify')
+        self.uuid = uuid.uuid4()
+        self._next_child = None
+        self._next_switcher = coroutines.StateSwitcher('')
+        if manager:
+            manager.register_notify(str(self.uuid), self._next_switcher)
 
     def _spawn_process(self, extra_args=None):
         cmdline = self.command
@@ -411,10 +460,27 @@ class Process:
                 status = None
         yield exit(status)
 
-    def status(self, verbose=False):
-        exit = self._make_exit(None, verbose)
-        pid, status = self.pidfile.get_status()
-        if pid is not None: status = '%s %s' % (status, pid)
+class ProcessHusk(BaseProcess):
+    def warmup(self, wait=True, verbose=False):
+        exit = self._make_exit('warmup', verbose)
+        yield exit('NOT_SUPPORTED')
+
+    def start(self, wait=True, verbose=False):
+        exit = self._make_exit('start', verbose)
+        yield exit('NOT_SUPPORTED')
+
+    def stop(self, wait=True, verbose=False):
+        exit = self._make_exit('stop', verbose)
+        if self._child is None:
+            yield exit('NOT_RUNNING')
+        self._child.terminate()
+        self.pidfile.set_pid(None)
+        if wait and self._child:
+            raw_status = yield coroutines.WaitProcess(self._child)
+            status = 'OK %s' % (raw_status,)
+        else:
+            status = 'OK'
+        self._child = None
         yield exit(status)
 
 class ProcessGroup:
@@ -423,6 +489,9 @@ class ProcessGroup:
 
     def add(self, proc):
         self.processes.append(proc)
+
+    def remove(self, procs):
+        self.processes.remove(proc)
 
     def _for_each(self, procs, handler):
         if procs is None:
@@ -440,6 +509,9 @@ class ProcessGroup:
         calls = [coroutines.Call(handler(p)) for p in eff_procs]
         result = yield coroutines.All(*calls)
         yield coroutines.Exit(result)
+
+    def init(self, procs=None):
+        return self._for_each(procs, lambda p: p.init())
 
     def warmup(self, wait=True, verbose=False, procs=None):
         return self._for_each(procs, lambda p: p.warmup(wait, verbose))
@@ -528,7 +600,7 @@ class ProcessManager:
         self.has_notify = False
         self.notifies = {}
 
-    def init(self):
+    def load(self):
         sections = [s for s in self.conffile.list_sections()
                     if self.conffile.split_name(s)[0] in PROCESS_SECTIONS]
         sections.sort()
@@ -564,6 +636,9 @@ class ProcessManager:
 
     def get_notify(self, key):
         return self.notifies.get(key)
+
+    def init(self):
+        yield coroutines.Call(self.group.init())
 
     @operation(wait=(bool, 'Whether to wait for the start\'s completion'),
                verbose=(bool, 'Whether to output status reports'),
@@ -957,6 +1032,13 @@ def run_master(mgr, close_fds=False):
     signal.signal(signal.SIGINT, interrupt)
     signal.signal(signal.SIGTERM, interrupt)
     srv = remote.listen()
+    pidpath = remote.config.get('pid-file')
+    if pidpath:
+        pidfile = PIDFile(pidpath)
+        pidfile.set_pid(os.getpid())
+    else:
+        pidfile = None
+    remote.prepare_executor().add(mgr.init())
     if close_fds:
         devnull_fd = os.open(os.devnull, os.O_RDWR)
         os.dup2(devnull_fd, sys.stdin.fileno())
@@ -964,12 +1046,6 @@ def run_master(mgr, close_fds=False):
         if remote.config.get('log-file'):
             os.dup2(devnull_fd, sys.stderr.fileno())
         os.close(devnull_fd)
-    pidpath = remote.config.get('pid-file')
-    if pidpath:
-        pidfile = PIDFile(pidpath)
-        pidfile.set_pid(os.getpid())
-    else:
-        pidfile = None
     try:
         remote.run_server(srv)
     finally:
@@ -1048,6 +1124,9 @@ def main():
         os.read(rfd, 1)
         os.close(rfd)
         return remote.connect()
+    def client_main(mgr, func, kwds):
+        yield coroutines.Call(mgr.init())
+        yield coroutines.Call(func(**kwds))
     p = argparse.ArgumentParser(
         description='Manage a number of processes',
         epilog='The --master option can have the following values: off = '
@@ -1103,7 +1182,7 @@ def main():
     config.load()
     mgr = ProcessManager(config)
     try:
-        mgr.init()
+        mgr.load()
     except ConfigurationError as exc:
         raise SystemExit('Configuration error: ' + str(exc))
     if arguments.cmd == 'run-master':
@@ -1143,7 +1222,7 @@ def main():
             conn.close()
     else:
         func = getattr(mgr, 'do_' + opname)
-        try_call(coroutines.run, [func(**kwds)], sigpipe=True,
+        try_call(coroutines.run, [client_main(mgr, func, kwds)], sigpipe=True,
                  on_error=coroutines_error_handler)
 
 if __name__ == '__main__': main()
