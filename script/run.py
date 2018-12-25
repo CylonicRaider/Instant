@@ -312,13 +312,22 @@ class BaseProcess:
             if self.returncode is None:
                 os.kill(self.pid, signal.SIGKILL)
 
-    def __init__(self, name, pidfile, manager=None, inherited_pid=None):
+    def __init__(self, name, pidfile, manager=None):
         self.name = name
         self.pidfile = pidfile
         self.manager = manager
         self._child = None
-        if inherited_pid is not None:
-            self._child = self.DummyPopen(inherited_pid)
+
+    def prepare_inherit(self):
+        if self._child is not None:
+            return (self._child.pid, self.pidfile.path)
+
+    def restore_inherit(self, values):
+        if values is None: return
+        pid, pidpath = values
+        self._child = self.DummyPopen(pid)
+        # The PID file path might have changed; we allow that in here. The
+        # value is used when constructing ProcessHusk instances.
 
     def _make_exit(self, operation, verbose):
         def callback(value):
@@ -353,10 +362,9 @@ class BaseProcess:
         yield exit(status)
 
 class Process(BaseProcess):
-    def __init__(self, name, command, env, config, manager=None,
-                 inherited_pid=None):
+    def __init__(self, name, command, env, config, manager=None):
         BaseProcess.__init__(self, name, PIDFile(config.get('pid-file',
-            DEFAULT_PIDFILE_TEMPLATE % name)), manager, inherited_pid)
+            DEFAULT_PIDFILE_TEMPLATE % name)), manager)
         self.command = command
         self.env = env
         self.pidfile_next = PIDFile(config.get('pid-file-warmup',
@@ -493,7 +501,30 @@ class ProcessGroup:
     def remove(self, procs):
         self.processes.remove(proc)
 
-    def _for_each(self, procs, handler):
+    def prepare_inherit(self):
+        ret = {}
+        for proc in self.processes:
+            result = proc.prepare_inherit()
+            if result is not None: ret[proc.name] = result
+        if not ret: ret = None
+        return ret
+
+    def restore_inherit(self, values):
+        if values is None: return
+        procmap = {proc.name: proc for proc in self.processes}
+        for name, value in values.items():
+            if name in procmap:
+                procmap[name].restore_inherit(value)
+            elif isinstance(values, dict):
+                pg = ProcessGroup()
+                pg.restore_inherit(value)
+                self.add(pg)
+            else:
+                proc = ProcessHusk(name, value[1])
+                proc.restore_inherit(value)
+                self.add(proc)
+
+    def _for_each(self, procs, handler, prune=False):
         if procs is None:
             eff_procs = self.processes
         else:
@@ -508,6 +539,9 @@ class ProcessGroup:
                 raise NoSuchProcessesError(procs)
         calls = [coroutines.Call(handler(p)) for p in eff_procs]
         result = yield coroutines.All(*calls)
+        if prune:
+            self.processes[:] = [p for p in self.processes
+                                 if not isinstance(p, ProcessHusk)]
         yield coroutines.Exit(result)
 
     def init(self, procs=None):
@@ -520,7 +554,7 @@ class ProcessGroup:
         return self._for_each(procs, lambda p: p.start(wait, verbose))
 
     def stop(self, wait=True, verbose=False, procs=None):
-        return self._for_each(procs, lambda p: p.stop(wait, verbose))
+        return self._for_each(procs, lambda p: p.stop(wait, verbose), True)
 
     def status(self, verbose=False, procs=None):
         return self._for_each(procs, lambda p: p.status(verbose))
@@ -630,6 +664,27 @@ class ProcessManager:
                         secname))
                 env[k] = v
             self.group.add(Process(name, command, env, values, self))
+
+    def prepare_inherit(self):
+        res = self.group.prepare_inherit()
+        if res is None: return ''
+        lines = []
+        for name, value in res.items():
+            if isinstance(value, dict):
+                raise ValueError('Cannot serialize nested ProcessGroup '
+                    'state')
+            lines.append('%s=%s=%s\n' % (name, value[0], value[1]))
+        return ''.join(lines)
+
+    def restore_inherit(self, data):
+        values = {}
+        for line in data.split('\n'):
+            if not line: continue
+            parts = line.split('=', 2)
+            if len(parts) != 3:
+                raise ValueError('Invalid serialized state line: %r' % line)
+            values[parts[0]] = (int(parts[1]), parts[2])
+        self.group.restore_inherit(values)
 
     def register_notify(self, key, obj):
         self.notifies[key] = obj
