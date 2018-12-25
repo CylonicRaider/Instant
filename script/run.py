@@ -104,14 +104,17 @@ class VerboseExit(coroutines.Exit):
             inner_wake(None)
 
 class Configuration:
-    class _InterpolatingDict(dict):
+    class InterpolatingDict(dict):
+        class InterpolationTemplate(string.Template):
+            idpattern = r'[a-zA-Z_-][a-zA-Z0-9_-]*'
+
         def __init__(self, base, extra):
             dict.__init__(self, extra)
             self.base = base
 
         def __missing__(self, key):
             rawvalue = self.base[key]
-            ret = string.Template(rawvalue).substitute(self)
+            ret = self.InterpolationTemplate(rawvalue).substitute(self)
             self[key] = ret
             return ret
 
@@ -163,9 +166,13 @@ class Configuration:
 
     def get_section(self, name):
         if name in self._cache: return self._cache[name]
-        rawdata = self.get_raw_section(name)
         splname = self.split_name(name)
-        interpolator = self._InterpolatingDict(rawdata,
+        rawsecdata = self.get_raw_section(name)
+        rawdata = {}
+        if '__import__' in rawsecdata:
+            rawdata.update(self.get_raw_section(rawsecdata['__import__']))
+        rawdata.update(rawsecdata)
+        interpolator = self.InterpolatingDict(rawdata,
             {'__fullname__': name, '__name__': splname[-1]})
         ret = {}
         # Manually copying entries because _InterpolatingDict does not
