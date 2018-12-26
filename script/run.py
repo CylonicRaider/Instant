@@ -818,9 +818,16 @@ def command_restart_daemon(self, cmd):
         os.close(rfd)
         with os.fdopen(wfd, 'w') as f:
             f.write(data)
-        # The fdopen()ed file closes wfd automatically.
+        # The fdopen()ed file closes wfd automatically... and the entire
+        # process vanishes after we are done.
         os._exit(0)
     os.close(wfd)
+    try:
+        # Non-inheritable pipes were introduced simultaneously with this
+        # function, so we are just fine applying it whenever it is there.
+        os.set_inheritable(rfd, True)
+    except AttributeError:
+        pass
     os.execv(sys.executable, cmdline)
     raise RuntimeError('exec() returned?!')
 
