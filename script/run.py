@@ -1076,12 +1076,9 @@ class Remote:
         self.executor.remove_selects(*files)
 
     def run_routine(self, routine):
-        try:
-            ex = self.prepare_executor()
-            ex.add(routine)
-            ex.run()
-        finally:
-            self.close_executor()
+        ex = self.prepare_executor()
+        ex.add(routine)
+        ex.run()
 
     def Stop(self):
         return coroutines.Trigger(self._token)
@@ -1154,6 +1151,7 @@ def run_master(mgr, setup=None, close_fds=False):
                 do_delete = False
             if do_delete:
                 pidfile.set_pid(None)
+        remote.close_executor()
 
 def do_connect(mode, config, remote=None):
     # No connections if disabled.
@@ -1239,9 +1237,10 @@ def main():
             eff_fd = fd
         with os.fdopen(eff_fd) as f:
             mgr.restore_inherit(f.read())
-    def client_main(mgr, func, kwds):
+    def standalone_main(mgr, func, kwds):
         yield coroutines.Call(mgr.init())
         yield coroutines.Call(func(**kwds))
+    # Parse command line.
     p = argparse.ArgumentParser(
         description='Manage a number of processes',
         epilog='The --master option can have the following values: off = '
@@ -1299,6 +1298,7 @@ def main():
                               'daemon (back) down.')
     p_cmd.add_argument('cmdline', nargs='+', help='Command line to execute')
     arguments = p.parse_args()
+    # Build and validate configuration.
     config = Configuration(arguments.config)
     config.load()
     mgr = ProcessManager(config)
@@ -1306,11 +1306,13 @@ def main():
         mgr.load()
     except ConfigurationError as exc:
         raise SystemExit('Configuration error: ' + str(exc))
+    # Skip the below setup when running a master process.
     if arguments.cmd == 'run-master':
         mgr.has_notify = True
         run_master(mgr, setup=lambda: master_setup(mgr, arguments.restore_fd),
                    close_fds=arguments.close_fds)
         return
+    # In client, decide upon a master process mode and validate it.
     restart_master = (arguments.master == 'restart')
     stop_master = (arguments.master == 'stop')
     if restart_master:
@@ -1322,7 +1324,7 @@ def main():
             raise SystemExit('ERROR: "--master=off" conflicts with "cmd"')
         elif arguments.master == 'auto':
             arguments.master = 'spawn'
-    conn = try_call(do_connect, arguments.master, config=config)
+    # Prepare operation arguments.
     kwds = dict(arguments.__dict__)
     for k in ('config', 'master', 'cmd'):
         del kwds[k]
@@ -1332,25 +1334,33 @@ def main():
         for k, v in tuple(kwds.items()):
             if optypes[k] == list and not v:
                 del kwds[k]
-    if conn is not None:
-        conn.parent.prepare_executor().error_cb = coroutines_error_handler
-        if arguments.cmd == 'cmd':
-            cmdline = arguments.cmdline
-        else:
-            cmdline = ([arguments.cmd.upper()] +
-                       mgr.compose_line(kwds, optypes))
-        if restart_master:
-            try_call(run_client, conn, ('RESTART-MASTER',))
-            conn = do_connect('on', config=config, remote=conn.parent)
-        try:
-            if try_call(run_client, conn, cmdline):
-                stop_master = False
-        finally:
-            if stop_master: try_call(run_client, conn, ('STOP-MASTER',))
-            conn.close()
-    else:
+    # Potentially connect to master process.
+    conn = try_call(do_connect, arguments.master, config=config)
+    # If not connected, perform operation locally. (The manipulations of
+    # arguments.master above together with do_connect() ensure that conn is
+    # never None if arguments.cmd is 'cmd'.)
+    if conn is None:
         func = getattr(mgr, 'do_' + opname)
-        try_call(coroutines.run, [client_main(mgr, func, kwds)], sigpipe=True,
-                 on_error=coroutines_error_handler)
+        try_call(coroutines.run, [standalone_main(mgr, func, kwds)],
+                 sigpipe=True, on_error=coroutines_error_handler)
+        return
+    # Otherwise, submit command to master process, handling master restarting
+    # and shutdown.
+    conn.parent.prepare_executor().error_cb = coroutines_error_handler
+    if restart_master:
+        try_call(run_client, conn, ('RESTART-MASTER',))
+        try_call(do_connect, 'on', config=config, remote=conn.parent)
+    if arguments.cmd == 'cmd':
+        cmdline = arguments.cmdline
+    else:
+        cmdline = [arguments.cmd.upper()] + mgr.compose_line(kwds, optypes)
+    try:
+        if try_call(run_client, conn, cmdline):
+            stop_master = False
+    finally:
+        if stop_master:
+            try_call(run_client, conn, ('STOP-MASTER',))
+        conn.close()
+        conn.parent.close_executor()
 
 if __name__ == '__main__': main()
