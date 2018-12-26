@@ -809,26 +809,28 @@ def command_restart_daemon(self, cmd):
     self.parent.manager_logger.info('Restarting server!')
     mgr = self.parent.manager
     data = mgr.prepare_inherit()
-    rfd, wfd = os.pipe()
+    exec_end, fork_end = socket.socketpair()
     cmdline = (sys.executable, THIS_FILE, '--config', mgr.conffile.path,
-               'run-master', '--restore', str(rfd))
+               'run-master', '--close-fds',
+               '--restore-fd', str(sys.stdout.fileno()))
     pid = os.fork()
     if pid == 0:
-        # In the child, we push the data into a pipe and exit.
-        os.close(rfd)
-        with os.fdopen(wfd, 'w') as f:
+        # In the child, we close the master socket, push the data into the
+        # "pipe", wait for the other side to confirm that it is up, report
+        # that to our client, and exit.
+        exec_end.close()
+        self.server.sock.close()
+        with fork_end.makefile('w') as f:
             f.write(data)
-        # The fdopen()ed file closes wfd automatically... and the entire
-        # process vanishes after we are done.
+        fork_end.shutdown(socket.SHUT_WR)
+        # Wait until the other side closes their end of the socket pair so
+        # that main() can re-connect after the OK has been sent back.
+        fork_end.recv(1)
         self.sock.sendall(self.parent.compose_line(('OK',)))
         os._exit(0)
-    os.close(wfd)
-    try:
-        # Non-inheritable pipes were introduced simultaneously with this
-        # function, so we are just fine applying it whenever it is there.
-        os.set_inheritable(rfd, True)
-    except AttributeError:
-        pass
+    fork_end.close()
+    os.dup2(exec_end.fileno(), sys.stdout.fileno())
+    exec_end.close()
     os.execv(sys.executable, cmdline)
     raise RuntimeError('exec() returned?!')
 
@@ -864,7 +866,7 @@ class Remote:
 
         def _create_handler(self, sock, addr):
             ret = self.parent.ClientHandler(self.parent, self.path, sock,
-                                            id=self._next_id)
+                                            self, id=self._next_id)
             self._next_id += 1
             return ret
 
@@ -953,9 +955,10 @@ class Remote:
                 yield coroutines.Exit(result)
 
     class ClientHandler(Connection):
-        def __init__(self, parent, path, sock, id=None):
+        def __init__(self, parent, path, sock, server=None, id=None):
             Remote.Connection.__init__(self, parent, path, sock)
             self.id = id
+            self.server = server
             self.logger = logging.getLogger('client/%s' % ('???'
                 if id is None else id))
 
@@ -1102,7 +1105,7 @@ def setup_logging(config):
         '%(name)s %(levelname)s] %(message)s', datefmt='%Y-%m-%d %H:%M:%S',
         level=loglevel, filename=logfile)
 
-def run_master(mgr, close_fds=False):
+def run_master(mgr, setup=None, close_fds=False):
     def interrupt(signo, frame):
         def interrupt_agent():
             yield remote.Stop()
@@ -1116,6 +1119,7 @@ def run_master(mgr, close_fds=False):
     remote.closing = False
     signal.signal(signal.SIGINT, interrupt)
     signal.signal(signal.SIGTERM, interrupt)
+    if setup: setup()
     srv = remote.listen()
     pidpath = remote.config.get('pid-file')
     if pidpath:
@@ -1217,22 +1221,34 @@ def main():
             return func(*args, **kwds)
         except RunnerError as exc:
             coroutines_error_handler(exc, None)
+    def master_setup(mgr, fd):
+        if fd is None:
+            return
+        if fd in (sys.stdin.fileno(), sys.stdout.fileno(),
+                  sys.stderr.fileno()):
+            eff_fd = os.dup(fd)
+        else:
+            eff_fd = fd
+        with os.fdopen(eff_fd) as f:
+            mgr.restore_inherit(f.read())
     def client_main(mgr, func, kwds):
         yield coroutines.Call(mgr.init())
         yield coroutines.Call(func(**kwds))
     p = argparse.ArgumentParser(
         description='Manage a number of processes',
         epilog='The --master option can have the following values: off = '
-            'never use daemon; all remaining options use a daemon when '
+            'never use daemon; all other options use a daemon when '
             'available: auto = without daemon, run command locally; spawn = '
             'without daemon, spawn one in the background; fg = without '
             'daemon, become the daemon; on = without daemon, report an '
-            'error; stop = equivalent to auto, but shuts the daemon down '
-            'when done.')
+            'error; restart = restart an already-running daemon or spawn a '
+            'new one; stop = like auto, but shut the daemon down when done. '
+            'The last two modes do not cooperate well with other commands '
+            'running concurrently.')
     p.add_argument('--config', '-c', default=DEFAULT_CONFFILE,
                    help='Configuration file location (default %(default)s)')
     p.add_argument('--master', '-m', default='auto', choices=('off', 'auto',
-                       'spawn', 'fg', 'on', 'stop'),
+                       'spawn', 'fg', 'on', 'restart', 'stop'),
                    help='Whether to offload actual process management to a '
                        'background daemon (defaults to auto)')
     sp = p.add_subparsers(dest='cmd',
@@ -1284,20 +1300,21 @@ def main():
         raise SystemExit('Configuration error: ' + str(exc))
     if arguments.cmd == 'run-master':
         mgr.has_notify = True
-        if arguments.restore_fd is not None:
-            with os.fdopen(arguments.restore_fd) as f:
-                mgr.restore_inherit(f.read())
-        run_master(mgr, close_fds=arguments.close_fds)
+        run_master(mgr, setup=lambda: master_setup(mgr, arguments.restore_fd),
+                   close_fds=arguments.close_fds)
         return
+    restart_master = (arguments.master == 'restart')
     stop_master = (arguments.master == 'stop')
-    if stop_master:
+    if restart_master:
+        arguments.master = 'spawn'
+    elif stop_master:
         arguments.master = 'auto'
     if arguments.cmd == 'cmd':
         if arguments.master == 'off':
             raise SystemExit('ERROR: "--master=off" conflicts with "cmd"')
         elif arguments.master == 'auto':
             arguments.master = 'spawn'
-    conn = try_call(do_connect, arguments.master, config)
+    conn = try_call(do_connect, arguments.master, config=config)
     kwds = dict(arguments.__dict__)
     for k in ('config', 'master', 'cmd'):
         del kwds[k]
@@ -1314,6 +1331,9 @@ def main():
         else:
             cmdline = ([arguments.cmd.upper()] +
                        mgr.compose_line(kwds, optypes))
+        if restart_master:
+            try_call(run_client, conn, ('RESTART-MASTER',))
+            conn = do_connect('on', config=config, remote=conn.parent)
         try:
             if try_call(run_client, conn, cmdline):
                 stop_master = False
