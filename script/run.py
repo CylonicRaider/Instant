@@ -1254,10 +1254,11 @@ def main():
             'running concurrently.')
     p.add_argument('--config', '-c', default=DEFAULT_CONFFILE,
                    help='Configuration file location (default %(default)s)')
-    p.add_argument('--master', '-m', default='auto', choices=('off', 'auto',
-                       'spawn', 'fg', 'on', 'restart', 'stop'),
+    p.add_argument('--master', '-m', choices=('off', 'auto', 'spawn', 'fg',
+                                              'on', 'restart', 'stop'),
                    help='Whether to offload actual process management to a '
-                       'background daemon (defaults to auto)')
+                       'background daemon (default taken from config file, '
+                       'or "auto")')
     sp = p.add_subparsers(dest='cmd',
                           description='The action to perform (invoke with a '
                               '--help option to see usage details)')
@@ -1313,6 +1314,8 @@ def main():
                    close_fds=arguments.close_fds)
         return
     # In client, decide upon a master process mode and validate it.
+    if arguments.master is None:
+        arguments.master = config.get_section('master').get('mode') or 'auto'
     restart_master = (arguments.master == 'restart')
     stop_master = (arguments.master == 'stop')
     if restart_master:
