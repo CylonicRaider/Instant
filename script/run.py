@@ -786,11 +786,6 @@ del _name, _desc
 def command_ping(self, cmd, *args):
     yield coroutines.Exit(('PONG',) + args)
 
-@command('SHUTDOWN', maxargs=0)
-def command_shutdown(self, cmd):
-    yield self.parent.Stop()
-    yield coroutines.Exit('OK')
-
 @command('NOTIFY', minargs=1, maxargs=1)
 def command_notify(self, cmd, key):
     switcher = self.parent.manager.get_notify(key)
@@ -800,6 +795,11 @@ def command_notify(self, cmd, key):
     if not res:
         yield coroutines.Exit('FAIL')
     yield switcher.Wait('')
+    yield coroutines.Exit('OK')
+
+@command('STOP-MASTER', maxargs=0)
+def command_shutdown(self, cmd):
+    yield self.parent.Stop()
     yield coroutines.Exit('OK')
 
 @command('RESTART-MASTER', maxargs=0)
@@ -1318,7 +1318,7 @@ def main():
             if try_call(run_client, conn, cmdline):
                 stop_master = False
         finally:
-            if stop_master: try_call(run_client, conn, ('SHUTDOWN',))
+            if stop_master: try_call(run_client, conn, ('STOP-MASTER',))
             conn.close()
     else:
         func = getattr(mgr, 'do_' + opname)
