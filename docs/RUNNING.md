@@ -3,7 +3,7 @@
 This document describes how to compile, configure, and run the Instant
 backend and/or the bot shipped alongside it.
 
-## Running a backend
+## Running the backend
 
 A properly working installation of *Java* (Java 7 at least) is assumed.
 
@@ -71,6 +71,18 @@ can be used to report a summary and single-letter aliases):
 Instant.jar`, and point your browser to
 [localhost:8080](http://localhost:8080).
 
+### HTTPS
+
+The backend supports plain HTTP exclusively; to provide HTTPS, you have to
+use a reverse proxy.
+
+## Building the backend
+
+A pre-built backend should be provided as `Instant.jar` with every commit; if
+you do not need to run modified versions of the backend, using the pre-built
+one should be fine (**note**, however, that it does not include commit
+information).
+
 ### UNIX-like OS-es
 
 For re-compiling the backend, a simple `make` suffices. Note that, since Git
@@ -85,8 +97,9 @@ but for debugging code that depends on it or for proper support of client
 updates.
 
 **Note** that `make` also automatically generates bitmap icons from the SVG's
-provided in `src/static/`. It assumes that *ImageMagick* is available for
-that; you may wish to comment the section out or install the latter.
+provided in `src/static/` (should it regard that as needed). It assumes that
+*ImageMagick* is available for that; if you are unable to install the latter,
+you may comment the section out.
 
 **TL;DR**: Install GNU Make and run `make run` to (re-)compile and run a
 properly configured backend on port 8080.
@@ -144,7 +157,7 @@ tree to avoid polluting it.
 **TL;DR**: See above for running a stock backend if this is too messy for
 you.
 
-### Automated build environments
+### Other automated build environments
 
 To configure the automated build system _du jour_, consider the following
 points:
@@ -168,12 +181,7 @@ points:
   alternative fine-grained version indicator. Additional semantics may be
   defined in the future.
 
-### HTTPS
-
-The backend supports plain HTTP exclusively; to provide HTTPS, you have to
-use a reverse proxy.
-
-## Running bots
+## Running Scribe
 
 There is a bot shipped alongside Instant, *Scribe*, which stores room logs
 independently of browser-based clients; it is found in the `script/`
