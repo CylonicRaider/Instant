@@ -324,7 +324,7 @@ class Any(CombinationSuspend):
                 s.cancel()
 
     def apply(self, wake, executor, routine):
-        "Apply this suspend; see the class docstring for details"
+        "Apply this suspend; see class docstring for details"
         def make_wake(suspend):
             return lambda value: self._wake(suspend, value, wake)
         for s in self.children:
@@ -415,7 +415,7 @@ class Selector(CombinationSuspend):
             pass
 
     def apply(self, wake, executor, routine):
-        "Apply this suspend; see the class docstring for details"
+        "Apply this suspend; see class docstring for details"
         def make_wake(suspend):
             return lambda value: self._wake(suspend, value)
         self._callback = wake
@@ -461,12 +461,12 @@ class WrapperSuspend(CombinationSuspend):
     """
 
     def __init__(self, wrapped, process=None):
-        "Initializer; see the class docstring for details"
+        "Initializer; see class docstring for details"
         CombinationSuspend.__init__(self, (wrapped,))
         self.process = process
 
     def apply(self, wake, executor, routine):
-        "Apply this suspend; see the class docstring for details"
+        "Apply this suspend; see class docstring for details"
         def inner_wake(value):
             if value is None:
                 value = (0, None)
@@ -899,7 +899,7 @@ class ReadAll(UtilitySuspend):
         self.read = None
 
     def apply(self, wake, executor, routine):
-        "Apply this suspend; see the class docstring for details"
+        "Apply this suspend; see class docstring for details"
         def inner_wake(result):
             if result is not None and result[0] == 1:
                 wake(result)
@@ -940,7 +940,7 @@ class WriteAll(UtilitySuspend):
         self.written = 0
 
     def apply(self, wake, executor, routine):
-        "Apply this suspend; see the class docstring for details"
+        "Apply this suspend; see class docstring for details"
         def inner_wake(result):
             if result is not None and result[0] == 1:
                 wake(result)
@@ -974,7 +974,7 @@ class SpawnProcess(UtilitySuspend):
         self.params = params
 
     def apply(self, wake, executor, routine):
-        "Apply this suspend; see the class docstring for details"
+        "Apply this suspend; see class docstring for details"
         proc = subprocess.Popen(**self.params)
         if hasattr(executor, 'waits'):
             executor.waits.add(proc)
@@ -1004,7 +1004,7 @@ class WaitProcess(UtilitySuspend, SimpleCancellable):
         self.target = target
 
     def apply(self, wake, executor, routine):
-        "Apply this suspend; see the class docstring for details"
+        "Apply this suspend; see class docstring for details"
         if not hasattr(executor, 'waits'):
             raise RuntimeError('Executor not equipped for waiting for '
                 'processes')
