@@ -1143,6 +1143,40 @@ def run_master(mgr, close_fds=False):
             if do_delete:
                 pidfile.set_pid(None)
 
+def do_connect(mode, config, remote=None):
+    # No connections if disabled.
+    if mode == 'off': return None
+    if remote is None: remote = Remote(config)
+    # First, try to connect right away.
+    try:
+        return remote.connect()
+    except socket.error as exc:
+        if exc.errno != errno.ENOENT:
+            raise
+        elif mode == 'on':
+            raise SystemExit('ERROR: Cannot connect to master process')
+    # Otherwise, if selected, start a server and connect to it.
+    if mode not in ('spawn', 'fg'): return None
+    cmdline = (sys.executable, THIS_FILE, '--config',
+        config.path, 'run-master', '--close-fds')
+    # The only real difference between spawn and fg is which process
+    # assumes which role.
+    rfd, wfd = os.pipe()
+    pid = os.fork()
+    if (pid == 0) == (mode == 'spawn'):
+        # Assume the master role in the child process iff spawn is
+        # selected.
+        os.close(rfd)
+        os.dup2(wfd, sys.stdout.fileno())
+        os.execv(sys.executable, cmdline)
+        raise RuntimeError('exec() returned?!')
+    # In the client process, wait until the master process is ready (or
+    # dead), and try to connect again.
+    os.close(wfd)
+    os.read(rfd, 1)
+    os.close(rfd)
+    return remote.connect()
+
 def run_client(conn, cmdline, close_conn=False):
     def report_handler(line):
         if line is None or len(line) <= 1:
@@ -1183,39 +1217,6 @@ def main():
             return func(*args, **kwds)
         except RunnerError as exc:
             coroutines_error_handler(exc, None)
-    def do_connect(mode, conffile_path):
-        # No connections if disabled.
-        if mode == 'off': return None
-        remote = Remote(config)
-        # First, try to connect right away.
-        try:
-            return remote.connect()
-        except socket.error as exc:
-            if exc.errno != errno.ENOENT:
-                raise
-            elif mode == 'on':
-                raise SystemExit('ERROR: Cannot connect to master process')
-        # Otherwise, if selected, start a server and connect to it.
-        if mode not in ('spawn', 'fg'): return None
-        cmdline = (sys.executable, THIS_FILE, '--config',
-            conffile_path, 'run-master', '--close-fds')
-        # The only real difference between spawn and fg is which process
-        # assumes which role.
-        rfd, wfd = os.pipe()
-        pid = os.fork()
-        if (pid == 0) == (mode == 'spawn'):
-            # Assume the master role in the child process iff spawn is
-            # selected.
-            os.close(rfd)
-            os.dup2(wfd, sys.stdout.fileno())
-            os.execv(sys.executable, cmdline)
-            raise RuntimeError('exec() returned?!')
-        # In the client process, wait until the master process is ready (or
-        # dead), and try to connect again.
-        os.close(wfd)
-        os.read(rfd, 1)
-        os.close(rfd)
-        return remote.connect()
     def client_main(mgr, func, kwds):
         yield coroutines.Call(mgr.init())
         yield coroutines.Call(func(**kwds))
@@ -1296,8 +1297,7 @@ def main():
             raise SystemExit('ERROR: "--master=off" conflicts with "cmd"')
         elif arguments.master == 'auto':
             arguments.master = 'spawn'
-    conn = try_call(do_connect, arguments.master,
-                    conffile_path=arguments.config)
+    conn = try_call(do_connect, arguments.master, config)
     kwds = dict(arguments.__dict__)
     for k in ('config', 'master', 'cmd'):
         del kwds[k]
