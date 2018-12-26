@@ -820,6 +820,7 @@ def command_restart_daemon(self, cmd):
             f.write(data)
         # The fdopen()ed file closes wfd automatically... and the entire
         # process vanishes after we are done.
+        self.sock.sendall(self.parent.compose_line(('OK',)))
         os._exit(0)
     os.close(wfd)
     try:
@@ -1152,11 +1153,18 @@ def run_client(conn, cmdline, close_conn=False):
             raise RemoteError(line[1], line[2])
         print (' '.join(line))
     def command_wrapper():
-        result = yield coroutines.Call(conn.do_command(*cmdline))
-        report_handler(result)
+        try:
+            result = yield coroutines.Call(conn.do_command(*cmdline))
+        except IOError as e:
+            if e.errno != errno.EPIPE: raise
+            is_eof[0] = True
+        else:
+            report_handler(result)
+    is_eof = [False]
     conn.report_handler = report_handler
     conn.parent.run_routine(command_wrapper())
     if close_conn: conn.close()
+    return is_eof[0]
 
 def main():
     def str_no_equals(s):
@@ -1307,7 +1315,8 @@ def main():
             cmdline = ([arguments.cmd.upper()] +
                        mgr.compose_line(kwds, optypes))
         try:
-            try_call(run_client, conn, cmdline)
+            if try_call(run_client, conn, cmdline):
+                stop_master = False
         finally:
             if stop_master: try_call(run_client, conn, ('SHUTDOWN',))
             conn.close()
