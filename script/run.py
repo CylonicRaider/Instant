@@ -357,8 +357,16 @@ class BaseProcess:
 
     def status(self, verbose=False):
         exit = self._make_exit(None, verbose)
-        pid, status = self.pidfile.get_status()
-        if pid is not None: status = '%s %s' % (status, pid)
+        if self._child is not None:
+            code = self._child.poll()
+            if code is not None:
+                status = 'EXITED %s' % code
+            else:
+                status = 'RUNNING %s' % self._child.pid
+        else:
+            pid, status = self.pidfile.get_status()
+            if pid is not None:
+                status = '%s %s' % (status, pid)
         yield exit(status)
 
 class Process(BaseProcess):
