@@ -71,6 +71,143 @@ can be used to report a summary and single-letter aliases):
 Instant.jar`, and point your browser to
 [localhost:8080](http://localhost:8080).
 
+### Orchestrator script
+
+On UNIX platforms, a powerful (and extremely overengineered) Python program
+for automating the management of an Instant backend and any amount of bots
+(and any other processes as well) is available at `script/run.py`.
+
+`run.py` aims to be usable as an init script; however, it includes some
+relative file paths, which might require setting a particular working
+directory (or patching the initial sections of the script).
+
+On every invocation, a subcommand must be specified that defines what action
+should be performed. A full listing can be obtained by invoking the script
+with a `--help` option. Unless otherwise noted, each subcommand accepts a list
+of process names (as defined in the configuration file; see below) to act
+upon as positional arguments.
+
+- `status`: Lists processes and displays whether they are running or not.
+- `start`: Launches those processes that are not running.
+- `stop`: Terminates those processes that are running.
+- `restart`: Terminates and re-starts processes.
+- `bg-restart`: Performs a "fast restart": In the background, new instances
+  of those processes that support it are pre-loaded, then the "old" instances
+  of (all named) processes are stopped, and finally the background processes
+  are swapped in (or new instances are started). Requires a master process
+  (see below) to be effective; falls back to an equivalent of `restart`
+  otherwise.
+
+#### Master process mode
+
+In this mode of operation, a central background instance of the orchestrator
+script — the *master process* — performs the actual process management and the
+actions are submitted to it via IPC.
+
+Aside from running a master process in the foreground using the `run-master`
+subcommand, the actions listed above can be instructed to interact with a
+master process in various ways using the `--master` command-line switch (which
+must be specified before the subcommand); its possible values are listed
+below:
+
+- `off` — *Never use master*. This may interfere with an already-running
+  master process, but may be useful for recovery nonetheless. All of the
+  following options use an already-master process if available.
+- `auto` — *Use master whenever available*: If no master process is running,
+  this performs the action locally.
+- `spawn` — *Spawn master in background*: If no master process is running,
+  this spawns one and submits the action to it. Useful together with `start`,
+  `restart`, `bg-restart`.
+- `fg` — *Spawn master in foreground*: If no master process is running, the
+  local process assumes its role and performs the action. The process keeps
+  running until shut down explicitly. Useful together with `start` _etc._ when
+  running under `systemd`.
+- `on` — *Always use master*: If no master process is running, this exits with
+  an error message.
+- `restart` — *Restart master*: If no master process is running, spawns a new
+  one in the background; if there *is* one, it is restarted in-place. In
+  either case, the configuration file is (re-)read and the action is performed
+  by a master process. Useful together with `restart` or `bg-restart` for
+  performing live updates.
+- `stop` — *Shut down master*: If no master process is running, executes the
+  action locally; if there *is* a master process, it executes the action and
+  is shut down afterwards.
+
+#### Configuration file format
+
+`run.py` employs a powerful configuration mechanism in order to offset its
+very generic nature. The configuration file format is introduced below.
+
+**Basic structure**: Configuration files are based upon the well-known `.ini`
+format as implemented by Python's `configparser` module. Files contain
+`key=value` *pairs* (each on an own line) grouped into *sections* introduced
+by section names enclosed in square brackets (on own lines as well), like
+`[section]`; comments may be introduced by semicolons (`;`). Section names are
+restricted to not have leading forward slashes (`/`) and not to contain double
+forward slashes (`//`). Keys starting and ending with double underscores
+(`__`) are reserved; do not use them unless indicated otherwise.
+
+**Template sections**: A section whose name ends with a slash is called a
+*template section*. It is functionally equivalent to a non-template section,
+but ignored when listing sections (which becomes relevant when enumerating the
+sections defining processes to run).
+
+**Inheritance**: A section *inherits* the values of its "parent" section (if
+any), whose name is derived from the current section's name as follows: If the
+section name ends with a slash (`/`), the parent section name is the section
+name without that slash; otherwise, if the section name contains a slash, the
+parent section name is the section name up to and including the last slash;
+otherwise, there is no parent section. Pairs defined in the current section
+take precedence over those of the parent section. Additionally, if the current
+section defines a pair with a key of `__import__`, the pairs of the section
+named by the value of the `__import__` pair (if any) are included in the
+current section, taking precendence over the parent section but being
+overridden by pairs defined directly in the current section. Inheritance and
+importing is performed recursively: the values of a parent of a parent are
+inherited as well.
+
+**Interpolation**: *After* a section's pairs have been aggregated as described
+above, they are *interpolated*: References to other pairs in the section's
+pair set consisting of dollar signs (`$`) followed by pair keys enclosed in
+curly braces (like `${key}`) are replaced by the corresponding pairs' values.
+Only keys consisting of alphanumerics, dashes (`-`), and underscores (`_`) may
+be referenced. The braces may be omitted if none of the mentioned characters
+follow the reference. References are resolved recursively; circular references
+are not allowed and (presently) crash the parser. Some *special names* are
+defined (which override any other pairs and should consequently not be
+defined in the file):
+
+- `__name__`: The final component of the section name, i.e. everything after
+  the first slash. In a template section, this is the empty string.
+- `__fullname__`: The full name of the section.
+
+Consider the following example for illustration:
+
+    [secA]
+    ; This (trivially) resolves to "valueA".
+    a=valueA
+    ; This resolves to "secA".
+    z=${__name__}
+
+    [secA/subsecA]
+    ; The following pairs are inherited from secA:
+    ;a=valueA      ; Resolves to "valueA".
+    ;z=${__name__} ; Resolves to "subsecA" in here.
+    ; This resolves (trivially as well) to "valueB".
+    b=valueB
+    ; This resolves to "valueA valueB".
+    test1=${a} $b
+    ; This resolves to "valueA valueBX".
+    test2=${test1}X
+    ; This would be an error if it were not a comment.
+    ;test3=${test3}
+    ; This resolves to "I am in subsecA a.k.a. secA/subsecA.".
+    test4=I am in ${z} a.k.a. ${__fullname__}.
+
+#### Configuration files
+
+— The concrete significant sections and keys are *to be done*. —
+
 ### HTTPS
 
 The backend supports plain HTTP exclusively; to provide HTTPS, you have to
