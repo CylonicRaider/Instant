@@ -163,8 +163,8 @@ section defines a pair with a key of `__import__`, the pairs of the section
 named by the value of the `__import__` pair (if any) are included in the
 current section, taking precendence over the parent section but being
 overridden by pairs defined directly in the current section. Inheritance and
-importing is performed recursively: the values of a parent of a parent are
-inherited as well.
+importing are performed recursively: the values of a parent of a parent are
+inherited as well (even if the parent is not present in the file).
 
 **Interpolation**: *After* a section's pairs have been aggregated as described
 above, they are *interpolated*: References to other pairs in the section's
@@ -178,27 +178,39 @@ defined (which override any other pairs and should consequently not be
 defined in the file):
 
 - `__name__`: The final component of the section name, i.e. everything after
-  the first slash. In a template section, this is the empty string.
+  the last slash. In a template section, this is (consequently) the empty
+  string.
 - `__fullname__`: The full name of the section.
 
 Consider the following example for illustration:
 
+    ; This is a comment.
+
     [secA]
     ; This (trivially) resolves to "valueA".
     a=valueA
+    ; This resolves to the empty string.
+    y=${test1}
     ; This resolves to "secA".
     z=${__name__}
 
-    [secA/subsecA]
+    [secA/]
     ; The following pairs are inherited from secA:
     ;a=valueA      ; Resolves to "valueA".
+    ;y=${test1}    ; Resolves to the empty string in here.
+    ;z=${__name__} ; Resolves to the empty string in here.
+
+    [secA/subsecA]
+    ; The following pairs are inherited from secA via secA/:
+    ;a=valueA      ; Resolves to "valueA".
+    ;y=${test1}    ; Resolves to "valueA valueB" in here.
     ;z=${__name__} ; Resolves to "subsecA" in here.
     ; This resolves (trivially as well) to "valueB".
     b=valueB
     ; This resolves to "valueA valueB".
     test1=${a} $b
     ; This resolves to "valueA valueBX".
-    test2=${test1}X
+    test2=${y}X
     ; This would be an error if it were not a comment.
     ;test3=${test3}
     ; This resolves to "I am in subsecA a.k.a. secA/subsecA.".
@@ -206,7 +218,82 @@ Consider the following example for illustration:
 
 #### Configuration files
 
-— The concrete significant sections and keys are *to be done*. —
+**Individual processes** are defined by non-template sections whose names up
+to the first slash (`/`; if any) are `instant`, `bot`, or `proc`. The
+following keys configure the process:
+
+- `name` — *Process name*: The name of the process used on the command line.
+  Must be unique and not contain equals signs (`=`). Required.
+- `cmdline` — *Command line*: Used to invoke the process. Parsed using
+  shell-like syntax (as implemented by the `shlex` Python module); that
+  happens **after** interpolation has been performed on the value. Required.
+- `env` — *Environment variables*: The value is, similarly to `cmdline`, split
+  into individual "words" using shell-like syntax; those are then split at
+  the first occurrences of equals signs (`=`; each word must contain at least
+  one) and added to a new process' environment. **Remark** that the syntax is
+  more lax than an actual shell's: `"abc=def"` is valid inside `env`, but
+  would not be a valid variable assignment in a shell.
+- `work-dir` — *Working directory*: A path of a directory to invoke the
+  process in (if the command name in `cmdline` is a relative path, it is
+  interpreted relative to this directory).
+- `stdin` — *Standard input redirection*: If specified, standard input of the
+  process is redirected according to this; see below for possible values.
+- `stdout` — *Standard output redirection*: Like `stdin`, but for standard
+  output.
+- `stderr` — *Standard error redirection*: Like `stdin`, but for standard
+  error.
+
+The following keys configure the orchestrator's handling of the process:
+
+- `pid-file` — *PID file*: The path of a file to write the PID of the process
+  to. Used in standalone mode to locate the process.
+- `pid-file-warmup` — *Secondary PID file*: During a "fast restart", if
+  supported by the process, write the PID of its background copy here.
+- `startup-notify` — *Fast restart support*: Setting this key enables "fast
+  restart" support for this process. When performing a fast restart, the value
+  of this key is appended to the process' command line (as a single word),
+  followed by a shell command (as a single word which is internally delimited
+  by spaces) to invoke (and wait for) when the process is done initializing.
+  The command communicates with the master process (which must be present for
+  fast restarts to be performed) and exits when it is time for the background
+  copy of the process to be swapped into the foreground.
+- `stop-wait` — *Slow shutdown support*: When stopping the process and if the
+  orchestrator cannot wait for the process to finish (e.g. when not using a
+  master process), this specifies a fixed delay (in seconds) to be applied.
+  This is usedful when the process holds some exclusive resource (such as a
+  bound network socket) and might take some time to release it.
+
+**Redirections** are specified in a way similar to shell redirections, with
+some special values:
+
+- *(empty string)*: No redirection.
+- `devnull`: Opens `/dev/null` for reading/writing.
+- `stdout`: (Only valid when redirecting `stderr`.) Make standard error point
+  whereever standard output goes.
+- `<PATH`: Open `PATH` for reading.
+- `>PATH`: Open `PATH` for writing (creating a new file or truncating an
+  existing file).
+- `>>PATH`: Open `PATH` for appending (creating a new file if necessary).
+- `<>PATH`: Open `PATH` for reading and writing.
+- All other values result in errors.
+
+**Note** that all filesystem paths (with the exception of those in `cmdline`)
+are relative to the *orchestrator*'s working directory.
+
+**The master process** is configured using the `master` section, in which the
+following keys are significant:
+
+- `mode` — *Master process spawning mode*: This provides a default value for
+  the `--master` option for invocations of the orchestrator.
+- `path` — *Socket path*: Where the UNIX domain socket used for communication
+  with the master process is located.
+- `log-file` — *Path of logging file*: Where the master process should send
+  logs. If not given or empty, standard error is used.
+- `log-level` — *Logging level*: Messages at least severe as this level will
+  be logged. Defaults to `INFO`.
+- `log-timestamps` — *Timestamps in logs*: Whether logging messages should
+  include timestamps. Defaults to `yes`. Disabling this might be useful when
+  logging to `systemd`.
 
 ### HTTPS
 
