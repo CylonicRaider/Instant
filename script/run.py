@@ -646,6 +646,7 @@ class ProcessManager:
         sections = [s for s in self.conffile.list_sections()
                     if self.conffile.split_name(s)[0] in PROCESS_SECTIONS]
         sections.sort()
+        seen_names = set()
         for secname in sections:
             values = self.conffile.get_section(secname)
             try:
@@ -656,6 +657,10 @@ class ProcessManager:
             if '=' in name:
                 raise ConfigurationError('Invalid process name in section '
                     '%r: %r contains equals sign (=)' % (secname, name))
+            if name in seen_names:
+                raise ConfigurationError('Duplicate process name %r in '
+                    'section %r' % (name, secname))
+            seen_names.add(name)
             try:
                 cmdline = values['cmdline']
             except KeyError:
