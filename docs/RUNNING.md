@@ -337,6 +337,11 @@ and provides an approximate replacement for the `run.bash` script:
     ; Uncomment the following line to use a central manager process and to
     ; make bg-restart work.
     ;mode=spawn
+    ; Location of the "main" directory relative to the directory containing
+    ; configuration file (which, in turn, is expected to be located at
+    ; config/instant.ini). All other paths (except process command names) are
+    ; relative to this.
+    work-dir=..
     ; Logging configuration.
     log-file=log/master.log
     ; Let the master process write a PID file.
