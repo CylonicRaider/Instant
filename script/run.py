@@ -1067,7 +1067,7 @@ class Remote:
         self.conffile = conffile
         self.manager = manager
         self.config = self.conffile.get_section('master')
-        self.path = self.config.get('path', DEFAULT_COMM_PATH)
+        self.path = self.config.get('comm-path', DEFAULT_COMM_PATH)
         self.manager_logger = logging.getLogger('manager')
         self.lock = coroutines.Lock()
         self.executor = None
@@ -1270,8 +1270,8 @@ def main():
             'running concurrently.')
     p.add_argument('--config', '-c', default=DEFAULT_CONFFILE,
                    help='Configuration file location (default %(default)s)')
-    p.add_argument('--master', '-m', choices=('off', 'auto', 'spawn', 'fg',
-                                              'on', 'restart', 'stop'),
+    MASTER_CHOICES = ('off', 'auto', 'spawn', 'fg', 'on', 'restart', 'stop')
+    p.add_argument('--master', '-m', choices=MASTER_CHOICES,
                    help='Whether to offload actual process management to a '
                        'background daemon (default taken from config file, '
                        'or "auto")')
@@ -1322,7 +1322,12 @@ def main():
     try:
         mgr.load()
     except ConfigurationError as exc:
-        raise SystemExit('Configuration error: ' + str(exc))
+        raise SystemExit('ERROR: Invalid configuration: ' + str(exc))
+    # Change directory.
+    workdir = config.get_section('master').get('work-dir')
+    if workdir:
+        os.chdir(os.path.join(os.path.dirname(config.path), workdir))
+        config.path = os.path.relpath(config.path)
     # Skip the below setup when running a master process.
     if arguments.cmd == 'run-master':
         mgr.has_notify = True
@@ -1332,6 +1337,9 @@ def main():
     # In client, decide upon a master process mode and validate it.
     if arguments.master is None:
         arguments.master = config.get_section('master').get('mode') or 'auto'
+        if arguments.master not in MASTER_CHOICES:
+            raise SystemExit('ERROR: Invalid master process mode in '
+                'configuration: %r' % (arguments.master,))
     restart_master = (arguments.master == 'restart')
     stop_master = (arguments.master == 'stop')
     if restart_master:
