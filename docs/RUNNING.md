@@ -286,13 +286,17 @@ some special values:
 - `<>PATH`: Open `PATH` for reading and writing.
 - All other values result in errors.
 
-**The master process** is configured using the `master` section, in which the
-following keys are significant:
+**The master process** and some miscellanea are configured using the `master`
+section, in which the following keys are significant:
 
+- `work-dir` — *Orchestrator working directory*: If present, changes
+  `run.py`'s working directory to the given path, which is interpreted
+  relatively to the directory containing the configuration file. If not
+  present, the working directory in place when `run.py` is invoked is used.
 - `mode` — *Master process spawning mode*: This provides a default value for
   the `--master` option for invocations of the orchestrator.
-- `path` — *Socket path*: Where the UNIX domain socket used for communication
-  with the master process is located.
+- `comm-path` — *Socket path*: Where the UNIX domain socket used for
+  communication with the master process is located.
 - `pid-file` — *Master PID file*: Where the master process should write a PID
   file representing itself.
 - `log-file` — *Path of logging file*: Where the master process should send
@@ -303,8 +307,9 @@ following keys are significant:
   include timestamps. Defaults to `yes`. Disabling this might be useful when
   logging to `systemd`.
 
-**Note** that all filesystem paths (with the exception of those in `cmdline`)
-are relative to the *orchestrator*'s working directory. For PID files,
+**Note** that all filesystem paths (with the exception of those in
+`cmdline`-s) are relative to the *orchestrator*'s working directory; see the
+`work-dir` key in the `master` section for configuring that. For PID files,
 redirections, and the master process' log file, intermediate directories are
 created as needed.
 
