@@ -1130,6 +1130,9 @@ def setup_logging(config):
         level=loglevel, filename=logfile)
 
 def run_master(mgr, setup=None, close_fds=False):
+    def logging_error_handler(logger, exc, source):
+        logger.error('Uncaught exception in %r' % (source,), exc_info=True)
+        return True
     def interrupt(signo, frame):
         def interrupt_agent():
             yield remote.Stop()
@@ -1151,7 +1154,10 @@ def run_master(mgr, setup=None, close_fds=False):
         pidfile.set_pid(os.getpid())
     else:
         pidfile = None
-    remote.prepare_executor().add(mgr.init())
+    ex = remote.prepare_executor()
+    executor_logger = logging.getLogger('executor')
+    ex.error_cb = lambda ex, s: logging_error_handler(executor_logger, ex, s)
+    ex.add(mgr.init())
     if close_fds:
         devnull_fd = os.open(os.devnull, os.O_RDWR)
         os.dup2(devnull_fd, sys.stdin.fileno())
