@@ -64,6 +64,16 @@ def find_dict_key(data, value):
     else:
         raise LookupError(value)
 
+def safe_makedirs(path):
+    try:
+        os.makedirs(path)
+    except OSError as e:
+        if e.errno == errno.EEXIST:
+            return False
+        raise
+    else:
+        return True
+
 def open_mkdirs(path, mode, do_mkdirs=True):
     try:
         return open(path, mode)
@@ -71,11 +81,7 @@ def open_mkdirs(path, mode, do_mkdirs=True):
         if not (e.errno == errno.ENOENT and ('a' in mode or 'w' in mode) and
                 do_mkdirs):
             raise
-    try:
-        os.makedirs(os.path.dirname(path))
-    except IOError as e:
-        if e.errno != errno.EEXIST:
-            raise
+    safe_makedirs(os.path.dirname(path))
     return open(path, mode)
 
 class VerboseExit(coroutines.Exit):
@@ -370,11 +376,12 @@ class BaseProcess:
         yield exit(status)
 
 class Process(BaseProcess):
-    def __init__(self, name, command, env, config, manager=None):
+    def __init__(self, name, command, config, manager=None):
         BaseProcess.__init__(self, name, PIDFile(config.get('pid-file',
             DEFAULT_PIDFILE_TEMPLATE % name)), manager)
         self.command = command
-        self.env = env
+        self.env = config.get('env', {})
+        self.mkdirs = config.get('mkdirs', ())
         self.pidfile_next = PIDFile(config.get('pid-file-warmup',
             self.pidfile.path + WARMUP_PIDFILE_SUFFIX))
         self.workdir = config.get('work-dir')
@@ -390,6 +397,8 @@ class Process(BaseProcess):
             manager.register_notify(str(self.uuid), self._next_switcher)
 
     def _spawn_process(self, extra_args=None):
+        for path in self.mkdirs:
+            safe_makedirs(path)
         cmdline = self.command
         if extra_args: cmdline = tuple(cmdline) + tuple(extra_args)
         redirections = (self.stdin, self.stdout, self.stderr)
@@ -648,7 +657,7 @@ class ProcessManager:
         sections.sort()
         seen_names = set()
         for secname in sections:
-            values = self.conffile.get_section(secname)
+            values = dict(self.conffile.get_section(secname))
             try:
                 name = values['name']
             except KeyError:
@@ -668,15 +677,16 @@ class ProcessManager:
                     'section %r' % secname)
             command = tuple(shlex.split(cmdline))
             raw_env = tuple(shlex.split(values.get('env', '')))
-            env = {}
+            values['env'] = {}
             for entry in raw_env:
                 k, s, v = entry.partition('=')
                 if not s:
                     raise ConfigurationError('Missing equals sign in '
                         'environment entry %r in section %r' % (entry,
                         secname))
-                env[k] = v
-            self.group.add(Process(name, command, env, values, self))
+                values['env'][k] = v
+            values['mkdirs'] = tuple(shlex.split(values.get('mkdirs', '')))
+            self.group.add(Process(name, command, values, self))
 
     def prepare_inherit(self):
         res = self.group.prepare_inherit()
@@ -1108,6 +1118,7 @@ class Remote:
 def setup_logging(config):
     section = config.get_section('master')
     logfile = section.get('log-file') or None
+    if logfile: safe_makedirs(os.path.dirname(logfile))
     loglevel = section.get('log-level', 'INFO')
     if loglevel.isdigit(): loglevel = int(loglevel)
     timestamps = is_true(section.get('log-timestamps', 'yes'))
