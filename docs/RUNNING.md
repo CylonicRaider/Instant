@@ -249,10 +249,15 @@ following keys configure the process:
 
 The following keys configure the orchestrator's handling of the process:
 
+- `mkdirs` — *Create directories*: A list — similarly to `end` — of
+  directories to create before starting the process. Parent directories are
+  created as necessary.
 - `pid-file` — *PID file*: The path of a file to write the PID of the process
-  to. Used in standalone mode to locate the process.
+  to. Used in standalone mode to locate the process. A default value (which
+  includes the process name) is provided.
 - `pid-file-warmup` — *Secondary PID file*: During a "fast restart", if
   supported by the process, write the PID of its background copy here.
+  Defaults to `pid-file` with a `.new` suffix appended.
 - `startup-notify` — *Fast restart support*: Setting this key enables "fast
   restart" support for this process. When performing a fast restart, the value
   of this key is appended to the process' command line (as a single word),
@@ -281,10 +286,6 @@ some special values:
 - `<>PATH`: Open `PATH` for reading and writing.
 - All other values result in errors.
 
-**Note** that all filesystem paths (with the exception of those in `cmdline`)
-are relative to the *orchestrator*'s working directory. For PID files and
-redirections, intermediate directories are created as needed.
-
 **The master process** is configured using the `master` section, in which the
 following keys are significant:
 
@@ -301,6 +302,11 @@ following keys are significant:
 - `log-timestamps` — *Timestamps in logs*: Whether logging messages should
   include timestamps. Defaults to `yes`. Disabling this might be useful when
   logging to `systemd`.
+
+**Note** that all filesystem paths (with the exception of those in `cmdline`)
+are relative to the *orchestrator*'s working directory. For PID files,
+redirections, and the master process' log file, intermediate directories are
+created as needed.
 
 #### Example configuration
 
