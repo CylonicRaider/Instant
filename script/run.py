@@ -460,7 +460,10 @@ class Process(BaseProcess):
         prev_child = self._child
         status = 'OK'
         if self._child is not None:
-            self._child.terminate()
+            try:
+                self._child.terminate()
+            except OSError as e:
+                if e.errno != errno.ESRCH: raise
             self._child = None
         else:
             # We could theoretically wait for the PID below, but that would be
@@ -498,7 +501,10 @@ class ProcessHusk(BaseProcess):
         exit = self._make_exit('stop', verbose)
         if self._child is None:
             yield exit('NOT_RUNNING')
-        self._child.terminate()
+        try:
+            self._child.terminate()
+        except OSError as e:
+            if e.errno != errno.ESRCH: raise
         self.pidfile.set_pid(None)
         if wait and self._child:
             raw_status = yield coroutines.WaitProcess(self._child)
@@ -931,9 +937,6 @@ class Remote:
             if self.sock is not None: self._make_files()
 
         def _make_files(self):
-            # FIXME: Py2K does not perform partial reads on socket files even
-            #        if unbuffered mode is requested; this hangs coroutines'
-            #        main loop.
             self.reader = coroutines.BinaryLineReader(self.sock)
 
         def connect(self):
@@ -1216,7 +1219,8 @@ def run_client(conn, cmdline, close_conn=False):
         try:
             result = yield coroutines.Call(conn.do_command(*cmdline))
         except IOError as e:
-            if e.errno != errno.EPIPE: raise
+            if e.errno not in (errno.EPIPE, errno.ECONNRESET):
+                raise
             is_eof[0] = True
         else:
             report_handler(result)
@@ -1376,7 +1380,7 @@ def main():
     conn.parent.prepare_executor().error_cb = coroutines_error_handler
     if restart_master:
         try_call(run_client, conn, ('RESTART-MASTER',))
-        try_call(do_connect, 'on', config=config, remote=conn.parent)
+        conn = try_call(do_connect, 'on', config=config, remote=conn.parent)
     if arguments.cmd == 'cmd':
         cmdline = arguments.cmdline
     else:
