@@ -142,7 +142,9 @@ class Configuration:
 
     def load(self):
         self.parser = _ConfigParser()
-        self.parser.read(self.path)
+        if not self.parser.read(self.path):
+            raise ConfigurationError('Configuration file not found: %r' %
+                                     (self.path,))
         for name in self.parser.sections():
             self.validate_name(name)
         self._raw_cache = {}
@@ -367,6 +369,7 @@ class BaseProcess:
             code = self._child.poll()
             if code is not None:
                 status = 'EXITED %s' % code
+                self._child = None
             else:
                 status = 'RUNNING %s' % self._child.pid
         else:
@@ -1326,10 +1329,10 @@ def main():
     p_cmd.add_argument('cmdline', nargs='+', help='Command line to execute')
     arguments = p.parse_args()
     # Build and validate configuration.
-    config = Configuration(arguments.config)
-    config.load()
-    mgr = ProcessManager(config)
     try:
+        config = Configuration(arguments.config)
+        config.load()
+        mgr = ProcessManager(config)
         mgr.load()
     except ConfigurationError as exc:
         raise SystemExit('ERROR: Invalid configuration: ' + str(exc))
