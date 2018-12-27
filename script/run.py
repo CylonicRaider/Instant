@@ -125,7 +125,7 @@ class Configuration:
 
     @classmethod
     def split_name(cls, name):
-        return name.strip('/').split('/')
+        return name.split('/')
 
     def __init__(self, path=None):
         if path is None: path = DEFAULT_CONFFILE
@@ -147,8 +147,7 @@ class Configuration:
                 if not name.endswith('/')]
 
     def get_raw_section(self, name):
-        if name in self._raw_cache:
-            return self._raw_cache[name]
+        if name in self._raw_cache: return self._raw_cache[name]
         self.validate_name(name)
         idx = name.rfind('/')
         if idx == -1:
@@ -158,26 +157,27 @@ class Configuration:
         else:
             ret = dict(self.get_raw_section(name[:idx + 1]))
         try:
-            ret.update(self.parser.items(name, raw=True))
+            pdata = dict(self.parser.items(name, raw=True))
         except _NoSectionError:
-            pass
+            pdata = {}
+        impname = pdata.pop('__import__', None)
+        if impname:
+            ret.update(self.get_raw_section(impname))
+        ret.update(pdata)
         self._raw_cache[name] = ret
         return ret
 
     def get_section(self, name):
         if name in self._cache: return self._cache[name]
+        rawdata = self.get_raw_section(name)
         splname = self.split_name(name)
-        rawsecdata = self.get_raw_section(name)
-        rawdata = {}
-        if '__import__' in rawsecdata:
-            rawdata.update(self.get_raw_section(rawsecdata['__import__']))
-        rawdata.update(rawsecdata)
         interpolator = self.InterpolatingDict(rawdata,
             {'__fullname__': name, '__name__': splname[-1]})
         ret = {}
-        # Manually copying entries because _InterpolatingDict does not
-        # redefine key enumeration.
-        for k in rawdata: ret[k] = interpolator[k]
+        for k in rawdata:
+            v = interpolator[k]
+            if k.startswith('__') and k.endswith('__'): continue
+            ret[k] = v
         self._cache[name] = ret
         return ret
 
