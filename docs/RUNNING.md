@@ -282,7 +282,8 @@ some special values:
 - All other values result in errors.
 
 **Note** that all filesystem paths (with the exception of those in `cmdline`)
-are relative to the *orchestrator*'s working directory.
+are relative to the *orchestrator*'s working directory. For PID files and
+redirections, intermediate directories are created as needed.
 
 **The master process** is configured using the `master` section, in which the
 following keys are significant:
