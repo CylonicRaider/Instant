@@ -98,6 +98,10 @@ upon as positional arguments.
   (see below) to be effective; falls back to an equivalent of `restart`
   otherwise.
 
+**TL;DR**: Skip to the example subsection below, copy the configuration file
+to `config/instant.ini` in the Instant directory, modify it to your needs, and
+use `script/run.py COMMAND` for `COMMAND`-s listed just above.
+
 #### Master process mode
 
 In this mode of operation, a central background instance of the orchestrator
@@ -287,6 +291,8 @@ following keys are significant:
   the `--master` option for invocations of the orchestrator.
 - `path` — *Socket path*: Where the UNIX domain socket used for communication
   with the master process is located.
+- `pid-file` — *Master PID file*: Where the master process should write a PID
+  file representing itself.
 - `log-file` — *Path of logging file*: Where the master process should send
   logs. If not given or empty, standard error is used.
 - `log-level` — *Logging level*: Messages at least severe as this level will
@@ -294,6 +300,73 @@ following keys are significant:
 - `log-timestamps` — *Timestamps in logs*: Whether logging messages should
   include timestamps. Defaults to `yes`. Disabling this might be useful when
   logging to `systemd`.
+
+#### Example configuration
+
+The following configuration file demonstrates the techniques documented above
+and provides an approximate replacement for the `run.bash` script:
+
+    ; General parameters stored in a separate section; [instant] and
+    ; [bot/scribe/] import these.
+    [config/instant]
+    ; The address the backend listens on.
+    instant-host=localhost
+    ; The port the backend listens on.
+    instant-port=8080
+    ; Additional options for the backend.
+    instant-options=
+    ; Batch size for room log delivery.
+    scribe-maxlen=100
+    ; Additional options for Scribe bots.
+    scribe-options=
+
+    ; Master process configuration.
+    [master]
+    ; Uncomment the following line to use a central manager process and to
+    ; make bg-restart work.
+    ;mode=spawn
+    ; Logging configuration.
+    log-file=log/master.log
+    ; Let the master process write a PID file.
+    pid-file=run/master.pid
+
+    ; Backend configuration.
+    [instant]
+    __import__=config/instant
+    ; Process name.
+    name=instant
+    ; Command line.
+    cmdline=java -jar Instant.jar -h ${instant-host} ${instant-port}
+        --http-log=log/Instant.log ${instant-options}
+    ; Environment (sets the cookie key location).
+    env=INSTANT_COOKIES_KEYFILE=config/cookie-key.bin
+    ; Redirections.
+    stdout=>>log/Instant.dbg.log
+    stderr=stdout
+    ; Fast restart support.
+    startup-notify=--startup-cmd
+
+    ; The section name ends with a slash, so no actual process is instantiated
+    ; from it.
+    [bot/scribe/]
+    __import__=config/instant
+    ; The (final part of the) section name is used as the room name.
+    room=${__name__}
+    ; Process name.
+    name=scribe-${room}
+    ; Command line.
+    cmdline=script/scribe.py --cookies config/${name}-cookies.txt
+        --msgdb db/messages-${room}.sqlite --maxlen "${scribe-maxlen}"
+        ${scribe-options} ws://${instant-host}:${instant-port}/room/${room}/ws
+    ; Environment (needed to accept Secure cookies over HTTP).
+    env=INSTABOT_RELAXED_COOKIES=y
+    ; Redirections.
+    stdout=>>log/${name}.log
+    stderr=>>log/${name}.err.log
+
+    ; This section screates a Scribe bot in &welcome; it does not need to
+    ; contain values of its own.
+    [bot/scribe/welcome]
 
 ### HTTPS
 
