@@ -1,7 +1,6 @@
 package net.instant.ws;
 
-import java.util.Map;
-import java.util.WeakHashMap;
+import net.instant.util.WeakIndex;
 import org.java_websocket.WebSocket;
 import org.java_websocket.drafts.Draft;
 import org.java_websocket.handshake.ClientHandshake;
@@ -12,13 +11,13 @@ import org.java_websocket.handshake.ServerHandshakeBuilder;
 public class InformationCollector {
 
     private final InstantWebSocketServer parent;
-    private final Map<Handshakedata, Datum> requests;
-    private final Map<WebSocket, Datum> connections;
+    private final WeakIndex<Handshakedata, Datum> requests;
+    private final WeakIndex<WebSocket, Datum> connections;
 
     public InformationCollector(InstantWebSocketServer parent) {
         this.parent = parent;
-        this.requests = new WeakHashMap<Handshakedata, Datum>();
-        this.connections = new WeakHashMap<WebSocket, Datum>();
+        this.requests = new WeakIndex<Handshakedata, Datum>();
+        this.connections = new WeakIndex<WebSocket, Datum>();
     }
 
     public InstantWebSocketServer getParent() {
