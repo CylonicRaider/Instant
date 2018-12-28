@@ -582,3 +582,11 @@ option. (Refer to the `--help` message for a listing.)
     database and reading logfiles without connecting to any server; this can
     be used to "convert" log files to databases without the need to run a
     backend.
+
+**TL;DR**: Installing the `websocket_server` library mentioned in the second
+paragraph and running
+
+    script/scribe.py --msgdb messages.sqlite --maxlen 100 \
+        ws://localhost:8080/room/test/ws
+
+should start a Scribe instance in the *&test* room on a local backend.
