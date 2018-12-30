@@ -106,6 +106,10 @@
   color: #c0c0c0;
 }
 
+/* Need to be more specific than .dark .sidebar-middle > *. */
+.dark .sidebar-middle > .user-list {
+  background: none;
+}
 .dark .user-list .nick-box.selected .nick {
   border-color: #e0e0e0;
 }
