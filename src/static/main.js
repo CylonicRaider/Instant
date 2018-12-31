@@ -7030,9 +7030,9 @@ this.Instant = function() {
       if (this.backupLocal && window.localStorage) {
         apply(thaw(localStorage.getItem(this.name)));
         if (this.fallbackName && this.fallbackInstance) {
-          var d = localStorage.getItem(this.fallbackName);
+          var d = thaw(localStorage.getItem(this.fallbackName));
           if (d && typeof d == 'object')
-            apply(thaw(d[this.fallbackInstance]));
+            apply(d[this.fallbackInstance]);
         }
       }
       if (this.backupSession && window.sessionStorage)
