@@ -142,6 +142,13 @@ public interface API1 {
     ExecutorService getExecutor();
 
     /**
+     * Install an object in the backend console's global namespace.
+     * Users of the console will be able to access the object's public
+     * attributes and methods via the given name.
+     */
+    void addConsoleObject(String name, Object obj);
+
+    /**
      * Invoke the default plugin initializer.
      * A plugin may wish to both use the declarative features and execute own
      * code upon initialization.

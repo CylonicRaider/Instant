@@ -459,6 +459,10 @@ public class InstantRunner implements API1 {
         return makeTaskRunner();
     }
 
+    public void addConsoleObject(String name, Object obj) {
+        makeConsole().getDefaultVariables().put(name, obj);
+    }
+
     public Object handleDefault(PluginData data) {
         return DefaultPlugin.initInstantPlugin1(this, data);
     }
