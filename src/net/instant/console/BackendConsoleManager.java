@@ -17,6 +17,7 @@ public class BackendConsoleManager implements BackendConsoleManagerMXBean {
     private final Main main;
     private final InstantRunner runner;
     private final Map<Integer, BackendConsole> consoles;
+    private final Map<String, Object> defaultVariables;
     private final ObjectName objName;
     private int nextID;
     private boolean closed;
@@ -27,10 +28,13 @@ public class BackendConsoleManager implements BackendConsoleManagerMXBean {
         this.main = main;
         this.runner = runner;
         this.consoles = new HashMap<Integer, BackendConsole>();
+        this.defaultVariables = new HashMap<String, Object>();
         this.objName = Util.classObjectName(BackendConsoleManager.class);
         this.nextID = 1;
         this.closed = false;
         this.server = null;
+        defaultVariables.put("main", main);
+        defaultVariables.put("instant", runner);
     }
 
     public Main getMain() {
@@ -39,6 +43,10 @@ public class BackendConsoleManager implements BackendConsoleManagerMXBean {
 
     public InstantRunner getRunner() {
         return runner;
+    }
+
+    public Map<String, Object> getDefaultVariables() {
+        return defaultVariables;
     }
 
     public ObjectName getObjectName() {

@@ -2,6 +2,7 @@ package net.instant.console.util;
 
 import java.io.IOException;
 import java.io.Writer;
+import java.util.Map;
 import javax.script.ScriptContext;
 import javax.script.ScriptEngine;
 import javax.script.ScriptEngineManager;
@@ -34,6 +35,10 @@ public class ScriptRunner {
     public void setVariable(String name, Object value) {
         engine.getContext().setAttribute(name, value,
                                          ScriptContext.ENGINE_SCOPE);
+    }
+    public void setVariables(Map<String, Object> vars) {
+        ScriptContext ctx = engine.getContext();
+        ctx.getBindings(ScriptContext.ENGINE_SCOPE).putAll(vars);
     }
 
     public void redirectOutput(Writer output, Writer error) {

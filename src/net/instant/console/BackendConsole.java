@@ -56,8 +56,7 @@ public class BackendConsole implements BackendConsoleMXBean,
         this.notificationSequence = 1;
         if (parent != null) {
             runner.setVariable("console", this);
-            runner.setVariable("main", parent.getMain());
-            runner.setVariable("instant", parent.getRunner());
+            runner.setVariables(parent.getDefaultVariables());
         }
         runner.redirectOutput(writer);
         history.addListener(new CommandHistory.Listener() {
