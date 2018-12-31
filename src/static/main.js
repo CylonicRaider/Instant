@@ -3396,7 +3396,14 @@ this.Instant = function() {
         /* Ensure this is a single URI */
         var uris = transfer.getData('text/uri-list');
         var text = transfer.getData('text/plain');
-        if (! uris || uris != text || ! /^[^#].*$/.test(uris)) return;
+        if (uris) {
+          if (uris != text || ! /^[^#].*$/.test(uris))
+            return;
+        } else {
+          var url_re = Instant.message.parser.URL_RE;
+          if (! new RegExp('^' + url_re.source + '$').test(text))
+            return;
+        }
         /* Prefix it depending on embeddability and insert it */
         var embedder = Instant.message.parser.queryEmbedder(text);
         var prefix = (embedder) ? '<!' : '<';
