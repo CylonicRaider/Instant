@@ -17,7 +17,7 @@ try:
 except ImportError:
     from Queue import Queue, Empty as QueueEmpty
 
-VERSION = 'v1.5.3'
+VERSION = 'v1.5.4'
 
 RELAXED_COOKIES = bool(os.environ.get('INSTABOT_RELAXED_COOKIES'))
 
