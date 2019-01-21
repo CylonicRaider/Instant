@@ -19,7 +19,6 @@ Instant.jar: .build.jar $(LIBRARIES) $(ASSETS) $(AUTOASSETS)
 	cd src && jar uf ../Instant.jar *
 
 # Avoid recompiling the backend on frontend changes.
-.INTERMEDIATE: .build.jar
 .SECONDARY: .build.jar
 .build.jar: $(SOURCES)
 	find src/net/ -name '*.class' -exec rm {} +
