@@ -99,7 +99,7 @@ upon as positional arguments.
   otherwise.
 
 **TL;DR**: Skip to the example subsection below, copy the configuration file
-to `config/instant.ini` in the Instant directory, modify it to your needs, and
+to `config/run.ini` in the Instant directory, modify it to your needs, and
 use `script/run.py COMMAND` for `COMMAND`-s listed just above.
 
 #### Master process mode
@@ -222,9 +222,18 @@ Consider the following example for illustration:
 
 #### Configuration files
 
-**Individual processes** are defined by non-template sections whose names up
-to the first slash (`/`; if any) are `instant`, `bot`, or `proc`. The
-following keys configure the process:
+**Meta-configuration**: Some aspects of the configuration file's
+interpretation can be customized by the configuration file itself via the
+`[meta]` section. The following key is defined:
+
+- `proc-prefixes` — *Process section prefixes*: A space-delimited list of
+  strings that characterize sections which define processes (see below). For
+  a section to define a process, its name must start with any of the strings
+  given here. The built-in default is `proc`.
+
+**Individual processes** are defined by non-template sections whose names
+start with one of the *process section prefixes* (see above). The following
+keys configure the process:
 
 - `name` — *Process name*: The name of the process used on the command line.
   Must be unique and not contain equals signs (`=`). Required.
@@ -320,7 +329,7 @@ The following configuration file demonstrates the techniques documented above
 and provides an approximate replacement for the `run.bash` script:
 
     ; General parameters stored in a separate section; [instant] and
-    ; [bot/scribe/] import these.
+    ; [scribe/] import these.
     [config/instant]
     ; The address the backend listens on.
     instant-host=localhost
@@ -340,13 +349,18 @@ and provides an approximate replacement for the `run.bash` script:
     ;mode=spawn
     ; Location of the "main" directory relative to the directory containing
     ; the configuration file (which, in turn, is expected to be located at
-    ; config/instant.ini). All other paths (except process command names) are
+    ; config/run.ini). All other paths (except process command names) are
     ; relative to this.
     work-dir=..
     ; Logging configuration.
     log-file=log/master.log
     ; Let the master process write a PID file.
     pid-file=run/master.pid
+
+    ; Meta-configuration.
+    [meta]
+    ; Selection of sections that define processes.
+    proc-prefixes=instant scribe
 
     ; Backend configuration.
     [instant]
@@ -366,7 +380,7 @@ and provides an approximate replacement for the `run.bash` script:
 
     ; The section name ends with a slash, so no actual process is instantiated
     ; from it.
-    [bot/scribe/]
+    [scribe/]
     __import__=config/instant
     ; The (final part of the) section name is used as the room name.
     room=${__name__}
@@ -384,7 +398,7 @@ and provides an approximate replacement for the `run.bash` script:
 
     ; This section screates a Scribe bot in &welcome; it does not need to
     ; contain values of its own.
-    [bot/scribe/welcome]
+    [scribe/welcome]
 
 ### HTTPS
 
