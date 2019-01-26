@@ -24,7 +24,7 @@ DEFAULT_CONFFILE = 'config/instant.ini'
 DEFAULT_COMM_PATH = 'run/comm'
 DEFAULT_PIDFILE_TEMPLATE = 'run/%s.pid'
 WARMUP_PIDFILE_SUFFIX = '.new'
-PROCESS_SECTIONS = ('proc', 'instant', 'bot')
+PROCESS_PREFIXES = ('proc', 'instant', 'bot')
 
 REDIRECTION_RE = re.compile(r'^[<>|&]+')
 PID_LINE_RE = re.compile(r'^[0-9]+\s*$')
@@ -132,6 +132,12 @@ class Configuration:
     @classmethod
     def split_name(cls, name):
         return name.split('/')
+
+    @classmethod
+    def is_prefix(cls, test, base):
+        lt = len(test)
+        return base.startswith(test) and (test.endswith('/') or
+                                          base[lt : lt + 1] in ('', '/'))
 
     def __init__(self, path=None):
         if path is None: path = DEFAULT_CONFFILE
@@ -661,8 +667,13 @@ class ProcessManager:
         self.notifies = {}
 
     def load(self):
+        raw_prefixes = self.conffile.get_section('meta').get('proc-prefixes')
+        if raw_prefixes:
+            prefixes = raw_prefixes.split()
+        else:
+            prefixes = PROCESS_PREFIXES
         sections = [s for s in self.conffile.list_sections()
-                    if self.conffile.split_name(s)[0] in PROCESS_SECTIONS]
+                    if any(self.conffile.is_prefix(p, s) for p in prefixes)]
         sections.sort()
         seen_names = set()
         for secname in sections:
