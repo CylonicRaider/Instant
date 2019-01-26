@@ -20,11 +20,11 @@ except ImportError: # Py2K
     from ConfigParser import SafeConfigParser as _ConfigParser, \
         NoSectionError as _NoSectionError
 
-DEFAULT_CONFFILE = 'config/instant.ini'
-DEFAULT_COMM_PATH = 'run/comm'
+DEFAULT_CONFFILE = 'config/run.ini'
+DEFAULT_COMM_PATH = 'run/run.comm'
 DEFAULT_PIDFILE_TEMPLATE = 'run/%s.pid'
 WARMUP_PIDFILE_SUFFIX = '.new'
-PROCESS_PREFIXES = ('proc', 'instant', 'bot')
+PROCESS_PREFIXES = ('proc',)
 
 REDIRECTION_RE = re.compile(r'^[<>|&]+')
 PID_LINE_RE = re.compile(r'^[0-9]+\s*$')
