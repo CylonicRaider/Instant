@@ -238,8 +238,8 @@ following keys configure the process:
   more lax than an actual shell's: `"abc=def"` is valid inside `env`, but
   would not be a valid variable assignment in a shell.
 - `work-dir` — *Working directory*: A path of a directory to invoke the
-  process in (if the command name in `cmdline` is a relative path, it is
-  interpreted relative to this directory).
+  process in. If the command name in `cmdline` is a relative path, it is
+  interpreted relatively to this directory.
 - `stdin` — *Standard input redirection*: If specified, standard input of the
   process is redirected according to this; see below for possible values.
 - `stdout` — *Standard output redirection*: Like `stdin`, but for standard
@@ -249,7 +249,7 @@ following keys configure the process:
 
 The following keys configure the orchestrator's handling of the process:
 
-- `mkdirs` — *Create directories*: A list — similarly to `end` — of
+- `mkdirs` — *Create directories*: A list — similarly to `env` — of
   directories to create before starting the process. Parent directories are
   created as necessary.
 - `pid-file` — *PID file*: The path of a file to write the PID of the process
@@ -260,22 +260,23 @@ The following keys configure the orchestrator's handling of the process:
   Defaults to `pid-file` with a `.new` suffix appended.
 - `startup-notify` — *Fast restart support*: Setting this key enables "fast
   restart" support for this process. When performing a fast restart, the value
-  of this key is appended to the process' command line (as a single word),
-  followed by a shell command (as a single word which is internally delimited
-  by spaces) to invoke (and wait for) when the process is done initializing.
-  The command communicates with the master process (which must be present for
-  fast restarts to be performed) and exits when it is time for the background
-  copy of the process to be swapped into the foreground.
+  of this key is appended to the process' command line (as a single argument),
+  followed by a shell command (as a single argument which is internally
+  delimited by spaces) to invoke (and wait for) when the process is done
+  initializing. The command communicates with the master process (which must
+  be present for fast restarts to be performed) and exits when it is time for
+  the background copy of the process to be swap itself into the foreground.
 - `stop-wait` — *Slow shutdown support*: When stopping the process and if the
   orchestrator cannot wait for the process to finish (e.g. when not using a
   master process), this specifies a fixed delay (in seconds) to be applied.
-  This is usedful when the process holds some exclusive resource (such as a
+  This is useful when the process holds some exclusive resource (such as a
   bound network socket) and might take some time to release it.
 
 **Redirections** are specified in a way similar to shell redirections, with
 some special values:
 
-- *(empty string)*: No redirection.
+- *(empty string)*: No redirection; the process inherits the corresponding
+  file descriptor of its parent.
 - `devnull`: Opens `/dev/null` for reading/writing.
 - `stdout`: (Only valid when redirecting `stderr`.) Make standard error point
   whereever standard output goes.
@@ -298,11 +299,11 @@ section, in which the following keys are significant:
 - `comm-path` — *Socket path*: Where the UNIX domain socket used for
   communication with the master process is located.
 - `pid-file` — *Master PID file*: Where the master process should write a PID
-  file representing itself.
+  file representing itself. If omitted, the master process writes no PID file.
 - `log-file` — *Path of logging file*: Where the master process should send
   logs. If not given or empty, standard error is used.
-- `log-level` — *Logging level*: Messages at least severe as this level will
-  be logged. Defaults to `INFO`.
+- `log-level` — *Logging level*: Messages at least as severe as this level
+  will be logged. Defaults to `INFO`.
 - `log-timestamps` — *Timestamps in logs*: Whether logging messages should
   include timestamps. Defaults to `yes`. Disabling this might be useful when
   logging to `systemd`.
@@ -338,7 +339,7 @@ and provides an approximate replacement for the `run.bash` script:
     ; make bg-restart work.
     ;mode=spawn
     ; Location of the "main" directory relative to the directory containing
-    ; configuration file (which, in turn, is expected to be located at
+    ; the configuration file (which, in turn, is expected to be located at
     ; config/instant.ini). All other paths (except process command names) are
     ; relative to this.
     work-dir=..
