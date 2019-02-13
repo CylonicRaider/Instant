@@ -2248,6 +2248,8 @@ this.Instant = function() {
           'x_x' : '#008060', 'X_X' : '#008060'
         };
         var SMILEY_DEFAULT = '#c0c000';
+        /* Auxiliary regexes */
+        var ONLY_URL_RE = new RegExp('^' + URL_RE.source + '$');
         /* Helper: Quickly create a DOM node */
         function makeNode(text, className, color, tag) {
           var node = document.createElement(tag || 'span');
@@ -2260,13 +2262,21 @@ this.Instant = function() {
         function makeSigil(text, className) {
           return makeNode(text, 'sigil ' + className);
         }
+        /* Helper: Return whether the URL_RE match m is a plausible URL
+         * The tentative URL must contain an alphanumerical and a
+         * non-alphanumerical character, and, if strict is true, have a
+         * scheme. */
+        function urlIsValid(m, strict) {
+          if (strict && ! m[2]) return false;
+          return /\w/.test(m[1]) && /\W/.test(m[1]);
+        }
         /* Helper: Create a link node
          * m must be a match of URL_RE (pattern fragments without capturing
          * groups may be prepended/appended). force disables plausibility
-         * checking on the match. */
+         * checking (as implemented by urlIsValid()) on the match. */
         function makeLink(m, force) {
           /* Avoid things such as <.> and <sarcasm>. */
-          if (! force && ! (/\w/.test(m[1]) && /\W/.test(m[1])))
+          if (! force && ! urlIsValid(m))
             return null;
           /* Compute effective URL */
           var url = m[1];
@@ -2623,10 +2633,13 @@ this.Instant = function() {
           MENTION_RE: MENTION_RE,
           PARTIAL_MENTION: PARTIAL_MENTION,
           SMILEY_RE: SMILEY_RE,
+          ONLY_URL_RE: ONLY_URL_RE,
           /* Helper: Quickly create a DOM node */
           makeNode: makeNode,
           /* Helper: Quickly create a sigil node */
           makeSigil: makeSigil,
+          /* Helper: Return whether the URL_RE match m is a plausible URL */
+          urlIsValid: urlIsValid,
           /* Helper: Traverse all descendants of a given DOM node */
           traverse: traverse,
           /* Parse a message into a DOM node
@@ -2904,7 +2917,7 @@ this.Instant = function() {
           },
           /* Return an embedder for handling url, or null */
           queryEmbedder: function(url) {
-            var normurl = url.replace(new RegExp('^' + URL_RE.source + '$'),
+            var normurl = url.replace(ONLY_URL_RE,
               function(m, g1, scheme, g3, userinfo, host, port, path) {
                 return (scheme || '').toLowerCase() + (userinfo || '') +
                   (host || '').toLowerCase() + (port || '') + (path || '');
@@ -3400,8 +3413,8 @@ this.Instant = function() {
           if (uris != text || ! /^[^#].*$/.test(uris))
             return;
         } else {
-          var url_re = Instant.message.parser.URL_RE;
-          if (! new RegExp('^' + url_re.source + '$').test(text))
+          var m = Instant.message.parser.ONLY_URL_RE.exec(text);
+          if (! m || ! Instant.message.parser.urlIsValid(m, true))
             return;
         }
         /* Prefix it depending on embeddability and insert it */
