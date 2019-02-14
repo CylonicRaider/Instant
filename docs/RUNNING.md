@@ -370,8 +370,10 @@ and provides an approximate replacement for the `run.bash` script:
     ; Command line.
     cmdline=java -jar Instant.jar -h ${instant-host} ${instant-port}
         --http-log=log/Instant.log ${instant-options}
-    ; Environment (sets the cookie key location).
+    ; Environment (sets the cookie key location). After the cookie key file is
+    ; created, its access mode should be manually set to 600.
     env=INSTANT_COOKIES_KEYFILE=config/cookie-key.bin
+        INSTANT_COOKIES_KEYFILE_CREATE=yes
     ; Redirections.
     stdout=>>log/Instant.dbg.log
     stderr=stdout
