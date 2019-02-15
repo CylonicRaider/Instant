@@ -887,6 +887,8 @@ class Remote:
             self.logger = logging.getLogger('server')
 
         def listen(self):
+            if self.parent.comm_mkdirs:
+                safe_makedirs(os.path.dirname(self.path))
             self.sock = socket.socket(socket.AF_UNIX)
             try:
                 self.sock.bind(self.path)
@@ -1085,6 +1087,7 @@ class Remote:
         self.manager = manager
         self.config = self.conffile.get_section('master')
         self.path = self.config.get('comm-path', DEFAULT_COMM_PATH)
+        self.comm_mkdirs = is_true(self.config.get('comm-mkdirs', 'yes'))
         self.manager_logger = logging.getLogger('manager')
         self.lock = coroutines.Lock()
         self.executor = None
