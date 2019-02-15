@@ -307,6 +307,8 @@ section, in which the following keys are significant:
   the `--master` option for invocations of the orchestrator.
 - `comm-path` — *Socket path*: Where the UNIX domain socket used for
   communication with the master process is located.
+- `comm-mkdirs` — *Create intermediate directories for socket*: Whether
+  intermediate directories in `comm-path` should be created. Defaults to yes.
 - `pid-file` — *Master PID file*: Where the master process should write a PID
   file representing itself. If omitted, the master process writes no PID file.
 - `log-file` — *Path of logging file*: Where the master process should send
