@@ -114,7 +114,7 @@ master process in various ways using the `--master` command-line switch (which
 must be specified before the subcommand); its possible values are listed
 below:
 
-- `off` — *Never use master*. This may interfere with an already-running
+- `never` — *Never use master*. This may interfere with an already-running
   master process, but may be useful for recovery nonetheless. All of the
   following options use an already-master process if available.
 - `auto` — *Use master whenever available*: If no master process is running,
@@ -126,8 +126,8 @@ below:
   local process assumes its role and performs the action. The process keeps
   running until shut down explicitly. Useful together with `start` _etc._ when
   running under `systemd`.
-- `on` — *Always use master*: If no master process is running, this exits with
-  an error message.
+- `always` — *Always use master*: If no master process is running, this exits
+  with an error message.
 - `restart` — *Restart master*: If no master process is running, spawns a new
   one in the background; if there *is* one, it is restarted in-place. In
   either case, the configuration file is (re-)read and the action is performed
@@ -136,6 +136,10 @@ below:
 - `stop` — *Shut down master*: If no master process is running, executes the
   action locally; if there *is* a master process, it executes the action and
   is shut down afterwards.
+- `action` — *Action-dependent selection*: Use one of the modes above
+  depending on the chosen action: The `start` action uses the `spawn` mode,
+  `restart` and `bg-restart` use `restart`, `stop` uses `stop`, all others use
+  `auto`.
 
 #### Configuration file format
 
@@ -348,7 +352,7 @@ and provides an approximate replacement for the `run.bash` script:
     [master]
     ; Uncomment the following line to use a central manager process and to
     ; make bg-restart work.
-    ;mode=spawn
+    ;mode=action
     ; Location of the "main" directory relative to the directory containing
     ; the configuration file (which, in turn, is expected to be located at
     ; config/run.ini). All other paths (except process command names) are
