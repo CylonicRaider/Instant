@@ -1197,7 +1197,7 @@ def run_master(mgr, setup=None, close_fds=False):
 
 def do_connect(mode, config, remote=None):
     # No connections if disabled.
-    if mode == 'off': return None
+    if mode == 'never': return None
     if remote is None: remote = Remote(config)
     # First, try to connect right away.
     try:
@@ -1205,7 +1205,7 @@ def do_connect(mode, config, remote=None):
     except socket.error as exc:
         if exc.errno != errno.ENOENT:
             raise
-        elif mode == 'on':
+        elif mode == 'always':
             raise SystemExit('ERROR: Cannot connect to master process')
     # Otherwise, if selected, start a server and connect to it.
     if mode not in ('spawn', 'fg'): return None
@@ -1286,23 +1286,26 @@ def main():
     # Parse command line.
     p = argparse.ArgumentParser(
         description='Manage a number of processes',
-        epilog='The --master option can have the following values: off = '
+        epilog='The --master option can have the following values: never = '
             'never use daemon; all other options use a daemon when '
-            'available: auto = without daemon, run command locally; spawn = '
+            'available: auto = without daemon, run action locally; spawn = '
             'without daemon, spawn one in the background; fg = without '
-            'daemon, become the daemon; on = without daemon, report an '
+            'daemon, become the daemon; always = without daemon, report an '
             'error; restart = restart an already-running daemon or spawn a '
-            'new one; stop = like auto, but shut the daemon down when done. '
-            'The last two modes do not cooperate well with other commands '
-            'running concurrently.')
+            'new one; stop = like auto, but shut the daemon down when done; '
+            'action = choose a mode depending on the action: start uses '
+            '"spawn", restart and bg-restart use "restart", stop uses '
+            '"stop", all others use "auto". The last three modes do not '
+            'cooperate well with other commands running concurrently.')
     p.add_argument('--config', '-c', default=DEFAULT_CONFFILE,
                    help='Configuration file location (default %(default)s)')
-    MASTER_CHOICES = ('off', 'auto', 'spawn', 'fg', 'on', 'restart', 'stop')
+    MASTER_CHOICES = ('never', 'auto', 'spawn', 'fg', 'always', 'restart',
+                      'stop', 'action')
     p.add_argument('--master', '-m', choices=MASTER_CHOICES,
                    help='Whether to offload actual process management to a '
                        'background daemon (default taken from config file, '
                        'or "auto")')
-    sp = p.add_subparsers(dest='cmd',
+    sp = p.add_subparsers(dest='cmd', metavar='ACTION',
                           description='The action to perform (invoke with a '
                               '--help option to see usage details)')
     sp.required = True
@@ -1322,7 +1325,7 @@ def main():
                 kwds['default'] = desc['defaults'][name]
             cmdp.add_argument(prefix + name.replace('_', '-'), help=doc,
                               **kwds)
-    p_master = sp.add_parser('run-master', help='Start a job manager server')
+    p_master = sp.add_parser('run-master', help='Run a job manager server')
     p_master.add_argument('--close-fds', action='store_true',
                           help='Close standard input, standard output, and '
                               'standard error (unless there is no log file '
@@ -1335,8 +1338,8 @@ def main():
     p_cmd = sp.add_parser('cmd',
                           help='Execute a command in a job manager server',
                           epilog='Some values of the --master option are '
-                              'treated specially: "off" is an error; "auto" '
-                              'is converted into "spawn"; "stop", '
+                              'treated specially: "never" is an error; '
+                              '"auto" is converted into "spawn"; "stop", '
                               'consequently, starts a daemon (if there is '
                               'none), executes the command, and tears the '
                               'daemon (back) down.')
@@ -1367,6 +1370,11 @@ def main():
         if arguments.master not in MASTER_CHOICES:
             raise SystemExit('ERROR: Invalid master process mode in '
                 'configuration: %r' % (arguments.master,))
+    if arguments.master == 'action':
+        arguments.master = {
+            'start': 'spawn', 'restart': 'restart', 'bg-restart': 'restart',
+            'stop': 'stop'
+        }.get(arguments.cmd, 'auto')
     restart_master = (arguments.master == 'restart')
     stop_master = (arguments.master == 'stop')
     if restart_master:
@@ -1374,8 +1382,8 @@ def main():
     elif stop_master:
         arguments.master = 'auto'
     if arguments.cmd == 'cmd':
-        if arguments.master == 'off':
-            raise SystemExit('ERROR: "--master=off" conflicts with "cmd"')
+        if arguments.master == 'never':
+            raise SystemExit('ERROR: "--master=never" conflicts with "cmd"')
         elif arguments.master == 'auto':
             arguments.master = 'spawn'
     # Prepare operation arguments.
@@ -1403,7 +1411,8 @@ def main():
     conn.parent.prepare_executor().error_cb = coroutines_error_handler
     if restart_master:
         try_call(run_client, conn, ('RESTART-MASTER',))
-        conn = try_call(do_connect, 'on', config=config, remote=conn.parent)
+        conn = try_call(do_connect, 'always', config=config,
+                        remote=conn.parent)
     if arguments.cmd == 'cmd':
         cmdline = arguments.cmdline
     else:
