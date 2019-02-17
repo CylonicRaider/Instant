@@ -141,6 +141,10 @@ below:
   `restart` and `bg-restart` use `restart`, `stop` uses `stop`, all others use
   `auto`.
 
+The existence and responsiveness of a master process can be queried using the
+`ping` action, which takes no further arguments and produces a report similar
+to those of the `status` action.
+
 #### Configuration file format
 
 `run.py` employs a powerful configuration mechanism in order to offset its
