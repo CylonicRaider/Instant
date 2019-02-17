@@ -1229,7 +1229,7 @@ def do_connect(mode, config, remote=None):
     os.close(rfd)
     return remote.connect()
 
-def run_client(conn, cmdline, close_conn=False):
+def run_client(conn, cmdline, silent=False):
     def report_handler(line):
         if line is None or len(line) <= 1:
             return
@@ -1237,21 +1237,22 @@ def run_client(conn, cmdline, close_conn=False):
             line = line[1:]
         elif line[0] == 'ERROR' and len(line) == 3:
             raise RemoteError(line[1], line[2])
-        print (' '.join(line))
+        elif not silent:
+            print (' '.join(Line))
     def command_wrapper():
         try:
             result = yield coroutines.Call(conn.do_command(*cmdline))
         except IOError as e:
             if e.errno not in (errno.EPIPE, errno.ECONNRESET):
                 raise
-            is_eof[0] = True
+            ret['eof'] = True
         else:
             report_handler(result)
-    is_eof = [False]
+            ret['result'] = result
+    ret = {'eof': False, 'result': None}
     conn.report_handler = report_handler
     conn.parent.run_routine(command_wrapper())
-    if close_conn: conn.close()
-    return is_eof[0]
+    return ret
 
 def main():
     def str_no_equals(s):
@@ -1339,11 +1340,13 @@ def main():
                           help='Execute a command in a job manager server',
                           epilog='Some values of the --master option are '
                               'treated specially: "never" is an error; '
-                              '"auto" is converted into "spawn"; "stop", '
-                              'consequently, starts a daemon (if there is '
+                              '"auto" is converted into "spawn"; "stop" '
+                              '(consequently) starts a daemon (if there is '
                               'none), executes the command, and tears the '
                               'daemon (back) down.')
     p_cmd.add_argument('cmdline', nargs='+', help='Command line to execute')
+    p_ping = sp.add_parser('ping',
+                           help='Check if there is a job manager server')
     arguments = p.parse_args()
     # Build and validate configuration.
     try:
@@ -1390,7 +1393,7 @@ def main():
     kwds = dict(arguments.__dict__)
     for k in ('config', 'master', 'cmd'):
         del kwds[k]
-    if arguments.cmd != 'cmd':
+    if arguments.cmd not in ('cmd', 'ping'):
         opname = arguments.cmd.replace('-', '_')
         optypes = OPERATIONS[opname]['types']
         for k, v in tuple(kwds.items()):
@@ -1402,6 +1405,12 @@ def main():
     # arguments.master above together with do_connect() ensure that conn is
     # never None if arguments.cmd is 'cmd'.)
     if conn is None:
+        if arguments.cmd == 'ping':
+            if arguments.master == 'never':
+                print ('master: IGNORED')
+            else:
+                print ('master: NOT_RUNNING')
+            return
         func = getattr(mgr, 'do_' + opname)
         try_call(coroutines.run, [standalone_main(mgr, func, kwds)],
                  sigpipe=True, on_error=coroutines_error_handler)
@@ -1413,12 +1422,22 @@ def main():
         try_call(run_client, conn, ('RESTART-MASTER',))
         conn = try_call(do_connect, 'always', config=config,
                         remote=conn.parent)
+    silent = False
     if arguments.cmd == 'cmd':
         cmdline = arguments.cmdline
+    elif arguments.cmd == 'ping':
+        cmdline = ['PING']
+        silent = True
     else:
         cmdline = [arguments.cmd.upper()] + mgr.compose_line(kwds, optypes)
     try:
-        if try_call(run_client, conn, cmdline):
+        result = try_call(run_client, conn, cmdline, silent=silent)
+        if arguments.cmd == 'ping':
+            if result['result'] == ('PONG',):
+                print ('master: RUNNING')
+            else:
+                print ('master: WEIRD')
+        if result['eof']:
             stop_master = False
     finally:
         if stop_master:
