@@ -3,7 +3,7 @@
 
 # An init script for running Instant and a number of bots.
 
-import sys, os, re, time, inspect
+import sys, os, re, time, operator, inspect
 import string, uuid
 import errno, signal, socket
 import shlex
@@ -556,7 +556,10 @@ class ProcessGroup:
                 proc.restore_inherit(value)
                 self.add(proc)
 
-    def _for_each(self, procs, handler, prune=False):
+    def _for_each(self, procs, handler, prune=False, **kwds):
+        if isinstance(handler, str):
+            getter = operator.attrgetter(handler)
+            handler = lambda p, **kwds: getter(p)(**kwds)
         if procs is None:
             eff_procs = self.processes
         else:
@@ -569,7 +572,7 @@ class ProcessGroup:
                     procs.discard(p.name)
             if procs:
                 raise NoSuchProcessesError(procs)
-        calls = [coroutines.Call(handler(p)) for p in eff_procs]
+        calls = [coroutines.Call(handler(p, **kwds)) for p in eff_procs]
         result = yield coroutines.All(*calls)
         if prune:
             self.processes[:] = [p for p in self.processes
@@ -577,19 +580,20 @@ class ProcessGroup:
         yield coroutines.Exit(result)
 
     def init(self, procs=None):
-        return self._for_each(procs, lambda p: p.init())
+        return self._for_each(procs, 'init')
 
     def warmup(self, wait=True, verbose=False, procs=None):
-        return self._for_each(procs, lambda p: p.warmup(wait, verbose))
+        return self._for_each(procs, 'warmup', wait=wait, verbose=verbose)
 
     def start(self, wait=True, verbose=False, procs=None):
-        return self._for_each(procs, lambda p: p.start(wait, verbose))
+        return self._for_each(procs, 'start', wait=wait, verbose=verbose)
 
     def stop(self, wait=True, verbose=False, procs=None):
-        return self._for_each(procs, lambda p: p.stop(wait, verbose), True)
+        return self._for_each(procs, 'stop', wait=wait, verbose=verbose,
+                              prune=True)
 
     def status(self, verbose=False, procs=None):
-        return self._for_each(procs, lambda p: p.status(verbose))
+        return self._for_each(procs, 'status', verbose=verbose)
 
 OPERATIONS = {}
 def operation(**params):
