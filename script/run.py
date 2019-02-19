@@ -326,6 +326,19 @@ class BaseProcess:
             if self.returncode is None:
                 os.kill(self.pid, signal.SIGKILL)
 
+    @staticmethod
+    def _handle_reports(reports, verbose):
+        def default_handler(text):
+            print (text)
+        if not verbose:
+            return
+        elif not callable(verbose):
+            verbose = default_handler
+        for r in reports:
+            res = verbose(r)
+            if isinstance(res, coroutines.Suspend):
+                yield res
+
     def __init__(self, name, pidfile, manager=None):
         self.name = name
         self.pidfile = pidfile
@@ -556,10 +569,15 @@ class ProcessGroup:
                 proc.restore_inherit(value)
                 self.add(proc)
 
-    def _for_each(self, procs, handler, prune=False, **kwds):
+    def _for_each(self, procs, handler, prune=False, sort=False, **kwds):
         if isinstance(handler, str):
             getter = operator.attrgetter(handler)
             handler = lambda p, **kwds: getter(p)(**kwds)
+        if kwds.get('verbose') and sort:
+            orig_verbose = kwds['verbose']
+            kwds['verbose'] = lambda text: reports.append(text)
+        else:
+            orig_verbose = None
         if procs is None:
             eff_procs = self.processes
         else:
@@ -572,8 +590,13 @@ class ProcessGroup:
                     procs.discard(p.name)
             if procs:
                 raise NoSuchProcessesError(procs)
+        reports = []
         calls = [coroutines.Call(handler(p, **kwds)) for p in eff_procs]
         result = yield coroutines.All(*calls)
+        if orig_verbose:
+            reports.sort()
+            yield coroutines.Call(BaseProcess._handle_reports(reports,
+                                                              orig_verbose))
         if prune:
             self.processes[:] = [p for p in self.processes
                                  if not isinstance(p, ProcessHusk)]
@@ -582,18 +605,20 @@ class ProcessGroup:
     def init(self, procs=None):
         return self._for_each(procs, 'init')
 
-    def warmup(self, wait=True, verbose=False, procs=None):
-        return self._for_each(procs, 'warmup', wait=wait, verbose=verbose)
+    def warmup(self, wait=True, verbose=False, procs=None, sort=False):
+        return self._for_each(procs, 'warmup', sort=sort, wait=wait,
+                              verbose=verbose)
 
-    def start(self, wait=True, verbose=False, procs=None):
-        return self._for_each(procs, 'start', wait=wait, verbose=verbose)
+    def start(self, wait=True, verbose=False, procs=None, sort=False):
+        return self._for_each(procs, 'start', sort=sort, wait=wait,
+                              verbose=verbose)
 
-    def stop(self, wait=True, verbose=False, procs=None):
-        return self._for_each(procs, 'stop', wait=wait, verbose=verbose,
-                              prune=True)
+    def stop(self, wait=True, verbose=False, procs=None, sort=False):
+        return self._for_each(procs, 'stop', prune=True, sort=sort, wait=wait,
+                              verbose=verbose)
 
-    def status(self, verbose=False, procs=None):
-        return self._for_each(procs, 'status', verbose=verbose)
+    def status(self, verbose=False, procs=None, sort=False):
+        return self._for_each(procs, 'status', sort=sort, verbose=verbose)
 
 OPERATIONS = {}
 def operation(**params):
@@ -744,42 +769,49 @@ class ProcessManager:
 
     @operation(wait=(bool, 'Whether to wait for the start\'s completion'),
                verbose=(bool, 'Whether to output status reports'),
+               sort=(bool, 'Sort status reports before displaying them'),
                procs=(list, 'The processes to start (default: all)'))
-    def do_start(self, wait=True, procs=None, verbose=True):
+    def do_start(self, wait=True, verbose=True, procs=None, sort=False):
         "Start the given processes"
-        kwds = {'procs': procs, 'verbose': verbose}
+        kwds = {'wait': wait, 'verbose': verbose, 'procs': procs,
+                'sort': sort}
         yield coroutines.Call(self.group.start(**kwds))
 
     @operation(wait=(bool, 'Whether to wait for the stop\'s completion'),
                verbose=(bool, 'Whether to output status reports'),
+               sort=(bool, 'Sort status reports before displaying them'),
                procs=(list, 'The processes to stop (default: all)'))
-    def do_stop(self, wait=True, procs=None, verbose=True):
+    def do_stop(self, wait=True, verbose=True, procs=None, sort=False):
         "Stop the given processes"
-        kwds = {'procs': procs, 'verbose': verbose}
+        kwds = {'wait': wait, 'verbose': verbose, 'procs': procs,
+                'sort': sort}
         yield coroutines.Call(self.group.stop(**kwds))
 
     @operation(verbose=(bool, 'Whether to output status reports'),
+               sort=(bool, 'Sort status reports before displaying them'),
                procs=(list, 'The processes to restart (default: all)'))
-    def do_restart(self, procs=None, verbose=True):
+    def do_restart(self, verbose=True, procs=None, sort=False):
         "Restart the given processes"
-        kwds = {'procs': procs, 'verbose': verbose}
+        kwds = {'verbose': verbose, 'procs': procs, 'sort': sort}
         yield coroutines.Call(self.group.stop(**kwds))
         yield coroutines.Call(self.group.start(**kwds))
 
     @operation(verbose=(bool, 'Whether to output status reports'),
+               sort=(bool, 'Sort status reports before displaying them'),
                procs=(list, 'The processes to restart (default: all)'))
-    def do_bg_restart(self, procs=None, verbose=True):
+    def do_bg_restart(self, verbose=True, procs=None, sort=False):
         "Restart the given processes with pre-loading the new instances"
-        kwds = {'procs': procs, 'verbose': verbose}
+        kwds = {'verbose': verbose, 'procs': procs, 'sort': sort}
         yield coroutines.Call(self.group.warmup(**kwds))
         yield coroutines.Call(self.group.stop(**kwds))
         yield coroutines.Call(self.group.start(**kwds))
 
     @operation(verbose=(bool, 'Whether to output status reports'),
+               sort=(bool, 'Sort status reports before displaying them'),
                procs=(list, 'The processes to query (default: all)'))
-    def do_status(self, procs=None, verbose=True):
+    def do_status(self, verbose=True, procs=None, sort=False):
         "Query the status of the given processes"
-        kwds = {'procs': procs, 'verbose': verbose}
+        kwds = {'verbose': verbose, 'procs': procs, 'sort': sort}
         yield coroutines.Call(self.group.status(**kwds))
 
 REMOTE_COMMANDS = {}
