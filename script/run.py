@@ -85,6 +85,19 @@ def open_mkdirs(path, mode, do_mkdirs=True):
     return open(path, mode)
 
 class VerboseExit(coroutines.Exit):
+    @classmethod
+    def handle_reports(cls, reports, verbose):
+        def default_handler(text):
+            print (text)
+        if not verbose:
+            return
+        elif not callable(verbose):
+            verbose = default_handler
+        for r in reports:
+            res = verbose(r)
+            if isinstance(res, coroutines.Suspend):
+                yield res
+
     def __init__(self, result, verbose=False, context=None):
         coroutines.Exit.__init__(self, result)
         self.verbose = verbose
@@ -325,19 +338,6 @@ class BaseProcess:
         def kill(self):
             if self.returncode is None:
                 os.kill(self.pid, signal.SIGKILL)
-
-    @staticmethod
-    def _handle_reports(reports, verbose):
-        def default_handler(text):
-            print (text)
-        if not verbose:
-            return
-        elif not callable(verbose):
-            verbose = default_handler
-        for r in reports:
-            res = verbose(r)
-            if isinstance(res, coroutines.Suspend):
-                yield res
 
     def __init__(self, name, pidfile, manager=None):
         self.name = name
@@ -595,8 +595,8 @@ class ProcessGroup:
         result = yield coroutines.All(*calls)
         if orig_verbose:
             reports.sort()
-            yield coroutines.Call(BaseProcess._handle_reports(reports,
-                                                              orig_verbose))
+            yield coroutines.Call(VerboseExit.handle_reports(reports,
+                                                             orig_verbose))
         if prune:
             self.processes[:] = [p for p in self.processes
                                  if not isinstance(p, ProcessHusk)]
@@ -1273,8 +1273,8 @@ def run_client(conn, cmdline, silent=False):
             line = line[1:]
         elif line[0] == 'ERROR' and len(line) == 3:
             raise RemoteError(line[1], line[2])
-        elif not silent:
-            print (' '.join(Line))
+        if not silent:
+            print (' '.join(line))
     def command_wrapper():
         try:
             result = yield coroutines.Call(conn.do_command(*cmdline))
