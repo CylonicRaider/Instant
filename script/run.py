@@ -134,8 +134,12 @@ class Configuration:
             self.base = base
 
         def __missing__(self, key):
-            rawvalue = self.base[key]
-            ret = self.InterpolationTemplate(rawvalue).substitute(self)
+            try:
+                rawvalue = self.base[key]
+            except KeyError:
+                ret = ''
+            else:
+                ret = self.InterpolationTemplate(rawvalue).substitute(self)
             self[key] = ret
             return ret
 
