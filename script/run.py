@@ -33,6 +33,7 @@ ESCAPE_PARSE_RE = re.compile(r' |\\.?')
 ESCAPE_CHARS = {'\\\\': '\\', '\\ ': ' ', '\\n': '\n', '\\z': ''}
 
 WHITESPACE_RE = re.compile(r'\s')
+LEADING_WORD_RE = re.compile(r'^\S+?(?=:?\s|$)')
 
 THIS_FILE = os.path.abspath(inspect.getfile(lambda: None))
 
@@ -576,6 +577,14 @@ class ProcessGroup:
                 self.add(proc)
 
     def _for_each(self, procs, handler, prune=False, sort=False, **kwds):
+        def sort_key(report):
+            m = LEADING_WORD_RE.match(report)
+            if not m:
+                return len(sort_groups)
+            try:
+                return sort_groups.index(m.group())
+            except ValueError:
+                return len(sort_groups)
         if isinstance(handler, str):
             getter = operator.attrgetter(handler)
             handler = lambda p, **kwds: getter(p)(**kwds)
@@ -588,19 +597,22 @@ class ProcessGroup:
             eff_procs = self.processes
         else:
             eff_procs = []
-            procs = set(procs)
-            for p in self.processes:
-                if p in procs or p.name in procs:
-                    eff_procs.append(p)
-                    procs.discard(p)
-                    procs.discard(p.name)
-            if procs:
-                raise NoSuchProcessesError(procs)
+            lookup = {p.name: p for p in self.processes}
+            lookup.update({p: p for p in self.processes})
+            remaining = set(procs)
+            for p in procs:
+                resolved = lookup.get(p)
+                if not resolved: continue
+                eff_procs.append(resolved)
+                remaining.discard(p)
+            if remaining:
+                raise NoSuchProcessesError(remaining)
+        sort_groups = [p.name for p in eff_procs]
         reports = []
         calls = [coroutines.Call(handler(p, **kwds)) for p in eff_procs]
         result = yield coroutines.All(*calls)
         if orig_verbose:
-            reports.sort()
+            reports.sort(key=sort_key)
             yield coroutines.Call(VerboseExit.handle_reports(reports,
                                                              orig_verbose))
         if prune:
@@ -709,7 +721,6 @@ class ProcessManager:
             prefixes = PROCESS_PREFIXES
         sections = [s for s in self.conffile.list_sections()
                     if any(self.conffile.is_prefix(p, s) for p in prefixes)]
-        sections.sort()
         seen_names = set()
         for secname in sections:
             values = dict(self.conffile.get_section(secname))
