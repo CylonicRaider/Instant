@@ -791,7 +791,7 @@ class ProcessManager:
                verbose=(bool, 'Whether to output status reports'),
                sort=(bool, 'Sort status reports before displaying them'),
                procs=(list, 'The processes to start (default: all)'))
-    def do_start(self, wait=True, verbose=True, procs=None, sort=False):
+    def do_start(self, wait=True, verbose=True, procs=None, sort=True):
         "Start the given processes"
         kwds = {'wait': wait, 'verbose': verbose, 'procs': procs,
                 'sort': sort}
@@ -801,7 +801,7 @@ class ProcessManager:
                verbose=(bool, 'Whether to output status reports'),
                sort=(bool, 'Sort status reports before displaying them'),
                procs=(list, 'The processes to stop (default: all)'))
-    def do_stop(self, wait=True, verbose=True, procs=None, sort=False):
+    def do_stop(self, wait=True, verbose=True, procs=None, sort=True):
         "Stop the given processes"
         kwds = {'wait': wait, 'verbose': verbose, 'procs': procs,
                 'sort': sort}
@@ -810,7 +810,7 @@ class ProcessManager:
     @operation(verbose=(bool, 'Whether to output status reports'),
                sort=(bool, 'Sort status reports before displaying them'),
                procs=(list, 'The processes to restart (default: all)'))
-    def do_restart(self, verbose=True, procs=None, sort=False):
+    def do_restart(self, verbose=True, procs=None, sort=True):
         "Restart the given processes"
         kwds = {'verbose': verbose, 'procs': procs, 'sort': sort}
         yield coroutines.Call(self.group.stop(**kwds))
@@ -819,7 +819,7 @@ class ProcessManager:
     @operation(verbose=(bool, 'Whether to output status reports'),
                sort=(bool, 'Sort status reports before displaying them'),
                procs=(list, 'The processes to restart (default: all)'))
-    def do_bg_restart(self, verbose=True, procs=None, sort=False):
+    def do_bg_restart(self, verbose=True, procs=None, sort=True):
         "Restart the given processes with pre-loading the new instances"
         kwds = {'verbose': verbose, 'procs': procs, 'sort': sort}
         yield coroutines.Call(self.group.warmup(**kwds))
@@ -829,7 +829,7 @@ class ProcessManager:
     @operation(verbose=(bool, 'Whether to output status reports'),
                sort=(bool, 'Sort status reports before displaying them'),
                procs=(list, 'The processes to query (default: all)'))
-    def do_status(self, verbose=True, procs=None, sort=False):
+    def do_status(self, verbose=True, procs=None, sort=True):
         "Query the status of the given processes"
         kwds = {'verbose': verbose, 'procs': procs, 'sort': sort}
         yield coroutines.Call(self.group.status(**kwds))
