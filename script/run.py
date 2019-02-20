@@ -32,6 +32,8 @@ PID_LINE_RE = re.compile(r'^[0-9]+\s*$')
 ESCAPE_PARSE_RE = re.compile(r' |\\.?')
 ESCAPE_CHARS = {'\\\\': '\\', '\\ ': ' ', '\\n': '\n', '\\z': ''}
 
+WHITESPACE_RE = re.compile(r'\s')
+
 THIS_FILE = os.path.abspath(inspect.getfile(lambda: None))
 
 class RunnerError(Exception): pass
@@ -712,7 +714,10 @@ class ProcessManager:
             except KeyError:
                 raise ConfigurationError('Missing required key "name" in '
                     'section %r' % secname)
-            if '=' in name:
+            if WHITESPACE_RE.search(name):
+                raise ConfigurationError('Invalid process name in section '
+                    '%r: %r contains whitespace' % (secname, name))
+            elif '=' in name:
                 raise ConfigurationError('Invalid process name in section '
                     '%r: %r contains equals sign (=)' % (secname, name))
             if name in seen_names:
