@@ -244,7 +244,7 @@ start with one of the *process section prefixes* (see above). The following
 keys configure the process:
 
 - `name` — *Process name*: The name of the process used on the command line.
-  Must be unique and not contain equals signs (`=`). Required.
+  Must be unique and not contain whitespace or equals signs (`=`). Required.
 - `cmdline` — *Command line*: Used to invoke the process. Parsed using
   shell-like syntax (as implemented by the `shlex` Python module); that
   happens **after** interpolation has been performed on the value. Required.
