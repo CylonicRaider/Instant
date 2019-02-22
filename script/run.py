@@ -351,6 +351,7 @@ class BaseProcess:
         self.pidfile = pidfile
         self.manager = manager
         self._child = None
+        self._lock = coroutines.Lock()
 
     def prepare_inherit(self):
         if self._child is not None:
@@ -450,72 +451,84 @@ class Process(BaseProcess):
 
     def warmup(self, wait=True, verbose=False):
         exit = self._make_exit('warmup', verbose)
-        if wait and (not self.startup_notify or ' ' in sys.executable or
-                ' ' in THIS_FILE or not self.manager or
-                not self.manager.has_notify):
-            yield exit('NOT_SUPPORTED')
-        pid, status = self.pidfile_next.get_status()
-        if status == 'RUNNING' or self._next_child:
-            yield exit('ALREADY_RUNNING')
-        if wait:
-            yield self._next_switcher.Set('STARTING')
-            extra_args = (self.startup_notify, '%s %s cmd NOTIFY %s' % (
-                sys.executable, THIS_FILE, self.uuid))
-        else:
-            extra_args = ()
-        self._next_child = yield coroutines.Call(self._spawn_process(
-            extra_args=extra_args))
-        self.pidfile_next.set_pid(self._next_child.pid)
-        if wait:
-            yield self._next_switcher.Toggle('READY', 'STANDBY', True)
-        yield exit('OK %s' % self._next_child.pid)
+        yield self._lock.Acquire()
+        try:
+            if wait and (not self.startup_notify or ' ' in sys.executable or
+                    ' ' in THIS_FILE or not self.manager or
+                    not self.manager.has_notify):
+                yield exit('NOT_SUPPORTED')
+            pid, status = self.pidfile_next.get_status()
+            if status == 'RUNNING' or self._next_child:
+                yield exit('ALREADY_RUNNING')
+            if wait:
+                yield self._next_switcher.Set('STARTING')
+                extra_args = (self.startup_notify, '%s %s cmd NOTIFY %s' % (
+                    sys.executable, THIS_FILE, self.uuid))
+            else:
+                extra_args = ()
+            self._next_child = yield coroutines.Call(self._spawn_process(
+                extra_args=extra_args))
+            self.pidfile_next.set_pid(self._next_child.pid)
+            if wait:
+                yield self._next_switcher.Toggle('READY', 'STANDBY', True)
+            yield exit('OK %s' % self._next_child.pid)
+        finally:
+            self._lock.release()
 
     def start(self, wait=True, verbose=False):
         exit = self._make_exit('start', verbose)
-        pid, status = self.pidfile.get_status()
-        if status == 'RUNNING':
-            yield exit('ALREADY_RUNNING')
-        if self._next_child:
-            self._child, self._next_child = self._next_child, None
-            self.pidfile_next.move_to(self.pidfile)
-            yield self._next_switcher.Toggle('STANDBY', '')
+        yield self._lock.Acquire()
+        try:
+            pid, status = self.pidfile.get_status()
+            if status == 'RUNNING':
+                yield exit('ALREADY_RUNNING')
+            if self._next_child:
+                self._child, self._next_child = self._next_child, None
+                self.pidfile_next.move_to(self.pidfile)
+                yield self._next_switcher.Toggle('STANDBY', '')
+                yield exit('OK %s' % self._child.pid)
+            self._child = yield coroutines.Call(self._spawn_process())
+            self.pidfile.set_pid(self._child.pid)
             yield exit('OK %s' % self._child.pid)
-        self._child = yield coroutines.Call(self._spawn_process())
-        self.pidfile.set_pid(self._child.pid)
-        yield exit('OK %s' % self._child.pid)
+        finally:
+            self._lock.release()
 
     def stop(self, wait=True, verbose=False):
         exit = self._make_exit('stop', verbose)
-        prev_child = self._child
-        status = 'OK'
-        if self._child is not None:
-            try:
-                self._child.terminate()
-            except OSError as e:
-                if e.errno != errno.ESRCH: raise
-            self._child = None
-        else:
-            # We could theoretically wait for the PID below, but that would be
-            # even more fragile than what we already do in status().
-            pid = self.pidfile.get_pid()
-            if pid is None:
-                yield exit('NOT_RUNNING')
-            else:
+        yield self._lock.Acquire()
+        try:
+            prev_child = self._child
+            status = 'OK'
+            if self._child is not None:
                 try:
-                    os.kill(pid, signal.SIGTERM)
+                    self._child.terminate()
                 except OSError as e:
                     if e.errno != errno.ESRCH: raise
-                    status = 'NOT_FOUND'
-        self.pidfile.set_pid(None)
-        if wait:
-            if prev_child:
-                raw_status = yield coroutines.WaitProcess(prev_child)
-                status = 'OK %s' % (raw_status,)
-            elif status == 'OK':
-                delay = self.stop_delay
-                if delay > 0: yield coroutines.Sleep(delay)
-                status = None
-        yield exit(status)
+                self._child = None
+            else:
+                # We could theoretically wait for the PID below, but that would be
+                # even more fragile than what we already do in status().
+                pid = self.pidfile.get_pid()
+                if pid is None:
+                    yield exit('NOT_RUNNING')
+                else:
+                    try:
+                        os.kill(pid, signal.SIGTERM)
+                    except OSError as e:
+                        if e.errno != errno.ESRCH: raise
+                        status = 'NOT_FOUND'
+            self.pidfile.set_pid(None)
+            if wait:
+                if prev_child:
+                    raw_status = yield coroutines.WaitProcess(prev_child)
+                    status = 'OK %s' % (raw_status,)
+                elif status == 'OK':
+                    delay = self.stop_delay
+                    if delay > 0: yield coroutines.Sleep(delay)
+                    status = None
+            yield exit(status)
+        finally:
+            self._lock.release()
 
 class ProcessHusk(BaseProcess):
     def warmup(self, wait=True, verbose=False):
@@ -528,20 +541,24 @@ class ProcessHusk(BaseProcess):
 
     def stop(self, wait=True, verbose=False):
         exit = self._make_exit('stop', verbose)
-        if self._child is None:
-            yield exit('NOT_RUNNING')
+        yield self._lock.Acquire()
         try:
-            self._child.terminate()
-        except OSError as e:
-            if e.errno != errno.ESRCH: raise
-        self.pidfile.set_pid(None)
-        if wait and self._child:
-            raw_status = yield coroutines.WaitProcess(self._child)
-            status = 'OK %s' % (raw_status,)
-        else:
-            status = 'OK'
-        self._child = None
-        yield exit(status)
+            if self._child is None:
+                yield exit('NOT_RUNNING')
+            try:
+                self._child.terminate()
+            except OSError as e:
+                if e.errno != errno.ESRCH: raise
+            self.pidfile.set_pid(None)
+            if wait and self._child:
+                raw_status = yield coroutines.WaitProcess(self._child)
+                status = 'OK %s' % (raw_status,)
+            else:
+                status = 'OK'
+            self._child = None
+            yield exit(status)
+        finally:
+            self._lock.release()
 
 class ProcessGroup:
     def __init__(self):
