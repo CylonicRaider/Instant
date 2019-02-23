@@ -338,7 +338,11 @@ class BaseProcess:
 
         def poll(self):
             if self.returncode is None:
-                pid, status = os.waitpid(self.pid, os.WNOHANG)
+                try:
+                    pid, status = os.waitpid(self.pid, os.WNOHANG)
+                except OSError as e:
+                    if e.errno != errno.ECHILD: raise
+                    pid, status = 0, 0
                 if pid != 0:
                     code = -(status & 0x7F) if status & 0xFF else status >> 8
                     self.returncode = code
@@ -496,15 +500,28 @@ class Process(BaseProcess):
 
     def start(self, wait=True, verbose=False):
         def restarter(child, marker, delay):
-            result = yield coroutines.WaitProcess(child)
-            if marker == self._restart_marker and (time.time() < marker or
-                                                   result == 0):
-                self._restart_marker = None
+            # Do not keep reference to potentially heavy closure.
+            verbose = None
+            logger = logging.getLogger('restart')
+            # First, wait for the process and report its status.
+            status = yield coroutines.WaitProcess(child)
             if marker != self._restart_marker:
                 return
+            elif time.time() < marker or status == 0:
+                self._restart_marker = None
+                logger.info('Process %s exited with status %s; will not '
+                    'restart.' % (self.name, status))
+                return
+            else:
+                logger.info('Process %s exited with status %s; '
+                    'restarting in %ss...' % (self.name, status, delay))
+            # Then, apply the delay; bail out if something happens in the
+            # meantime.
             yield coroutines.Sleep(delay)
             if marker != self._restart_marker:
                 return
+            # Finally, restart the process.
+            logger.info('Restarting process %s.' % (self.name,))
             yield coroutines.Call(self.start())
         exit = self._make_exit('start', verbose)
         yield self._lock.Acquire()
