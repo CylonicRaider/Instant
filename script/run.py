@@ -1416,15 +1416,17 @@ def main():
         description='Manage a number of processes',
         epilog='The --master option can have the following values: never = '
             'never use daemon; all other options use a daemon when '
-            'available: auto = without daemon, run action locally; spawn = '
-            'without daemon, spawn one in the background; fg = without '
-            'daemon, become the daemon; always = without daemon, report an '
-            'error; restart = restart an already-running daemon or spawn a '
-            'new one; stop = like auto, but shut the daemon down when done; '
+            'available. auto = without daemon, run action locally. spawn = '
+            'without daemon, spawn one in the background. fg = without '
+            'daemon, become the daemon. always = without daemon, report an '
+            'error. restart = restart an already-running daemon or spawn a '
+            'new one. stop = like auto, but shut the daemon down when done. '
             'action = choose a mode depending on the action: start uses '
             '"spawn", restart and bg-restart use "restart", stop uses '
-            '"stop", all others use "auto". The last three modes do not '
-            'cooperate well with other commands running concurrently.')
+            '"stop", all others use "auto"; if an explicit list of processes '
+            'to act upon is given, "auto" mode is always used. The last '
+            'three modes do not cooperate well with other commands running '
+            'concurrently.')
     p.add_argument('--config', '-c', default=DEFAULT_CONFFILE,
                    help='Configuration file location (default %(default)s)')
     MASTER_CHOICES = ('never', 'auto', 'spawn', 'fg', 'always', 'restart',
@@ -1501,10 +1503,13 @@ def main():
             raise SystemExit('ERROR: Invalid master process mode in '
                 'configuration: %r' % (arguments.master,))
     if arguments.master == 'action':
-        arguments.master = {
-            'start': 'spawn', 'restart': 'restart', 'bg-restart': 'restart',
-            'stop': 'stop'
-        }.get(arguments.cmd, 'auto')
+        if hasattr(arguments, 'procs') and arguments.procs:
+            arguments.master = 'auto'
+        else:
+            arguments.master = {
+                'start': 'spawn', 'restart': 'restart',
+                'bg-restart': 'restart', 'stop': 'stop'
+            }.get(arguments.cmd, 'auto')
     restart_master = (arguments.master == 'restart')
     stop_master = (arguments.master == 'stop')
     if restart_master:
