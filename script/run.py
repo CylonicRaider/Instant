@@ -67,6 +67,12 @@ def find_dict_key(data, value):
     else:
         raise LookupError(value)
 
+def cast_if_true(tp, value, default=None):
+    if value:
+        return tp(value)
+    else:
+        return default
+
 def safe_makedirs(path):
     try:
         os.makedirs(path)
@@ -375,6 +381,9 @@ class BaseProcess:
             context = None
         return callback
 
+    def _extra_status(self, status):
+        return status
+
     def init(self):
         def add_child(executor, routine):
             executor.waits.add(self._child)
@@ -403,6 +412,7 @@ class BaseProcess:
             pid, status = self.pidfile.get_status()
             if pid is not None:
                 status = '%s %s' % (status, pid)
+        status = self._extra_status(status)
         yield exit(status)
 
 class Process(BaseProcess):
@@ -419,10 +429,13 @@ class Process(BaseProcess):
         self.stdout = Redirection.parse(config.get('stdout', ''))
         self.stderr = Redirection.parse(config.get('stderr', ''))
         self.stop_delay = float(config.get('stop-wait', 0))
+        self.restart_delay = cast_if_true(float, config.get('restart-delay'))
+        self.restart_min_alive = float(config.get('restart-min-alive', 0))
         self.startup_notify = config.get('startup-notify')
         self.uuid = uuid.uuid4()
         self._next_child = None
         self._next_switcher = coroutines.StateSwitcher('')
+        self._restart_marker = None
         if manager:
             manager.register_notify(str(self.uuid), self._next_switcher)
 
@@ -448,6 +461,12 @@ class Process(BaseProcess):
         finally:
             for r, f in zip(redirections, files):
                 r.close(f)
+
+    def _extra_status(self, status):
+        keyword = status.partition(' ')[0]
+        if keyword != 'RUNNING' and self._restart_marker is not None:
+            status += ' RESTARTING'
+        return status
 
     def warmup(self, wait=True, verbose=False):
         exit = self._make_exit('warmup', verbose)
@@ -476,6 +495,17 @@ class Process(BaseProcess):
             self._lock.release()
 
     def start(self, wait=True, verbose=False):
+        def restarter(child, marker, delay):
+            result = yield coroutines.WaitProcess(child)
+            if marker == self._restart_marker and (time.time() < marker or
+                                                   result == 0):
+                self._restart_marker = None
+            if marker != self._restart_marker:
+                return
+            yield coroutines.Sleep(delay)
+            if marker != self._restart_marker:
+                return
+            yield coroutines.Call(self.start())
         exit = self._make_exit('start', verbose)
         yield self._lock.Acquire()
         try:
@@ -486,9 +516,14 @@ class Process(BaseProcess):
                 self._child, self._next_child = self._next_child, None
                 self.pidfile_next.move_to(self.pidfile)
                 yield self._next_switcher.Toggle('STANDBY', '')
-                yield exit('OK %s' % self._child.pid)
-            self._child = yield coroutines.Call(self._spawn_process())
-            self.pidfile.set_pid(self._child.pid)
+            else:
+                self._child = yield coroutines.Call(self._spawn_process())
+                self.pidfile.set_pid(self._child.pid)
+            if self.restart_delay is not None:
+                now = time.time()
+                self._restart_marker = now + self.restart_min_alive
+                yield coroutines.Spawn(restarter(self._child,
+                    self._restart_marker, self.restart_delay))
             yield exit('OK %s' % self._child.pid)
         finally:
             self._lock.release()
@@ -497,6 +532,7 @@ class Process(BaseProcess):
         exit = self._make_exit('stop', verbose)
         yield self._lock.Acquire()
         try:
+            self._restart_marker = None
             prev_child = self._child
             status = 'OK'
             if self._child is not None:
