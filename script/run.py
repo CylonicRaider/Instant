@@ -860,8 +860,8 @@ class ProcessManager:
 
     @operation(wait=(bool, 'Whether to wait for the start\'s completion'),
                verbose=(bool, 'Whether to output status reports'),
-               sort=(bool, 'Sort status reports before displaying them'),
-               procs=(list, 'The processes to start (default: all)'))
+               sort=(bool, 'Whether to sort status reports before output'),
+               procs=(list, 'The processes to start', 'all'))
     def do_start(self, wait=True, verbose=True, procs=None, sort=True):
         "Start the given processes"
         kwds = {'wait': wait, 'verbose': verbose, 'procs': procs,
@@ -870,8 +870,8 @@ class ProcessManager:
 
     @operation(wait=(bool, 'Whether to wait for the stop\'s completion'),
                verbose=(bool, 'Whether to output status reports'),
-               sort=(bool, 'Sort status reports before displaying them'),
-               procs=(list, 'The processes to stop (default: all)'))
+               sort=(bool, 'Whether to sort status reports before output'),
+               procs=(list, 'The processes to stop', 'all'))
     def do_stop(self, wait=True, verbose=True, procs=None, sort=True):
         "Stop the given processes"
         kwds = {'wait': wait, 'verbose': verbose, 'procs': procs,
@@ -879,8 +879,8 @@ class ProcessManager:
         yield coroutines.Call(self.group.stop(**kwds))
 
     @operation(verbose=(bool, 'Whether to output status reports'),
-               sort=(bool, 'Sort status reports before displaying them'),
-               procs=(list, 'The processes to restart (default: all)'))
+               sort=(bool, 'Whether to sort status reports before output'),
+               procs=(list, 'The processes to restart', 'all'))
     def do_restart(self, verbose=True, procs=None, sort=True):
         "Restart the given processes"
         kwds = {'verbose': verbose, 'procs': procs, 'sort': sort}
@@ -888,8 +888,8 @@ class ProcessManager:
         yield coroutines.Call(self.group.start(**kwds))
 
     @operation(verbose=(bool, 'Whether to output status reports'),
-               sort=(bool, 'Sort status reports before displaying them'),
-               procs=(list, 'The processes to restart (default: all)'))
+               sort=(bool, 'Whether to sort status reports before output'),
+               procs=(list, 'The processes to restart', 'all'))
     def do_bg_restart(self, verbose=True, procs=None, sort=True):
         "Restart the given processes with pre-loading the new instances"
         kwds = {'verbose': verbose, 'procs': procs, 'sort': sort}
@@ -898,8 +898,8 @@ class ProcessManager:
         yield coroutines.Call(self.group.start(**kwds))
 
     @operation(verbose=(bool, 'Whether to output status reports'),
-               sort=(bool, 'Sort status reports before displaying them'),
-               procs=(list, 'The processes to query (default: all)'))
+               sort=(bool, 'Whether to sort status reports before output'),
+               procs=(list, 'The processes to query', 'all'))
     def do_status(self, verbose=True, procs=None, sort=True):
         "Query the status of the given processes"
         kwds = {'verbose': verbose, 'procs': procs, 'sort': sort}
@@ -1442,7 +1442,8 @@ def main():
     for name, desc in sorted(OPERATIONS.items(),
                              key=lambda item: item[1]['index']):
         cmdp = sp.add_parser(name.replace('_', '-'), help=desc['doc'])
-        for name, (tp, doc) in sorted(desc['params'].items()):
+        for name, pdesc in sorted(desc['params'].items()):
+            tp, doc = pdesc[:2]
             prefix = '--'
             if tp == bool:
                 kwds = {'type': is_true, 'metavar': 'BOOL'}
@@ -1453,6 +1454,12 @@ def main():
                 kwds = {'type': tp, 'metavar': tp.__name__.upper()}
             if name in desc['defaults']:
                 kwds['default'] = desc['defaults'][name]
+                defdesc = ' (default: %s)' % (kwds['default'],)
+            else:
+                defdesc = ''
+            if len(pdesc) >= 3:
+                defdesc = ' (default: %s)' % (pdesc[2],)
+            doc += defdesc
             cmdp.add_argument(prefix + name.replace('_', '-'), help=doc,
                               **kwds)
     p_master = sp.add_parser('run-master', help='Run a job manager server')
