@@ -506,8 +506,9 @@ class Process(BaseProcess):
                     if e.errno != errno.ESRCH: raise
                 self._child = None
             else:
-                # We could theoretically wait for the PID below, but that would be
-                # even more fragile than what we already do in status().
+                # We could theoretically wait for the PID below, but that
+                # would be even more fragile than what we already do in
+                # status().
                 pid = self.pidfile.get_pid()
                 if pid is None:
                     yield exit('NOT_RUNNING')
