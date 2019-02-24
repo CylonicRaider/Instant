@@ -521,6 +521,8 @@ public class InstantRunner implements API1 {
             enabled = Util.nonempty(addrStr);
         }
         if (enabled) {
+            if (! Util.nonempty(addrStr))
+                LOGGER.info("Enabling backend console...");
             console.installPlatform();
         }
         if (Util.nonempty(addrStr)) {
