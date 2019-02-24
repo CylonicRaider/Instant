@@ -83,9 +83,7 @@ directory (or patching the initial sections of the script).
 
 On every invocation, a subcommand must be specified that defines what action
 should be performed. A full listing can be obtained by invoking the script
-with a `--help` option. Unless otherwise noted, each subcommand accepts a list
-of process names (as defined in the configuration file; see below) to act
-upon as positional arguments.
+with a `--help` option.
 
 - `status`: Lists processes and displays whether they are running or not.
 - `start`: Launches those processes that are not running.
@@ -97,6 +95,14 @@ upon as positional arguments.
   are swapped in (or new instances are started). Requires a master process
   (see below) to be effective; falls back to an equivalent of `restart`
   otherwise.
+
+Each subcommand listed here accepts a list of process names (as defined in the
+configuration file; see below) to act upon as positional arguments. The
+subcommands produce *status reports* for each of the processes affected; these
+are accumulated and displayed in the order given on the command line (or the
+configuration file, if no processes are named on the command line) as default;
+to display them as they arrive, pass a `--sort=no` option to the subcommands;
+to disable the status reports entirely, pass a `--verbose=no`.
 
 **TL;DR**: Skip to the example subsection below, copy the configuration file
 to `config/run.ini` in the Instant directory, modify it to your needs, and
@@ -274,7 +280,7 @@ The following keys configure the orchestrator's handling of the process:
   includes the process name) is provided.
 - `pid-file-warmup` — *Secondary PID file*: During a "fast restart", if
   supported by the process, write the PID of its background copy here.
-  Defaults to `pid-file` with a `.new` suffix appended.
+  Defaults to the value of `pid-file` with a `.new` suffix appended.
 - `startup-notify` — *Fast restart support*: Setting this key enables "fast
   restart" support for this process. When performing a fast restart, the value
   of this key is appended to the process' command line (as a single argument),
@@ -285,9 +291,21 @@ The following keys configure the orchestrator's handling of the process:
   the background copy of the process to be swap itself into the foreground.
 - `stop-wait` — *Slow shutdown support*: When stopping the process and if the
   orchestrator cannot wait for the process to finish (e.g. when not using a
-  master process), this specifies a fixed delay (in seconds) to be applied.
-  This is useful when the process holds some exclusive resource (such as a
-  bound network socket) and might take some time to release it.
+  master process), this specifies a fixed delay (in seconds; perhaps
+  fractional) to be applied. This is useful when the process holds some
+  exclusive resource (such as a bound network socket) and might take some time
+  to release it.
+- `restart-delay` — *Automatic restarting*: Setting this enables automatic
+  restarting of the process by a master process (which is, again, required)
+  should the process exit with a non-zero status code. The value is a (perhaps
+  fractional) amount of seconds to wait between the old copy's death and
+  starting the new copy.
+- `restart-min-alive` — *Automatic restart eligibility*: In order to be
+  eligible for an automated restart, the process must exit with a nonzero
+  code, and have been running for the amount of time specifieed by this key
+  (in perhaps fractional seconds), which defaults to zero. This is useful to
+  prevent a process that crashes during start-up from being restarted
+  indefinitely.
 
 **Redirections** are specified in a way similar to shell redirections, with
 some special values:
