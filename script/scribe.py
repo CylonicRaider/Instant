@@ -750,8 +750,19 @@ def main():
         else:
             with open(fname) as f:
                 yield f
+    def install_sighandler(signum, callback):
+        try:
+            signal.signal(signal.SIGINT, callback)
+        except Exception as e:
+            log_exception('WARNING', e)
     def interrupt(signum, frame):
         raise SystemExit
+    def handle_crash(exc):
+        log_exception('CRASHED', e)
+        sys.stderr.write('\n***CRASH*** at %s\n' %
+            time.strftime('%Y-%m-%d %H:%M:%S Z', time.gmtime()))
+        sys.stderr.flush()
+        raise
     b = instabot.CmdlineBotBuilder(Scribe, NICKNAME, None)
     p = b.make_parser(sys.argv[0],
                       desc='An Instant bot storing room logs.')
@@ -771,23 +782,20 @@ def main():
     b.parse(sys.argv[1:])
     b.add_args('push_logs', 'dont_stay', 'dont_pull')
     maxlen, msgdb_file, toread = b.get_args('maxlen', 'msgdb', 'read-file')
-    try:
-        signal.signal(signal.SIGINT, interrupt)
-    except Exception:
-        pass
-    try:
-        signal.signal(signal.SIGTERM, interrupt)
-    except Exception:
-        pass
     log('SCRIBE version=%s' % VERSION)
+    install_sighandler(signal.SIGINT, interrupt)
+    install_sighandler(signal.SIGTERM, interrupt)
     log('OPENING file=%r maxlen=%r' % (msgdb_file, maxlen))
-    if msgdb_file is None:
-        msgdb = LogDBNull(maxlen)
-    elif msgdb_file is Ellipsis:
-        msgdb = LogDBList(maxlen)
-    else:
-        msgdb = LogDBSQLite(msgdb_file, maxlen)
-    msgdb.init()
+    try:
+        if msgdb_file is None:
+            msgdb = LogDBNull(maxlen)
+        elif msgdb_file is Ellipsis:
+            msgdb = LogDBList(maxlen)
+        else:
+            msgdb = LogDBSQLite(msgdb_file, maxlen)
+        msgdb.init()
+    except Exception as e:
+        handle_crash(e)
     for fn in toread:
         log('READING file=%r maxlen=%r' % (fn, msgdb.capacity()))
         try:
@@ -825,11 +833,7 @@ def main():
         else:
             log('INTERRUPTED')
     except Exception as e:
-        log_exception('CRASHED', e)
-        sys.stderr.write('\n***CRASH*** at %s\n' %
-            time.strftime('%Y-%m-%d %H:%M:%S Z', time.gmtime()))
-        sys.stderr.flush()
-        raise
+        handle_crash(e)
     finally:
         if thr: thr.join(1)
         msgdb.close()
