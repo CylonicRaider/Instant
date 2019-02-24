@@ -1,15 +1,15 @@
 
 JAVACFLAGS = -Xlint:all -Xlint:-serial -Werror
 
-SOURCES = $(shell find src/ -name '*.java' 2>/dev/null)
-LIBRARIES = $(shell find src/org/ 2>/dev/null)
-ASSETS = $(shell find src/static/ src/pages/ 2>/dev/null)
+SOURCES := $(shell find src/ -name '*.java' 2>/dev/null)
+LIBRARIES := $(shell find src/org/ 2>/dev/null)
+ASSETS := $(shell find src/static/ src/pages/ 2>/dev/null)
 # Specifying those explicitly as they might be absent, and then not listed
 # as dependencies.
-AUTOASSETS = src/static/logo-static.svg src/static/logo-static_32x32.png \
+AUTOASSETS := src/static/logo-static.svg src/static/logo-static_32x32.png \
     src/static/logo-static_128x128.png src/static/logo-static_128x128.ico
 
-_JAVA_SOURCES = $(patsubst src/%,%,$(SOURCES))
+_JAVA_SOURCES := $(patsubst src/%,%,$(SOURCES))
 
 .NOTPARALLEL:
 .PHONY: clean lint lint-ro run pre-commit
