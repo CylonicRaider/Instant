@@ -29,11 +29,10 @@ all: Instant.jar
 	cd src && javac $(JAVACFLAGS) $(_JAVA_SOURCES)
 	cd src && jar cfe ../.build.jar Main $$(find . -name '*.class')
 
-Instant-run.jar: Instant.jar
+Instant-run.jar: Instant.jar tools/amend-manifest.jar
 	cp Instant.jar Instant-run.jar
-	(printf "X-Git-Commit: "; git rev-parse HEAD) > .git-commit
-	jar ufm Instant-run.jar .git-commit
-	rm .git-commit
+	java -jar tools/amend-manifest.jar Instant-run.jar X-Git-Commit \
+	$$(git rev-parse HEAD)
 
 config:
 	mkdir -p $@
@@ -66,6 +65,9 @@ src/static/logo-static_128x128.png: src/static/logo-static.svg
 	convert -background none -density 288 $< $@
 src/static/logo-static_128x128.ico: src/static/logo-static.svg
 	convert -background none -density 288 $< $@
+
+tools/%.jar: tools/%
+	$(MAKE) -C tools $*.jar
 
 _lint-changed:
 	@script/importlint.py --sort --prune --empty-lines --report-null \
