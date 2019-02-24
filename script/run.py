@@ -458,9 +458,16 @@ class Process(BaseProcess):
                 files.append(r.open())
             final_env = dict(os.environ)
             final_env.update(self.env)
-            proc = yield coroutines.SpawnProcess(args=cmdline, env=final_env,
-                cwd=self.workdir, stdin=files[0], stdout=files[1],
-                stderr=files[2])
+            try:
+                proc = yield coroutines.SpawnProcess(args=cmdline,
+                    env=final_env, cwd=self.workdir, stdin=files[0],
+                    stdout=files[1], stderr=files[2])
+            except OSError as exc:
+                logger = logging.getLogger('spawn')
+                logger.error('Could not spawn process %s: %r' % (self.name,
+                                                                 exc))
+                yield coroutines.Exit(str(errno.errorcode.get(exc.errno,
+                                                              exc.errno)))
             yield coroutines.Exit(proc)
         finally:
             for r, f in zip(redirections, files):
@@ -489,8 +496,13 @@ class Process(BaseProcess):
                     sys.executable, THIS_FILE, self.uuid))
             else:
                 extra_args = ()
-            self._next_child = yield coroutines.Call(self._spawn_process(
-                extra_args=extra_args))
+            result = yield coroutines.Call(self._spawn_process(
+                    extra_args=extra_args))
+            if isinstance(result, str):
+                if wait:
+                    yield self._next_switcher.Set('')
+                yield exit('ERROR %s' % result)
+            self._next_child = result
             self.pidfile_next.set_pid(self._next_child.pid)
             if wait:
                 yield self._next_switcher.Toggle('READY', 'STANDBY', True)
@@ -534,7 +546,10 @@ class Process(BaseProcess):
                 self.pidfile_next.move_to(self.pidfile)
                 yield self._next_switcher.Toggle('STANDBY', '')
             else:
-                self._child = yield coroutines.Call(self._spawn_process())
+                result = yield coroutines.Call(self._spawn_process())
+                if isinstance(result, str):
+                    yield exit('ERROR %s' % result)
+                self._child = result
                 self.pidfile.set_pid(self._child.pid)
             if self.restart_delay is not None:
                 now = time.time()
