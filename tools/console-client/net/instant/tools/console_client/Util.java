@@ -5,7 +5,6 @@ import java.net.InetSocketAddress;
 import java.net.MalformedURLException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import javax.management.MBeanServerConnection;
 import javax.management.remote.JMXConnector;
 import javax.management.remote.JMXConnectorFactory;
 import javax.management.remote.JMXServiceURL;
@@ -49,11 +48,10 @@ public class Util {
         return new JMXServiceURL(input);
     }
 
-    public static MBeanServerConnection connectJMX(String endpoint)
-            throws IOException, MalformedURLException {
+    public static JMXConnector connectJMX(String endpoint)
+            throws IOException {
         JMXServiceURL url = parseServiceURL(endpoint);
-        JMXConnector conn = JMXConnectorFactory.connect(url);
-        return conn.getMBeanServerConnection();
+        return JMXConnectorFactory.connect(url);
     }
 
 }
