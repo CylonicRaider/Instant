@@ -4,6 +4,9 @@ import java.io.Console;
 import java.io.IOException;
 import javax.management.MBeanServerConnection;
 import javax.management.remote.JMXConnector;
+import net.instant.tools.console_client.jmx.ConsoleManagerProxy;
+import net.instant.tools.console_client.jmx.ConsoleProxy;
+import net.instant.tools.console_client.jmx.Util;
 
 public class Main {
 

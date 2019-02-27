@@ -1,4 +1,4 @@
-package net.instant.tools.console_client;
+package net.instant.tools.console_client.jmx;
 
 import java.io.IOException;
 import javax.management.InstanceNotFoundException;

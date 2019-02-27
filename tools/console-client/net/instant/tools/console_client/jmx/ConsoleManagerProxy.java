@@ -1,4 +1,4 @@
-package net.instant.tools.console_client;
+package net.instant.tools.console_client.jmx;
 
 import javax.management.MBeanServerConnection;
 import javax.management.ObjectName;
