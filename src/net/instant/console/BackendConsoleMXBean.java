@@ -10,6 +10,8 @@ public interface BackendConsoleMXBean {
 
     String runCommand(String command);
 
+    long submitCommand(String command);
+
     void close();
 
 }

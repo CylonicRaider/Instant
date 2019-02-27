@@ -1,6 +1,5 @@
 package net.instant.console;
 
-import java.io.IOException;
 import javax.management.AttributeChangeNotification;
 import javax.management.JMException;
 import javax.management.ListenerNotFoundException;
@@ -12,13 +11,29 @@ import javax.management.NotificationEmitter;
 import javax.management.NotificationFilter;
 import javax.management.NotificationListener;
 import javax.management.ObjectName;
-import net.instant.console.util.CapturingWriter;
 import net.instant.console.util.CommandHistory;
 import net.instant.console.util.ScriptRunner;
 import net.instant.console.util.Util;
+import net.instant.console.util.VirtualWriter;
 
 public class BackendConsole implements BackendConsoleMXBean,
         NotificationEmitter {
+
+    private class EventWriter extends VirtualWriter {
+
+        public long writeSeq(String data) {
+            return fireNewOutput(data);
+        }
+
+        public void write(String data) {
+            writeSeq(data);
+        }
+
+        public void write(char[] data, int offset, int length) {
+            writeSeq(new String(data, offset, length));
+        }
+
+    }
 
     public static final String OUTPUT_NOTIFICATION = "instant.console.output";
 
@@ -26,7 +41,7 @@ public class BackendConsole implements BackendConsoleMXBean,
     private final int id;
     private final ScriptRunner runner;
     private final CommandHistory history;
-    private final CapturingWriter writer;
+    private final EventWriter writer;
     private final ObjectName objName;
     private final NotificationBroadcasterSupport notifications;
     private MBeanServer server;
@@ -37,7 +52,7 @@ public class BackendConsole implements BackendConsoleMXBean,
         this.id = id;
         this.runner = new ScriptRunner();
         this.history = new CommandHistory();
-        this.writer = new CapturingWriter();
+        this.writer = new EventWriter();
         this.objName = Util.classObjectName(BackendConsole.class,
                                             "name", String.valueOf(id));
         this.notifications = new NotificationBroadcasterSupport(
@@ -64,11 +79,6 @@ public class BackendConsole implements BackendConsoleMXBean,
                 fireHistorySizeChange();
             }
         });
-        writer.addListener(new CapturingWriter.Listener() {
-            public void outputWritten(CapturingWriter.Event evt) {
-                fireNewOutput(evt.getText());
-            }
-        });
     }
     public BackendConsole() {
         this(null, -1);
@@ -90,7 +100,7 @@ public class BackendConsole implements BackendConsoleMXBean,
         return history;
     }
 
-    public CapturingWriter getWriter() {
+    public VirtualWriter getWriter() {
         return writer;
     }
 
@@ -125,18 +135,22 @@ public class BackendConsole implements BackendConsoleMXBean,
         return history.get(index);
     }
 
-    public synchronized String runCommand(String command) {
+    private String executeCommand(String command) {
         history.add(command);
         Object result = runner.executeSafe(command);
-        String resultStr = (result == null) ? "" : result.toString();
-        if (result != null) {
-            try {
-                writer.write(resultStr + "\n");
-            } catch (IOException exc) {
-                throw new RuntimeException(exc);
-            }
-        }
-        return resultStr;
+        return (result == null) ? null : result.toString();
+    }
+
+    public synchronized String runCommand(String command) {
+        String result = executeCommand(command);
+        writer.write((result == null) ? "" : result + "\n");
+        return (result == null) ? "" : result;
+    }
+
+    public synchronized long submitCommand(String command) {
+        String result = executeCommand(command);
+        result = (result == null) ? "" : result + "\n";
+        return writer.writeSeq(result);
     }
 
     public void close() {
@@ -177,20 +191,23 @@ public class BackendConsole implements BackendConsoleMXBean,
         notifications.removeNotificationListener(listener, filter, handback);
     }
 
-    protected void fireHistorySizeChange() {
+    protected long fireHistorySizeChange() {
         int historySize = history.size();
+        long seq = notificationSequence++;
         Notification n = new AttributeChangeNotification(this,
-            notificationSequence++, System.currentTimeMillis(),
-            "History size changed", "HistorySize", "int",
-            historySize - 1, historySize);
+            seq, System.currentTimeMillis(), "History size changed",
+            "HistorySize", "int", historySize - 1, historySize);
         notifications.sendNotification(n);
+        return seq;
     }
 
-    protected void fireNewOutput(String text) {
+    protected long fireNewOutput(String text) {
+        long seq = notificationSequence++;
         Notification n = new Notification(OUTPUT_NOTIFICATION, this,
-            notificationSequence++, "New text appeared on output");
+            seq, "New text appeared on output");
         n.setUserData(text);
         notifications.sendNotification(n);
+        return seq;
     }
 
 }
