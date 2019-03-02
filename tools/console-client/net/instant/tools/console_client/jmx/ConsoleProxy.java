@@ -6,10 +6,12 @@ import javax.management.ObjectName;
 
 public class ConsoleProxy extends JMXObjectProxy {
 
-    private final String[] HISTORY_ENTRY_PARAMS = { int.class.getName() };
-    private final String[] RUN_COMMAND_PARAMS = { String.class.getName() };
+    private static final String[] P_HISTORY_ENTRY = { int.class.getName() };
+    private static final String[] P_RUN_COMMAND = { String.class.getName() };
+    private static final String[] P_SUBMIT_COMMAND = P_RUN_COMMAND;
 
     private final AtomicBoolean shutdownHookInstalled;
+    private Integer id;
     private boolean closed;
 
     public ConsoleProxy(MBeanServerConnection connection,
@@ -19,14 +21,28 @@ public class ConsoleProxy extends JMXObjectProxy {
         closed = false;
     }
 
+    public int getID() {
+        if (id == null) id = invokeMethod("getID", null, null, Integer.class);
+        return id;
+    }
+
+    public int historySize() {
+        return invokeMethod("historySize", null, null, Integer.class);
+    }
+
     public String historyEntry(int index) {
         return invokeMethod("historyEntry", new Object[] { index },
-                            HISTORY_ENTRY_PARAMS, String.class);
+                            P_HISTORY_ENTRY, String.class);
     }
 
     public String runCommand(String command) {
         return invokeMethod("runCommand", new Object[] { command },
-                            RUN_COMMAND_PARAMS, String.class);
+                            P_RUN_COMMAND, String.class);
+    }
+
+    public long submitCommand(String command) {
+        return invokeMethod("submitCommand", new Object[] { command },
+                            P_SUBMIT_COMMAND, Long.class);
     }
 
     public void close() {
