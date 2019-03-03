@@ -32,13 +32,29 @@ public abstract class JMXObjectProxy {
         return objectName;
     }
 
-    protected <T> T invokeMethod(String methodName, Object[] args,
-            String[] params, Class<T> returnType) throws RuntimeException {
+    protected <T> T invokeMethodEx(String methodName, Object[] args,
+                                   String[] params, Class<T> returnType)
+            throws InstanceNotFoundException, MBeanException,
+                   ReflectionException, IOException {
         if (args == null) args = EMPTY_ARGS;
         if (params == null) params = EMPTY_PARAMS;
-        Object result;
+        Object result = connection.invoke(objectName, methodName, args,
+                                          params);
+        T ret;
         try {
-            result = connection.invoke(objectName, methodName, args, params);
+            ret = returnType.cast(result);
+        } catch (ClassCastException exc) {
+            throw new ReflectionException(exc, "Method " + methodName +
+                " on " + objectName + " returned invalid type " +
+                getClassName(result) + " instead of " + returnType.getName());
+        }
+        return ret;
+    }
+
+    protected <T> T invokeMethod(String methodName, Object[] args,
+                                 String[] params, Class<T> returnType) {
+        try {
+            return invokeMethodEx(methodName, args, params, returnType);
         } catch (InstanceNotFoundException exc) {
             throw new RuntimeException(exc);
         } catch (MBeanException exc) {
@@ -48,18 +64,6 @@ public abstract class JMXObjectProxy {
         } catch (IOException exc) {
             throw new RuntimeException(exc);
         }
-        T ret;
-        try {
-            ret = returnType.cast(result);
-        } catch (ClassCastException exc) {
-            // A ReflectionException would be more appropriate, but we already
-            // swallow exceptions.
-            throw new RuntimeException("Method " + methodName + " on " +
-                objectName + " returned invalid type " +
-                getClassName(result) + " instead of " + returnType.getName(),
-                exc);
-        }
-        return ret;
     }
 
     protected void listenNotificationType(String type,

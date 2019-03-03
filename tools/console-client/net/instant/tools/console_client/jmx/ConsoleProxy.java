@@ -1,15 +1,19 @@
 package net.instant.tools.console_client.jmx;
 
 import java.io.Closeable;
+import java.io.IOException;
 import java.util.EventListener;
 import java.util.EventObject;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicBoolean;
+import javax.management.InstanceNotFoundException;
+import javax.management.MBeanException;
 import javax.management.MBeanServerConnection;
 import javax.management.Notification;
 import javax.management.NotificationListener;
 import javax.management.ObjectName;
+import javax.management.ReflectionException;
 
 public class ConsoleProxy extends JMXObjectProxy implements Closeable {
 
@@ -50,7 +54,8 @@ public class ConsoleProxy extends JMXObjectProxy implements Closeable {
     protected class JMXListener implements NotificationListener {
 
         public void handleNotification(Notification n, Object handback) {
-            String dataStr = String.valueOf(n.getUserData());
+            Object data = n.getUserData();
+            String dataStr = (data == null) ? null : data.toString();
             fireOutputEvent(new OutputEvent(ConsoleProxy.this,
                 n.getSequenceNumber(), dataStr, n));
         }
@@ -105,7 +110,18 @@ public class ConsoleProxy extends JMXObjectProxy implements Closeable {
     public void close() {
         synchronized (this) {
             if (closed) return;
-            invokeMethod("close", null, null, Void.class);
+            try {
+                invokeMethodEx("close", null, null, Void.class);
+            } catch (InstanceNotFoundException exc) {
+                /* NOP -- since closing amounts to deleting the object, we are
+                 * fine with this */
+            } catch (MBeanException exc) {
+                throw new RuntimeException(exc);
+            } catch (ReflectionException exc) {
+                throw new RuntimeException(exc);
+            } catch (IOException exc) {
+                throw new RuntimeException(exc);
+            }
             closed = true;
         }
     }

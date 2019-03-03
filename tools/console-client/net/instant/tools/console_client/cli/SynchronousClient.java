@@ -37,6 +37,7 @@ public class SynchronousClient implements Closeable,
     private final BlockingQueue<OutputBlock> bufferedOutput;
     private long lastCommand;
     private long lastOutput;
+    private volatile boolean atEOF;
     private boolean closed;
 
     public SynchronousClient(ConsoleProxy proxy, boolean closeProxy) {
@@ -45,8 +46,13 @@ public class SynchronousClient implements Closeable,
         this.bufferedOutput = new LinkedBlockingQueue<OutputBlock>();
         this.lastCommand = -1;
         this.lastOutput = -1;
+        this.atEOF = false;
         this.closed = false;
         proxy.addOutputListener(this);
+    }
+
+    public boolean isAtEOF() {
+        return atEOF;
     }
 
     public void outputReceived(ConsoleProxy.OutputEvent evt) {
@@ -71,6 +77,7 @@ public class SynchronousClient implements Closeable,
             if (lastOutput >= lastCommand) return null;
             OutputBlock blk = bufferedOutput.take();
             lastOutput = blk.getSequence();
+            if (blk.getData() == null) atEOF = true;
             return blk.getData();
         }
     }
@@ -79,6 +86,7 @@ public class SynchronousClient implements Closeable,
         synchronized (bufferedOutput) {
             proxy.removeOutputListener(this);
             if (closeProxy) proxy.close();
+            atEOF = true;
             closed = true;
         }
     }

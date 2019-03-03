@@ -28,6 +28,7 @@ public class CLI implements Runnable {
                     if (block == null) break;
                     term.write(block);
                 }
+                if (client.isAtEOF()) break;
                 String command = term.readLine(PROMPT);
                 if (command == null) {
                     term.write("\n");
