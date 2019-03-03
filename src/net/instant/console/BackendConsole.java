@@ -22,6 +22,7 @@ public class BackendConsole implements BackendConsoleMXBean,
     private class EventWriter extends VirtualWriter {
 
         public long writeSeq(String data) {
+            if (data == null) throw new NullPointerException();
             return fireNewOutput(data);
         }
 
@@ -36,6 +37,9 @@ public class BackendConsole implements BackendConsoleMXBean,
     }
 
     public static final String OUTPUT_NOTIFICATION = "instant.console.output";
+
+    private static final String MSG_TEXT = "New text appeared on output";
+    private static final String MSG_EOF = "End of console output";
 
     private final BackendConsoleManager parent;
     private final int id;
@@ -154,6 +158,7 @@ public class BackendConsole implements BackendConsoleMXBean,
     }
 
     public void close() {
+        fireNewOutput(null);
         if (parent != null) parent.remove(this);
         MBeanServer server;
         synchronized (this) {
@@ -191,7 +196,7 @@ public class BackendConsole implements BackendConsoleMXBean,
         notifications.removeNotificationListener(listener, filter, handback);
     }
 
-    protected long fireHistorySizeChange() {
+    protected synchronized long fireHistorySizeChange() {
         int historySize = history.size();
         long seq = notificationSequence++;
         Notification n = new AttributeChangeNotification(this,
@@ -201,10 +206,10 @@ public class BackendConsole implements BackendConsoleMXBean,
         return seq;
     }
 
-    protected long fireNewOutput(String text) {
+    protected synchronized long fireNewOutput(String text) {
         long seq = notificationSequence++;
         Notification n = new Notification(OUTPUT_NOTIFICATION, this,
-            seq, "New text appeared on output");
+            seq, ((text == null) ? MSG_EOF : MSG_TEXT));
         n.setUserData(text);
         notifications.sendNotification(n);
         return seq;
