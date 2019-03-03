@@ -1,15 +1,70 @@
 package net.instant.tools.console_client.jmx;
 
+import java.io.Closeable;
+import java.util.EventListener;
+import java.util.EventObject;
+import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicBoolean;
 import javax.management.MBeanServerConnection;
+import javax.management.Notification;
+import javax.management.NotificationListener;
 import javax.management.ObjectName;
 
-public class ConsoleProxy extends JMXObjectProxy {
+public class ConsoleProxy extends JMXObjectProxy implements Closeable {
+
+    public class OutputEvent extends EventObject {
+
+        private final long sequence;
+        private final String data;
+        private final Object cause;
+
+        public OutputEvent(Object source, long sequence, String data,
+                           Object cause) {
+            super(source);
+            this.sequence = sequence;
+            this.data = data;
+            this.cause = cause;
+        }
+
+        public long getSequence() {
+            return sequence;
+        }
+
+        public String getData() {
+            return data;
+        }
+
+        public Object getCause() {
+            return cause;
+        }
+
+    }
+
+    public interface OutputListener extends EventListener {
+
+        void outputReceived(OutputEvent evt);
+
+    }
+
+    protected class JMXListener implements NotificationListener {
+
+        public void handleNotification(Notification n, Object handback) {
+            String dataStr = String.valueOf(n.getUserData());
+            fireOutputEvent(new OutputEvent(ConsoleProxy.this,
+                n.getSequenceNumber(), dataStr, n));
+        }
+
+    }
+
+    // The well-known type of the notification for console output.
+    public static final String OUTPUT_NOTIFICATION = "instant.console.output";
 
     private static final String[] P_HISTORY_ENTRY = { int.class.getName() };
     private static final String[] P_RUN_COMMAND = { String.class.getName() };
     private static final String[] P_SUBMIT_COMMAND = P_RUN_COMMAND;
 
+    private final List<OutputListener> listeners;
     private final AtomicBoolean shutdownHookInstalled;
     private Integer id;
     private boolean closed;
@@ -17,8 +72,10 @@ public class ConsoleProxy extends JMXObjectProxy {
     public ConsoleProxy(MBeanServerConnection connection,
                         ObjectName objectName) {
         super(connection, objectName);
+        listeners = new CopyOnWriteArrayList<OutputListener>();
         shutdownHookInstalled = new AtomicBoolean(false);
         closed = false;
+        listenNotificationType(OUTPUT_NOTIFICATION, new JMXListener(), null);
     }
 
     public int getID() {
@@ -50,6 +107,20 @@ public class ConsoleProxy extends JMXObjectProxy {
             if (closed) return;
             invokeMethod("close", null, null, Void.class);
             closed = true;
+        }
+    }
+
+    public void addOutputListener(OutputListener l) {
+        listeners.add(l);
+    }
+
+    public void removeOutputListener(OutputListener l) {
+        listeners.remove(l);
+    }
+
+    protected void fireOutputEvent(OutputEvent evt) {
+        for (OutputListener l : listeners) {
+            l.outputReceived(evt);
         }
     }
 

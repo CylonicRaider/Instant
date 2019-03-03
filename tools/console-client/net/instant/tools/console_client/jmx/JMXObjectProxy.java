@@ -5,6 +5,8 @@ import javax.management.InstanceNotFoundException;
 import javax.management.MBeanException;
 import javax.management.MBeanServerConnection;
 import javax.management.MalformedObjectNameException;
+import javax.management.NotificationFilterSupport;
+import javax.management.NotificationListener;
 import javax.management.ObjectName;
 import javax.management.ReflectionException;
 
@@ -58,6 +60,21 @@ public abstract class JMXObjectProxy {
                 exc);
         }
         return ret;
+    }
+
+    protected void listenNotificationType(String type,
+                                          NotificationListener l,
+                                          Object handback) {
+        NotificationFilterSupport filter = new NotificationFilterSupport();
+        filter.enableType(type);
+        try {
+            connection.addNotificationListener(objectName, l, filter,
+                                               handback);
+        } catch (InstanceNotFoundException exc) {
+            throw new RuntimeException(exc);
+        } catch (IOException exc) {
+            throw new RuntimeException(exc);
+        }
     }
 
     protected static String getClassName(Object obj) {
