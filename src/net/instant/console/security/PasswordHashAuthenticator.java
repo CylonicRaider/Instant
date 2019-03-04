@@ -24,6 +24,8 @@ public class PasswordHashAuthenticator implements JMXAuthenticator {
     }
 
     public Subject authenticate(Object credentials) {
+        if (credentials == null)
+            throw new SecurityException("Authentication required");
         if (! (credentials instanceof String[]))
             throw new SecurityException("JMX credentials must be a String " +
                 "array");
