@@ -10,6 +10,7 @@ import net.instant.tools.console_client.cli.StreamPairTerminal;
 import net.instant.tools.console_client.cli.SynchronousClient;
 import net.instant.tools.console_client.cli.Terminal;
 import net.instant.tools.console_client.jmx.Util;
+import net.instant.tools.console_client.util.ArgParser;
 
 public class Main {
 
@@ -19,8 +20,20 @@ public class Main {
         return ret;
     }
 
-    private static void runREPLClosing(JMXConnector connector, Terminal term)
+    public static void doMain(Map<String, String> arguments)
             throws IOException {
+        String address = arguments.get("address");
+        Terminal term = createTerminal();
+        JMXConnector connector;
+        try {
+            connector = Util.connectJMX(address, null);
+        } catch (SecurityException exc) {
+            String username = term.readLine("Username: ");
+            String password = term.readPassword("Password: ");
+            Map<String, Object> env = Util.prepareCredentials(username,
+                                                              password);
+            connector = Util.connectJMX(address, env);
+        }
         MBeanServerConnection conn = connector.getMBeanServerConnection();
         try {
             SynchronousClient client = SynchronousClient.getNewDefault(conn);
@@ -31,23 +44,21 @@ public class Main {
     }
 
     public static void main(String[] args) {
-        if (args.length != 1) {
-            System.err.println("USAGE: console-client HOST:PORT");
-            System.exit(1);
-        }
-        Terminal term = createTerminal();
+        ArgParser p = new ArgParser("console-client");
+        p.add(p.new HelpOption());
+        p.add(p.new Argument("address", "HOST:PORT",
+            "The JMX endpoint to connect to (may also be a service URL)."));
+        Map<String, String> arguments;
         try {
-            JMXConnector connector;
-            try {
-                connector = Util.connectJMX(args[0], null);
-            } catch (SecurityException exc) {
-                String username = term.readLine("Username: ");
-                String password = term.readPassword("Password: ");
-                Map<String, Object> env = Util.prepareCredentials(username,
-                                                                  password);
-                connector = Util.connectJMX(args[0], env);
-            }
-            runREPLClosing(connector, term);
+            arguments = p.parse(args);
+        } catch (ArgParser.ParsingException exc) {
+            System.err.println("ERROR: " + exc.getMessage());
+            System.exit(1);
+            // Should not happen.
+            return;
+        }
+        try {
+            doMain(arguments);
         } catch (IOException exc) {
             exc.printStackTrace();
             System.exit(2);
