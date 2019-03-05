@@ -18,6 +18,10 @@ public class ConsoleTerminal implements Terminal {
         return console.readLine("%s", prompt);
     }
 
+    public String readPassword(String prompt) {
+        return new String(console.readPassword("%s", prompt));
+    }
+
     public void write(String text) {
         console.printf("%s", text);
     }

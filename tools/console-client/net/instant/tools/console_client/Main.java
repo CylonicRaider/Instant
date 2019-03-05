@@ -18,7 +18,7 @@ public class Main {
         try {
             SynchronousClient client = SynchronousClient.getNewDefault(conn);
             Terminal term = ConsoleTerminal.getDefault();
-            if (term == null) term = StreamPairTerminal.getDefault();
+            if (term == null) term = StreamPairTerminal.getDefault(true);
             new CLI(client, term).run();
         } finally {
             connector.close();
