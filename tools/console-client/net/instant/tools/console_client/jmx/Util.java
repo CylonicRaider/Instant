@@ -3,6 +3,8 @@ package net.instant.tools.console_client.jmx;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.MalformedURLException;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import javax.management.remote.JMXConnector;
@@ -48,10 +50,18 @@ public class Util {
         return new JMXServiceURL(input);
     }
 
-    public static JMXConnector connectJMX(String endpoint)
-            throws IOException {
+    public static JMXConnector connectJMX(String endpoint,
+            Map<String, Object> env) throws IOException {
         JMXServiceURL url = parseServiceURL(endpoint);
-        return JMXConnectorFactory.connect(url);
+        return JMXConnectorFactory.connect(url, env);
+    }
+
+    public static Map<String, Object> prepareCredentials(String username,
+                                                         String password) {
+        Map<String, Object> ret = new HashMap<String, Object>();
+        ret.put(JMXConnector.CREDENTIALS, new String[] { username,
+                                                         password });
+        return ret;
     }
 
 }
