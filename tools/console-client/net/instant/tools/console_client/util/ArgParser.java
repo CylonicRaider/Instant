@@ -13,7 +13,7 @@ import java.util.Map;
 
 public class ArgParser {
 
-    public class ParsingException extends Exception {
+    public static class ParsingException extends Exception {
 
         public ParsingException() {
             super();
@@ -99,7 +99,7 @@ public class ArgParser {
             super(name, letter, null, description);
         }
         public HelpOption() {
-            this("help", 'h', "This help.");
+            this("help", '?', "This help.");
         }
 
         public String parse(Iterator<String> values) throws ParsingException {
@@ -235,8 +235,9 @@ public class ArgParser {
         Iterator<Argument> argsIt = arguments.iterator();
         while (it.hasNext()) {
             String value = it.next();
-            if (! onlyArguments && value.startsWith("-")) {
-                Option opt = null;
+            if (! onlyArguments && value.startsWith("-") &&
+                    value.length() > 1) {
+                Option opt;
                 if (value.equals("--")) {
                     onlyArguments = true;
                     continue;
