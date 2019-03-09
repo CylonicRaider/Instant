@@ -46,7 +46,7 @@ public class Typescript extends JPanel {
         return output;
     }
 
-    public JPanel getBottom() {
+    public JPanel getBottomPane() {
         return bottom;
     }
 
