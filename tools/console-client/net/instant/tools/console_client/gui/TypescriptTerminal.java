@@ -116,17 +116,22 @@ public class TypescriptTerminal extends JLayeredPane {
 
     protected void createUI() {
         setLayout(new OverlayLayout(this));
-        ts.getBottomPane().add(more, BorderLayout.EAST);
+
         more.addActionListener(settings);
+        ts.getBottomPane().add(more, BorderLayout.EAST);
+
         add(ts, DEFAULT_LAYER);
+
         morePane.setVisible(false);
         morePane.setLayout(new GridBagLayout());
+
         settings.setBorder(BorderFactory.createCompoundBorder(
             BorderFactory.createLineBorder(SETTINGS_BORDER),
             BorderFactory.createEmptyBorder(SETTINGS_PADDING,
                 SETTINGS_PADDING, SETTINGS_PADDING, SETTINGS_PADDING)
         ));
         morePane.add(settings);
+
         add(morePane, MODAL_LAYER);
     }
 
