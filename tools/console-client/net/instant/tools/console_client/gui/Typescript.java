@@ -119,6 +119,33 @@ public class Typescript extends JPanel {
     public void setLineWrapPolicy(LineWrapPolicy p) {
         p.apply(output);
     }
+    EnumSelector.Model<LineWrapPolicy> createLWPModel() {
+        return new EnumSelector.Model<LineWrapPolicy>() {
+
+            public Class<LineWrapPolicy> getEnumClass() {
+                return LineWrapPolicy.class;
+            }
+
+            public String getDescription(LineWrapPolicy selector) {
+                if (selector == null) return "Line wrapping:";
+                switch (selector) {
+                    case NONE: return "Never";
+                    case WORDS: return "At word boundaries";
+                    case CHARS: return "Anywhere";
+                    default: return selector.toString();
+                }
+            }
+
+            public LineWrapPolicy getSelected() {
+                return getLineWrapPolicy();
+            }
+
+            public void setSelected(LineWrapPolicy lwp) {
+                setLineWrapPolicy(lwp);
+            }
+
+        };
+    }
 
     public void appendOutput(String text) {
         output.append(text);

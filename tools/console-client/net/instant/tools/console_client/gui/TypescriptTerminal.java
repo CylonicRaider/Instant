@@ -71,9 +71,12 @@ public class TypescriptTerminal extends JLayeredPane {
             c.weightx = 1;
             setLayout(new GridBagLayout());
 
+            heading.setHorizontalAlignment(JLabel.CENTER);
             Font hf = heading.getFont().deriveFont(Font.PLAIN);
             heading.setFont(hf.deriveFont(hf.getSize() * 1.5f));
             add(heading, c);
+
+            add(EnumSelector.createFor(getTypescript().createLWPModel()), c);
 
             fillSettingsBottomBox(bottom);
 
