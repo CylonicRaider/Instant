@@ -2,10 +2,13 @@ package net.instant.tools.console_client.gui;
 
 import java.awt.BorderLayout;
 import java.awt.Color;
+import java.awt.Component;
+import java.awt.Container;
 import java.awt.Font;
 import java.awt.Graphics;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
+import java.awt.KeyboardFocusManager;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseEvent;
@@ -16,7 +19,9 @@ import javax.swing.JButton;
 import javax.swing.JLabel;
 import javax.swing.JLayeredPane;
 import javax.swing.JPanel;
+import javax.swing.LayoutFocusTraversalPolicy;
 import javax.swing.OverlayLayout;
+import javax.swing.SwingUtilities;
 
 public class TypescriptTerminal extends JLayeredPane {
 
@@ -48,6 +53,29 @@ public class TypescriptTerminal extends JLayeredPane {
         public void mouseReleased(MouseEvent evt) {}
         public void mouseClicked(MouseEvent evt) {}
         public void mouseExited(MouseEvent evt) {}
+
+    }
+
+    // HACK: Swing's default LAF uses the LayoutFocusTraversalPolicy; we
+    //       assume that the actually used LAF will do so, too. An arguably
+    //       better approach would be to locate the FTP responsible for the
+    //       component and proxying to it, but this is easier.
+    protected class OverlayFocusTraversalPolicy
+            extends LayoutFocusTraversalPolicy {
+
+        private String shortString(Object obj) {
+            return obj.getClass().getName() + '@' +
+                Integer.toHexString(obj.hashCode());
+        }
+
+        protected boolean accept(Component comp) {
+            if (! super.accept(comp))
+                return false;
+            if (morePane.isVisible() &&
+                    SwingUtilities.isDescendingFrom(comp, ts))
+                return false;
+            return true;
+        }
 
     }
 
@@ -88,7 +116,7 @@ public class TypescriptTerminal extends JLayeredPane {
 
         public void actionPerformed(ActionEvent evt) {
             if (evt.getSource() == more || evt.getSource() == ok) {
-                morePane.setVisible(! morePane.isVisible());
+                showSettingsPopup(! morePane.isVisible());
             }
         }
 
@@ -115,6 +143,8 @@ public class TypescriptTerminal extends JLayeredPane {
     }
 
     protected void createUI() {
+        setFocusTraversalPolicyProvider(true);
+        setFocusTraversalPolicy(new OverlayFocusTraversalPolicy());
         setLayout(new OverlayLayout(this));
 
         more.addActionListener(settings);
@@ -145,6 +175,26 @@ public class TypescriptTerminal extends JLayeredPane {
 
     protected void fillSettingsBottomBox(Box cont) {
         cont.add(Box.createHorizontalGlue());
+    }
+
+    protected void showSettingsPopup(boolean visible) {
+        morePane.setVisible(visible);
+        KeyboardFocusManager mgr =
+            KeyboardFocusManager.getCurrentKeyboardFocusManager();
+        Component focusOwner = mgr.getFocusOwner();
+        Container forbiddenParent, replacementParent;
+        if (visible) {
+            forbiddenParent = ts;
+            replacementParent = morePane;
+        } else {
+            forbiddenParent = morePane;
+            replacementParent = ts;
+        }
+        if (SwingUtilities.isDescendingFrom(focusOwner, forbiddenParent)) {
+            Component newOwner = getFocusTraversalPolicy()
+                .getDefaultComponent(replacementParent);
+            newOwner.requestFocusInWindow();
+        }
     }
 
 }

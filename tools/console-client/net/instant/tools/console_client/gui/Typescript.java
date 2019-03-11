@@ -65,6 +65,7 @@ public class Typescript extends JPanel {
     protected void createUI() {
         setLayout(new BorderLayout());
         output.setEditable(false);
+        output.setFocusable(false);
         scroller.setViewportView(output);
         add(scroller);
         bottom.setLayout(new BorderLayout());
