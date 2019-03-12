@@ -1,7 +1,6 @@
 package net.instant.tools.console_client.gui;
 
 import java.awt.BorderLayout;
-import java.awt.Color;
 import java.awt.Font;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
@@ -56,9 +55,6 @@ public class TypescriptTerminal extends OverlayPane {
         }
 
     }
-
-    private static final Color SETTINGS_BORDER = Color.BLACK;
-    private static final int SETTINGS_PADDING = 2;
 
     private final Typescript ts;
     private final JButton more;
