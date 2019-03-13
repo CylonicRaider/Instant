@@ -1,6 +1,5 @@
 package net.instant.tools.console_client.gui;
 
-import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Container;
@@ -9,13 +8,11 @@ import java.awt.GridBagLayout;
 import java.awt.KeyboardFocusManager;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
-import javax.swing.BorderFactory;
 import javax.swing.JLayeredPane;
 import javax.swing.JPanel;
 import javax.swing.LayoutFocusTraversalPolicy;
 import javax.swing.OverlayLayout;
 import javax.swing.SwingUtilities;
-import javax.swing.border.Border;
 
 public class OverlayPane extends JLayeredPane {
 
@@ -35,6 +32,10 @@ public class OverlayPane extends JLayeredPane {
         private Component child;
 
         public Backdrop() {
+            initBackdrop();
+        }
+
+        protected void initBackdrop() {
             setBackground(BACKGROUND);
             setOpaque(false);
             addMouseListener(this);
@@ -45,6 +46,7 @@ public class OverlayPane extends JLayeredPane {
             return child;
         }
         public void setChild(Component newChild) {
+            if (newChild == child) return;
             Component oldChild = child;
             child = newChild;
             replaceChild(oldChild, newChild);
@@ -80,32 +82,6 @@ public class OverlayPane extends JLayeredPane {
 
     }
 
-    public static class DecoratingBackdrop extends Backdrop {
-
-        public static final Border BORDER =
-            BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(Color.BLACK),
-                BorderFactory.createEmptyBorder(2, 2, 2, 2)
-            );
-
-        private final JPanel childHolder;
-
-        public DecoratingBackdrop() {
-            childHolder = new JPanel(new BorderLayout());
-            childHolder.setBorder(BORDER);
-            add(childHolder);
-        }
-
-        public JPanel getChildHolder() {
-            return childHolder;
-        }
-
-        protected void replaceChild(Component oldChild, Component newChild) {
-            rotateChildren(childHolder, oldChild, newChild);
-        }
-
-    }
-
     // HACK: Swing's default LAF uses the LayoutFocusTraversalPolicy; we
     //       assume that the actually used LAF will do so, too. An arguably
     //       better approach would be to locate the FTP responsible for the
@@ -128,10 +104,14 @@ public class OverlayPane extends JLayeredPane {
     private Component backdrop;
 
     public OverlayPane() {
+        initOverlayPane();
+    }
+
+    protected void initOverlayPane() {
         setFocusTraversalPolicyProvider(true);
         setFocusTraversalPolicy(new OverlayFocusTraversalPolicy());
         setLayout(new OverlayLayout(this));
-        backdrop = new DecoratingBackdrop();
+        backdrop = new Backdrop();
         backdrop.setVisible(false);
         add(backdrop, MODAL_LAYER);
     }
@@ -140,6 +120,7 @@ public class OverlayPane extends JLayeredPane {
         return content;
     }
     public void setContent(Component newContent) {
+        if (newContent == content) return;
         if (content != null) remove(content);
         content = newContent;
         if (content != null) add(content, DEFAULT_LAYER);
@@ -149,6 +130,7 @@ public class OverlayPane extends JLayeredPane {
         return backdrop;
     }
     public void setBackdrop(Component newBackdrop) {
+        if (newBackdrop == backdrop) return;
         remove(backdrop);
         backdrop = newBackdrop;
         add(backdrop, MODAL_LAYER);
@@ -165,7 +147,7 @@ public class OverlayPane extends JLayeredPane {
         if (backdrop instanceof ChildHolder) {
             ((ChildHolder) backdrop).setChild(newOverlay);
         } else {
-            Backdrop back = new DecoratingBackdrop();
+            Backdrop back = new Backdrop();
             back.setVisible(false);
             back.setChild(newOverlay);
             setBackdrop(back);
@@ -198,7 +180,9 @@ public class OverlayPane extends JLayeredPane {
             } else {
                 newOwner = replacementParent;
             }
-            newOwner.requestFocusInWindow();
+            if (newOwner != null) {
+                newOwner.requestFocusInWindow();
+            }
         }
     }
     public void toggleOverlayVisible() {

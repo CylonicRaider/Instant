@@ -1,56 +1,41 @@
 package net.instant.tools.console_client.gui;
 
 import java.awt.BorderLayout;
-import java.awt.Font;
-import java.awt.GridBagConstraints;
-import java.awt.GridBagLayout;
+import java.awt.Component;
+import java.awt.Container;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import javax.swing.Box;
 import javax.swing.JButton;
-import javax.swing.JLabel;
-import javax.swing.JPanel;
 
 public class TypescriptTerminal extends OverlayPane {
 
-    protected class SettingsDialog extends JPanel implements ActionListener {
+    protected class SettingsDialog extends OverlayDialog
+            implements ActionListener {
 
-        protected final JLabel heading;
-        protected final Box bottom;
         protected final JButton ok;
 
         public SettingsDialog() {
-            heading = new JLabel("Settings");
-            bottom = Box.createHorizontalBox();
+            super("Settings");
             ok = new JButton("OK");
             createUI();
         }
 
         protected void createUI() {
-            GridBagConstraints c = new GridBagConstraints();
-            c.gridx = 0;
-            c.fill = GridBagConstraints.BOTH;
-            c.weightx = 1;
-            setLayout(new GridBagLayout());
+            getContentPane().add(EnumSelector.createFor(
+                getTypescript().createLWPModel()));
 
-            heading.setHorizontalAlignment(JLabel.CENTER);
-            Font hf = heading.getFont().deriveFont(Font.PLAIN);
-            heading.setFont(hf.deriveFont(hf.getSize() * 1.5f));
-            add(heading, c);
-
-            add(EnumSelector.createFor(getTypescript().createLWPModel()), c);
-
+            Container bottom = getBottomPane();
             fillSettingsBottomBox(bottom);
-
             ok.addActionListener(this);
             bottom.add(ok);
-
-            add(bottom, c);
         }
 
         public void actionPerformed(ActionEvent evt) {
-            if (evt.getSource() == more || evt.getSource() == ok) {
-                toggleOverlayVisible();
+            if (evt.getSource() == more) {
+                showPopup(settings);
+            } else if (evt.getSource() == ok) {
+                showPopup(null);
             }
         }
 
@@ -71,6 +56,10 @@ public class TypescriptTerminal extends OverlayPane {
         return new SettingsDialog();
     }
 
+    protected void fillSettingsBottomBox(Container cont) {
+        cont.add(Box.createHorizontalGlue());
+    }
+
     protected void createUI() {
         more.addActionListener(settings);
         ts.getBottomPane().add(more, BorderLayout.EAST);
@@ -86,8 +75,13 @@ public class TypescriptTerminal extends OverlayPane {
         return settings;
     }
 
-    protected void fillSettingsBottomBox(Box cont) {
-        cont.add(Box.createHorizontalGlue());
+    public void showPopup(Component content) {
+        if (content == null) {
+            setOverlayVisible(false);
+        } else {
+            setOverlay(content);
+            setOverlayVisible(true);
+        }
     }
 
 }
