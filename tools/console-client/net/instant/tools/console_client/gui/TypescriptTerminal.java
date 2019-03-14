@@ -49,7 +49,7 @@ public class TypescriptTerminal extends OverlayPane {
         ts = new Typescript();
         more = new JButton("More...");
         settings = createSettingsDialog();
-        createUI();
+        initTypescriptTerminal();
     }
 
     protected SettingsDialog createSettingsDialog() {
@@ -60,7 +60,7 @@ public class TypescriptTerminal extends OverlayPane {
         cont.add(Box.createHorizontalGlue());
     }
 
-    protected void createUI() {
+    protected void initTypescriptTerminal() {
         more.addActionListener(settings);
         ts.getBottomPane().add(more, BorderLayout.EAST);
         setContent(ts);

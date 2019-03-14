@@ -164,6 +164,7 @@ public class OverlayPane extends JLayeredPane {
         KeyboardFocusManager mgr =
             KeyboardFocusManager.getCurrentKeyboardFocusManager();
         Component focusOwner = mgr.getFocusOwner();
+        if (focusOwner == null) return;
         Component forbiddenParent, replacementParent;
         if (visible) {
             forbiddenParent = cnt;

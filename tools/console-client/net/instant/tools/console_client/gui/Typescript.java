@@ -110,8 +110,11 @@ public class Typescript extends JPanel {
         return new Dimension(output.getColumns(), output.getRows());
     }
     public void setDisplaySize(Dimension dim) {
-        output.setColumns(dim.width);
-        output.setRows(dim.height);
+        setDisplaySize(dim.width, dim.height);
+    }
+    public void setDisplaySize(int width, int height) {
+        output.setColumns(width);
+        output.setRows(height);
     }
 
     public LineWrapPolicy getLineWrapPolicy() {
