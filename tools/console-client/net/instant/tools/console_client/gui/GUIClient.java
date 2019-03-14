@@ -17,7 +17,7 @@ import net.instant.tools.console_client.jmx.Util;
 public class GUIClient extends TypescriptTerminal {
 
     public enum ConnectionStatus {
-        NOT_CONNCTED("Not connected", false, false, 0),
+        NOT_CONNECTED("Not connected", false, false, 0),
         CONNECTING("Connecting...", true, false, 0),
         AUTH_REQUIRED("Authentication required", false, false, 50),
         CONNECTING_AUTH("Connecting...", true, false, 50),
