@@ -12,6 +12,7 @@ import net.instant.tools.console_client.cli.ConsoleTerminal;
 import net.instant.tools.console_client.cli.StreamPairTerminal;
 import net.instant.tools.console_client.cli.SynchronousClient;
 import net.instant.tools.console_client.cli.Terminal;
+import net.instant.tools.console_client.gui.GUIClient;
 import net.instant.tools.console_client.jmx.Util;
 import net.instant.tools.console_client.util.ArgParser;
 
@@ -32,7 +33,9 @@ public class Main {
         CLI_INTERACTIVE("interactive", 'I',
             "Interactively prompt for commands from console."),
         CLI_BATCH("batch", 'B',
-            "Deterministically read commands from standard input.");
+            "Deterministically read commands from standard input."),
+        GUI("gui", 'G',
+            "Show a graphical user interface.");
 
         private final String optionName;
         private final char optionLetter;
@@ -89,9 +92,13 @@ public class Main {
 
     public static void doMain(Map<String, String> arguments, Mode mode)
             throws Abort, IOException {
+        if (mode == Mode.GUI) {
+            GUIClient.showDefault(arguments);
+            return;
+        }
         String address = arguments.get("address");
         if (address == null)
-            throw new NullPointerException("Missing connection address");
+            throw new Abort("Missing connection address");
         String username = arguments.get("login");
         String password = null;
         Terminal term = createTerminal(mode);
@@ -136,12 +143,11 @@ public class Main {
     public static void main(String[] args) {
         ArgParser p = new ArgParser("console-client");
         p.add(p.new HelpOption());
-        p.add(Mode.CLI_INTERACTIVE.createOption(p));
-        p.add(Mode.CLI_BATCH.createOption(p));
+        for (Mode m : Mode.values()) p.add(m.createOption(p));
         p.add(p.new Option("login", 'l', "USERNAME",
             "Authenticate with the given username and a password read from " +
             "standard input."));
-        p.add(p.new Argument("address", "HOST:PORT",
+        p.add(p.new Argument("address", "HOST:PORT", true,
             "The JMX endpoint to connect to (may also be a service URL)."));
         Map<String, String> arguments;
         Mode mode;

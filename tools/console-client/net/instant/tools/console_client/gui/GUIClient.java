@@ -8,10 +8,12 @@ import java.awt.event.ActionListener;
 import java.util.Map;
 import javax.swing.Box;
 import javax.swing.JButton;
+import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPasswordField;
 import javax.swing.JProgressBar;
 import javax.swing.JTextField;
+import javax.swing.SwingUtilities;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import javax.swing.text.JTextComponent;
@@ -94,7 +96,7 @@ public class GUIClient extends TypescriptTerminal {
             status = null;
             if (arguments != null) {
                 endpointField.setText(arguments.get("address"));
-                usernameField.setText(arguments.get("username"));
+                usernameField.setText(arguments.get("login"));
             }
             createUI();
         }
@@ -188,7 +190,7 @@ public class GUIClient extends TypescriptTerminal {
                 ! status.isConnecting() && ! status.isConnected());
         }
 
-        private void selectNextEmptyField() {
+        protected void selectNextEmptyField() {
             for (JTextComponent field : fields) {
                 if (nonempty(field)) continue;
                 field.requestFocusInWindow();
@@ -227,6 +229,8 @@ public class GUIClient extends TypescriptTerminal {
 
     }
 
+    public static final String WINDOW_TITLE = "Instant backend console";
+
     private final ConnectionPopup connection;
 
     public GUIClient(Map<String, String> arguments) {
@@ -243,6 +247,10 @@ public class GUIClient extends TypescriptTerminal {
         if (connection.isComplete()) doConnect();
     }
 
+    public ConnectionPopup getConnectionPopup() {
+        return connection;
+    }
+
     private void doConnect() {
         // TODO: Do connect.
         showPopup(null);
@@ -250,6 +258,22 @@ public class GUIClient extends TypescriptTerminal {
 
     private static boolean nonempty(JTextComponent comp) {
         return comp.getDocument().getLength() != 0;
+    }
+
+    public static void showDefault(final Map<String, String> arguments) {
+        SwingUtilities.invokeLater(new Runnable() {
+            public void run() {
+                GUIClient client = new GUIClient(arguments);
+                client.getTypescript().setDisplaySize(80, 25);
+                JFrame win = new JFrame(WINDOW_TITLE);
+                win.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+                win.add(client);
+                win.pack();
+                client.getConnectionPopup().selectNextEmptyField();
+                win.setLocationRelativeTo(null);
+                win.setVisible(true);
+            }
+        });
     }
 
 }
