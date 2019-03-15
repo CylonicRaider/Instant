@@ -112,8 +112,19 @@ public class ArgParser {
 
     public class Argument extends BaseOption {
 
-        public Argument(String name, String valueDesc, String description) {
+        private final boolean optional;
+
+        public Argument(String name, String valueDesc, boolean optional,
+                        String description) {
             super(name, null, valueDesc, description);
+            this.optional = optional;
+        }
+        public Argument(String name, String valueDesc, String description) {
+            this(name, valueDesc, false, description);
+        }
+
+        public boolean isOptional() {
+            return optional;
         }
 
         public String getFullName() {
@@ -164,9 +175,12 @@ public class ArgParser {
             drain.append("]");
         }
         for (Argument arg : arguments) {
-            drain.append(" <");
+            drain.append(" ");
+            if (arg.isOptional()) drain.append("[");
+            drain.append("<");
             drain.append(arg.getName());
             drain.append(">");
+            if (arg.isOptional()) drain.append("]");
         }
         drain.println();
     }
@@ -261,9 +275,12 @@ public class ArgParser {
             String result = arg.parse(value);
             ret.put(arg.getName(), result);
         }
-        if (argsIt.hasNext())
-            throw new ParsingException("Missing value for required " +
-                "argument " + argsIt.next().getFullName());
+        while (argsIt.hasNext()) {
+            Argument arg = argsIt.next();
+            if (! arg.isOptional())
+                throw new ParsingException("Missing value for required " +
+                    "argument " + arg.getFullName());
+        }
         return ret;
     }
 
