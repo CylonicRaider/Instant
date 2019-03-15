@@ -12,29 +12,35 @@ import javax.swing.JLabel;
 import javax.swing.JPasswordField;
 import javax.swing.JProgressBar;
 import javax.swing.JTextField;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
+import javax.swing.text.JTextComponent;
 import net.instant.tools.console_client.jmx.Util;
 
 public class GUIClient extends TypescriptTerminal {
 
     public enum ConnectionStatus {
-        NOT_CONNECTED("Not connected", false, false, 0),
-        CONNECTING("Connecting...", true, false, 0),
-        AUTH_REQUIRED("Authentication required", false, false, 50),
-        CONNECTING_AUTH("Connecting...", true, false, 50),
-        CONNECTED("Connected", false, true, 100);
+        NOT_CONNECTED("Not connected", false, false, false, 0),
+        CONNECTING("Connecting...", true, false, false, 0),
+        AUTH_REQUIRED("Authentication required", false, false, true, 50),
+        CONNECTING_AUTH("Connecting...", true, false, true, 50),
+        CONNECTED("Connected", false, true, false, 100);
 
         public static final int MAX_PROGRESS = 100;
 
         private final String description;
         private final boolean connecting;
         private final boolean connected;
+        private final boolean authRequired;
         private final int progress;
 
         private ConnectionStatus(String description, boolean connecting,
-                                 boolean connected, int progress) {
+                                 boolean connected, boolean authRequired,
+                                 int progress) {
             this.description = description;
             this.connecting = connecting;
             this.connected = connected;
+            this.authRequired = authRequired;
             this.progress = progress;
         }
 
@@ -50,6 +56,10 @@ public class GUIClient extends TypescriptTerminal {
             return connected;
         }
 
+        public boolean isAuthRequired() {
+            return authRequired;
+        }
+
         public int getProgress() {
             return progress;
         }
@@ -57,7 +67,7 @@ public class GUIClient extends TypescriptTerminal {
     }
 
     public class ConnectionPopup extends OverlayDialog
-            implements ActionListener {
+            implements ActionListener, DocumentListener {
 
         // Enough to hold "localhost:65535".
         public static final int ENDPOINT_COLUMNS = 15;
@@ -68,8 +78,10 @@ public class GUIClient extends TypescriptTerminal {
         protected final JProgressBar progressBar;
         protected final JLabel statusLabel;
         protected final JButton connectButton;
+        private final JTextComponent[] fields;
+        private ConnectionStatus status;
 
-        public ConnectionPopup() {
+        public ConnectionPopup(Map<String, String> arguments) {
             super("Connection");
             endpointField = new JTextField();
             usernameField = new JTextField();
@@ -77,7 +89,17 @@ public class GUIClient extends TypescriptTerminal {
             progressBar = new JProgressBar(0, ConnectionStatus.MAX_PROGRESS);
             statusLabel = new JLabel();
             connectButton = new JButton("Connect");
+            fields = new JTextComponent[] { endpointField, usernameField,
+                                            passwordField };
+            status = null;
+            if (arguments != null) {
+                endpointField.setText(arguments.get("address"));
+                usernameField.setText(arguments.get("username"));
+            }
             createUI();
+        }
+        public ConnectionPopup() {
+            this(null);
         }
 
         protected void createUI() {
@@ -94,31 +116,38 @@ public class GUIClient extends TypescriptTerminal {
             c.gridx = 1;
             c.weightx = 1;
             endpointField.setColumns(ENDPOINT_COLUMNS);
+            endpointField.addActionListener(this);
+            usernameField.addActionListener(this);
+            passwordField.addActionListener(this);
+            endpointField.getDocument().addDocumentListener(this);
+            usernameField.getDocument().addDocumentListener(this);
+            passwordField.getDocument().addDocumentListener(this);
             cnt.add(endpointField, c);
             cnt.add(usernameField, c);
             cnt.add(passwordField, c);
 
             c.gridx = 0;
+            c.weightx = 0;
             c.weighty = 1;
             cnt.add(Box.createGlue(), c);
 
+            c.weighty = 0;
             c.gridwidth = 2;
             cnt.add(progressBar, c);
 
             Container bottom = getBottomPane();
             bottom.add(statusLabel);
             bottom.add(Box.createHorizontalGlue());
+            connectButton.setEnabled(false);
             connectButton.addActionListener(this);
             bottom.add(connectButton);
         }
 
-        public void actionPerformed(ActionEvent evt) {
-            if (evt.getSource() == connectButton) {
-                showPopup(null);
-            }
+        public ConnectionStatus getStatus() {
+            return status;
         }
-
         public void setStatus(ConnectionStatus st) {
+            status = st;
             if (st.isConnecting()) {
                 progressBar.setIndeterminate(true);
             } else {
@@ -126,6 +155,55 @@ public class GUIClient extends TypescriptTerminal {
                 progressBar.setIndeterminate(false);
             }
             statusLabel.setText(st.toString());
+            updateButton();
+            if (! st.isConnecting()) selectNextEmptyField();
+        }
+
+        public void actionPerformed(ActionEvent evt) {
+            Object src = evt.getSource();
+            if (src == connectButton) {
+                doConnect();
+            } else if (src == endpointField || src == usernameField ||
+                       src == passwordField) {
+                if (isComplete()) {
+                    if (connectButton.isEnabled()) doConnect();
+                } else {
+                    selectNextEmptyField();
+                }
+            }
+        }
+
+        public void changedUpdate(DocumentEvent evt) {
+            updateButton();
+        }
+        public void insertUpdate(DocumentEvent evt) {
+            updateButton();
+        }
+        public void removeUpdate(DocumentEvent evt) {
+            updateButton();
+        }
+
+        private void updateButton() {
+            connectButton.setEnabled(isComplete() && status != null &&
+                ! status.isConnecting() && ! status.isConnected());
+        }
+
+        private void selectNextEmptyField() {
+            for (JTextComponent field : fields) {
+                if (nonempty(field)) continue;
+                field.requestFocusInWindow();
+                break;
+            }
+        }
+
+        public boolean isComplete() {
+            // FIXME: This does not allow genuinely empty usernames or
+            //        passwords. Blame me when you actually get hit by this
+            //        one.
+            return (nonempty(endpointField) &&
+                    nonempty(usernameField) == nonempty(passwordField) &&
+                    (status == null || ! status.isAuthRequired() ||
+                     nonempty(usernameField)));
         }
 
         public String getEndpoint() {
@@ -151,13 +229,27 @@ public class GUIClient extends TypescriptTerminal {
 
     private final ConnectionPopup connection;
 
-    public GUIClient() {
-        connection = new ConnectionPopup();
+    public GUIClient(Map<String, String> arguments) {
+        connection = new ConnectionPopup(arguments);
         createUI();
+    }
+    public GUIClient() {
+        this(null);
     }
 
     protected void createUI() {
         showPopup(connection);
+        connection.setStatus(ConnectionStatus.NOT_CONNECTED);
+        if (connection.isComplete()) doConnect();
+    }
+
+    private void doConnect() {
+        // TODO: Do connect.
+        showPopup(null);
+    }
+
+    private static boolean nonempty(JTextComponent comp) {
+        return comp.getDocument().getLength() != 0;
     }
 
 }

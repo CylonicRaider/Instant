@@ -36,7 +36,7 @@ public class OverlayDialog extends JPanel {
         setBorder(BORDER);
         setLayout(new BorderLayout());
 
-        Font hf = titleBar.getFont().deriveFont(Font.PLAIN);
+        Font hf = titleBar.getFont().deriveFont(Font.BOLD);
         titleBar.setFont(hf.deriveFont(hf.getSize() * 1.5f));
         titleBar.setHorizontalAlignment(JLabel.CENTER);
         add(titleBar, BorderLayout.NORTH);
