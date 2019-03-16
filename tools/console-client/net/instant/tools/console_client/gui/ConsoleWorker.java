@@ -8,6 +8,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.LinkedBlockingQueue;
 import javax.management.MBeanServerConnection;
 import javax.management.remote.JMXConnector;
@@ -15,16 +16,24 @@ import javax.swing.SwingWorker;
 import net.instant.tools.console_client.jmx.ConsoleProxy;
 import net.instant.tools.console_client.jmx.Util;
 
-// We abuse the interface to leverage SwingWorker's transmission of values
-// (which we immediately execute) to the EDT.
+// We abuse SwingWorker's functionality to shunt arbitrary Runnables (instead
+// of more meaningful data) to the EDT.
 public class ConsoleWorker extends SwingWorker<Void, Runnable>
-        implements ActionListener {
+        implements ActionListener, ConsoleProxy.OutputListener {
 
     public interface ConsoleUI {
 
         Typescript getTypescript();
 
         void setConnectionStatus(ConnectionStatus st);
+
+        void showError(Throwable t);
+
+    }
+
+    public interface HistoryCallback {
+
+        void historyReceived(String command);
 
     }
 
@@ -84,62 +93,35 @@ public class ConsoleWorker extends SwingWorker<Void, Runnable>
 
     }
 
-    private class StatusSetter implements Runnable {
+    protected class HistoryNavigation implements Runnable {
 
-        private final ConnectionStatus status;
+        private final int shift;
+        private final HistoryCallback cb;
 
-        public StatusSetter(ConnectionStatus status) {
-            this.status = status;
+        public HistoryNavigation(int shift, HistoryCallback cb) {
+            this.shift = shift;
+            this.cb = cb;
+        }
+
+        public int getShift() {
+            return shift;
+        }
+
+        public HistoryCallback getCallback() {
+            return cb;
         }
 
         public void run() {
-            ui.setConnectionStatus(status);
-        }
-
-    }
-
-    private class OutputDisplayer implements Runnable {
-
-        private final String chunk;
-
-        public OutputDisplayer(String chunk) {
-            this.chunk = chunk;
-        }
-
-        public void run() {
-            ui.getTypescript().appendOutput(chunk);
-        }
-
-    }
-
-    // Apparently, LinkedBlockingQueue does not like null values, so we
-    // put them into a trivial wrapper class.
-    private class Command {
-
-        private final String content;
-
-        public Command(String content) {
-            this.content = content;
-        }
-
-        public String toString() {
-            return String.valueOf(content);
-        }
-
-        public String getContent() {
-            return content;
-        }
-
-    }
-
-    private class OutputListener implements ConsoleProxy.OutputListener {
-
-        public void outputReceived(ConsoleProxy.OutputEvent evt) {
-            if (evt.getData() == null) {
-                sendCommand(null);
-            } else {
-                publish(new OutputDisplayer(evt.getData()));
-            }
+            if (historyIndex == -1) historyIndex = console.getHistorySize();
+            historyIndex += shift;
+            if (historyIndex < 0) historyIndex = 0;
+            final String entry = console.historyEntry(historyIndex);
+            if (entry == null) historyIndex = -1;
+            publish(new Runnable() {
+                public void run() {
+                    cb.historyReceived(entry);
+                }
+            });
         }
 
     }
@@ -147,10 +129,12 @@ public class ConsoleWorker extends SwingWorker<Void, Runnable>
     private final ConsoleUI ui;
     private final String endpoint;
     private final Map<String, Object> env;
-    private final BlockingQueue<Command> commands;
+    private final BlockingQueue<Runnable> commands;
     private JMXConnector connector;
     private ConsoleProxy console;
+    private int historyIndex;
     private ConnectionStatus finalStatus;
+    private Throwable finalError;
 
     public ConsoleWorker(ConsoleUI ui, String endpoint,
                          Map<String, Object> env) {
@@ -158,10 +142,12 @@ public class ConsoleWorker extends SwingWorker<Void, Runnable>
         this.endpoint = endpoint;
         this.env = Collections.unmodifiableMap(
             new HashMap<String, Object>(env));
-        this.commands = new LinkedBlockingQueue<Command>();
+        this.commands = new LinkedBlockingQueue<Runnable>();
         this.connector = null;
         this.console = null;
+        this.historyIndex = -1;
         this.finalStatus = ConnectionStatus.NOT_CONNECTED;
+        this.finalError = null;
         ui.getTypescript().addActionListener(this);
     }
 
@@ -181,32 +167,58 @@ public class ConsoleWorker extends SwingWorker<Void, Runnable>
         return console;
     }
 
-    public void sendCommand(String cmd) {
-        commands.add(new Command(cmd));
+    public void historyUp(HistoryCallback cb) {
+        sendCommand(new HistoryNavigation(-1, cb));
+    }
+    public void historyDown(HistoryCallback cb) {
+        sendCommand(new HistoryNavigation(1, cb));
     }
 
-    protected Void doInBackground()
-            throws IOException, InterruptedException {
+    protected void sendCommand(Runnable r) {
+        commands.add(r);
+    }
+    public void sendCommand(final String cmd) {
+        sendCommand(new Runnable() {
+            public void run() {
+                console.submitCommand(cmd);
+                historyIndex = -1;
+            }
+        });
+    }
+
+    public void close() {
+        sendCommand(new Runnable() {
+            public void run() {
+                Thread.currentThread().interrupt();
+            }
+        });
+    }
+
+    protected Void doInBackground() throws IOException {
         try {
             try {
                 connector = Util.connectJMX(endpoint, env);
             } catch (SecurityException exc) {
-                System.err.println(
-                    "WARNING: Exception while connecting: " + exc);
                 finalStatus = ConnectionStatus.AUTH_REQUIRED;
+                finalError = exc;
                 return null;
             }
             MBeanServerConnection conn =
                 connector.getMBeanServerConnection();
             console = ConsoleProxy.getNewDefault(conn);
-            publish(new StatusSetter(ConnectionStatus.CONNECTED));
-            ui.getTypescript().clear();
-            console.addOutputListener(new OutputListener());
+            publish(new Runnable() {
+                public void run() {
+                    ui.setConnectionStatus(ConnectionStatus.CONNECTED);
+                    ui.getTypescript().clear();
+                }
+            });
+            console.addOutputListener(this);
             for (;;) {
-                Command cmd = commands.take();
-                if (cmd.getContent() == null) break;
-                console.submitCommand(cmd.getContent());
+                Runnable cmd = commands.take();
+                cmd.run();
             }
+        } catch (InterruptedException exc) {
+            /* NOP -- finish normally when interrupted. */
             return null;
         } finally {
             if (console != null) console.close();
@@ -219,8 +231,18 @@ public class ConsoleWorker extends SwingWorker<Void, Runnable>
     }
 
     protected void done() {
-        ui.setConnectionStatus(finalStatus);
+        try {
+            get();
+        } catch (InterruptedException exc) {
+            // The get() itself *should* finish immediately.
+            throw new RuntimeException(exc);
+        } catch (ExecutionException exc) {
+            // Ensure potential IOException-s get reported somewhere.
+            throw new RuntimeException(exc);
+        }
         ui.getTypescript().removeActionListener(this);
+        ui.setConnectionStatus(finalStatus);
+        if (finalError != null) ui.showError(finalError);
     }
 
     public void actionPerformed(ActionEvent evt) {
@@ -230,6 +252,19 @@ public class ConsoleWorker extends SwingWorker<Void, Runnable>
             ts.appendOutput(ts.getPromptText() + cmd + "\n");
             sendCommand(cmd);
         }
+    }
+
+    public void outputReceived(ConsoleProxy.OutputEvent evt) {
+        final String data = evt.getData();
+        if (data == null) {
+            close();
+            return;
+        }
+        publish(new Runnable() {
+            public void run() {
+                ui.getTypescript().appendOutput(data);
+            }
+        });
     }
 
 }

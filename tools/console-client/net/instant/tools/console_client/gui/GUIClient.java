@@ -127,6 +127,14 @@ public class GUIClient extends TypescriptTerminal
             if (! st.isConnecting()) selectNextEmptyField();
         }
 
+        public void showError(Throwable t) {
+            if (t instanceof SecurityException) {
+                statusLabel.setText(t.getMessage());
+            } else {
+                statusLabel.setText(t.toString());
+            }
+        }
+
         public Box getDockingArea() {
             return dockingArea;
         }
@@ -204,7 +212,7 @@ public class GUIClient extends TypescriptTerminal
     public static final String WINDOW_TITLE = "Instant backend console";
 
     private final ConnectionPopup connection;
-    // Must be non-final to be set in non-constructor method.
+    // Must be non-final to be set in a non-constructor method.
     private JButton close;
     private ConsoleWorker worker;
 
@@ -234,6 +242,12 @@ public class GUIClient extends TypescriptTerminal
         return connection;
     }
 
+    public void actionPerformed(ActionEvent evt) {
+        if (evt.getSource() == close) {
+            if (worker != null) worker.close();
+        }
+    }
+
     public ConsoleWorker.ConnectionStatus getConnectionStatus() {
         return connection.getStatus();
     }
@@ -249,10 +263,8 @@ public class GUIClient extends TypescriptTerminal
         }
     }
 
-    public void actionPerformed(ActionEvent evt) {
-        if (evt.getSource() == close) {
-            if (worker != null) worker.cancel(true);
-        }
+    public void showError(Throwable t) {
+        connection.showError(t);
     }
 
     protected ConsoleWorker createWorker(String endpoint,
