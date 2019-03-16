@@ -24,6 +24,7 @@ public class CommandHistory {
     }
 
     public synchronized String get(int index) {
+        if (index < 0 || index >= entries.size()) return null;
         return entries.get(index);
     }
 
