@@ -5,6 +5,7 @@ import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.util.HashMap;
 import java.util.Map;
 import javax.swing.Box;
 import javax.swing.JButton;
@@ -19,54 +20,8 @@ import javax.swing.event.DocumentListener;
 import javax.swing.text.JTextComponent;
 import net.instant.tools.console_client.jmx.Util;
 
-public class GUIClient extends TypescriptTerminal {
-
-    public enum ConnectionStatus {
-        NOT_CONNECTED("Not connected", false, false, false, 0),
-        CONNECTING("Connecting...", true, false, false, 0),
-        AUTH_REQUIRED("Authentication required", false, false, true, 50),
-        CONNECTING_AUTH("Connecting...", true, false, true, 50),
-        CONNECTED("Connected", false, true, false, 100);
-
-        public static final int MAX_PROGRESS = 100;
-
-        private final String description;
-        private final boolean connecting;
-        private final boolean connected;
-        private final boolean authRequired;
-        private final int progress;
-
-        private ConnectionStatus(String description, boolean connecting,
-                                 boolean connected, boolean authRequired,
-                                 int progress) {
-            this.description = description;
-            this.connecting = connecting;
-            this.connected = connected;
-            this.authRequired = authRequired;
-            this.progress = progress;
-        }
-
-        public String toString() {
-            return description;
-        }
-
-        public boolean isConnecting() {
-            return connecting;
-        }
-
-        public boolean isConnected() {
-            return connected;
-        }
-
-        public boolean isAuthRequired() {
-            return authRequired;
-        }
-
-        public int getProgress() {
-            return progress;
-        }
-
-    }
+public class GUIClient extends TypescriptTerminal
+        implements ConsoleWorker.ConsoleUI {
 
     public class ConnectionPopup extends OverlayDialog
             implements ActionListener, DocumentListener {
@@ -81,14 +36,15 @@ public class GUIClient extends TypescriptTerminal {
         protected final JLabel statusLabel;
         protected final JButton connectButton;
         private final JTextComponent[] fields;
-        private ConnectionStatus status;
+        private ConsoleWorker.ConnectionStatus status;
 
         public ConnectionPopup(Map<String, String> arguments) {
             super("Connection");
             endpointField = new JTextField();
             usernameField = new JTextField();
             passwordField = new JPasswordField();
-            progressBar = new JProgressBar(0, ConnectionStatus.MAX_PROGRESS);
+            progressBar = new JProgressBar(0,
+                ConsoleWorker.ConnectionStatus.MAX_PROGRESS);
             statusLabel = new JLabel();
             connectButton = new JButton("Connect");
             fields = new JTextComponent[] { endpointField, usernameField,
@@ -145,10 +101,10 @@ public class GUIClient extends TypescriptTerminal {
             bottom.add(connectButton);
         }
 
-        public ConnectionStatus getStatus() {
+        public ConsoleWorker.ConnectionStatus getStatus() {
             return status;
         }
-        public void setStatus(ConnectionStatus st) {
+        public void setStatus(ConsoleWorker.ConnectionStatus st) {
             status = st;
             if (st.isConnecting()) {
                 progressBar.setIndeterminate(true);
@@ -216,6 +172,8 @@ public class GUIClient extends TypescriptTerminal {
         }
 
         public void exportCredentials(Map<String, Object> env) {
+            if (! nonempty(usernameField) || ! nonempty(passwordField))
+                return;
             // The password is stored as a string since the JMX authenticator
             // expects an array of strings anyway.
             String username = usernameField.getText();
@@ -232,9 +190,11 @@ public class GUIClient extends TypescriptTerminal {
     public static final String WINDOW_TITLE = "Instant backend console";
 
     private final ConnectionPopup connection;
+    private ConsoleWorker worker;
 
     public GUIClient(Map<String, String> arguments) {
         connection = new ConnectionPopup(arguments);
+        worker = null;
         createUI();
     }
     public GUIClient() {
@@ -243,7 +203,7 @@ public class GUIClient extends TypescriptTerminal {
 
     protected void createUI() {
         showPopup(connection);
-        connection.setStatus(ConnectionStatus.NOT_CONNECTED);
+        connection.setStatus(ConsoleWorker.ConnectionStatus.NOT_CONNECTED);
         if (connection.isComplete()) doConnect();
     }
 
@@ -251,9 +211,34 @@ public class GUIClient extends TypescriptTerminal {
         return connection;
     }
 
+    public ConsoleWorker.ConnectionStatus getConnectionStatus() {
+        return connection.getStatus();
+    }
+    public void setConnectionStatus(ConsoleWorker.ConnectionStatus st) {
+        connection.setStatus(st);
+        switch (st) {
+            case NOT_CONNECTED:
+                showPopup(connection);
+                break;
+            case CONNECTED:
+                showPopup(null);
+                break;
+        }
+    }
+
+    protected ConsoleWorker createWorker(String endpoint,
+                                         Map<String, Object> env) {
+        return new ConsoleWorker(this, endpoint, env);
+    }
+
     private void doConnect() {
-        // TODO: Do connect.
-        showPopup(null);
+        String endpoint = connection.getEndpoint();
+        Map<String, Object> env = new HashMap<String, Object>();
+        connection.exportCredentials(env);
+        connection.setStatus(ConsoleWorker.ConnectionStatus.advance(
+            connection.getStatus()));
+        worker = createWorker(endpoint, env);
+        worker.execute();
     }
 
     private static boolean nonempty(JTextComponent comp) {
@@ -265,6 +250,7 @@ public class GUIClient extends TypescriptTerminal {
             public void run() {
                 GUIClient client = new GUIClient(arguments);
                 client.getTypescript().setDisplaySize(80, 25);
+                client.getTypescript().setPromptText("> ");
                 JFrame win = new JFrame(WINDOW_TITLE);
                 win.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
                 win.add(client);
