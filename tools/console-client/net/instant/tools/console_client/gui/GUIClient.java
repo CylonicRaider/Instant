@@ -1,10 +1,13 @@
 package net.instant.tools.console_client.gui;
 
+import java.awt.Component;
 import java.awt.Container;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.KeyEvent;
+import java.awt.event.WindowEvent;
 import java.util.HashMap;
 import java.util.Map;
 import javax.swing.Box;
@@ -21,7 +24,7 @@ import javax.swing.text.JTextComponent;
 import net.instant.tools.console_client.jmx.Util;
 
 public class GUIClient extends TypescriptTerminal
-        implements ConsoleWorker.ConsoleUI {
+        implements ActionListener, ConsoleWorker.ConsoleUI {
 
     public class ConnectionPopup extends OverlayDialog
             implements ActionListener, DocumentListener {
@@ -34,6 +37,7 @@ public class GUIClient extends TypescriptTerminal
         protected final JPasswordField passwordField;
         protected final JProgressBar progressBar;
         protected final JLabel statusLabel;
+        protected final Box dockingArea;
         protected final JButton connectButton;
         private final JTextComponent[] fields;
         private ConsoleWorker.ConnectionStatus status;
@@ -46,6 +50,7 @@ public class GUIClient extends TypescriptTerminal
             progressBar = new JProgressBar(0,
                 ConsoleWorker.ConnectionStatus.MAX_PROGRESS);
             statusLabel = new JLabel();
+            dockingArea = Box.createHorizontalBox();
             connectButton = new JButton("Connect");
             fields = new JTextComponent[] { endpointField, usernameField,
                                             passwordField };
@@ -67,9 +72,12 @@ public class GUIClient extends TypescriptTerminal
             GridBagConstraints c = new GridBagConstraints();
             c.gridx = 0;
             c.fill = GridBagConstraints.BOTH;
-            cnt.add(new JLabel("Connect to: "), c);
-            cnt.add(new JLabel("Username: "), c);
-            cnt.add(new JLabel("Password: "), c);
+            cnt.add(createLabelFor("Connect to: ", KeyEvent.VK_T,
+                                   endpointField), c);
+            cnt.add(createLabelFor("Username: ", KeyEvent.VK_U,
+                                   usernameField), c);
+            cnt.add(createLabelFor("Password: ", KeyEvent.VK_P,
+                                   passwordField), c);
 
             c.gridx = 1;
             c.weightx = 1;
@@ -96,6 +104,8 @@ public class GUIClient extends TypescriptTerminal
             Container bottom = getBottomPane();
             bottom.add(statusLabel);
             bottom.add(Box.createHorizontalGlue());
+            bottom.add(dockingArea);
+            connectButton.setMnemonic(KeyEvent.VK_C);
             connectButton.setEnabled(false);
             connectButton.addActionListener(this);
             bottom.add(connectButton);
@@ -115,6 +125,10 @@ public class GUIClient extends TypescriptTerminal
             statusLabel.setText(st.toString());
             updateButton();
             if (! st.isConnecting()) selectNextEmptyField();
+        }
+
+        public Box getDockingArea() {
+            return dockingArea;
         }
 
         public void actionPerformed(ActionEvent evt) {
@@ -146,7 +160,7 @@ public class GUIClient extends TypescriptTerminal
                 ! status.isConnecting() && ! status.isConnected());
         }
 
-        protected void selectNextEmptyField() {
+        public void selectNextEmptyField() {
             for (JTextComponent field : fields) {
                 if (nonempty(field)) continue;
                 field.requestFocusInWindow();
@@ -190,6 +204,8 @@ public class GUIClient extends TypescriptTerminal
     public static final String WINDOW_TITLE = "Instant backend console";
 
     private final ConnectionPopup connection;
+    // Must be non-final to be set in non-constructor method.
+    private JButton close;
     private ConsoleWorker worker;
 
     public GUIClient(Map<String, String> arguments) {
@@ -201,10 +217,17 @@ public class GUIClient extends TypescriptTerminal
         this(null);
     }
 
+    protected void fillSettingsBottomBox(Container cont) {
+        super.fillSettingsBottomBox(cont);
+        close = new JButton("Close");
+        close.setMnemonic(KeyEvent.VK_C);
+        close.addActionListener(this);
+        cont.add(close);
+    }
+
     protected void createUI() {
         showPopup(connection);
         connection.setStatus(ConsoleWorker.ConnectionStatus.NOT_CONNECTED);
-        if (connection.isComplete()) doConnect();
     }
 
     public ConnectionPopup getConnectionPopup() {
@@ -226,12 +249,19 @@ public class GUIClient extends TypescriptTerminal
         }
     }
 
+    public void actionPerformed(ActionEvent evt) {
+        if (evt.getSource() == close) {
+            if (worker != null) worker.cancel(true);
+        }
+    }
+
     protected ConsoleWorker createWorker(String endpoint,
                                          Map<String, Object> env) {
         return new ConsoleWorker(this, endpoint, env);
     }
 
-    private void doConnect() {
+    public boolean doConnect() {
+        if (! connection.isComplete()) return false;
         String endpoint = connection.getEndpoint();
         Map<String, Object> env = new HashMap<String, Object>();
         connection.exportCredentials(env);
@@ -239,20 +269,40 @@ public class GUIClient extends TypescriptTerminal
             connection.getStatus()));
         worker = createWorker(endpoint, env);
         worker.execute();
+        return true;
     }
 
     private static boolean nonempty(JTextComponent comp) {
         return comp.getDocument().getLength() != 0;
     }
 
+    public static JLabel createLabelFor(String text, int mnemonic,
+                                        Component target) {
+        JLabel ret = new JLabel(text);
+        ret.setDisplayedMnemonic(mnemonic);
+        ret.setLabelFor(target);
+        return ret;
+    }
+
     public static void showDefault(final Map<String, String> arguments) {
         SwingUtilities.invokeLater(new Runnable() {
             public void run() {
+                final JFrame win = new JFrame(WINDOW_TITLE);
+                win.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+                JButton quit = new JButton("Quit");
+                quit.setMnemonic(KeyEvent.VK_Q);
+                quit.addActionListener(new ActionListener() {
+                    public void actionPerformed(ActionEvent evt) {
+                        // Simulate a proper window close.
+                        win.dispatchEvent(new WindowEvent(win,
+                            WindowEvent.WINDOW_CLOSING));
+                    }
+                });
                 GUIClient client = new GUIClient(arguments);
                 client.getTypescript().setDisplaySize(80, 25);
                 client.getTypescript().setPromptText("> ");
-                JFrame win = new JFrame(WINDOW_TITLE);
-                win.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+                client.getConnectionPopup().getDockingArea().add(quit);
+                client.doConnect();
                 win.add(client);
                 win.pack();
                 client.getConnectionPopup().selectNextEmptyField();

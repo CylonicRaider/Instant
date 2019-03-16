@@ -200,6 +200,7 @@ public class ConsoleWorker extends SwingWorker<Void, Runnable>
                 connector.getMBeanServerConnection();
             console = ConsoleProxy.getNewDefault(conn);
             publish(new StatusSetter(ConnectionStatus.CONNECTED));
+            ui.getTypescript().clear();
             console.addOutputListener(new OutputListener());
             for (;;) {
                 Command cmd = commands.take();

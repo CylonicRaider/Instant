@@ -73,6 +73,7 @@ public class Typescript extends JPanel {
         bottom.add(input);
         add(bottom, BorderLayout.SOUTH);
         setDefaultDisplayFont();
+        setLineWrapPolicy(LineWrapPolicy.WORDS);
     }
 
     public JScrollPane getScroller() {
@@ -149,6 +150,10 @@ public class Typescript extends JPanel {
             }
 
         };
+    }
+
+    public void clear() {
+        output.setText("");
     }
 
     public void appendOutput(String text) {

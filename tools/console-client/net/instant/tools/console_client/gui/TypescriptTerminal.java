@@ -5,6 +5,7 @@ import java.awt.Component;
 import java.awt.Container;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.KeyEvent;
 import javax.swing.Box;
 import javax.swing.JButton;
 
@@ -27,6 +28,7 @@ public class TypescriptTerminal extends OverlayPane {
 
             Container bottom = getBottomPane();
             fillSettingsBottomBox(bottom);
+            ok.setMnemonic(KeyEvent.VK_O);
             ok.addActionListener(this);
             bottom.add(ok);
         }
@@ -61,6 +63,7 @@ public class TypescriptTerminal extends OverlayPane {
     }
 
     protected void initTypescriptTerminal() {
+        more.setMnemonic(KeyEvent.VK_M);
         more.addActionListener(settings);
         ts.getBottomPane().add(more, BorderLayout.EAST);
         setContent(ts);

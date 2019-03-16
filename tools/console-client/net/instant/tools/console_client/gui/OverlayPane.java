@@ -50,6 +50,12 @@ public class OverlayPane extends JLayeredPane {
             Component oldChild = child;
             child = newChild;
             replaceChild(oldChild, newChild);
+            // A mere invalidate() does not always suffice; in GUIClient,
+            // changing the statusLabel's text before swapping the dialog in
+            // would result in the label ellipsizing its text rather than
+            // assuming a correct new width.
+            revalidate();
+            repaint();
         }
 
         protected void replaceChild(Component oldChild, Component newChild) {
