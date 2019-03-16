@@ -1,6 +1,7 @@
 package net.instant.tools.console_client.jmx;
 
 import java.io.IOException;
+import javax.management.AttributeNotFoundException;
 import javax.management.InstanceNotFoundException;
 import javax.management.MBeanException;
 import javax.management.MBeanServerConnection;
@@ -30,6 +31,38 @@ public abstract class JMXObjectProxy {
 
     public ObjectName getObjectName() {
         return objectName;
+    }
+
+    protected <T> T getAttributeEx(String name, Class<T> expectedType)
+            throws MBeanException, AttributeNotFoundException,
+                   InstanceNotFoundException, ReflectionException,
+                   IOException {
+        Object result = connection.getAttribute(objectName, name);
+        T ret;
+        try {
+            ret = expectedType.cast(result);
+        } catch (ClassCastException exc) {
+            throw new ReflectionException(exc, "Attribute " + name + " of " +
+                objectName + " was of type " + getClassName(result) +
+                " instead of " + expectedType.getName());
+        }
+        return ret;
+    }
+
+    protected <T> T getAttribute(String name, Class<T> expectedType) {
+        try {
+            return getAttributeEx(name, expectedType);
+        } catch (MBeanException exc) {
+            throw new RuntimeException(exc);
+        } catch (AttributeNotFoundException exc) {
+            throw new RuntimeException(exc);
+        } catch (InstanceNotFoundException exc) {
+            throw new RuntimeException(exc);
+        } catch (ReflectionException exc) {
+            throw new RuntimeException(exc);
+        } catch (IOException exc) {
+            throw new RuntimeException(exc);
+        }
     }
 
     protected <T> T invokeMethodEx(String methodName, Object[] args,

@@ -84,12 +84,12 @@ public class ConsoleProxy extends JMXObjectProxy implements Closeable {
     }
 
     public int getID() {
-        if (id == null) id = invokeMethod("getID", null, null, Integer.class);
+        if (id == null) id = getAttribute("ID", Integer.class);
         return id;
     }
 
     public int getHistorySize() {
-        return invokeMethod("getHistorySize", null, null, Integer.class);
+        return getAttribute("HistorySize", Integer.class);
     }
 
     public String historyEntry(int index) {
