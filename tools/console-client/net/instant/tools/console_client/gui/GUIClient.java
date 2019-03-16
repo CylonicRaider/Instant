@@ -7,6 +7,7 @@ import java.awt.GridBagLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
+import java.awt.event.KeyListener;
 import java.awt.event.WindowEvent;
 import java.util.HashMap;
 import java.util.Map;
@@ -24,7 +25,8 @@ import javax.swing.text.JTextComponent;
 import net.instant.tools.console_client.jmx.Util;
 
 public class GUIClient extends TypescriptTerminal
-        implements ActionListener, ConsoleWorker.ConsoleUI {
+        implements ActionListener, KeyListener, ConsoleWorker.ConsoleUI,
+                   ConsoleWorker.HistoryCallback {
 
     public class ConnectionPopup extends OverlayDialog
             implements ActionListener, DocumentListener {
@@ -236,6 +238,7 @@ public class GUIClient extends TypescriptTerminal
     protected void createUI() {
         showPopup(connection);
         connection.setStatus(ConsoleWorker.ConnectionStatus.NOT_CONNECTED);
+        getTypescript().getInput().addKeyListener(this);
     }
 
     public ConnectionPopup getConnectionPopup() {
@@ -247,6 +250,16 @@ public class GUIClient extends TypescriptTerminal
             if (worker != null) worker.close();
         }
     }
+
+    public void keyPressed(KeyEvent evt) {
+        if (evt.getKeyCode() == KeyEvent.VK_UP) {
+            if (worker != null) worker.historyUp(this);
+        } else if (evt.getKeyCode() == KeyEvent.VK_DOWN) {
+            if (worker != null) worker.historyDown(this);
+        }
+    }
+    public void keyReleased(KeyEvent evt) {}
+    public void keyTyped(KeyEvent evt) {}
 
     public ConsoleWorker.ConnectionStatus getConnectionStatus() {
         return connection.getStatus();
@@ -265,6 +278,10 @@ public class GUIClient extends TypescriptTerminal
 
     public void showError(Throwable t) {
         connection.showError(t);
+    }
+
+    public void historyReceived(String command) {
+        getTypescript().getInput().setText(command);
     }
 
     protected ConsoleWorker createWorker(String endpoint,
