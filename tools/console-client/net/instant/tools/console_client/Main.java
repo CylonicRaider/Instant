@@ -2,32 +2,13 @@ package net.instant.tools.console_client;
 
 import java.io.IOException;
 import java.util.EnumSet;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
-import javax.management.MBeanServerConnection;
-import javax.management.remote.JMXConnector;
 import net.instant.tools.console_client.cli.CLI;
-import net.instant.tools.console_client.cli.ConsoleTerminal;
-import net.instant.tools.console_client.cli.StreamPairTerminal;
-import net.instant.tools.console_client.cli.SynchronousClient;
-import net.instant.tools.console_client.cli.Terminal;
 import net.instant.tools.console_client.gui.GUIClient;
-import net.instant.tools.console_client.jmx.Util;
 import net.instant.tools.console_client.util.ArgParser;
 
 public class Main {
-
-    public static class Abort extends Exception {
-
-        public Abort(String message) {
-            super(message);
-        }
-        public Abort(String message, Throwable cause) {
-            super(message, cause);
-        }
-
-    }
 
     public enum Mode {
         CLI_INTERACTIVE("interactive", 'I',
@@ -83,60 +64,12 @@ public class Main {
 
     };
 
-    private static Terminal createTerminal(Mode mode) {
-        Terminal ret = ConsoleTerminal.getDefault();
-        if (ret == null)
-            ret = StreamPairTerminal.getDefault(mode == Mode.CLI_INTERACTIVE);
-        return ret;
-    }
-
     public static void doMain(Map<String, String> arguments, Mode mode)
-            throws Abort, IOException {
+            throws CLI.Abort, IOException {
         if (mode == Mode.GUI) {
             GUIClient.showDefault(arguments);
-            return;
-        }
-        String address = arguments.get("address");
-        if (address == null)
-            throw new Abort("Missing connection address");
-        String username = arguments.get("login");
-        String password = null;
-        Terminal term = createTerminal(mode);
-        Map<String, Object> env = new HashMap<String, Object>();
-        /* The code below tries to concisely implement these behaviors:
-         * - In batch mode, there is exactly one connection attempt which
-         *   authenticates the user if-and-only-if a username is specified on
-         *   the command line.
-         * - In interactive mode, if the first connection attempt fails,
-         *   another is made with credentials supplied.
-         * - Failing a connection attempt with credentials provided is
-         *   fatal. */
-        boolean addCredentials = (mode == Mode.CLI_BATCH && username != null);
-        JMXConnector connector;
-        for (;;) {
-            if (addCredentials) {
-                if (username == null)
-                    username = term.readLine("Username: ");
-                if (password == null)
-                    password = term.readPassword("Password: ");
-                Util.insertCredentials(env, username, password);
-            }
-            try {
-                connector = Util.connectJMX(address, env);
-                break;
-            } catch (SecurityException exc) {
-                if (mode == Mode.CLI_BATCH || addCredentials)
-                    throw new Abort("Security error: " + exc.getMessage(),
-                                    exc);
-            }
-            addCredentials = true;
-        }
-        MBeanServerConnection conn = connector.getMBeanServerConnection();
-        try {
-            SynchronousClient client = SynchronousClient.getNewDefault(conn);
-            new CLI(client, term).run();
-        } finally {
-            connector.close();
+        } else {
+            CLI.runDefault(arguments, (mode == Mode.CLI_BATCH));
         }
     }
 
@@ -153,7 +86,7 @@ public class Main {
         Mode mode;
         try {
             arguments = p.parse(args);
-            mode = Mode.selectFromArguments(arguments, Mode.CLI_INTERACTIVE);
+            mode = Mode.selectFromArguments(arguments, Mode.GUI);
         } catch (ArgParser.ParsingException exc) {
             System.err.println("ERROR: " + exc.getMessage());
             System.exit(1);
@@ -162,7 +95,7 @@ public class Main {
         }
         try {
             doMain(arguments, mode);
-        } catch (Abort exc) {
+        } catch (CLI.Abort exc) {
             System.err.println("ERROR: " + exc.getMessage());
             System.exit(2);
         } catch (IOException exc) {
