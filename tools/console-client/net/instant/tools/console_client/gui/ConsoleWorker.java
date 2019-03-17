@@ -231,6 +231,9 @@ public class ConsoleWorker extends SwingWorker<Void, Runnable>
     }
 
     protected void done() {
+        ui.getTypescript().removeActionListener(this);
+        ui.setConnectionStatus(finalStatus);
+        if (finalError != null) ui.showError(finalError);
         try {
             get();
         } catch (InterruptedException exc) {
@@ -240,9 +243,6 @@ public class ConsoleWorker extends SwingWorker<Void, Runnable>
             // Ensure potential IOException-s get reported somewhere.
             throw new RuntimeException(exc);
         }
-        ui.getTypescript().removeActionListener(this);
-        ui.setConnectionStatus(finalStatus);
-        if (finalError != null) ui.showError(finalError);
     }
 
     public void actionPerformed(ActionEvent evt) {

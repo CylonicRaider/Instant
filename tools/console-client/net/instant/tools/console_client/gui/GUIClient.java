@@ -284,6 +284,14 @@ public class GUIClient extends TypescriptTerminal
         getTypescript().getInput().setText(command);
     }
 
+    public void showPopup(Component content) {
+        // Allow returning to the connection popup after invoking the More
+        // button's mnemonic.
+        if (content == null && ! getConnectionStatus().isConnected())
+            content = connection;
+        super.showPopup(content);
+    }
+
     protected ConsoleWorker createWorker(String endpoint,
                                          Map<String, Object> env) {
         return new ConsoleWorker(this, endpoint, env);
