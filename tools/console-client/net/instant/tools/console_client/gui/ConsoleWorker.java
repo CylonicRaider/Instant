@@ -42,7 +42,8 @@ public class ConsoleWorker extends SwingWorker<Void, Runnable>
         CONNECTING("Connecting...", true, false, false, 0),
         AUTH_REQUIRED("Authentication required", false, false, true, 50),
         CONNECTING_AUTH("Connecting...", true, false, true, 50),
-        CONNECTED("Connected", false, true, false, 100);
+        CONNECTED("Connected", false, true, false, 100),
+        STATIC("(Externally connected)", false, true, false, 100);
 
         public static final int MAX_PROGRESS = 100;
 
@@ -131,6 +132,7 @@ public class ConsoleWorker extends SwingWorker<Void, Runnable>
     private final Map<String, Object> env;
     private final BlockingQueue<Runnable> commands;
     private JMXConnector connector;
+    private MBeanServerConnection connection;
     private ConsoleProxy console;
     private int historyIndex;
     private ConnectionStatus finalStatus;
@@ -142,13 +144,27 @@ public class ConsoleWorker extends SwingWorker<Void, Runnable>
         this.endpoint = endpoint;
         this.env = Collections.unmodifiableMap(
             new HashMap<String, Object>(env));
-        this.commands = new LinkedBlockingQueue<Runnable>();
         this.connector = null;
-        this.console = null;
-        this.historyIndex = -1;
+        this.connection = null;
         this.finalStatus = ConnectionStatus.NOT_CONNECTED;
-        this.finalError = null;
+        // Cannot be outlined into the initializer block because that one is
+        // actually executed before (most of) the constructor body.
         ui.getTypescript().addActionListener(this);
+    }
+    public ConsoleWorker(ConsoleUI ui, MBeanServerConnection connection) {
+        this.ui = ui;
+        this.endpoint = null;
+        this.env = null;
+        this.connector = null;
+        this.connection = connection;
+        this.finalStatus = ConnectionStatus.STATIC;
+        ui.getTypescript().addActionListener(this);
+    }
+    {
+        commands = new LinkedBlockingQueue<Runnable>();
+        console = null;
+        historyIndex = -1;
+        finalError = null;
     }
 
     public String getEndpoint() {
@@ -161,6 +177,10 @@ public class ConsoleWorker extends SwingWorker<Void, Runnable>
 
     public JMXConnector getConnector() {
         return connector;
+    }
+
+    public MBeanServerConnection getConnection() {
+        return connection;
     }
 
     public ConsoleProxy getConsole() {
@@ -196,19 +216,21 @@ public class ConsoleWorker extends SwingWorker<Void, Runnable>
 
     protected Void doInBackground() throws IOException {
         try {
-            try {
-                connector = Util.connectJMX(endpoint, env);
-            } catch (SecurityException exc) {
-                finalStatus = ConnectionStatus.AUTH_REQUIRED;
-                finalError = exc;
-                return null;
+            if (connection == null) {
+                try {
+                    connector = Util.connectJMX(endpoint, env);
+                } catch (SecurityException exc) {
+                    finalStatus = ConnectionStatus.AUTH_REQUIRED;
+                    finalError = exc;
+                    return null;
+                }
+                connection = connector.getMBeanServerConnection();
             }
-            MBeanServerConnection conn =
-                connector.getMBeanServerConnection();
-            console = ConsoleProxy.getNewDefault(conn);
+            console = ConsoleProxy.getNewDefault(connection);
             publish(new Runnable() {
                 public void run() {
-                    ui.setConnectionStatus(ConnectionStatus.CONNECTED);
+                    if (connector != null)
+                        ui.setConnectionStatus(ConnectionStatus.CONNECTED);
                     ui.getTypescript().clear();
                 }
             });
@@ -232,8 +254,10 @@ public class ConsoleWorker extends SwingWorker<Void, Runnable>
 
     protected void done() {
         ui.getTypescript().removeActionListener(this);
-        ui.setConnectionStatus(finalStatus);
-        if (finalError != null) ui.showError(finalError);
+        if (finalStatus != ConnectionStatus.STATIC)
+            ui.setConnectionStatus(finalStatus);
+        if (finalError != null)
+            ui.showError(finalError);
         try {
             get();
         } catch (InterruptedException exc) {

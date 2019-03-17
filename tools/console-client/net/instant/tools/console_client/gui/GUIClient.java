@@ -11,6 +11,7 @@ import java.awt.event.KeyListener;
 import java.awt.event.WindowEvent;
 import java.util.HashMap;
 import java.util.Map;
+import javax.management.MBeanServerConnection;
 import javax.swing.Box;
 import javax.swing.JButton;
 import javax.swing.JFrame;
@@ -213,18 +214,24 @@ public class GUIClient extends TypescriptTerminal
 
     public static final String WINDOW_TITLE = "Instant backend console";
 
-    private final ConnectionPopup connection;
+    private final ConnectionPopup connPopup;
+    private final MBeanServerConnection connection;
     // Must be non-final to be set in a non-constructor method.
     private JButton close;
     private ConsoleWorker worker;
 
     public GUIClient(Map<String, String> arguments) {
-        connection = new ConnectionPopup(arguments);
+        connPopup = new ConnectionPopup(arguments);
+        connection = null;
         worker = null;
         createUI();
     }
-    public GUIClient() {
-        this(null);
+    public GUIClient(MBeanServerConnection connection) {
+        this.connPopup = new ConnectionPopup();
+        this.connection = connection;
+        this.worker = null;
+        createUI();
+        doConnect();
     }
 
     protected void fillSettingsBottomBox(Container cont) {
@@ -236,13 +243,18 @@ public class GUIClient extends TypescriptTerminal
     }
 
     protected void createUI() {
-        showPopup(connection);
-        connection.setStatus(ConsoleWorker.ConnectionStatus.NOT_CONNECTED);
+        if (connection == null) {
+            connPopup.setStatus(ConsoleWorker.ConnectionStatus.NOT_CONNECTED);
+            showPopup(connPopup);
+        } else {
+            connPopup.setStatus(ConsoleWorker.ConnectionStatus.STATIC);
+            close.getParent().remove(close);
+        }
         getTypescript().getInput().addKeyListener(this);
     }
 
     public ConnectionPopup getConnectionPopup() {
-        return connection;
+        return connPopup;
     }
 
     public void actionPerformed(ActionEvent evt) {
@@ -262,13 +274,14 @@ public class GUIClient extends TypescriptTerminal
     public void keyTyped(KeyEvent evt) {}
 
     public ConsoleWorker.ConnectionStatus getConnectionStatus() {
-        return connection.getStatus();
+        return connPopup.getStatus();
     }
     public void setConnectionStatus(ConsoleWorker.ConnectionStatus st) {
-        connection.setStatus(st);
+        if (! st.isConnected()) worker = null;
+        connPopup.setStatus(st);
         switch (st) {
             case NOT_CONNECTED:
-                showPopup(connection);
+                showPopup(connPopup);
                 break;
             case CONNECTED:
                 showPopup(null);
@@ -277,7 +290,7 @@ public class GUIClient extends TypescriptTerminal
     }
 
     public void showError(Throwable t) {
-        connection.showError(t);
+        connPopup.showError(t);
     }
 
     public void historyReceived(String command) {
@@ -285,10 +298,10 @@ public class GUIClient extends TypescriptTerminal
     }
 
     public void showPopup(Component content) {
-        // Allow returning to the connection popup after invoking the More
+        // Allow returning to the connPopup popup after invoking the More
         // button's mnemonic.
         if (content == null && ! getConnectionStatus().isConnected())
-            content = connection;
+            content = connPopup;
         super.showPopup(content);
     }
 
@@ -296,15 +309,24 @@ public class GUIClient extends TypescriptTerminal
                                          Map<String, Object> env) {
         return new ConsoleWorker(this, endpoint, env);
     }
+    protected ConsoleWorker createWorker(MBeanServerConnection conn) {
+        return new ConsoleWorker(this, conn);
+    }
 
     public boolean doConnect() {
-        if (! connection.isComplete()) return false;
-        String endpoint = connection.getEndpoint();
-        Map<String, Object> env = new HashMap<String, Object>();
-        connection.exportCredentials(env);
-        connection.setStatus(ConsoleWorker.ConnectionStatus.advance(
-            connection.getStatus()));
-        worker = createWorker(endpoint, env);
+        if (worker != null) {
+            return false;
+        } else if (connection == null) {
+            if (! connPopup.isComplete()) return false;
+            String endpoint = connPopup.getEndpoint();
+            Map<String, Object> env = new HashMap<String, Object>();
+            connPopup.exportCredentials(env);
+            connPopup.setStatus(ConsoleWorker.ConnectionStatus.advance(
+                connPopup.getStatus()));
+            worker = createWorker(endpoint, env);
+        } else {
+            worker = createWorker(connection);
+        }
         worker.execute();
         return true;
     }
