@@ -26,22 +26,28 @@ public class AmendManifest {
         }
     }
 
-    public static void amend(File path, String key, String value)
-            throws IOException {
+    public static File chooseTempPath(File path) {
+        File ret = new File(path + ".new");
+        for (int i = 1; ret.exists(); i++) {
+            ret = new File(path + ".new." + i);
+        }
+        return ret;
+    }
+
+    public static void amend(File sourcePath, String key, String value,
+                             File drainPath) throws IOException {
         /* Read input */
-        JarFile source = new JarFile(path);
+        JarFile source = new JarFile(sourcePath);
         /* Apply changes */
         Manifest mf = source.getManifest();
         if (mf == null) mf = new Manifest();
         mf.getMainAttributes().put(new Attributes.Name(key), value);
-        /* Locate output file */
-        File newFile = new File(path + ".new");
-        for (int i = 1; newFile.exists(); i++) {
-            newFile = new File(path + ".new." + i);
-        }
+        /* Choose output file */
+        boolean inPlace = sourcePath.equals(drainPath);
+        if (inPlace) drainPath = chooseTempPath(sourcePath);
         /* Write output */
         JarOutputStream output = new JarOutputStream(
-            new FileOutputStream(newFile), mf);
+            new FileOutputStream(drainPath), mf);
         Enumeration<JarEntry> entries = source.entries();
         while (entries.hasMoreElements()) {
             JarEntry ent = entries.nextElement();
@@ -51,20 +57,23 @@ public class AmendManifest {
             output.closeEntry();
         }
         output.close();
-        /* Replace original file */
-        if (! newFile.renameTo(path))
+        /* Replace original file (if necessary) */
+        if (inPlace && ! drainPath.renameTo(sourcePath))
             throw new IOException("Could not replace original file");
     }
 
     public static void main(String[] args) {
         /* Parse command line */
-        if (args.length != 3) {
-            System.err.println("USAGE: AmendManifest filename key value");
+        if (args.length < 3 || args.length > 4) {
+            System.err.println("USAGE: amend-manifest filename key value " +
+                "[outfile]");
             System.exit(1);
         }
         String filename = args[0], key = args[1], value = args[2];
+        String outFilename = (args.length == 3) ? filename : args[3];
         try {
-            amend(new File(filename), key, value);
+
+            amend(new File(filename), key, value, new File(outFilename));
         } catch (IOException exc) {
             System.err.println(exc);
             System.exit(2);
