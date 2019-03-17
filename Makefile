@@ -30,9 +30,8 @@ all: Instant.jar
 	cd src && jar cfe ../.build.jar Main $$(find . -name '*.class')
 
 Instant-run.jar: Instant.jar tools/amend-manifest.jar
-	cp Instant.jar Instant-run.jar
-	java -jar tools/amend-manifest.jar Instant-run.jar X-Git-Commit \
-	$$(git rev-parse HEAD)
+	java -jar tools/amend-manifest.jar Instant.jar X-Git-Commit \
+	$$(git rev-parse HEAD) Instant-run.jar
 
 config:
 	mkdir -p $@
