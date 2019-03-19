@@ -1,5 +1,6 @@
 package net.instant.util.argparse;
 
+import java.util.Formatter;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -50,34 +51,14 @@ public class HelpOption extends ActionOption {
         return p.getDescription();
     }
     public static String formatHelp(ArgumentParser p) {
-        List<String[]> columns = new LinkedList<String[]>();
-        int wdN = 0, wdA = 0;
-        for (BaseOption<?> opt : sortedOptions(p)) {
-            String[] item = new String[] {
-                opt.formatName(), ((opt.isPositional()) ? ":" : ""),
-                opt.formatArguments(), opt.formatHelp()
-            };
-            if (item[2] == null) item[2] = "";
-            wdN = Math.max(wdN, item[0].length() + item[1].length());
-            wdA = Math.max(wdA, item[2].length());
-            columns.add(item);
-        }
-        String optFormat = String.format("%%%ss%%s%s%%%ss: %%s",
-            makeWidth(wdN), ((wdA != 0) ? " " : ""), makeWidth(wdA));
-        String argFormat = String.format("%%%ss%%s%s%%%ss: %%s",
-            makeWidth(wdN - 1), ((wdA != 0) ? " " : ""), makeWidth(wdA));
-        int indentWidth = wdN + wdA + ((wdA != 0) ? 3 : 2);
-        // HACK: It will take until Java 11 for string repetition to appear
-        //       the standard library...
-        String indent = new String(new char[indentWidth]).replace('\0', ' ');
         StringBuilder sb = new StringBuilder();
-        for (String[] col : columns) {
-            if (sb.length() != 0) sb.append('\n');
-            col[3] = col[3].replace("\n", "\n" + indent);
-            // Varargs magic!
-            sb.append(String.format(((col[1].isEmpty()) ? optFormat :
-                argFormat), (Object[]) col));
+        List<HelpLine> lines = new LinkedList<HelpLine>();
+        for (BaseOption<?> opt : sortedOptions(p)) {
+            lines.add(new HelpLine(opt.formatName(),
+                ((opt.isPositional()) ? ":" : ""), opt.formatArguments(),
+                opt.formatHelp()));
         }
+        HelpLine.format(lines, new Formatter(sb, null));
         return sb.toString();
     }
 
