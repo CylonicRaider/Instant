@@ -167,7 +167,7 @@ public class ArgumentParser {
             BaseOption<?> o = argiter.next();
             results.add(o.processOmitted());
         }
-        return new ParseResult(results);
+        return new ParseResultBuilder(results);
     }
 
 }
