@@ -23,7 +23,8 @@ public class ListConverter<E> extends Converter<List<E>> {
     private final String separator;
 
     public ListConverter(Converter<E> inner, String separator) {
-        super(inner.getPlaceholder() + '[' + separator + "...]");
+        super(inner.getPlaceholder() +
+            ((separator != null) ? "[" + separator + "...]" : ""));
         this.inner = inner;
         this.separator = separator;
     }
@@ -37,8 +38,12 @@ public class ListConverter<E> extends Converter<List<E>> {
 
     public List<E> convert(String data) throws ParseException {
         List<E> ret = new ArrayList<E>();
-        for (String piece : data.split(Pattern.quote(getSeparator()), -1))
-            ret.add(inner.convert(piece));
+        if (getSeparator() == null) {
+            ret.add(inner.convert(data));
+        } else {
+            for (String piece : data.split(Pattern.quote(getSeparator()), -1))
+                ret.add(inner.convert(piece));
+        }
         return ret;
     }
 
