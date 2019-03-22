@@ -19,9 +19,11 @@ public class ArgumentValue {
 
     public String toString() {
         switch (getType()) {
-            case SHORT_OPTION: return "-"  + value;
-            case LONG_OPTION:  return "--" + value;
-            default:           return        value;
+            case SHORT_OPTION: return "option -"      +       value ;
+            case LONG_OPTION : return "option --"     +       value ;
+            case VALUE       : return "option value " + quote(value);
+            case ARGUMENT    : return "argument"      + quote(value);
+            default: throw new AssertionError("This should not happen!");
         }
     }
 
@@ -31,6 +33,10 @@ public class ArgumentValue {
 
     public String getValue() {
         return value;
+    }
+
+    private static String quote(String value) {
+        return (value.contains("'")) ? '"' + value + '"' : "'" + value + "'";
     }
 
 }

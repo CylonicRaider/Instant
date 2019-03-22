@@ -137,7 +137,7 @@ public class ValueOption<X> extends Option<X> implements Processor {
         ArgumentValue check = source.next(ArgumentSplitter.Mode.OPTIONS);
         if (! matches(check)) {
             source.pushback(check);
-            throw new ParsingException("Command-line argument " + check +
+            throw new ParsingException("Command-line " + check +
                 "does not match", formatName());
         }
         child.parse(source, drain);
