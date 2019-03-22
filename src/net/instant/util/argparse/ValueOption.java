@@ -3,17 +3,23 @@ package net.instant.util.argparse;
 import java.util.ArrayList;
 import java.util.List;
 
-public class ValueOption<X> extends Option<X> {
+public class ValueOption<X> extends Option<X> implements Processor {
 
     private Converter<X> converter;
     private X defaultValue;
     private boolean optional;
     private X optionalDefault;
+    private Processor child;
 
     public ValueOption(String name, Character shortName, String help,
                        Converter<X> converter) {
         super(name, shortName, help);
         this.converter = converter;
+    }
+    public ValueOption(String name, Character shortName, String help,
+                       Processor child) {
+        super(name, shortName, help);
+        this.child = child;
     }
 
     public Converter<X> getConverter() {
@@ -61,6 +67,17 @@ public class ValueOption<X> extends Option<X> {
         return this;
     }
 
+    public Processor getChild() {
+        return child;
+    }
+    public void setChild(Processor c) {
+        child = c;
+    }
+    public ValueOption<X> withChild(Processor c) {
+        child = c;
+        return this;
+    }
+
     public String formatArguments() {
         StringBuilder sb = new StringBuilder();
         if (isOptional()) sb.append('[');
@@ -101,6 +118,29 @@ public class ValueOption<X> extends Option<X> {
         if (getDefault() != null)
             return converter.wrap(this, getDefault());
         return null;
+    }
+
+    public boolean matches(ArgumentValue av) {
+        switch (av.getType()) {
+            case SHORT_OPTION:
+                return (getShortName() != null &&
+                        av.getValue().charAt(0) == getShortName());
+            case LONG_OPTION:
+                return getName().equals(av.getValue());
+            default:
+                return false;
+        }
+    }
+
+    public void parse(ArgumentSplitter source, ParseResultBuilder drain)
+            throws ParsingException {
+        ArgumentValue check = source.next(ArgumentSplitter.Mode.OPTIONS);
+        if (! matches(check)) {
+            source.pushback(check);
+            throw new ParsingException("Command-line argument " + check +
+                "does not match", formatName());
+        }
+        child.parse(source, drain);
     }
 
     public static <T> ValueOption<T> of(Class<T> cls, String name,

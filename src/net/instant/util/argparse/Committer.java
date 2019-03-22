@@ -12,8 +12,8 @@ public class Committer<T> {
         return key;
     }
 
-    public void commit(T value, ParseResultBuilder res) {
-        res.put(new OptionValue<T>(key, value));
+    public void commit(T value, ParseResultBuilder drain) {
+        drain.put(new OptionValue<T>(key, value));
     }
 
 }

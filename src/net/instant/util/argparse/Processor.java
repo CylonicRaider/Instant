@@ -5,10 +5,10 @@ public interface Processor {
     void parse(ArgumentSplitter source, ParseResultBuilder drain)
         throws ParsingException;
 
-    String getName();
+    String formatName();
 
-    String getUsage();
+    String formatUsage();
 
-    HelpLine getHelp();
+    HelpLine getHelpLine();
 
 }

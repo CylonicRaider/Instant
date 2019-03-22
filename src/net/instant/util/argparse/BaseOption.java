@@ -94,4 +94,9 @@ public abstract class BaseOption<X> {
         return null;
     }
 
+    public HelpLine getHelpLine() {
+        return new HelpLine(formatName(), ((isPositional()) ? ":" : ""),
+                            formatArguments(), formatHelp());
+    }
+
 }

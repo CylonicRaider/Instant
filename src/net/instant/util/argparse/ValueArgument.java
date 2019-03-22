@@ -2,14 +2,29 @@ package net.instant.util.argparse;
 
 import java.util.List;
 
-public class ValueArgument<X> extends Argument<X> {
+public class ValueArgument<X> extends Argument<X> implements Processor {
 
+    private boolean optional;
     private Converter<X> converter;
+    private Committer<X> committer;
     private X defaultValue;
 
     public ValueArgument(String name, String help, Converter<X> converter) {
         super(name, help);
         this.converter = converter;
+    }
+    public ValueArgument(String name, String help, Converter<X> converter,
+                         Committer<X> committer) {
+        super(name, help);
+        this.converter = converter;
+        this.committer = committer;
+    }
+
+    public boolean isOptional() {
+        return optional;
+    }
+    public void setOptional(boolean o) {
+        optional = o;
     }
 
     public Converter<X> getConverter() {
@@ -24,6 +39,17 @@ public class ValueArgument<X> extends Argument<X> {
     }
     public ValueArgument<X> withPlaceholder(String placeholder) {
         converter = converter.withPlaceholder(placeholder);
+        return this;
+    }
+
+    public Committer<X> getCommitter() {
+        return committer;
+    }
+    public void setCommitter(Committer<X> c) {
+        committer = c;
+    }
+    public ValueArgument<X> withCommitter(Committer<X> c) {
+        committer = c;
         return this;
     }
 
@@ -49,7 +75,7 @@ public class ValueArgument<X> extends Argument<X> {
     }
 
     public OptionValue<X> process(ArgumentValue v, ArgumentSplitter s)
-        throws ParseException {
+            throws ParseException {
         return converter.wrap(this, converter.convert(v.getValue()));
     }
     public OptionValue<X> processOmitted() throws ParseException {
@@ -57,6 +83,32 @@ public class ValueArgument<X> extends Argument<X> {
         if (getDefault() != null)
             return converter.wrap(this, getDefault());
         return null;
+    }
+
+    public void parse(ArgumentSplitter source, ParseResultBuilder drain)
+            throws ParsingException {
+        ArgumentValue av = source.next((isOptional()) ?
+            ArgumentSplitter.Mode.ARGUMENTS :
+            ArgumentSplitter.Mode.FORCE_ARGUMENTS);
+        X value;
+        if (av == null) {
+            if (! isOptional())
+                throw new ParsingException("Missing required value for",
+                                           formatName());
+            value = getDefault();
+        } else if (av.getType() == ArgumentValue.Type.SHORT_OPTION ||
+                   av.getType() == ArgumentValue.Type.LONG_OPTION) {
+            source.pushback(av);
+            return;
+        } else {
+            try {
+                value = converter.convert(av.getValue());
+            } catch (ParseException exc) {
+                throw new ParsingException(exc.getMessage(), formatName(),
+                                           exc);
+            }
+        }
+        committer.commit(value, drain);
     }
 
     public static <T> ValueArgument<T> of(Class<T> cls, String name,
