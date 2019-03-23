@@ -14,12 +14,14 @@ public class OptionDispatcher implements MultiProcessor {
     private final Map<Character, Processor> shortOptions;
     private final List<Processor> arguments;
     private String name;
+    private String description;
 
-    public OptionDispatcher(String name) {
+    public OptionDispatcher(String name, String description) {
         this.options = new LinkedHashMap<String, Processor>();
         this.shortOptions = new LinkedHashMap<Character, Processor>();
         this.arguments = new ArrayList<Processor>();
         this.name = name;
+        this.description = description;
     }
 
     public Map<String, Processor> getOptions() {
@@ -46,6 +48,13 @@ public class OptionDispatcher implements MultiProcessor {
     }
     public void setName(String n) {
         name = n;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+    public void setDescription(String desc) {
+        description = desc;
     }
 
     public void parse(ArgumentSplitter source, ParseResultBuilder drain)
@@ -114,11 +123,15 @@ public class OptionDispatcher implements MultiProcessor {
         return (first) ? null : sb.toString();
     }
 
+    public String formatDescription() {
+        return getDescription();
+    }
+
     public HelpLine getHelpLine() {
         return null;
     }
 
-    private void accumulateHelpLines(Processor p, List<HelpLine> drain) {
+    static void accumulateHelpLines(Processor p, List<HelpLine> drain) {
         HelpLine h = p.getHelpLine();
         if (h != null)
             drain.add(h);
