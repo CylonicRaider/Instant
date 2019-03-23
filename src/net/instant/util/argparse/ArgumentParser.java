@@ -1,39 +1,30 @@
 package net.instant.util.argparse;
 
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.LinkedHashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
 public class ArgumentParser {
 
-    private final Map<String, BaseOption<?>> options;
-    private final Map<Character, BaseOption<?>> shortOptions;
-    private String progname;
+    private OptionDispatcher dispatcher;
     private String version;
-    private String description;
 
     public ArgumentParser(String progname, String version,
                           String description) {
-        this.progname = progname;
+        this.dispatcher = new OptionDispatcher(progname, description);
         this.version = version;
-        this.description = description;
-        this.options = new LinkedHashMap<String, BaseOption<?>>();
-        this.shortOptions = new LinkedHashMap<Character, BaseOption<?>>();
+    }
+
+    public OptionDispatcher getDispatcher() {
+        return dispatcher;
+    }
+    public void setDispatcher(OptionDispatcher disp) {
+        dispatcher = disp;
     }
 
     public String getProgName() {
-        return progname;
+        return getDispatcher().getName();
     }
     public void setProgName(String name) {
-        progname = name;
+        getDispatcher().setName(name);
     }
 
     public String getVersion() {
@@ -44,130 +35,46 @@ public class ArgumentParser {
     }
 
     public String getDescription() {
-        return description;
+        return getDispatcher().getDescription();
     }
     public void setDescription(String desc) {
-        description = desc;
+        getDispatcher().setDescription(desc);
     }
 
-    public Collection<BaseOption<?>> getAllOptions() {
-        return Collections.unmodifiableCollection(options.values());
-    }
-
-    protected <Y extends Collection<BaseOption<?>>> Y getOptions(Y list,
-            boolean positional) {
-        for (BaseOption<?> opt : options.values()) {
-            if (opt.isPositional() == positional) list.add(opt);
+    public <X extends Processor> X add(X arg) {
+        if (arg instanceof ValueOption<?>) {
+            getDispatcher().addOption((ValueOption) arg);
+        } else {
+            getDispatcher().addArgument(arg);
         }
-        return list;
+        return arg;
     }
-    public List<BaseOption<?>> getOptions() {
-        return getOptions(new ArrayList<BaseOption<?>>(), false);
-    }
-    public List<BaseOption<?>> getArguments() {
-        return getOptions(new ArrayList<BaseOption<?>>(), true);
-    }
-
-    public <X extends BaseOption<?>> X add(X opt) {
-        options.put(opt.getName(), opt);
-        if (opt.getShortName() != null)
-            shortOptions.put(opt.getShortName(), opt);
-        opt.setParser(this);
-        return opt;
-    }
-    public boolean remove(BaseOption<?> opt) {
-        shortOptions.remove(opt.getShortName());
-        boolean ret = (options.remove(opt.getName()) != null);
-        opt.setParser(null);
-        return ret;
+    public void remove(Processor opt) {
+        getDispatcher().remove(opt);
     }
 
     public void addStandardOptions() {
-        add(new HelpOption());
-        if (version != null) add(new VersionOption());
+        add(HelpAction.makeOption(this));
+        if (version != null) add(VersionAction.makeOption(this));
     }
 
-    public BaseOption<?> getOption(ArgumentValue val) {
-        switch (val.getType()) {
-            case LONG_OPTION:
-                return options.get(val.getValue());
-            case SHORT_OPTION:
-                return shortOptions.get(val.getValue().charAt(0));
-            default:
-                throw new IllegalArgumentException("Trying to resolve " +
-                    "non-option");
-        }
-    }
-
-    public ParseResult parse(String[] args) throws ParseException {
+    public ParseResult parse(String[] args) throws ParsingException {
         return parse(Arrays.asList(args), true);
     }
-    public ParseResult parse(Iterable<String> args) throws ParseException {
+    public ParseResult parse(Iterable<String> args) throws ParsingException {
         return parse(args, true);
     }
     public ParseResult parse(Iterable<String> args, boolean full)
-            throws ParseException {
-        Set<BaseOption<?>> missing = getOptions(
-            new HashSet<BaseOption<?>>(), false);
-        Iterator<BaseOption<?>> argiter = getOptions(
-            new LinkedList<BaseOption<?>>(), true).iterator();
+            throws ParsingException {
         ArgumentSplitter splitter = new ArgumentSplitter(args);
-        List<OptionValue<?>> results = new LinkedList<OptionValue<?>>();
-        boolean argsOnly = false;
-        BaseOption<?> opt;
-        main: for (;;) {
-            ArgumentValue v = splitter.next((argsOnly) ?
-                ArgumentSplitter.Mode.FORCE_ARGUMENTS :
-                ArgumentSplitter.Mode.OPTIONS);
-            if (v == null) break;
-            switch (v.getType()) {
-                case LONG_OPTION: case SHORT_OPTION:
-                    opt = getOption(v);
-                    if (opt == null) {
-                        if (full)
-                            throw new ParseException("Unknown option " +
-                                ((v.getType() == ArgumentValue.Type
-                                    .LONG_OPTION) ? "--" : "-") +
-                                v.getValue());
-                        splitter.pushback(v);
-                        break main;
-                    } else if (opt.isPositional()) {
-                        throw new ParseException("Using argument <" +
-                            opt.getName() + "> as option");
-                    }
-                    missing.remove(opt);
-                    results.add(opt.process(v, splitter));
-                    break;
-                case VALUE:
-                    throw new ParseException("Superfluous option value: " +
-                        v.getValue());
-                case ARGUMENT:
-                    if (v.getValue().equals("--")) {
-                        argsOnly = true;
-                        continue;
-                    } else if (! argiter.hasNext()) {
-                        if (full)
-                            throw new ParseException("Superfluous " +
-                                "argument: " + v.getValue());
-                        splitter.pushback(v);
-                        break main;
-                    }
-                    opt = argiter.next();
-                    results.add(opt.process(v, splitter));
-                    break;
-                default:
-                    throw new RuntimeException("Unknown ArgumentValue " +
-                        "type?!");
-            }
-        }
-        for (BaseOption<?> o : missing) {
-            results.add(o.processOmitted());
-        }
-        while (argiter.hasNext()) {
-            BaseOption<?> o = argiter.next();
-            results.add(o.processOmitted());
-        }
-        return new ParseResultBuilder(results);
+        ParseResultBuilder result = new ParseResultBuilder();
+        getDispatcher().startParsing(result);
+        getDispatcher().parse(splitter, result);
+        ArgumentValue probe = splitter.peek(ArgumentSplitter.Mode.OPTIONS);
+        if (full && probe != null)
+            throw new ParsingException("Superfluous " + probe);
+        getDispatcher().finishParsing(result);
+        return result;
     }
 
 }

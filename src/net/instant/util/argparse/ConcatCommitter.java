@@ -8,9 +8,12 @@ public class ConcatCommitter<E> extends Committer<List<E>> {
     public ConcatCommitter(BaseOption<List<E>> key) {
         super(key);
     }
+    public ConcatCommitter() {
+        this(null);
+    }
 
-    public void commit(List<E> value, ParseResultBuilder res) {
-        List<E> oldValue = res.get(getKey());
+    public void commit(List<E> value, ParseResultBuilder store) {
+        List<E> oldValue = store.get(getKey());
         List<E> newValue;
         if (oldValue == null) {
             newValue = value;
@@ -19,7 +22,7 @@ public class ConcatCommitter<E> extends Committer<List<E>> {
             newValue.addAll(oldValue);
             newValue.addAll(value);
         }
-        super.commit(newValue, res);
+        super.commit(newValue, store);
     }
 
 }

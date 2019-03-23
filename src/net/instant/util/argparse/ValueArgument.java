@@ -18,6 +18,7 @@ public class ValueArgument<X> extends Argument<X> implements Processor {
         super(name, help);
         this.converter = converter;
         this.committer = committer;
+        if (committer != null) committer.setKey(this);
     }
 
     public boolean isOptional() {
@@ -50,6 +51,7 @@ public class ValueArgument<X> extends Argument<X> implements Processor {
     }
     public ValueArgument<X> withCommitter(Committer<X> c) {
         committer = c;
+        c.setKey(this);
         return this;
     }
 
@@ -93,7 +95,7 @@ public class ValueArgument<X> extends Argument<X> implements Processor {
         X value;
         if (av == null) {
             if (! isOptional())
-                throw new ParsingException("Missing required value for",
+                throw new ParsingException("Missing value for",
                                            formatName());
             value = getDefault();
         } else if (av.getType() == ArgumentValue.Type.SHORT_OPTION ||
@@ -111,14 +113,27 @@ public class ValueArgument<X> extends Argument<X> implements Processor {
         committer.commit(value, drain);
     }
 
+    public void finishParsing(ParseResultBuilder drain)
+            throws ParsingException {
+        if (isOptional()) {
+            /* NOP */
+        } else if (! committer.storedIn(drain)) {
+            throw new ParsingException("Missing required value for",
+                                       formatName());
+        } else {
+            committer.commit(getDefault(), drain);
+        }
+    }
+
     public static <T> ValueArgument<T> of(Class<T> cls, String name,
                                           String help) {
-        return new ValueArgument<T>(name, help, Converter.get(cls));
+        return new ValueArgument<T>(name, help, Converter.get(cls),
+            new Committer<T>());
     }
     public static <T> ValueArgument<List<T>> ofList(Class<T> cls, String name,
                                                     String help) {
         return new ValueArgument<List<T>>(name, help,
-                                          ListConverter.getL(cls));
+            ListConverter.getL(cls), new ConcatCommitter<T>());
     }
 
 }

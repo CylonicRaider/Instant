@@ -26,7 +26,7 @@ public class VersionAction extends RunnableAction {
 
     public static Processor makeOption(ArgumentParser parser) {
         return new ValueOption<Void>("version", 'V', "Display version.",
-                                     new HelpAction(parser));
+                                     new VersionAction(parser));
     }
 
 }

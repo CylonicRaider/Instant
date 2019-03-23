@@ -1,25 +1,27 @@
 package net.instant.util.argparse;
 
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 public class OptionDispatcher implements MultiProcessor {
 
     private final Map<String, Processor> options;
     private final Map<Character, Processor> shortOptions;
     private final List<Processor> arguments;
+    private boolean allowingArgumentSeparator;
     private String name;
     private String description;
+    private Iterator<Processor> nextArgument;
+    private boolean argumentsOnly;
 
     public OptionDispatcher(String name, String description) {
         this.options = new LinkedHashMap<String, Processor>();
         this.shortOptions = new LinkedHashMap<Character, Processor>();
         this.arguments = new ArrayList<Processor>();
+        this.allowingArgumentSeparator = true;
         this.name = name;
         this.description = description;
     }
@@ -43,6 +45,13 @@ public class OptionDispatcher implements MultiProcessor {
         return ret;
     }
 
+    public boolean isAllowingArgumentSeparator() {
+        return allowingArgumentSeparator;
+    }
+    public void setAllowingArgumentSeparator(boolean enabled) {
+        allowingArgumentSeparator = enabled;
+    }
+
     public String getName() {
         return name;
     }
@@ -57,36 +66,64 @@ public class OptionDispatcher implements MultiProcessor {
         description = desc;
     }
 
+    public void addOption(ValueOption<?> opt) {
+        options.put(opt.getName(), opt);
+        if (opt.getShortName() != null)
+            shortOptions.put(opt.getShortName(), opt);
+    }
+    public void addArgument(Processor arg) {
+        arguments.add(arg);
+    }
+    public void remove(Processor proc) {
+        options.remove(proc.getName());
+        if (proc instanceof ValueOption<?>)
+            shortOptions.remove(((ValueOption<?>) proc).getShortName());
+        arguments.remove(proc);
+    }
+
+    public Processor getOption(ArgumentValue av) {
+        switch (av.getType()) {
+            case SHORT_OPTION:
+                return shortOptions.get(av.getValue().charAt(0));
+            case LONG_OPTION:
+                return options.get(av.getValue());
+        }
+        throw new IllegalArgumentException("Trying to resolve " + av +
+                                           " as an option");
+    }
+
+    public void startParsing(ParseResultBuilder drain)
+            throws ParsingException {
+        nextArgument = getArguments().iterator();
+        argumentsOnly = false;
+        for (Processor p : getAllOptions())
+            p.startParsing(drain);
+    }
+
     public void parse(ArgumentSplitter source, ParseResultBuilder drain)
             throws ParsingException {
-        Set<Processor> notSeen = new HashSet<Processor>(getAllOptions());
-        Iterator<Processor> nextArg = getArguments().iterator();
-        boolean maybeFinal = true;
         for (;;) {
-            ArgumentValue av = source.next(ArgumentSplitter.Mode.OPTIONS);
-            if (maybeFinal && av == null) {
-                for (Processor p : notSeen) {
-                    p.parse(source, drain);
-                }
-                return;
-            } else {
-                maybeFinal = false;
-            }
-            source.pushback(av);
+            ArgumentValue av = source.peek((argumentsOnly) ?
+                ArgumentSplitter.Mode.FORCE_ARGUMENTS :
+                ArgumentSplitter.Mode.OPTIONS);
+            if (av == null) break;
             Processor chain;
             switch (av.getType()) {
                 case SHORT_OPTION:
-                    chain = shortOptions.get(av.getValue().charAt(0));
-                    break;
                 case LONG_OPTION:
-                    chain = options.get(av.getValue());
+                    chain = getOption(av);
                     break;
                 case VALUE:
                     throw new ParsingException("Orphan " + av);
                 case ARGUMENT:
-                    if (! nextArg.hasNext())
+                    if (isAllowingArgumentSeparator() &&
+                            av.getValue().equals("--")) {
+                        argumentsOnly = true;
+                        continue;
+                    } else if (! nextArgument.hasNext()) {
                         throw new ParsingException("Superfluous " + av);
-                    chain = nextArg.next();
+                    }
+                    chain = nextArgument.next();
                     if (chain == null)
                         throw new NullPointerException("Null argument " +
                             "processor in OptionDispatcher");
@@ -97,9 +134,16 @@ public class OptionDispatcher implements MultiProcessor {
             }
             if (chain == null)
                 throw new ParsingException("Unrecognized " + av);
-            notSeen.remove(chain);
             chain.parse(source, drain);
         }
+    }
+
+    public void finishParsing(ParseResultBuilder drain)
+            throws ParsingException {
+        for (Processor p : getAllOptions())
+            p.finishParsing(drain);
+        nextArgument = null;
+        argumentsOnly = false;
     }
 
     public String formatName() {

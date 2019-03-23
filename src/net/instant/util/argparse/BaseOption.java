@@ -94,6 +94,11 @@ public abstract class BaseOption<X> {
         return null;
     }
 
+    public void startParsing(ParseResultBuilder drain)
+        throws ParsingException {}
+    public void finishParsing(ParseResultBuilder drain)
+        throws ParsingException {}
+
     public HelpLine getHelpLine() {
         return new HelpLine(formatName(), ((isPositional()) ? ":" : ""),
                             formatArguments(), formatHelp());

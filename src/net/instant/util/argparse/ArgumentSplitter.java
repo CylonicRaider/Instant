@@ -53,7 +53,7 @@ public class ArgumentSplitter implements Iterable<String> {
 
     public ArgumentValue next(Mode mode) {
         if (pushbackValue != null) {
-            /* Argument percolating back up the call chain */
+            /* Argument has been peeked at or rejected */
             ArgumentValue ret = pushbackValue;
             pushbackValue = null;
             return ret;
@@ -100,6 +100,12 @@ public class ArgumentSplitter implements Iterable<String> {
             return new ArgumentValue(ArgumentValue.Type.SHORT_OPTION,
                                      value.substring(index - 1, index));
         }
+    }
+
+    public ArgumentValue peek(Mode mode) {
+        ArgumentValue ret = next(mode);
+        pushback(ret);
+        return ret;
     }
 
     public void pushback(ArgumentValue value) {

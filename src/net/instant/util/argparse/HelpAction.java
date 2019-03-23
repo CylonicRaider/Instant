@@ -1,6 +1,5 @@
 package net.instant.util.argparse;
 
-import java.util.ArrayList;
 import java.util.Formatter;
 import java.util.List;
 
@@ -25,9 +24,9 @@ public class HelpAction extends RunnableAction implements MultiProcessor {
 
     public String formatUsage() {
         StringBuilder sb = new StringBuilder();
-        boolean first = false;
-        for (BaseOption<?> o : sortedOptions(getParser())) {
-            String part = o.formatUsage();
+        boolean first = true;
+        for (Processor p : sortedOptions(getParser())) {
+            String part = p.formatUsage();
             if (part == null) {
                 continue;
             } else if (first) {
@@ -45,15 +44,7 @@ public class HelpAction extends RunnableAction implements MultiProcessor {
     }
 
     public List<HelpLine> getAllHelpLines() {
-        List<HelpLine> ret = new ArrayList<HelpLine>();
-        for (BaseOption<?> o : sortedOptions(getParser())) {
-            if (o instanceof Processor) {
-                OptionDispatcher.accumulateHelpLines((Processor) o, ret);
-            } else {
-                ret.add(o.getHelpLine());
-            }
-        }
-        return ret;
+        return getParser().getDispatcher().getAllHelpLines();
     }
 
     public String formatUsageLine() {
@@ -81,11 +72,8 @@ public class HelpAction extends RunnableAction implements MultiProcessor {
         System.exit(0);
     }
 
-    static List<BaseOption<?>> sortedOptions(ArgumentParser p) {
-        List<BaseOption<?>> ret = new ArrayList<BaseOption<?>>();
-        p.getOptions(ret, false);
-        p.getOptions(ret, true);
-        return ret;
+    static List<Processor> sortedOptions(ArgumentParser p) {
+        return p.getDispatcher().getAllOptions();
     }
 
     public static Processor makeOption(ArgumentParser parser) {

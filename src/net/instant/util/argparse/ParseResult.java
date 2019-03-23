@@ -4,10 +4,12 @@ import java.util.Map;
 
 public interface ParseResult {
 
-    public Map<BaseOption<?>, OptionValue<?>> getData();
+    Map<BaseOption<?>, OptionValue<?>> getData();
 
-    public <X> OptionValue<X> getRaw(BaseOption<X> opt);
+    <X> boolean contains(BaseOption<X> key);
 
-    public <X> X get(BaseOption<X> opt);
+    <X> OptionValue<X> getRaw(BaseOption<X> key);
+
+    <X> X get(BaseOption<X> key);
 
 }

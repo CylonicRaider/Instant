@@ -12,9 +12,16 @@ public class ParseResultBuilder implements ParseResult {
         data = new LinkedHashMap<BaseOption<?>, OptionValue<?>>();
         if (values != null) for (OptionValue<?> v : values) put(v);
     }
+    public ParseResultBuilder() {
+        this(null);
+    }
 
     public Map<BaseOption<?>, OptionValue<?>> getData() {
         return Collections.unmodifiableMap(data);
+    }
+
+    public <X> boolean contains(BaseOption<X> opt) {
+        return data.containsKey(opt);
     }
 
     public <X> OptionValue<X> getRaw(BaseOption<X> opt) {

@@ -20,6 +20,11 @@ public class ValueOption<X> extends Option<X> implements Processor {
                        Processor child) {
         super(name, shortName, help);
         this.child = child;
+        if (child instanceof ValueArgument) {
+            @SuppressWarnings("unchecked")
+            ValueArgument<X> ch = (ValueArgument<X>) child;
+            ch.getCommitter().setKey(this);
+        }
     }
 
     public Converter<X> getConverter() {
@@ -33,7 +38,10 @@ public class ValueOption<X> extends Option<X> implements Processor {
         return this;
     }
     public ValueOption<X> withPlaceholder(String placeholder) {
-        converter = converter.withPlaceholder(placeholder);
+        if (converter != null)
+            converter = converter.withPlaceholder(placeholder);
+        if (child != null && (child instanceof ValueArgument))
+            ((ValueArgument) child).withPlaceholder(placeholder);
         return this;
     }
 
@@ -79,6 +87,11 @@ public class ValueOption<X> extends Option<X> implements Processor {
     }
 
     public String formatArguments() {
+        if (child instanceof Action) {
+            return null;
+        } else if (child instanceof ValueArgument) {
+            return child.formatUsage();
+        }
         StringBuilder sb = new StringBuilder();
         if (isOptional()) sb.append('[');
         sb.append(converter.getPlaceholder());
@@ -87,10 +100,12 @@ public class ValueOption<X> extends Option<X> implements Processor {
     }
     public String formatHelp() {
         String ret = super.formatHelp();
-        String fmtDef = converter.format(getDefault());
-        if (fmtDef != null) ret += " (default " + fmtDef + ")";
-        String appendix = converter.formatAppendix();
-        if (appendix != null) ret += " " + appendix;
+        if (converter != null) {
+            String fmtDef = converter.format(getDefault());
+            if (fmtDef != null) ret += " (default " + fmtDef + ")";
+            String appendix = converter.formatAppendix();
+            if (appendix != null) ret += " " + appendix;
+        }
         return ret;
     }
 
@@ -132,10 +147,15 @@ public class ValueOption<X> extends Option<X> implements Processor {
         }
     }
 
+    public void startParsing(ParseResultBuilder drain)
+            throws ParsingException {
+        child.startParsing(drain);
+    }
+
     public void parse(ArgumentSplitter source, ParseResultBuilder drain)
             throws ParsingException {
         ArgumentValue check = source.next(ArgumentSplitter.Mode.OPTIONS);
-        if (! matches(check)) {
+        if (check != null && ! matches(check)) {
             source.pushback(check);
             throw new ParsingException("Command-line " + check +
                 "does not match", formatName());
@@ -143,19 +163,27 @@ public class ValueOption<X> extends Option<X> implements Processor {
         child.parse(source, drain);
     }
 
+    public void finishParsing(ParseResultBuilder drain)
+            throws ParsingException {
+        child.finishParsing(drain);
+    }
+
     public static <T> ValueOption<T> of(Class<T> cls, String name,
             Character shortname, String help) {
-        return new ValueOption<T>(name, shortname, help, Converter.get(cls));
+        return new ValueOption<T>(name, shortname, help,
+            ValueArgument.of(cls, name, help));
     }
     public static <T> ValueOption<List<T>> ofAccum(Class<T> cls, String name,
             Character shortname, String help) {
         return new ValueOption<List<T>>(name, shortname, help,
-            AccumulatingConverter.getA(cls)).defaultsTo(new ArrayList<T>());
+            new ValueArgument<List<T>>(name, help,
+                AccumulatingConverter.getA(cls), new Committer<List<T>>())
+            ).defaultsTo(new ArrayList<T>());
     }
     public static <T> ValueOption<List<T>> ofList(Class<T> cls, String name,
             Character shortname, String help) {
         return new ValueOption<List<T>>(name, shortname, help,
-                                        ListConverter.getL(cls));
+            ValueArgument.ofList(cls, name, help));
     }
 
 }
