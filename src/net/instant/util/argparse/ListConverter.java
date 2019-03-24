@@ -36,7 +36,7 @@ public class ListConverter<E> extends Converter<List<E>> {
         return separator;
     }
 
-    public List<E> convert(String data) throws ParseException {
+    public List<E> convert(String data) throws ParsingException {
         List<E> ret = new ArrayList<E>();
         if (getSeparator() == null) {
             ret.add(inner.convert(data));
@@ -45,11 +45,6 @@ public class ListConverter<E> extends Converter<List<E>> {
                 ret.add(inner.convert(piece));
         }
         return ret;
-    }
-
-    public OptionValue<List<E>> wrap(BaseOption<List<E>> option,
-                                     List<E> item) {
-        return new ListOptionValue<E, List<E>>(option, item);
     }
 
     public String format(List<E> list) {
@@ -76,8 +71,9 @@ public class ListConverter<E> extends Converter<List<E>> {
     public static void deregisterL(Class<?> cls) {
         registry.remove(cls);
     }
-    /* HACK: Naming the method "get" would result in a "cannot override"
-     *       error... */
+    /* Naming the method "get" would result in a "cannot override" error;
+     * therefore (and to avoid confusion) we distinguish the entire method
+     * suite by an appended "L". */
     public static <F> ListConverter<F> getL(Class<F> cls) {
         @SuppressWarnings("unchecked")
         ListConverter<F> ret = (ListConverter<F>) registry.get(cls);

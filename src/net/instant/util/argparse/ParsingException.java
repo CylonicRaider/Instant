@@ -1,6 +1,6 @@
 package net.instant.util.argparse;
 
-public class ParsingException extends ParseException {
+public class ParsingException extends Exception {
 
     private final String source;
 

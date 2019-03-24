@@ -2,22 +2,64 @@ package net.instant.util.argparse;
 
 import java.util.Iterator;
 
-/* FIXME: Non-BMP Unicode support */
+/* FIXME: Add non-BMP Unicode support */
 public class ArgumentSplitter implements Iterable<String> {
 
     public enum Mode {
-        OPTIONS, // Continuations of short options are options, too
-        ARGUMENTS, // Continuations of short options are arguments
+        OPTIONS,        // Continuations of short options are options, too
+        ARGUMENTS,      // Continuations of short options are arguments
         FORCE_ARGUMENTS // Everything is an argument
+    }
+
+    public enum ArgType {
+        SHORT_OPTION, // Single-letter option
+        LONG_OPTION,  // Long option
+        VALUE,        // Value immediately following an option
+        ARGUMENT      // Stand-alone argument
+    }
+
+    public static class ArgValue {
+
+        private final ArgType type;
+        private final String value;
+
+        public ArgValue(ArgType type, String value) {
+            this.type = type;
+            this.value = value;
+        }
+
+        public String toString() {
+            switch (getType()) {
+                case SHORT_OPTION: return "option -"      +       value ;
+                case LONG_OPTION : return "option --"     +       value ;
+                case VALUE       : return "option value " + quote(value);
+                case ARGUMENT    : return "argument "     + quote(value);
+                default: throw new AssertionError("This should not happen!");
+            }
+        }
+
+        public ArgType getType() {
+            return type;
+        }
+
+        public String getValue() {
+            return value;
+        }
+
+        private static String quote(String value) {
+            return (value.contains("'")) ? '"' + value + '"' :
+                                           "'" + value + "'";
+        }
+
     }
 
     protected final Iterator<String> iterator;
     protected String value;
-    /* Zero -- nothing consumed; grab new value
+    /* Zero     -- nothing consumed; grab new value
      * Positive -- parsing short options; next at this index
-     * Negative -- parsing long option; next at negative of this index */
+     * Negative -- parsing long option; value at negative of this index */
     protected int index;
-    protected ArgumentValue pushbackValue;
+    protected ArgumentSplitter.ArgValue pushbackValue;
 
     public ArgumentSplitter(Iterable<String> args) {
         iterator = args.iterator();
@@ -51,10 +93,10 @@ public class ArgumentSplitter implements Iterable<String> {
         return iterator.hasNext();
     }
 
-    public ArgumentValue next(Mode mode) {
+    public ArgumentSplitter.ArgValue next(Mode mode) {
         if (pushbackValue != null) {
             /* Argument has been peeked at or rejected */
-            ArgumentValue ret = pushbackValue;
+            ArgumentSplitter.ArgValue ret = pushbackValue;
             pushbackValue = null;
             return ret;
         }
@@ -64,51 +106,53 @@ public class ArgumentSplitter implements Iterable<String> {
             value = iterator.next();
             index = 0;
         }
+        ArgType tp;
+        String v;
         if (mode != Mode.FORCE_ARGUMENTS && index == 0) {
             /* Beginning of an option */
             if (value.equals("-") || value.equals("--")) {
                 /* Special case */
-                return new ArgumentValue(ArgumentValue.Type.ARGUMENT, value);
+                return new ArgumentSplitter.ArgValue(ArgType.ARGUMENT, value);
             } else if (value.startsWith("--")) {
                 /* Long option */
+                tp = ArgType.LONG_OPTION;
                 index = value.indexOf('=') + 1;
                 if (index != 0) {
-                    return new ArgumentValue(ArgumentValue.Type.LONG_OPTION,
-                                             value.substring(2, index - 1));
+                    v = value.substring(2, index - 1);
+                    index = -index;
                 } else {
-                    return new ArgumentValue(ArgumentValue.Type.LONG_OPTION,
-                                             value.substring(2));
+                    v = value.substring(2);
                 }
             } else if (value.startsWith("-")) {
                 /* Short options */
+                tp = ArgType.SHORT_OPTION;
+                v = value.substring(1, 2);
                 index = 2;
-                return new ArgumentValue(ArgumentValue.Type.SHORT_OPTION,
-                                         value.substring(1, 2));
             } else {
                 /* Just an argument */
-                return new ArgumentValue(ArgumentValue.Type.ARGUMENT, value);
+                tp = ArgType.ARGUMENT;
+                v = value;
             }
         } else if (mode != Mode.OPTIONS || index < 0) {
             /* A (possibly directly attached) argument */
-            int idx = Math.abs(index);
-            index = 0;
-            return new ArgumentValue((idx != 0) ? ArgumentValue.Type.VALUE :
-                ArgumentValue.Type.ARGUMENT, value.substring(idx));
+            tp = (index != 0) ? ArgType.VALUE : ArgType.ARGUMENT;
+            v = value.substring(Math.abs(index));
         } else {
             /* More short options */
+            tp = ArgType.SHORT_OPTION;
+            v = value.substring(index, index + 1);
             index++;
-            return new ArgumentValue(ArgumentValue.Type.SHORT_OPTION,
-                                     value.substring(index - 1, index));
         }
+        return new ArgumentSplitter.ArgValue(tp, v);
     }
 
-    public ArgumentValue peek(Mode mode) {
-        ArgumentValue ret = next(mode);
+    public ArgumentSplitter.ArgValue peek(Mode mode) {
+        ArgumentSplitter.ArgValue ret = next(mode);
         pushback(ret);
         return ret;
     }
 
-    public void pushback(ArgumentValue value) {
+    public void pushback(ArgumentSplitter.ArgValue value) {
         pushbackValue = value;
     }
 

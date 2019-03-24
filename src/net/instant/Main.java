@@ -18,12 +18,12 @@ import net.instant.hooks.APIWebSocketHook;
 import net.instant.plugins.PluginException;
 import net.instant.util.Formats;
 import net.instant.util.Logging;
+import net.instant.util.argparse.Argument;
 import net.instant.util.argparse.ArgumentParser;
 import net.instant.util.argparse.KeyValue;
-import net.instant.util.argparse.ParseException;
+import net.instant.util.argparse.Option;
 import net.instant.util.argparse.ParseResult;
-import net.instant.util.argparse.ValueArgument;
-import net.instant.util.argparse.ValueOption;
+import net.instant.util.argparse.ParsingException;
 import net.instant.util.fileprod.FSResourceProducer;
 
 public class Main implements Runnable {
@@ -92,34 +92,37 @@ public class Main implements Runnable {
 
     protected ParseResult parseArguments(ArgumentParser p) {
         p.addStandardOptions();
-        ValueOption<String> host = p.add(ValueOption.of(String.class,
-            "host", 'h', "Host to bind to").defaultsTo("*"));
-        ValueArgument<Integer> port = p.add(ValueArgument.of(Integer.class,
-            "port", "Port to bind to").defaultsTo(8080));
-        ValueOption<File> webroot = p.add(ValueOption.of(File.class,
+        Option<String> host = p.add(Option.of(String.class,
+            "host", 'h', "Host to bind to")
+            .defaultsTo("*"));
+        Argument<Integer> port = p.add(Argument.of(Integer.class,
+            "port", "Port to bind to")
+            .defaultsTo(8080));
+        Option<File> webroot = p.add(Option.of(File.class,
             "webroot", 'r', "Path containing static directories")
             .defaultsTo(new File(".")));
-        ValueOption<String> httpLog = p.add(ValueOption.of(String.class,
-            "http-log", null, "Log file for HTTP requests").defaultsTo("-")
-            .withPlaceholder("<path>"));
-        ValueOption<String> debugLog = p.add(ValueOption.of(String.class,
-            "debug-log", null, "Log file for debugging").defaultsTo("-")
-            .withPlaceholder("<path>"));
-        ValueOption<String> logLevel = p.add(ValueOption.of(String.class,
-            "log-level", 'L', "Logging level").defaultsTo("INFO"));
-        ValueOption<List<File>> plugPath = p.add(ValueOption.ofList(
+        Option<File> httpLog = p.add(Option.of(File.class,
+            "http-log", null, "Log file for HTTP requests")
+            .defaultsTo(new File("-")));
+        Option<File> debugLog = p.add(Option.of(File.class,
+            "debug-log", null, "Log file for debugging")
+            .defaultsTo(new File("-")));
+        Option<String> logLevel = p.add(Option.of(String.class,
+            "log-level", 'L', "Logging level")
+            .defaultsTo("INFO"));
+        Option<List<File>> plugPath = p.add(Option.ofList(
             File.class, "plugin-path", 'P', "Path to search for plugins in")
             .defaultsTo(new ArrayList<File>()));
-        ValueOption<List<String>> plugList = p.add(ValueOption.ofList(
+        Option<List<String>> plugList = p.add(Option.ofList(
             String.class, "plugins", 'p', "List of plugins to load")
             .defaultsTo(new ArrayList<String>()));
-        ValueOption<String> cmd = p.add(ValueOption.of(String.class,
+        Option<String> cmd = p.add(Option.of(String.class,
             "startup-cmd", 'c', "OS command to run before entering " +
             "main loop"));
-        ValueOption<List<KeyValue>> options = p.add(ValueOption.ofAccum(
+        Option<List<KeyValue>> options = p.add(Option.ofAccum(
             KeyValue.class, "option", 'o', "Additional configuration " +
             "parameters"));
-        ValueOption<File> config = p.add(ValueOption.of(File.class,
+        Option<File> config = p.add(Option.of(File.class,
             "config", 'C', "Configuration file"));
         ParseResult r = parseArgumentsInner(p);
         String hostval = r.get(host);
@@ -141,7 +144,7 @@ public class Main implements Runnable {
     protected ParseResult parseArgumentsInner(ArgumentParser p) {
         try {
             return p.parse(args);
-        } catch (ParseException exc) {
+        } catch (ParsingException exc) {
             System.err.println(exc.getMessage());
             System.exit(1);
             return null;
@@ -207,8 +210,8 @@ public class Main implements Runnable {
         runner.launch();
     }
 
-    private static PrintStream resolveLogFile(String path) {
-        if (path == null || path.equals("-")) {
+    private static PrintStream resolveLogFile(File path) {
+        if (path == null || path.getPath().equals("-")) {
             return System.err;
         } else {
             try {

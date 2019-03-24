@@ -6,7 +6,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-public class OptionDispatcher implements MultiProcessor {
+public class OptionDispatcher {
 
     private final Map<String, Processor> options;
     private final Map<Character, Processor> shortOptions;
@@ -66,7 +66,7 @@ public class OptionDispatcher implements MultiProcessor {
         description = desc;
     }
 
-    public void addOption(ValueOption<?> opt) {
+    public void addOption(Option<?> opt) {
         options.put(opt.getName(), opt);
         if (opt.getShortName() != null)
             shortOptions.put(opt.getShortName(), opt);
@@ -76,12 +76,12 @@ public class OptionDispatcher implements MultiProcessor {
     }
     public void remove(Processor proc) {
         options.remove(proc.getName());
-        if (proc instanceof ValueOption<?>)
-            shortOptions.remove(((ValueOption<?>) proc).getShortName());
+        if (proc instanceof Option<?>)
+            shortOptions.remove(((Option<?>) proc).getShortName());
         arguments.remove(proc);
     }
 
-    public Processor getOption(ArgumentValue av) {
+    public Processor getOption(ArgumentSplitter.ArgValue av) {
         switch (av.getType()) {
             case SHORT_OPTION:
                 return shortOptions.get(av.getValue().charAt(0));
@@ -103,7 +103,7 @@ public class OptionDispatcher implements MultiProcessor {
     public void parse(ArgumentSplitter source, ParseResultBuilder drain)
             throws ParsingException {
         for (;;) {
-            ArgumentValue av = source.peek((argumentsOnly) ?
+            ArgumentSplitter.ArgValue av = source.peek((argumentsOnly) ?
                 ArgumentSplitter.Mode.FORCE_ARGUMENTS :
                 ArgumentSplitter.Mode.OPTIONS);
             if (av == null) break;
@@ -175,12 +175,9 @@ public class OptionDispatcher implements MultiProcessor {
         return null;
     }
 
-    static void accumulateHelpLines(Processor p, List<HelpLine> drain) {
+    private void accumulateHelpLines(Processor p, List<HelpLine> drain) {
         HelpLine h = p.getHelpLine();
-        if (h != null)
-            drain.add(h);
-        if (p instanceof MultiProcessor)
-            drain.addAll(((MultiProcessor) p).getAllHelpLines());
+        if (h != null) drain.add(h);
     }
     public List<HelpLine> getAllHelpLines() {
         List<HelpLine> ret = new ArrayList<HelpLine>();

@@ -21,11 +21,13 @@ public class Committer<T> {
     public boolean storedIn(ParseResult store) {
         return store.contains(key);
     }
+
     public T retrieve(ParseResult store) {
         return store.get(key);
     }
+
     public void commit(T value, ParseResultBuilder store) {
-        store.put(new OptionValue<T>(key, value));
+        store.put(key, value);
     }
 
 }

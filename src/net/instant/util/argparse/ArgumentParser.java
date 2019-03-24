@@ -42,8 +42,8 @@ public class ArgumentParser {
     }
 
     public <X extends Processor> X add(X arg) {
-        if (arg instanceof ValueOption<?>) {
-            getDispatcher().addOption((ValueOption) arg);
+        if (arg instanceof Option<?>) {
+            getDispatcher().addOption((Option<?>) arg);
         } else {
             getDispatcher().addArgument(arg);
         }
@@ -59,19 +59,15 @@ public class ArgumentParser {
     }
 
     public ParseResult parse(String[] args) throws ParsingException {
-        return parse(Arrays.asList(args), true);
+        return parse(Arrays.asList(args));
     }
     public ParseResult parse(Iterable<String> args) throws ParsingException {
-        return parse(args, true);
-    }
-    public ParseResult parse(Iterable<String> args, boolean full)
-            throws ParsingException {
         ArgumentSplitter splitter = new ArgumentSplitter(args);
         ParseResultBuilder result = new ParseResultBuilder();
         getDispatcher().startParsing(result);
         getDispatcher().parse(splitter, result);
-        ArgumentValue probe = splitter.peek(ArgumentSplitter.Mode.OPTIONS);
-        if (full && probe != null)
+        ArgumentSplitter.ArgValue probe = splitter.peek(ArgumentSplitter.Mode.OPTIONS);
+        if (probe != null)
             throw new ParsingException("Superfluous " + probe);
         getDispatcher().finishParsing(result);
         return result;

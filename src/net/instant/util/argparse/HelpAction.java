@@ -3,7 +3,7 @@ package net.instant.util.argparse;
 import java.util.Formatter;
 import java.util.List;
 
-public class HelpAction extends RunnableAction implements MultiProcessor {
+public class HelpAction extends RunnableAction {
 
     public static final String USAGE_LINE_HEADER = "USAGE: ";
 
@@ -77,8 +77,8 @@ public class HelpAction extends RunnableAction implements MultiProcessor {
     }
 
     public static Processor makeOption(ArgumentParser parser) {
-        return new ValueOption<Void>("help", '?', "Display help.",
-                                     new HelpAction(parser));
+        return new Option<Void>("help", '?', "Display help.",
+                                new HelpAction(parser));
     }
 
 }

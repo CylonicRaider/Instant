@@ -7,8 +7,10 @@ public class Action implements Processor {
 
     public void parse(ArgumentSplitter source, ParseResultBuilder drain)
             throws ParsingException {
-        ArgumentValue av = source.peek(ArgumentSplitter.Mode.OPTIONS);
-        if (av != null && av.getType() == ArgumentValue.Type.VALUE)
+        ArgumentSplitter.ArgValue av = source.peek(
+            ArgumentSplitter.Mode.OPTIONS);
+        if (av != null && av.getType() ==
+                ArgumentSplitter.ArgType.VALUE)
             throw new ParsingException("Unexpected option value for",
                                        "<anonymous>");
     }

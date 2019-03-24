@@ -6,31 +6,47 @@ import java.util.Map;
 
 public abstract class Converter<T> {
 
+    private class ChangedPlaceholderConverter extends Converter<T> {
+
+        public ChangedPlaceholderConverter(String placeholder) {
+            super(placeholder);
+        }
+
+        public Converter<T> getParent() {
+            return Converter.this;
+        }
+
+        public T convert(String data) throws ParsingException {
+            return getParent().convert(data);
+        }
+
+    }
+
     private static final Map<Class<?>, Converter<?>> registry;
 
     static {
         registry = new HashMap<Class<?>, Converter<?>>();
-        register(String.class, new Converter<String>("<str>") {
+        register(String.class, new Converter<String>("<STR>") {
             public String convert(String data) {
                 return data;
             }
         });
-        register(Integer.class, new Converter<Integer>("<int>") {
-            public Integer convert(String data) throws ParseException {
+        register(Integer.class, new Converter<Integer>("<INT>") {
+            public Integer convert(String data) throws ParsingException {
                 try {
                     return Integer.parseInt(data);
                 } catch (NumberFormatException exc) {
-                    throw new ParseException("Invalid integer: " + data,
-                                             exc);
+                    throw new ParsingException("Invalid integer: " + data,
+                                               exc);
                 }
             }
         });
-        register(File.class, new Converter<File>("<path>") {
+        register(File.class, new Converter<File>("<PATH>") {
             public File convert(String data) {
                 return new File(data);
             }
         });
-        register(KeyValue.class, new Converter<KeyValue>("<key>=<value>") {
+        register(KeyValue.class, new Converter<KeyValue>("<KEY>=<VALUE>") {
             public KeyValue convert(String data) {
                 String[] items = data.split("=", 2);
                 return new KeyValue(items[0],
@@ -45,30 +61,26 @@ public abstract class Converter<T> {
         this.placeholder = placeholder;
     }
 
+    private Converter<T> getParent() {
+        return this;
+    }
+
     public String getPlaceholder() {
         return placeholder;
     }
     public Converter<T> withPlaceholder(String p) {
-        return new Converter<T>(p) {
-            public T convert(String data) throws ParseException {
-                return Converter.this.convert(data);
-            }
-        };
+        // Nasty trickery: ChangedPlaceholderConverter overrides getParent()
+        // to return its enclosing class (so that the same parent is used
+        // when chaining withPlaceholder() calls) and delegates to that
+        // parent.
+        return getParent().new ChangedPlaceholderConverter(p);
     }
 
-    public abstract T convert(String data) throws ParseException;
-
-    public OptionValue<T> wrap(BaseOption<T> option, T item) {
-        return new OptionValue<T>(option, item);
-    }
+    public abstract T convert(String data) throws ParsingException;
 
     public String format(T item) {
         if (item == null) return null;
         return String.valueOf(item);
-    }
-
-    public String formatAppendix() {
-        return null;
     }
 
     public static <X> void register(Class<X> cls, Converter<X> cvt) {

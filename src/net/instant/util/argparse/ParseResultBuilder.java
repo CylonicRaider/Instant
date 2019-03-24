@@ -6,40 +6,28 @@ import java.util.Map;
 
 public class ParseResultBuilder implements ParseResult {
 
-    private final Map<BaseOption<?>, OptionValue<?>> data;
+    private final Map<BaseOption<?>, Object> data;
 
-    public ParseResultBuilder(Iterable<OptionValue<?>> values) {
-        data = new LinkedHashMap<BaseOption<?>, OptionValue<?>>();
-        if (values != null) for (OptionValue<?> v : values) put(v);
-    }
     public ParseResultBuilder() {
-        this(null);
+        data = new LinkedHashMap<BaseOption<?>, Object>();
     }
 
-    public Map<BaseOption<?>, OptionValue<?>> getData() {
+    public Map<BaseOption<?>, ?> getData() {
         return Collections.unmodifiableMap(data);
     }
 
-    public <X> boolean contains(BaseOption<X> opt) {
+    public boolean contains(BaseOption<?> opt) {
         return data.containsKey(opt);
     }
 
-    public <X> OptionValue<X> getRaw(BaseOption<X> opt) {
+    public <X> X get(BaseOption<X> opt) {
         @SuppressWarnings("unchecked")
-        OptionValue<X> ret = (OptionValue<X>) data.get(opt);
+        X ret = (X) data.get(opt);
         return ret;
     }
 
-    public <X> X get(BaseOption<X> opt) {
-        OptionValue<X> v = getRaw(opt);
-        return (v == null) ? null : v.getValue();
-    }
-
-    public <X> void put(OptionValue<X> v) {
-        if (v == null) return;
-        @SuppressWarnings("unchecked")
-        OptionValue<X> o = (OptionValue<X>) data.get(v.getOption());
-        data.put(v.getOption(), v.merge(o));
+    public <X> void put(BaseOption<X> key, X value) {
+        data.put(key, value);
     }
 
 }
