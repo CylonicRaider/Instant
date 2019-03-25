@@ -15,12 +15,12 @@ _JAVA_SOURCES = $(patsubst src/%,%,$(SOURCES))
 .NOTPARALLEL:
 .PHONY: clean lint lint-ro run pre-commit
 
+default: Instant.jar
+all: Instant.jar
+
 Instant.jar: .build.jar $(LIBRARIES) $(ASSETS) $(AUTOASSETS)
 	cp .build.jar Instant.jar
 	cd src && jar uf ../Instant.jar *
-
-all: Instant.jar
-	$(MAKE) -C tools all
 
 # Avoid recompiling the backend on frontend changes.
 .SECONDARY: .build.jar
@@ -42,7 +42,6 @@ config/cookie-key.bin: | config
 
 clean:
 	rm -f .build.jar Instant.jar Instant-run.jar
-	$(MAKE) -C tools clean
 
 lint:
 	script/importlint.py --sort --prune --empty-lines $(_ALL_SOURCES)
@@ -65,14 +64,12 @@ src/static/logo-static_128x128.png: src/static/logo-static.svg
 src/static/logo-static_128x128.ico: src/static/logo-static.svg
 	convert -background none -density 288 $< $@
 
-tools/%.jar: tools/%
-	$(MAKE) -C tools $*.jar
-
 _lint-changed:
 	@script/importlint.py --sort --prune --empty-lines --report-null \
 	$$(git diff --cached --name-only --diff-filter d | grep '\.java$$') \
 	| xargs -r0 git add
 
 pre-commit: _lint-changed Instant.jar
-	@$(MAKE) -sC tools _pre-commit
 	@git add Instant.jar
+
+include tools/build.mk
