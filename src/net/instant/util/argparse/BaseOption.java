@@ -1,15 +1,20 @@
 package net.instant.util.argparse;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public abstract class BaseOption implements Processor {
 
     private String name;
     private String help;
     private boolean required;
+    private final List<String> comments;
 
     public BaseOption(String name, String help) {
         this.name = name;
         this.help = help;
         this.required = false;
+        this.comments = new ArrayList<String>();
     }
 
     public String getName() {
@@ -38,6 +43,14 @@ public abstract class BaseOption implements Processor {
     }
     public BaseOption optional() {
         setRequired(false);
+        return this;
+    }
+
+    public List<String> getComments() {
+        return comments;
+    }
+    public BaseOption withComment(String comment) {
+        if (comment != null) comments.add(comment);
         return this;
     }
 

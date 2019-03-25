@@ -115,11 +115,13 @@ public class ArgumentParser {
 
     private OptionDispatcher dispatcher;
     private String version;
+    private String description;
 
     public ArgumentParser(String progname, String version,
                           String description) {
-        this.dispatcher = new OptionDispatcher(progname, description);
+        this.dispatcher = new OptionDispatcher(progname);
         this.version = version;
+        this.description = description;
     }
 
     public OptionDispatcher getDispatcher() {
@@ -144,11 +146,12 @@ public class ArgumentParser {
     }
 
     public String getDescription() {
-        return getDispatcher().getDescription();
+        return description;
     }
     public void setDescription(String desc) {
-        getDispatcher().setDescription(desc);
+        description = desc;
     }
+
 
     public <X extends Processor> X add(X arg) {
         if (arg instanceof Option<?>) {

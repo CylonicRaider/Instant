@@ -9,7 +9,7 @@ public abstract class Converter<T> {
     private class ChangedPlaceholderConverter extends Converter<T> {
 
         public ChangedPlaceholderConverter(String placeholder) {
-            super(placeholder);
+            super(placeholder, Converter.this.isQuoting());
         }
 
         public Converter<T> getParent() {
@@ -26,12 +26,12 @@ public abstract class Converter<T> {
 
     static {
         registry = new HashMap<Class<?>, Converter<?>>();
-        register(String.class, new Converter<String>("<STR>") {
+        register(String.class, new Converter<String>("<STR>", true) {
             public String convert(String data) {
                 return data;
             }
         });
-        register(Integer.class, new Converter<Integer>("<INT>") {
+        register(Integer.class, new Converter<Integer>("<INT>", false) {
             public Integer convert(String data) throws ParsingException {
                 try {
                     return Integer.parseInt(data);
@@ -41,12 +41,13 @@ public abstract class Converter<T> {
                 }
             }
         });
-        register(File.class, new Converter<File>("<PATH>") {
+        register(File.class, new Converter<File>("<PATH>", true) {
             public File convert(String data) {
                 return new File(data);
             }
         });
-        register(KeyValue.class, new Converter<KeyValue>("<KEY>=<VALUE>") {
+        register(KeyValue.class, new Converter<KeyValue>("<KEY>=<VALUE>",
+                                                         false) {
             public KeyValue convert(String data) {
                 String[] items = data.split("=", 2);
                 return new KeyValue(items[0],
@@ -56,9 +57,11 @@ public abstract class Converter<T> {
     }
 
     private final String placeholder;
+    private final boolean quoting;
 
-    protected Converter(String placeholder) {
+    protected Converter(String placeholder, boolean quoting) {
         this.placeholder = placeholder;
+        this.quoting = quoting;
     }
 
     private Converter<T> getParent() {
@@ -76,11 +79,17 @@ public abstract class Converter<T> {
         return getParent().new ChangedPlaceholderConverter(p);
     }
 
+    public boolean isQuoting() {
+        return quoting;
+    }
+
     public abstract T convert(String data) throws ParsingException;
 
     public String format(T item) {
         if (item == null) return null;
-        return String.valueOf(item);
+        String ret = item.toString();
+        if (isQuoting()) ret = quote(ret);
+        return ret;
     }
 
     public static <X> void register(Class<X> cls, Converter<X> cvt) {
@@ -93,6 +102,10 @@ public abstract class Converter<T> {
         @SuppressWarnings("unchecked")
         Converter<X> ret = (Converter<X>) registry.get(cls);
         return ret;
+    }
+
+    public static String quote(String s) {
+        return (s.contains("\"")) ? "'" + s + "'" : '"' + s + '"';
     }
 
 }

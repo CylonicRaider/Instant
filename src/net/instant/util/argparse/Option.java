@@ -47,6 +47,7 @@ public class Option<X extends Processor> extends BaseOption {
 
     public HelpLine getHelpLine() {
         HelpLine ret = new HelpLine("--" + getName(), null, getHelp());
+        ret.getAddenda().addAll(getComments());
         HelpLine childHelp = getChild().getHelpLine();
         if (childHelp != null) {
             ret.setParams(childHelp.getParams());
@@ -78,13 +79,13 @@ public class Option<X extends Processor> extends BaseOption {
 
     public void parse(ArgumentSplitter source, ParseResultBuilder drain)
             throws ParsingException {
-        ArgumentSplitter.ArgValue check = source.next(
+        ArgumentSplitter.ArgValue check = source.peek(
             ArgumentSplitter.Mode.OPTIONS);
         if (check != null && ! matches(check)) {
-            source.pushback(check);
             throw new ParsingException("Command-line " + check +
                 "does not match", formatName());
         }
+        source.next(ArgumentSplitter.Mode.OPTIONS);
         try {
             getChild().parse(source, drain);
         } catch (ParsingException exc) {

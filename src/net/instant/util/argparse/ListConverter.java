@@ -24,7 +24,7 @@ public class ListConverter<E> extends Converter<List<E>> {
 
     public ListConverter(Converter<E> inner, String separator) {
         super(inner.getPlaceholder() +
-            ((separator != null) ? "[" + separator + "...]" : ""));
+            ((separator != null) ? "[" + separator + "...]" : ""), false);
         this.inner = inner;
         this.separator = separator;
     }

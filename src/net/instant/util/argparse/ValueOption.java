@@ -38,11 +38,21 @@ public class ValueOption<T> extends Option<Argument<T>>
         return this;
     }
 
+    public HelpLine getHelpLine() {
+        HelpLine ret = super.getHelpLine();
+        if (ret != null)
+            ret.addAddendum(Argument.formatDefault(Argument.DEFAULT_PREFIX,
+                getChild().getConverter(), getDefault()));
+        return ret;
+    }
+
     public void startParsing(ParseResultBuilder drain)
             throws ParsingException {
+        Committer<T> comm = getChild().getCommitter();
+        T oldValue = comm.get(drain);
         super.startParsing(drain);
-        if (getDefault() != null)
-            getChild().getCommitter().commit(getDefault(), drain);
+        comm.put(oldValue, drain);
+        if (getDefault() != null) comm.commit(getDefault(), drain);
     }
 
     public void finishParsing(ParseResultBuilder drain)
@@ -53,7 +63,7 @@ public class ValueOption<T> extends Option<Argument<T>>
             /* Explicitly swallow this one -- we use the argument's
              * "required" flag for other purposes. */
         }
-        if (isRequired() && ! getChild().getCommitter().storedIn(drain))
+        if (isRequired() && ! getChild().getCommitter().containedIn(drain))
             throw new ValueMissingException("Missing required",
                                             formatName());
     }
@@ -69,7 +79,7 @@ public class ValueOption<T> extends Option<Argument<T>>
             name, shortname, help,
             new Argument<List<T>>(
                 new ListConverter<T>(Converter.get(cls), null),
-                new Committer<List<T>>()
+                new ConcatCommitter<T>()
             )
         ).setup().defaultsTo(new ArrayList<T>());
     }

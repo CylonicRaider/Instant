@@ -4,6 +4,9 @@ import java.util.List;
 
 public class Argument<T> extends BaseOption implements ValueProcessor<T> {
 
+    public static final String DEFAULT_PREFIX = "default";
+    public static final String NESTED_DEFAULT_PREFIX = "argument default";
+
     private boolean optional;
     private Converter<T> converter;
     private Committer<T> committer;
@@ -74,34 +77,39 @@ public class Argument<T> extends BaseOption implements ValueProcessor<T> {
 
     public HelpLine getHelpLine() {
         String name = getName();
-        return new HelpLine(formatUsageInner(), ":",
+        HelpLine ret = new HelpLine(formatUsageInner(), ":",
             getConverter().getPlaceholder(), getHelp());
+        ret.getAddenda().addAll(getComments());
+        ret.getAddenda().addAll(getCommitter().getAddenda());
+        ret.getAddenda().add(formatDefault(
+            (getCommitter().getKey() == this) ? DEFAULT_PREFIX :
+                                                NESTED_DEFAULT_PREFIX,
+            getConverter(), getDefault()));
+        return ret;
     }
 
     public void startParsing(ParseResultBuilder drain)
             throws ParsingException {
-        // Do not accidentally leave behind our default if we are attached to
-        // a ValueOption.
-        if (getDefault() != null && getCommitter().getKey() == this)
+        if (getDefault() != null)
             getCommitter().commit(getDefault(), drain);
     }
 
     public void parse(ArgumentSplitter source, ParseResultBuilder drain)
             throws ParsingException {
-        ArgumentSplitter.ArgValue av = source.next((isRequired()) ?
+        ArgumentSplitter.Mode mode = (isRequired()) ?
             ArgumentSplitter.Mode.FORCE_ARGUMENTS :
-            ArgumentSplitter.Mode.ARGUMENTS);
+            ArgumentSplitter.Mode.ARGUMENTS;
+        ArgumentSplitter.ArgValue av = source.peek(mode);
         T value;
-        if (av == null) {
+        if (av == null || av.getType() == ArgumentSplitter.ArgType.SPECIAL) {
             if (isRequired())
                 throw new ParsingException("Missing value for",
                                            formatName());
             value = getDefault();
-        } else if (av.getType() == ArgumentSplitter.ArgType.SHORT_OPTION ||
-                   av.getType() == ArgumentSplitter.ArgType.LONG_OPTION) {
-            source.pushback(av);
+        } else if (! av.getType().isArgument()) {
             return;
         } else {
+            source.next(mode);
             value = getConverter().convert(av.getValue());
         }
         getCommitter().commit(value, drain);
@@ -109,7 +117,7 @@ public class Argument<T> extends BaseOption implements ValueProcessor<T> {
 
     public void finishParsing(ParseResultBuilder drain)
             throws ParsingException {
-        if (isRequired() && ! getCommitter().storedIn(drain))
+        if (isRequired() && ! getCommitter().containedIn(drain))
             throw new ValueMissingException("Missing required",
                                             formatName());
     }
@@ -131,6 +139,12 @@ public class Argument<T> extends BaseOption implements ValueProcessor<T> {
     protected static <T> Argument<List<T>> ofList(Class<T> cls) {
         return new Argument<List<T>>(ListConverter.getL(cls),
             new ConcatCommitter<T>());
+    }
+
+    protected static <T> String formatDefault(String prefix,
+            Converter<T> converter, T value) {
+        String fmt = converter.format(value);
+        return (fmt == null) ? null : prefix + " " + fmt;
     }
 
 }

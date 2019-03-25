@@ -1,5 +1,8 @@
 package net.instant.util.argparse;
 
+import java.util.Collections;
+import java.util.List;
+
 public class Committer<T> {
 
     private ValueProcessor<T> key;
@@ -18,22 +21,26 @@ public class Committer<T> {
         key = k;
     }
 
-    public boolean storedIn(ParseResult store) {
+    public List<String> getAddenda() {
+        return Collections.emptyList();
+    }
+
+    public boolean containedIn(ParseResult store) {
         return store.contains(key);
     }
-
-    public T retrieve(ParseResult store) {
+    public T get(ParseResult store) {
         return store.get(key);
     }
-
-    public void commit(T value, ParseResultBuilder store) {
-        store.put(key, merge(store.get(key), value));
+    public void put(T value, ParseResultBuilder store) {
+        store.put(key, value);
     }
-
     public void remove(ParseResultBuilder store) {
         store.remove(key);
     }
 
+    public void commit(T value, ParseResultBuilder store) {
+        put(merge(get(store), value), store);
+    }
     protected T merge(T oldValue, T newValue) {
         return newValue;
     }

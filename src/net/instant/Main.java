@@ -31,7 +31,8 @@ public class Main implements Runnable {
     public static final String APPNAME = "Instant";
     public static final String VERSION = "1.5.4";
     public static final String FINE_VERSION;
-    public static final String DESCRIPTION = "A Web-based threaded chat.";
+    public static final String DESCRIPTION = "A Web-based threaded chat " +
+        "(server).";
 
     public static final String ROOM_RE =
         "[a-zA-Z](?:[a-zA-Z0-9_-]*[a-zA-Z0-9])?";
@@ -95,6 +96,7 @@ public class Main implements Runnable {
         ValueOption<String> host = p.add(ValueOption.of(String.class,
             "host", 'h', "Host to bind to.")
             .defaultsTo("*").withPlaceholder("<ADDR>"));
+        host.withComment("\"*\" = all interfaces");
         Argument<Integer> port = p.add(Argument.of(Integer.class,
             "port", "Port to bind to.")
             .defaultsTo(8080));
@@ -104,9 +106,11 @@ public class Main implements Runnable {
         ValueOption<File> httpLog = p.add(ValueOption.of(File.class,
             "http-log", null, "Log file for HTTP requests.")
             .defaultsTo(new File("-")));
+        httpLog.withComment("\"-\" = standard error");
         ValueOption<File> debugLog = p.add(ValueOption.of(File.class,
             "debug-log", null, "Log file for debugging.")
             .defaultsTo(new File("-")));
+        debugLog.withComment("\"-\" = standard error");
         ValueOption<String> logLevel = p.add(ValueOption.of(String.class,
             "log-level", 'L', "Logging level.")
             .defaultsTo("INFO"));
@@ -121,7 +125,7 @@ public class Main implements Runnable {
             "main loop."));
         ValueOption<List<KeyValue>> options = p.add(ValueOption.ofAccum(
             KeyValue.class, "option", 'o', "Additional configuration " +
-            "parameters."));
+            "parameter."));
         ValueOption<File> config = p.add(ValueOption.of(File.class,
             "config", 'C', "Configuration file."));
         ParseResult r = parseArgumentsInner(p);

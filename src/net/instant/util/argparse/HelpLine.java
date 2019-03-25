@@ -56,6 +56,7 @@ public class HelpLine {
         return addenda;
     }
     public void addAddendum(String entry) {
+        if (entry == null) return;
         addenda.add(entry);
     }
 
@@ -100,16 +101,18 @@ public class HelpLine {
                          l.getName(), sep);
             }
             f.format(lineMidFormat, l.getParams(), l.getDescription());
-            if (! l.getAddenda().isEmpty()) {
-                f.format(" (");
-                boolean first = true;
-                for (String a : l.getAddenda()) {
-                    if (a == null) continue;
-                    f.format(((first) ? "%s" : ", %s"), a);
+            boolean first = true;
+            for (String a : l.getAddenda()) {
+                if (a == null) {
+                    continue;
+                } else if (first) {
+                    f.format(" (%s", a);
                     first = false;
+                } else {
+                    f.format("; %s", a);
                 }
-                f.format(")");
             }
+            if (! first) f.format(")");
         }
         /* Done */
         f.flush();

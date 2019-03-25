@@ -6,24 +6,20 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-public class OptionDispatcher {
+public class OptionDispatcher implements Processor {
 
     private final Map<String, Processor> options;
     private final Map<Character, Processor> shortOptions;
     private final List<Processor> arguments;
-    private boolean allowingArgumentSeparator;
     private String name;
-    private String description;
     private Iterator<Processor> nextArgument;
     private boolean argumentsOnly;
 
-    public OptionDispatcher(String name, String description) {
+    public OptionDispatcher(String name) {
         this.options = new LinkedHashMap<String, Processor>();
         this.shortOptions = new LinkedHashMap<Character, Processor>();
         this.arguments = new ArrayList<Processor>();
-        this.allowingArgumentSeparator = true;
         this.name = name;
-        this.description = description;
     }
 
     public Map<String, Processor> getOptions() {
@@ -45,25 +41,11 @@ public class OptionDispatcher {
         return ret;
     }
 
-    public boolean isAllowingArgumentSeparator() {
-        return allowingArgumentSeparator;
-    }
-    public void setAllowingArgumentSeparator(boolean enabled) {
-        allowingArgumentSeparator = enabled;
-    }
-
     public String getName() {
         return name;
     }
     public void setName(String n) {
         name = n;
-    }
-
-    public String getDescription() {
-        return description;
-    }
-    public void setDescription(String desc) {
-        description = desc;
     }
 
     public void addOption(Option<?> opt) {
@@ -116,11 +98,7 @@ public class OptionDispatcher {
                 case VALUE:
                     throw new ParsingException("Orphan " + av);
                 case ARGUMENT:
-                    if (isAllowingArgumentSeparator() &&
-                            av.getValue().equals("--")) {
-                        argumentsOnly = true;
-                        continue;
-                    } else if (! nextArgument.hasNext()) {
+                    if (! nextArgument.hasNext()) {
                         throw new ParsingException("Superfluous " + av);
                     }
                     chain = nextArgument.next();
@@ -128,6 +106,14 @@ public class OptionDispatcher {
                         throw new NullPointerException("Null argument " +
                             "processor in OptionDispatcher");
                     break;
+                case SPECIAL:
+                    if (av.getValue().equals("--")) {
+                        argumentsOnly = true;
+                        continue;
+                    } else {
+                        throw new AssertionError("Unrecognized special " +
+                            av);
+                    }
                 default:
                     throw new AssertionError("Unknown argument type " +
                         av.getType() + "?!");
@@ -165,10 +151,6 @@ public class OptionDispatcher {
             sb.append(pu);
         }
         return (first) ? null : sb.toString();
-    }
-
-    public String formatDescription() {
-        return getDescription();
     }
 
     public HelpLine getHelpLine() {
