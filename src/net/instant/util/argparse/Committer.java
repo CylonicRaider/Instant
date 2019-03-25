@@ -2,19 +2,19 @@ package net.instant.util.argparse;
 
 public class Committer<T> {
 
-    private BaseOption<T> key;
+    private ValueProcessor<T> key;
 
-    public Committer(BaseOption<T> key) {
+    public Committer(ValueProcessor<T> key) {
         this.key = key;
     }
     public Committer() {
         this(null);
     }
 
-    public BaseOption<T> getKey() {
+    public ValueProcessor<T> getKey() {
         return key;
     }
-    public void setKey(BaseOption<T> k) {
+    public void setKey(ValueProcessor<T> k) {
         key = k;
     }
 
@@ -27,7 +27,15 @@ public class Committer<T> {
     }
 
     public void commit(T value, ParseResultBuilder store) {
-        store.put(key, value);
+        store.put(key, merge(store.get(key), value));
+    }
+
+    public void remove(ParseResultBuilder store) {
+        store.remove(key);
+    }
+
+    protected T merge(T oldValue, T newValue) {
+        return newValue;
     }
 
 }

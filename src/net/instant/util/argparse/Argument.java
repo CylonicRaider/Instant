@@ -2,54 +2,60 @@ package net.instant.util.argparse;
 
 import java.util.List;
 
-public class Argument<X> extends BaseOption<X> {
+public class Argument<T> extends BaseOption implements ValueProcessor<T> {
 
     private boolean optional;
-    private Converter<X> converter;
-    private Committer<X> committer;
-    private X defaultValue;
+    private Converter<T> converter;
+    private Committer<T> committer;
+    private T defaultValue;
 
-    public Argument(String name, String help, Converter<X> converter,
-                    Committer<X> committer) {
+    public Argument(String name, String help, Converter<T> converter,
+                    Committer<T> committer) {
         super(name, help);
         this.converter = converter;
         this.committer = committer;
-        committer.setKey(this);
     }
-    public Argument(Converter<X> converter, Committer<X> committer) {
+    public Argument(Converter<T> converter, Committer<T> committer) {
         this(null, null, converter, committer);
     }
 
-    public Converter<X> getConverter() {
-        return converter;
-    }
-    public void setConverter(Converter<X> c) {
-        converter = c;
-    }
-    public Argument<X> withConverter(Converter<X> c) {
-        setConverter(c);
+    public Argument<T> setup() {
+        getCommitter().setKey(this);
         return this;
     }
 
-    public Committer<X> getCommitter() {
+    public Converter<T> getConverter() {
+        return converter;
+    }
+    public void setConverter(Converter<T> c) {
+        converter = c;
+    }
+    public Argument<T> withConverter(Converter<T> c) {
+        setConverter(c);
+        return this;
+    }
+    public Argument<T> withPlaceholder(String placeholder) {
+        return withConverter(getConverter().withPlaceholder(placeholder));
+    }
+
+    public Committer<T> getCommitter() {
         return committer;
     }
-    public void setCommitter(Committer<X> c) {
+    public void setCommitter(Committer<T> c) {
         committer = c;
-        c.setKey(this);
     }
-    public Argument<X> withCommitter(Committer<X> c) {
+    public Argument<T> withCommitter(Committer<T> c) {
         setCommitter(c);
         return this;
     }
 
-    public X getDefault() {
+    public T getDefault() {
         return defaultValue;
     }
-    public void setDefault(X v) {
+    public void setDefault(T v) {
         defaultValue = v;
     }
-    public Argument<X> defaultsTo(X v) {
+    public Argument<T> defaultsTo(T v) {
         setDefault(v);
         return this;
     }
@@ -72,46 +78,51 @@ public class Argument<X> extends BaseOption<X> {
             getConverter().getPlaceholder(), getHelp());
     }
 
+    public void startParsing(ParseResultBuilder drain)
+            throws ParsingException {
+        // Do not accidentally leave behind our default if we are attached to
+        // a ValueOption.
+        if (getDefault() != null && getCommitter().getKey() == this)
+            getCommitter().commit(getDefault(), drain);
+    }
+
     public void parse(ArgumentSplitter source, ParseResultBuilder drain)
             throws ParsingException {
         ArgumentSplitter.ArgValue av = source.next((isRequired()) ?
             ArgumentSplitter.Mode.FORCE_ARGUMENTS :
             ArgumentSplitter.Mode.ARGUMENTS);
-        X value;
+        T value;
         if (av == null) {
             if (isRequired())
-                throw new ParsingException("Missing value for", formatName());
+                throw new ParsingException("Missing value for",
+                                           formatName());
             value = getDefault();
         } else if (av.getType() == ArgumentSplitter.ArgType.SHORT_OPTION ||
                    av.getType() == ArgumentSplitter.ArgType.LONG_OPTION) {
             source.pushback(av);
             return;
         } else {
-            value = converter.convert(av.getValue());
+            value = getConverter().convert(av.getValue());
         }
-        committer.commit(value, drain);
+        getCommitter().commit(value, drain);
     }
 
     public void finishParsing(ParseResultBuilder drain)
             throws ParsingException {
-        if (! isRequired()) {
-            /* NOP */
-        } else if (! committer.storedIn(drain)) {
-            throw new ParsingException("Missing required value for",
-                                       formatName());
-        } else {
-            committer.commit(getDefault(), drain);
-        }
+        if (isRequired() && ! getCommitter().storedIn(drain))
+            throw new ValueMissingException("Missing required",
+                                            formatName());
     }
 
     public static <T> Argument<T> of(Class<T> cls, String name, String help) {
         return new Argument<T>(name, help, Converter.get(cls),
-            new Committer<T>());
+            new Committer<T>()).setup();
     }
     public static <T> Argument<List<T>> ofList(Class<T> cls, String name,
                                                String help) {
         return new Argument<List<T>>(name, help,
-            ListConverter.getL(cls), new ConcatCommitter<T>());
+                ListConverter.getL(cls), new ConcatCommitter<T>())
+            .setup();
     }
 
     protected static <T> Argument<T> of(Class<T> cls) {

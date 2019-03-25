@@ -21,9 +21,9 @@ import net.instant.util.Logging;
 import net.instant.util.argparse.Argument;
 import net.instant.util.argparse.ArgumentParser;
 import net.instant.util.argparse.KeyValue;
-import net.instant.util.argparse.Option;
 import net.instant.util.argparse.ParseResult;
 import net.instant.util.argparse.ParsingException;
+import net.instant.util.argparse.ValueOption;
 import net.instant.util.fileprod.FSResourceProducer;
 
 public class Main implements Runnable {
@@ -92,38 +92,38 @@ public class Main implements Runnable {
 
     protected ParseResult parseArguments(ArgumentParser p) {
         p.addStandardOptions();
-        Option<String> host = p.add(Option.of(String.class,
-            "host", 'h', "Host to bind to")
-            .defaultsTo("*"));
+        ValueOption<String> host = p.add(ValueOption.of(String.class,
+            "host", 'h', "Host to bind to.")
+            .defaultsTo("*").withPlaceholder("<ADDR>"));
         Argument<Integer> port = p.add(Argument.of(Integer.class,
-            "port", "Port to bind to")
+            "port", "Port to bind to.")
             .defaultsTo(8080));
-        Option<File> webroot = p.add(Option.of(File.class,
-            "webroot", 'r', "Path containing static directories")
+        ValueOption<File> webroot = p.add(ValueOption.of(File.class,
+            "webroot", 'r', "Path containing static directories.")
             .defaultsTo(new File(".")));
-        Option<File> httpLog = p.add(Option.of(File.class,
-            "http-log", null, "Log file for HTTP requests")
+        ValueOption<File> httpLog = p.add(ValueOption.of(File.class,
+            "http-log", null, "Log file for HTTP requests.")
             .defaultsTo(new File("-")));
-        Option<File> debugLog = p.add(Option.of(File.class,
-            "debug-log", null, "Log file for debugging")
+        ValueOption<File> debugLog = p.add(ValueOption.of(File.class,
+            "debug-log", null, "Log file for debugging.")
             .defaultsTo(new File("-")));
-        Option<String> logLevel = p.add(Option.of(String.class,
-            "log-level", 'L', "Logging level")
+        ValueOption<String> logLevel = p.add(ValueOption.of(String.class,
+            "log-level", 'L', "Logging level.")
             .defaultsTo("INFO"));
-        Option<List<File>> plugPath = p.add(Option.ofList(
-            File.class, "plugin-path", 'P', "Path to search for plugins in")
+        ValueOption<List<File>> plugPath = p.add(ValueOption.ofList(
+            File.class, "plugin-path", 'P', "Path to search for plugins in.")
             .defaultsTo(new ArrayList<File>()));
-        Option<List<String>> plugList = p.add(Option.ofList(
-            String.class, "plugins", 'p', "List of plugins to load")
+        ValueOption<List<String>> plugList = p.add(ValueOption.ofList(
+            String.class, "plugins", 'p', "List of plugins to load.")
             .defaultsTo(new ArrayList<String>()));
-        Option<String> cmd = p.add(Option.of(String.class,
+        ValueOption<String> cmd = p.add(ValueOption.of(String.class,
             "startup-cmd", 'c', "OS command to run before entering " +
-            "main loop"));
-        Option<List<KeyValue>> options = p.add(Option.ofAccum(
+            "main loop."));
+        ValueOption<List<KeyValue>> options = p.add(ValueOption.ofAccum(
             KeyValue.class, "option", 'o', "Additional configuration " +
-            "parameters"));
-        Option<File> config = p.add(Option.of(File.class,
-            "config", 'C', "Configuration file"));
+            "parameters."));
+        ValueOption<File> config = p.add(ValueOption.of(File.class,
+            "config", 'C', "Configuration file."));
         ParseResult r = parseArgumentsInner(p);
         String hostval = r.get(host);
         if (hostval.equals("*")) hostval = null;

@@ -21,12 +21,16 @@ public class ParsingException extends Exception {
         this.source = source;
     }
     public ParsingException(ParsingException cause, String newSource) {
-        super(cause.getMessage(), cause);
+        super(cause.getOriginalMessage(), cause);
         this.source = newSource;
     }
 
+    protected String getOriginalMessage() {
+        return super.getMessage();
+    }
+
     public String getMessage() {
-        String ret = super.getMessage();
+        String ret = getOriginalMessage();
         if (ret == null) return null;
         String src = getSource();
         if (src != null) ret += " " + src;

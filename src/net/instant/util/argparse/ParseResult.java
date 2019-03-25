@@ -4,10 +4,10 @@ import java.util.Map;
 
 public interface ParseResult {
 
-    Map<BaseOption<?>, ?> getData();
+    Map<ValueProcessor<?>, Object> getData();
 
-    boolean contains(BaseOption<?> key);
+    boolean contains(ValueProcessor<?> key);
 
-    <X> X get(BaseOption<X> key);
+    <T> T get(ValueProcessor<T> key);
 
 }

@@ -1,6 +1,6 @@
 package net.instant.util.argparse;
 
-public abstract class BaseOption<X> implements Processor {
+public abstract class BaseOption implements Processor {
 
     private String name;
     private String help;
@@ -32,8 +32,12 @@ public abstract class BaseOption<X> implements Processor {
     public void setRequired(boolean r) {
         required = r;
     }
-    public BaseOption<X> required() {
+    public BaseOption required() {
         setRequired(true);
+        return this;
+    }
+    public BaseOption optional() {
+        setRequired(false);
         return this;
     }
 

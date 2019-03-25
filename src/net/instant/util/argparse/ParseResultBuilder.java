@@ -6,28 +6,32 @@ import java.util.Map;
 
 public class ParseResultBuilder implements ParseResult {
 
-    private final Map<BaseOption<?>, Object> data;
+    private final Map<ValueProcessor<?>, Object> data;
 
     public ParseResultBuilder() {
-        data = new LinkedHashMap<BaseOption<?>, Object>();
+        data = new LinkedHashMap<ValueProcessor<?>, Object>();
     }
 
-    public Map<BaseOption<?>, ?> getData() {
+    public Map<ValueProcessor<?>, Object> getData() {
         return Collections.unmodifiableMap(data);
     }
 
-    public boolean contains(BaseOption<?> opt) {
-        return data.containsKey(opt);
+    public boolean contains(ValueProcessor<?> key) {
+        return data.containsKey(key);
     }
 
-    public <X> X get(BaseOption<X> opt) {
+    public <T> T get(ValueProcessor<T> key) {
         @SuppressWarnings("unchecked")
-        X ret = (X) data.get(opt);
+        T ret = (T) data.get(key);
         return ret;
     }
 
-    public <X> void put(BaseOption<X> key, X value) {
+    public <T> void put(ValueProcessor<T> key, T value) {
         data.put(key, value);
+    }
+
+    public void remove(ValueProcessor<?> key) {
+        data.remove(key);
     }
 
 }
