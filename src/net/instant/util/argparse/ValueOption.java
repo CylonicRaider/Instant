@@ -51,8 +51,14 @@ public class ValueOption<T> extends Option<Argument<T>>
         Committer<T> comm = getChild().getCommitter();
         T oldValue = comm.get(drain);
         super.startParsing(drain);
-        comm.put(oldValue, drain);
-        if (getDefault() != null) comm.commit(getDefault(), drain);
+        if (oldValue == null) {
+            comm.remove(drain);
+        } else {
+            comm.put(oldValue, drain);
+        }
+        if (getDefault() != null) {
+            comm.commit(getDefault(), drain);
+        }
     }
 
     public void finishParsing(ParseResultBuilder drain)
