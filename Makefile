@@ -69,7 +69,7 @@ _lint-changed:
 	$$(git diff --cached --name-only --diff-filter d | grep '\.java$$') \
 	| xargs -r0 git add
 
-pre-commit: _lint-changed Instant.jar
+pre-commit: _lint-changed all
 	@git add Instant.jar
 
 include tools/build.mk
