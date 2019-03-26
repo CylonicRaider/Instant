@@ -2,6 +2,7 @@ package net.instant.tools.console_client.gui;
 
 import java.awt.Component;
 import java.awt.Container;
+import java.awt.GraphicsEnvironment;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.event.ActionEvent;
@@ -341,6 +342,10 @@ public class GUIClient extends TypescriptTerminal
         ret.setDisplayedMnemonic(mnemonic);
         ret.setLabelFor(target);
         return ret;
+    }
+
+    public static boolean isHeadless() {
+        return GraphicsEnvironment.isHeadless();
     }
 
     public static void showDefault(final Map<String, String> arguments) {

@@ -51,15 +51,15 @@ public class Main {
             return Flag.make(optionName, optionLetter, optionDescription);
         }
 
-        public static Mode selectFromArguments(Map<String, String> arguments,
-                Mode defaultMode) throws ParsingException {
+        public static Mode selectFromArguments(Map<String, String> arguments)
+                throws ParsingException {
             Set<Mode> selectedModes = EnumSet.noneOf(Mode.class);
             for (Mode m : values()) {
                 if (arguments.containsKey(m.getOptionName()))
                     selectedModes.add(m);
             }
             if (selectedModes.size() == 0) {
-                return defaultMode;
+                return null;
             } else if (selectedModes.size() == 1) {
                 return selectedModes.iterator().next();
             } else {
@@ -108,12 +108,15 @@ public class Main {
         try {
             ParseResult res = p.parse(args);
             arguments = unpackParseResult(res);
-            mode = Mode.selectFromArguments(arguments, Mode.GUI);
+            mode = Mode.selectFromArguments(arguments);
         } catch (ParsingException exc) {
             System.err.println("ERROR: " + exc.getMessage());
             System.exit(1);
             // Should not happen.
             return;
+        }
+        if (mode == null) {
+            mode = GUIClient.isHeadless() ? Mode.CLI_INTERACTIVE : Mode.GUI;
         }
         try {
             doMain(arguments, mode);
