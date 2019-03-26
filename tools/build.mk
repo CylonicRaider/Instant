@@ -5,7 +5,7 @@
 # HACK: Make's syntax is... simplicistic.
 SP := $(subst ,, )
 
-TOOL_NAMES := $(filter-out tools/build.mk tools/build \
+TOOL_NAMES := $(filter-out tools/build.mk tools/transclude.conf tools/build \
     tools/%.jar,$(wildcard tools/*))
 TOOL_ARCHIVES := $(patsubst %,%.jar,$(TOOL_NAMES))
 TOOL_CLASSPATH := $(subst $(SP),:,$(patsubst tools/%,../%, \
@@ -36,6 +36,7 @@ tools/%.jar: tools/build/%.jar $$(shell find tools/$$* -type f 2>/dev/null)
 	cp tools/build/$*.jar tools/$*.jar
 	cd tools/$* && jar uf ../$*.jar $$(find . -type f -not -path \
 	    './META-INF/MANIFEST.MF')
+	script/transclude.py --config tools/transclude.conf --jar $@
 	cd tools/$* && [ -f META-INF/MANIFEST.MF ] && \
 	    jar ufm ../$*.jar META-INF/MANIFEST.MF || true
 
