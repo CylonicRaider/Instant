@@ -13,7 +13,7 @@ _ALL_SOURCES = $(SOURCES) $(shell find tools/ -name '*.java' 2>/dev/null)
 _JAVA_SOURCES = $(patsubst src/%,%,$(SOURCES))
 
 .NOTPARALLEL:
-.PHONY: clean lint lint-ro run pre-commit
+.PHONY: default all clean lint lint-ro run pre-commit
 
 default: Instant.jar
 all: Instant.jar
