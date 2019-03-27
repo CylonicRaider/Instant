@@ -71,8 +71,13 @@ public class CLI implements Runnable {
                                   boolean isBatch, Terminal term)
             throws Abort, IOException {
         String address = arguments.get("address");
-        if (address == null)
-            throw new Abort("Missing connection address");
+        if (address == null) {
+            if (isBatch) {
+                throw new Abort("Missing connection address");
+            } else {
+                address = term.readLine("Address : ");
+            }
+        }
         String username = arguments.get("login");
         String password = null;
         Map<String, Object> env = new HashMap<String, Object>();
