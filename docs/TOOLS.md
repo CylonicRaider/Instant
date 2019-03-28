@@ -28,26 +28,34 @@ tool's mode of operation (see below). `--login`, if given, indicates that the
 tool should authenticate itself to the console; the user name is provided as
 an argument after the option while the password is read interactively.
 `address` is the address (a `HOST:PORT` pair or a JMX service URL) to connect
-to; this argument is optional in GUI mode but mandatory in all others.
+to; this argument is mandatory in batch mode.
 
 The tool provides three modes of operation:
 
 - **Interactive CLI mode** (`--interactive`): The tool prompts the user for
-  commands (or credentials) and displays the console's output. If `--login` is
-  not given, an attempt is made to connect without authentication; if that
+  commands (or credentials) and displays the console's output. If `address`
+  is not given, the tool prompts for the address to connect to. If `--login`
+  is not given, an attempt is made to connect without authentication; if that
   fails, the user is asked for credentials and a second (and final) connection
   attempt is made.
 - **Batch CLI mode** (`--batch`): The tool processes input deterministically:
-  If-and-only-if `--login` is given, the first line of input is interpreted as
-  a password; all other input lines are interpreted as commands. There is
-  exactly one attempt to connect; whether to use authentication is decided
-  based on whether `--login` is provided.
+  The `address` command-line argument is connected to; if-and-only-if
+  `--login` is given, the first line of input is interpreted as a password;
+  all other input lines are interpreted as commands. There is exactly one
+  attempt to connect; whether to use authentication is decided based on
+  whether `--login` is provided.
 - **GUI mode** (`--gui`): A graphical interface for connecting to the console
-  and interacting with it is shown. `address` and `--login` pre-filling fields
-  of the connection form. This mode is the default so that invoking the tool
-  without any arguments (e.g. from a graphical file manager) shows the GUI.
+  and interacting with it is shown. `address` and `--login` pre-fill fields
+  of the connection form.
 
 The CLI modes communicate via the terminal they are invoked at, or, failing
 that, the standard input/output streams; (only) when using batch mode without
-a TTY, no prompts are written. The GUI mode requires, self-evidently, an
-appropriate graphical environment to be present (and accessible by the tool).
+a TTY, no prompts are written. If it is explicitly specified, the GUI mode
+requires, self-evidently, an appropriate graphical environment to be present
+(and accessible by the tool).
+
+The default mode depends on whether the machine is deemed headless (i.e.
+lacking a graphical environment suitable for the GUI; interactive CLI mode is
+used on headless systems, GUI mode elsewhere). Defaulting to a GUI when
+started with no arguments allows the tool to be invoked from, e.g., a
+graphical file manager.
