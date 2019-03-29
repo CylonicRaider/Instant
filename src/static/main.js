@@ -2232,7 +2232,7 @@ this.Instant = function() {
           // Right-facing regular emoticons.
           '[sSD)\\\\/\\]}|{\\[(cCoO][\',]?[:=]<?|' +
           // Extensible Japanese-style emoticons.
-          '([\\^o0O~><*xX])(\\.|_+)\\1|>(\\.|_*)<|;(-|_*);|\\._+\\.|' +
+          '([\\^o0O~><*xX])(\\.|_+)\\1|>(\\.|_*)<|;(-|_+);|\\._+\\.|' +
           // Non-extensible Japanese-style emoticons (laughing eyes, person
           // extending arms outwards).
           '\\^\\^|\\\\o/');
