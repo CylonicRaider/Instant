@@ -6495,6 +6495,7 @@ this.Instant = function() {
           if (! nonempty && ! Instant.popups.hasPopups())
             return;
           wrapper.classList.add('hidden');
+          Instant.input.focus();
         } else {
           wrapper.classList.remove('hidden');
           Instant.popups.focus();
