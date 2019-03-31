@@ -163,7 +163,7 @@ body {
   color: inherit;
 }
 .message > .line .content {
-  min-width: 10em;
+  min-width: 0;
 }
 .message > .line .content .message-text {
   display: block;
