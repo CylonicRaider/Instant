@@ -58,10 +58,10 @@ function $query(str, ret, noStrip) {
     var v = (m[2] == null) ? true : decodeURIComponent(m[2]);
     if (ret[n] == null) {
       ret[n] = v;
-    } else if (typeof ret[n] == 'string') {
-      ret[n] = [ret[n], v];
-    } else {
+    } else if (typeof ret[n] == 'object') {
       ret[n].push(v);
+    } else {
+      ret[n] = [ret[n], v];
     }
   }
   return ret;
