@@ -4733,12 +4733,15 @@ this.Instant = function() {
         return popup;
       },
       /* Start composing another message towards the target of a sent PM */
-      _followUp: function(popup) {
+      _followUp: function(popup, quote) {
         var parentNode = $cls('pm-parent-id', popup);
         var toNick = $cls('pm-to-nick', popup);
         var subjectNode = $cls('pm-subject', popup);
+        var body = Instant.message.parser.extractText(
+          $cls('message-text', popup));
         Instant.privmsg.write(toNick.getAttribute('data-uid'),
-          toNick.getAttribute('data-nick'), null,
+          toNick.getAttribute('data-nick'),
+          Instant.privmsg._makeQuote(quote && body),
           Instant.privmsg._makeInRe(subjectNode && subjectNode.textContent),
           parentNode && parentNode.textContent);
       },
@@ -5023,11 +5026,17 @@ this.Instant = function() {
         preview.parentNode.removeChild(preview);
         finishLater.classList.remove('pm-finish-later');
         finishLater.textContent = 'Dismiss';
+        var quoteFollowUp = $makeNode('button', 'button',
+          {style: 'color: #008000;'}, 'Quote & Follow up');
         var followUp = $makeNode('button', 'button',
           {style: 'color: #008000;'}, 'Follow up');
+        quoteFollowUp.onclick = function() {
+          Instant.privmsg._followUp(popup, true);
+        };
         followUp.onclick = function() {
           Instant.privmsg._followUp(popup);
         };
+        send.parentNode.insertBefore(quoteFollowUp, send);
         send.parentNode.insertBefore(followUp, send);
         send.parentNode.removeChild(send);
         title.textContent = 'Private message (sent)';
