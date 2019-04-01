@@ -4458,7 +4458,7 @@ this.Instant = function() {
         if (counts.U) {
           var pls = (counts.U == 1) ? '' : 's';
           msgUnread.textContent = ('New private message' + pls + ' (' +
-            counts.U + '!!)');
+            counts.U + '!!!)');
           Instant.sidebar.showMessage(msgUnread);
         } else {
           Instant.sidebar.hideMessage(msgUnread);
@@ -4650,7 +4650,7 @@ this.Instant = function() {
           if (! subject.value) {
             subject.focus();
           } else {
-            entry.focus();
+            editor.focus();
           }
         }
         Instant._fireListeners('pm.write', {popup: popup});
@@ -4854,9 +4854,9 @@ this.Instant = function() {
               ['b', null, 'Subject: '],
               ['span', 'popup-grid-wide', [
                 draft && ['input', 'pm-subject', {type: 'text'}],
-                ! draft && ['span', 'pm-subject', [
-                  (data.subject) ? $text(data.subject) : ['i', null, 'None']
-                ]]
+                ! draft && ((data.subject) ?
+                  ['span', 'pm-subject', [$text(data.subject)]] :
+                  ['i', null, 'None'])
               ]]
             ]],
           ]],
