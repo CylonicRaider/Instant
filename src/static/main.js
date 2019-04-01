@@ -4605,29 +4605,41 @@ this.Instant = function() {
         return null;
       },
       /* Start writing a message to uid */
-      write: function(uid, nick, text, parent) {
+      write: function(uid, nick, text, subject, parent) {
         var now = Date.now(), uuid = Instant.logs.getUUID(uid);
         return Instant.privmsg._write({id: 'draft-' + now, parent: parent,
-            to: uid, toUUID: uuid, tonick: nick, text: text, timestamp: now,
-            type: 'pm-draft'},
+            to: uid, toUUID: uuid, tonick: nick, subject: subject, text: text,
+            timestamp: now, type: 'pm-draft'},
           true);
       },
       /* Actually start writing a message with the given parameters */
       _write: function(data, isNew) {
-        var popup = Instant.privmsg._makePopup(data);
-        var editor = $cls('pm-editor', popup);
-        editor.addEventListener('keydown', function(event) {
-          if (event.keyCode == 13 && event.ctrlKey) { // Return
-            Instant.privmsg._send(popup);
-            event.preventDefault();
+        function keyboardListener(event) {
+          if (event.keyCode == 13) { // Return
+            if (event.ctrlKey) {
+              Instant.privmsg._send(popup);
+              event.preventDefault();
+            } else if (event.target == subject) {
+              editor.focus();
+              event.preventDefault();
+            }
           } else if (event.keyCode == 27) { // Escape
             event.stopPropagation();
           }
-        });
-        editor.addEventListener('change', function(event) {
+        }
+        function changeListener(event) {
           Instant.privmsg._save(popup);
-        });
-        editor.setSelectionRange(editor.value.length, editor.value.length);
+        }
+        function prepareField(field) {
+          field.addEventListener('keydown', keyboardListener);
+          field.addEventListener('change', changeListener);
+          field.setSelectionRange(field.value.length, field.value.length);
+        }
+        var popup = Instant.privmsg._makePopup(data);
+        var editor = $cls('pm-editor', popup);
+        var subject = $cls('pm-subject', popup);
+        prepareField(subject);
+        prepareField(editor);
         Instant.privmsg._add(popup);
         Instant.privmsg._updatePreferredReply(data.to, popup);
         if (isNew) {
@@ -4635,7 +4647,11 @@ this.Instant = function() {
           Instant.privmsg._updateNicks(popup);
           Instant.popups.add(popup);
           Instant.privmsg._update({popup: popup});
-          editor.focus();
+          if (! subject.value) {
+            subject.focus();
+          } else {
+            entry.focus();
+          }
         }
         Instant._fireListeners('pm.write', {popup: popup});
         return popup;
@@ -4672,8 +4688,9 @@ this.Instant = function() {
         var data = {type: 'privmsg', nick: Instant.identity.nick,
           text: $cls('pm-editor', popup).value};
         var parentNode = $cls('pm-parent-id', popup);
-        if (parentNode)
-          data.parent = parentNode.textContent;
+        if (parentNode) data.parent = parentNode.textContent;
+        var subject = $cls('pm-subject', popup).value;
+        if (subject) data.subject = subject;
         var recipient = $cls('pm-to-id', popup).textContent;
         var evdata = {popup: popup, recipient: recipient, data: data,
           _cancel: true};
@@ -4719,8 +4736,10 @@ this.Instant = function() {
       _followUp: function(popup) {
         var parentNode = $cls('pm-parent-id', popup);
         var toNick = $cls('pm-to-nick', popup);
+        var subjectNode = $cls('pm-subject', popup);
         Instant.privmsg.write(toNick.getAttribute('data-uid'),
           toNick.getAttribute('data-nick'), null,
+          Instant.privmsg._makeInRe(subjectNode && subjectNode.textContent),
           parentNode && parentNode.textContent);
       },
       /* Add a PM popup to the runtime state and update relevant indexes */
@@ -4777,16 +4796,12 @@ this.Instant = function() {
        * to        (O): The recipient of the PM.
        * toUUID    (O): The UUID corresponding to to.
        * tonick    (O): The nickname of the recipient of the PM.
+       * subject   (A): The subject of the PM.
        * text      (A): The content of the PM.
        * timestamp (A): The UNIX timestamp of the message in milliseconds.
        * (I -- applies to incoming messages; O -- applies to outgoing
        * messages; A -- applies to all messages.) */
       _makePopup: function(data) {
-        function makeQuote(text) {
-          return text.replace(/^(?:(>+)(\s+))?/mg, function(m, ind, sp) {
-            return (ind || '') + '>' + (sp || ' ');
-          }) + '\n';
-        }
         /* Pre-computed variables */
         var draft = (data.type == 'pm-draft' || data.type == 'pm-afterview');
         var nick = (draft) ? data.tonick : data.nick;
@@ -4795,40 +4810,52 @@ this.Instant = function() {
         nickNode.classList.add((draft) ? 'pm-to-nick' : 'pm-from-nick');
         /* Create structure skeleton */
         var body = $makeFrag(
-          ! draft && data.id && ['div', 'popup-grid', [
-            ['b', null, 'ID: '],
-            ['span', [
-              ['span', 'monospace pm-message-id'],
-              data.parent && ' ',
-              data.parent && ['i', [
-                '(reply to ', ['a', 'monospace pm-parent-id'], ')'
+          ['div', 'popup-grid-wrapper pm-header', [
+            ! draft && data.id && ['div', 'popup-grid', [
+              ['b', null, 'ID: '],
+              ['span', [
+                ['span', 'monospace pm-message-id'],
+                data.parent && ' ',
+                data.parent && ['small', [
+                  '(reply to ', ['a', 'monospace pm-parent-id'], ')'
+                ]]
               ]]
-            ]]
-          ]],
-          draft && data.parent && ['div', 'popup-grid pm-reply-to', [
-            ['b', null, 'Reply-to: '],
-            ['span', [['a', 'monospace pm-parent-id']]]
-          ]],
-          ! draft && ['div', 'popup-grid', [
-            ['b', null, 'From: '],
-            ['span', [
-              nickNode, ' ',
-              ['i', ['(user ID ', ['a', 'monospace pm-from-id'], ')']]
-            ]]
-          ]],
-          draft && ['div', 'popup-grid', [
-            ['b', null, 'To: '],
-            ['span', [
-              nickNode, ' ',
-              ['i', ['(user ID ', ['a', 'monospace pm-to-id'], ')']], ' ',
-              ['button', 'button button-icon pm-reload-to hidden', [
-                ['img', {src: Instant.icons.get('reload')}]
+            ]],
+            draft && data.parent && ['div', 'popup-grid pm-reply-to', [
+              ['b', null, 'Reply-to: '],
+              ['span', [['a', 'monospace pm-parent-id']]]
+            ]],
+            ! draft && ['div', 'popup-grid', [
+              ['b', null, 'From: '],
+              ['span', [
+                nickNode, ' ',
+                ['small', ['(user ID ', ['a', 'monospace pm-from-id'], ')']]
               ]]
-            ]]
-          ]],
-          (data.timestamp != null) && ['div', 'popup-grid', [
-            ['b', null, 'Date: '],
-            ['span', 'pm-date', [formatDateNode(data.timestamp)]]
+            ]],
+            draft && ['div', 'popup-grid', [
+              ['b', null, 'To: '],
+              ['span', [
+                nickNode, ' ',
+                ['small', ['(user ID ', ['a', 'monospace pm-to-id'], ')']],
+                ' ',
+                ['button', 'button button-icon pm-reload-to hidden', [
+                  ['img', {src: Instant.icons.get('reload')}]
+                ]]
+              ]]
+            ]],
+            (data.timestamp != null) && ['div', 'popup-grid', [
+              ['b', null, 'Date: '],
+              ['span', 'pm-date', [formatDateNode(data.timestamp)]]
+            ]],
+            ['div', 'popup-grid', [
+              ['b', null, 'Subject: '],
+              ['span', 'popup-grid-wide', [
+                draft && ['input', 'pm-subject', {type: 'text'}],
+                ! draft && ['span', 'pm-subject', [
+                  (data.subject) ? $text(data.subject) : ['i', null, 'None']
+                ]]
+              ]]
+            ]],
           ]],
           ['hr'],
           ['div', 'pm-body', [
@@ -4880,7 +4907,9 @@ this.Instant = function() {
           {text: 'Quote & Reply', color: '#008000', onclick: function() {
             var nick = data.nick;
             if (nick == undefined) nick = null;
-            Instant.privmsg.write(data.from, nick, makeQuote(data.text),
+            Instant.privmsg.write(data.from, nick,
+                                  Instant.privmsg._makeQuote(data.text),
+                                  Instant.privmsg._makeInRe(data.subject),
                                   data.id);
           }, className: 'pm-quote-reply'},
           {text: 'Add quote', color: '#008000', onclick: function() {
@@ -4901,7 +4930,8 @@ this.Instant = function() {
           {text: 'Reply', color: '#008000', onclick: function() {
             var nick = data.nick;
             if (nick == undefined) nick = null;
-            Instant.privmsg.write(data.from, nick, null, data.id);
+            Instant.privmsg.write(data.from, nick, null,
+              Instant.privmsg._makeInRe(data.subject), data.id);
           }}
         ];
         /* Create actual popup */
@@ -4937,6 +4967,7 @@ this.Instant = function() {
           toNick.setAttribute('data-uid', data.to);
           if (data.toUUID)
             toNick.setAttribute('data-uuid', data.toUUID);
+          $cls('pm-subject', popup).value = data.subject || '';
           $cls('pm-editor', popup).value = data.text || '';
         } else {
           $cls('pm-message-id', popup).textContent = data.id;
@@ -4961,7 +4992,8 @@ this.Instant = function() {
       /* Transform the given editor popup into an after-view */
       _transformAfterview: function(popup, isNew) {
         var title = $cls('popup-title', popup);
-        var content = $cls('popup-content', popup);
+        var header = $cls('pm-header', popup);
+        var subject = $cls('pm-subject', popup);
         var body = $cls('pm-body', popup);
         var editor = $cls('pm-editor', popup);
         var preview = $cls('pm-preview', popup);
@@ -4971,17 +5003,21 @@ this.Instant = function() {
           'in-pm in-pm-afterview');
         var id = popup.getAttribute('data-id').replace(/^sent-/, '');
         var parnode = $cls('pm-parent-id', popup);
-        content.insertBefore($makeNode('div', 'popup-grid', [
+        header.insertBefore($makeNode('div', 'popup-grid', [
           ['b', null, 'ID: '],
           ['span', [
             ['span', 'monospace pm-message-id', [$text(id)]],
             parnode && ' ',
             parnode && ['i', ['(reply to ', parnode, ')']]
           ]]
-        ]), content.firstChild);
+        ]), header.firstChild);
         var reply = $cls('pm-reply-to', popup);
         if (reply) reply.parentNode.removeChild(reply);
         $cls('pm-reload-to', popup).classList.add('hidden');
+        subject.parentNode.insertBefore($makeNode('span', 'pm-subject', [
+          (subject.value) ? $text(subject.value) : ['i', null, 'None']
+        ]), subject);
+        subject.parentNode.removeChild(subject);
         while (body.firstChild) body.removeChild(body.firstChild);
         body.appendChild(newText);
         preview.parentNode.removeChild(preview);
@@ -5091,9 +5127,11 @@ this.Instant = function() {
           extractAttr('pm-to-nick', 'data-uuid', 'toUUID');
           extractText('pm-to-nick', 'tonick');
           if (ret.type == 'pm-afterview') {
+            extractText('pm-subject', 'subject');
             ret.text = Instant.message.parser.extractText(
               $cls('message-text', popup));
           } else {
+            ret.subject = $cls('pm-subject', popup).value;
             ret.text = $cls('pm-editor', popup).value;
           }
         } else {
@@ -5103,10 +5141,23 @@ this.Instant = function() {
           ret.to = popup.getAttribute('data-to');
           ret.toUUID = popup.getAttribute('data-to-uuid');
           ret.tonick = popup.getAttribute('data-to-nick');
+          extractText('pm-subject', 'subject');
           ret.text = Instant.message.parser.extractText(
             $cls('message-text', popup));
         }
         return ret;
+      },
+      /* Create a subject line responding to the given one */
+      _makeInRe: function(text) {
+        if (! text) return '';
+        return text.replace(/^(re:\s*)?/i, 'Re: ');
+      },
+      /* Format a quote of the given text */
+      _makeQuote: function(text) {
+        if (! text) return '';
+        return text.replace(/^(?:(>+)(\s+))?/mg, function(m, ind, sp) {
+          return (ind || '') + '>' + (sp || ' ');
+        }) + '\n';
       },
       /* Handle incoming remote messages */
       _onmessage: function(msg) {
@@ -5117,9 +5168,10 @@ this.Instant = function() {
         var data = msg.data;
         if (data.type != 'privmsg') return;
         var uuid = Instant.logs.getUUID(msg.from);
-        Instant.privmsg._read({id: msg.id, parent: data.parent,
-          from: msg.from, fromUUID: uuid, nick: data.nick, text: data.text,
-          timestamp: msg.timestamp, type: 'privmsg', unread: true},
+        Instant.privmsg._read({type: 'privmsg', unread: true, id: msg.id,
+            parent: data.parent, from: msg.from, fromUUID: uuid,
+            nick: data.nick, timestamp: msg.timestamp, subject: data.subject,
+            text: data.text},
           true);
       },
       /* Handle disappearing users */

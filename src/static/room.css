@@ -1261,17 +1261,21 @@ button.button-icon > img {
   box-shadow: 0 0 5px black;
 }
 
+.popup .popup-grid-wrapper {
+  display: table;
+  width: 100%;
+}
 .popup .popup-grid {
   display: table-row;
 }
 .popup .popup-grid > * {
   display: table-cell;
 }
+.popup .popup-grid > .popup-grid-wide {
+  width: 100%;
+}
 .popup .popup-grid > b {
   white-space: pre;
-}
-.popup .popup-grid i {
-  font-size: smaller;
 }
 
 .pm-menu-counter.hidden {
@@ -1300,6 +1304,20 @@ button.button-icon > img {
 }
 .pm-popup.reply-present .pm-quote-reply {
   display: none;
+}
+.pm-popup .popup-grid small {
+  font-style: italic;
+}
+input.pm-subject {
+  width: 100%;
+  margin: 0;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  background: transparent;
+  box-shadow: 0 0 5px #808080;
+  outline: none;
 }
 
 img.turn-right {
