@@ -4920,9 +4920,9 @@ this.Instant = function() {
             if (! target) return;
             var editor = $cls('pm-editor', target);
             if (editor.value) {
-              editor.value += '\n\n' + makeQuote(data.text);
+              editor.value += '\n\n' + Instant.privmsg._makeQuote(data.text);
             } else {
-              editor.value = makeQuote(data.text);
+              editor.value = Instant.privmsg._makeQuote(data.text);
             }
             editor.setSelectionRange(editor.value.length,
                                      editor.value.length);
