@@ -363,7 +363,7 @@ body {
   right: 0;
   height: 100%;
   margin-right: 15px;
-  padding: 3px 3px 5em 0;
+  padding: 3px 0 5em 0;
   box-sizing: border-box;
   -webkit-flex-direction: column;
   flex-direction: column;
@@ -383,7 +383,7 @@ body {
 }
 .sidebar-top > *, .sidebar-middle > *, .sidebar-bottom > * {
   background: rgba(255, 255, 255, 0.85);
-  padding: 3px 0 3px 3px;
+  padding: 3px;
 }
 .sidebar-top, .sidebar-bottom {
   -webkit-flex-shrink: 0;
@@ -391,7 +391,7 @@ body {
 }
 .sidebar-top-line {
   line-height: 1.2;
-  padding: 5px 0;
+  padding: 5px 3px;
 }
 .sidebar-middle-wrapper {
   padding: 0;
