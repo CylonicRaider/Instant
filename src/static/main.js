@@ -5011,7 +5011,7 @@ this.Instant = function() {
           ['span', [
             ['span', 'monospace pm-message-id', [$text(id)]],
             parnode && ' ',
-            parnode && ['i', ['(reply to ', parnode, ')']]
+            parnode && ['small', ['(reply to ', parnode, ')']]
           ]]
         ]), header.firstChild);
         var reply = $cls('pm-reply-to', popup);
