@@ -3799,7 +3799,8 @@ this.Instant = function() {
           /* Initialize submodule */
           init: function() {
             node = $makeNode('span', [
-              ['button', 'sidebar-widget logo-button', [
+              ['button', 'sidebar-widget logo-button',
+                  {title: 'Show popup screen'}, [
                 ['img', {src: '/static/logo-static.svg'}]
               ]],
               ' ',
@@ -5909,7 +5910,8 @@ this.Instant = function() {
           ]];
         }
         wrapperNode = $makeNode('div', 'settings-wrapper', [
-          ['button', 'sidebar-widget bordered settings', [
+          ['button', 'sidebar-widget bordered settings',
+              {title: 'Settings'}, [
             ['img', {src: '/static/gear.svg'}],
           ]],
           ['form', 'settings-content', [
@@ -6340,11 +6342,13 @@ this.Instant = function() {
         ]);
         menuNode.appendChild($makeFrag(
           ['span', 'separator'],
-          ['button', 'button button-noborder hide-all', [
+          ['button', 'button button-noborder hide-all',
+              {title: 'Hide all popups'}, [
             ['img', {src: Instant.icons.get('collapse')}]
           ]],
           ['span', 'separator'],
-          ['button', 'button button-noborder close-all', [
+          ['button', 'button button-noborder close-all',
+              {title: 'Close all popups'}, [
             ['img', {src: Instant.icons.get('close')}]
           ]]
         ));
@@ -6387,11 +6391,13 @@ this.Instant = function() {
           ['div', 'popup-header', [
             ['span', 'popup-title'],
             co && ['span', 'popup-title-sep'],
-            co && ['button', 'button popup-button popup-collapse', [
+            co && ['button', 'button popup-button popup-collapse',
+                {title: 'Collapse/Expand'}, [
               ['img', {src: Instant.icons.get('collapse')}]
             ]],
             cl && ['span', 'popup-title-sep'],
-            cl && ['button', 'button popup-button popup-close', [
+            cl && ['button', 'button popup-button popup-close',
+                {title: 'Close'}, [
               ['img', {src: Instant.icons.get('close')}]
             ]]
           ]],
