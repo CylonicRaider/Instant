@@ -3075,6 +3075,8 @@ this.Instant = function() {
         inputNick.setSelectionRange(inputNick.value.length,
                                     inputNick.value.length);
         updateNick();
+        if (focusedNode == inputMsg)
+          promptNick.style.display = 'none';
         return inputNode;
       },
       /* Return the input bar */
