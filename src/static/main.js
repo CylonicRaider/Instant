@@ -2378,6 +2378,7 @@ this.Instant = function() {
               if (embedder) {
                 out.push({add: 'embed', embed: 'outer',
                           inline: embedder.inline});
+                out.push({add: 'embed', embed: 'group'});
                 out.push({add: 'embed', embed: 'link'});
               }
               out.push(makeSigil('<!', 'embed-before'));
@@ -2389,6 +2390,7 @@ this.Instant = function() {
                   className: embedder.className});
                 var res = embedder.cb(url, out, status);
                 if (res != null) out.push(res);
+                out.push({rem: 'embed'});
                 out.push({rem: 'embed'});
                 out.push({rem: 'embed'});
               }
@@ -2584,7 +2586,8 @@ this.Instant = function() {
                 var m = /(\S)\s*$/.exec(pred.nodeValue);
                 if (m) pred = pred.splitText(m.index + m[1].length);
                 var wrapper = $makeNode('span', 'embed-space hidden', [pred]);
-                cur.insertBefore(wrapper, cur.firstChild);
+                cur.firstChild.insertBefore(wrapper,
+                  cur.firstChild.firstChild);
               }
               var succ = cur.nextSibling;
               if (succ && succ.nodeType == Node.TEXT_NODE &&
@@ -2592,7 +2595,7 @@ this.Instant = function() {
                 var m = /^(\s*)\S/.exec(succ.nodeValue);
                 if (m) succ.splitText(m[1].length);
                 var wrapper = $makeNode('span', 'embed-space hidden', [succ]);
-                cur.appendChild(wrapper);
+                cur.lastChild.appendChild(wrapper);
               }
             }
             /* Coalesce adjacent embed containers */
@@ -2603,8 +2606,11 @@ this.Instant = function() {
               var last = pred.lastChild;
               /* Preserve line breaks */
               if (last.nodeType == Node.ELEMENT_NODE &&
-                  last.classList.contains('embed-space') &&
-                  /\n/.test(last.textContent))
+                  last.classList.contains('embed-group') &&
+                  last.lastChild &&
+                  last.lastChild.nodeType == Node.ELEMENT_NODE &&
+                  last.lastChild.classList.contains('embed-space') &&
+                  /\n/.test(last.lastChild.textContent))
                 continue;
               $moveCh(cur, pred);
               cur.parentNode.removeChild(cur);
