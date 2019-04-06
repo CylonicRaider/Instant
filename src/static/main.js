@@ -2248,8 +2248,10 @@ this.Instant = function() {
           'x_x' : '#008060', 'X_X' : '#008060'
         };
         var SMILEY_DEFAULT = '#c0c000';
-        /* Auxiliary regexes */
+        /* Auxiliary regex */
         var ONLY_URL_RE = new RegExp('^' + URL_RE.source + '$');
+        /* Used for normalizing URL-s */
+        var linkProbe = document.createElement('a');
         /* Helper: Quickly create a DOM node */
         function makeNode(text, className, color, tag) {
           var node = document.createElement(tag || 'span');
@@ -2860,6 +2862,26 @@ this.Instant = function() {
             });
             return ret;
           },
+          /* Transform the URL into some form suitable for being inserted into
+           * a message
+           * Transformations include converting message permalinks into their
+           * shorthand form, and enclosing URL-s with appropriate sigils
+           * depending on whether they can be embedded or not. */
+          markupURL: function(url) {
+            linkProbe.href = url;
+            if (Instant.roomName &&
+                linkProbe.protocol == location.protocol &&
+                linkProbe.host == location.host &&
+                linkProbe.pathname == location.pathname &&
+                linkProbe.search == location.search &&
+                /^#message-\w+$/.test(linkProbe.hash)) {
+              var msgid = linkProbe.hash.substring(9);
+              return '&' + Instant.roomName + '#' + msgid;
+            }
+            /* Otherwise, turn it into an embed or hyperlink. */
+            var embedder = Instant.message.parser.queryEmbedder(url);
+            return ((embedder) ? '<!' : '<') + url + '>';
+          },
           /* Add an early matcher */
           addEarlyMatcher: function(m) {
             matchers.splice(earlyMatchers++, 0, m);
@@ -3426,9 +3448,8 @@ this.Instant = function() {
             return;
         }
         /* Prefix it depending on embeddability and insert it */
-        var embedder = Instant.message.parser.queryEmbedder(text);
-        var prefix = (embedder) ? '<!' : '<';
-        Instant.input.insertText(prefix + text + '>');
+        var markedUp = Instant.message.parser.markupURL(text);
+        Instant.input.insertText(markedUp);
         event.preventDefault();
       },
       /* Update the online status for display purposes */
