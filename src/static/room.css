@@ -1284,6 +1284,9 @@ button.button-icon > img {
   display: none;
 }
 
+.pm-popup .pm-subject {
+  font-weight: bold;
+}
 .pm-popup .pm-editor {
   margin: 0;
   border: 0;
@@ -1301,16 +1304,10 @@ button.button-icon > img {
   outline: none;
   resize: both;
 }
-.pm-popup:not(.reply-present) .pm-quote-add {
-  display: none;
-}
-.pm-popup.reply-present .pm-quote-reply {
-  display: none;
-}
 .pm-popup .popup-grid small {
   font-style: italic;
 }
-input.pm-subject {
+.pm-popup input.pm-subject {
   width: 100%;
   margin: 0;
   border: 0;
@@ -1320,6 +1317,12 @@ input.pm-subject {
   background: transparent;
   box-shadow: 0 0 5px #808080;
   outline: none;
+}
+.pm-popup:not(.reply-present) .pm-quote-add {
+  display: none;
+}
+.pm-popup.reply-present .pm-quote-reply {
+  display: none;
 }
 
 img.turn-right {

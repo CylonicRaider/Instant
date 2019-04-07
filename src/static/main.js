@@ -4969,7 +4969,11 @@ this.Instant = function() {
         ];
         /* Create actual popup */
         var popup = Instant.popups.make({
-          title: 'Private message' + ((draft) ? ' editor' : ''),
+          title: $makeFrag(
+            'Private message' + ((draft) ? ' editor' : ''),
+            ! draft && data.subject && ': ',
+            ! draft && data.subject && ['i', null, [$text(data.subject)]]
+          ),
           id: (draft) ? null : 'pm-' + data.id,
           className: 'pm-popup ' + ((data.unread) ? 'pm-unread ' : '') +
             ((draft) ? 'pm-draft' : 'pm-viewer'),
@@ -5047,9 +5051,14 @@ this.Instant = function() {
         var reply = $cls('pm-reply-to', popup);
         if (reply) reply.parentNode.removeChild(reply);
         $cls('pm-reload-to', popup).classList.add('hidden');
-        subject.parentNode.insertBefore($makeNode('span', 'pm-subject', [
-          (subject.value) ? $text(subject.value) : ['i', null, 'None']
-        ]), subject);
+        var subjectText = subject.value;
+        subject.parentNode.insertBefore((
+          (subjectText) ?
+            $makeNode('span', 'pm-subject', [
+              $text(subjectText)
+            ]) :
+            $makeNode('i', null, 'None')
+        ), subject);
         subject.parentNode.removeChild(subject);
         while (body.firstChild) body.removeChild(body.firstChild);
         body.appendChild(newText);
@@ -5069,7 +5078,12 @@ this.Instant = function() {
         send.parentNode.insertBefore(quoteFollowUp, send);
         send.parentNode.insertBefore(followUp, send);
         send.parentNode.removeChild(send);
-        title.textContent = 'Private message (sent)';
+        if (subjectText) {
+          title.textContent = 'Private message (sent): ';
+          title.appendChild($makeNode('i', null, [$text(subjectText)]));
+        } else {
+          title.textContent = 'Private message (sent)';
+        }
         popup.classList.remove('pm-draft');
         popup.classList.add('pm-afterview');
         popup.setAttribute('data-focus', '.first');
