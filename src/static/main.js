@@ -3079,6 +3079,7 @@ this.Instant = function() {
         inputMsg.addEventListener('focus', updateFocus);
         /* Scroll input into view when resized */
         window.addEventListener('resize', function(event) {
+          Instant.input._updateInputSize();
           Instant.pane.scrollIntoView(inputNode);
         });
         /* Read nickname from storage */
@@ -3293,14 +3294,21 @@ this.Instant = function() {
       },
       /* Update the message bar sizer */
       _updateMessage: function(event) {
-        var sizerNick = $cls('input-nick-sizer', inputNode);
         var promptNick = $cls('input-nick-prompt', inputNode);
-        var sizerMsg = $cls('input-message-sizer', inputNode);
         var inputMsg = $cls('input-message', inputNode);
-        sizerMsg.value = inputMsg.value;
         /* Avoid devtools noise */
         if (promptNick.style.display != 'none')
           promptNick.style.display = 'none';
+        Instant.input._updateInputSize();
+        Instant._fireListeners('input.update', {text: inputMsg.value,
+          source: event});
+      },
+      /* Update the size of the input bar */
+      _updateInputSize: function() {
+        var sizerNick = $cls('input-nick-sizer', inputNode);
+        var sizerMsg = $cls('input-message-sizer', inputNode);
+        var inputMsg = $cls('input-message', inputNode);
+        sizerMsg.value = inputMsg.value;
         /* Using a separate node for measurement drastically reduces
          * reflow load by having a single out-of-document-flow reflow
          * only in the best case.
@@ -3312,15 +3320,14 @@ this.Instant = function() {
         /* HACK: Depending on the font and other circumstances, there may be
          *       an off-by-one (rounding?) error, causing the input box to
          *       inflate to one pixel more than the rest of the bar.
-         *       Needless to say, it is annoying. */
+         *       Needless to say, it is annoying.
+         * Remark that sizerNick's height includes padding. */
         if (height == sizerNick.offsetHeight - 1) height--;
         if (height + 'px' != inputMsg.style.height) {
           var restore = Instant.input.saveScrollState();
           inputMsg.style.height = height + 'px';
           restore();
         }
-        Instant._fireListeners('input.update', {text: inputMsg.value,
-          source: event});
       },
       /* Respond to key presses in the input box */
       _onkeydown: function(event) {
@@ -5485,6 +5492,11 @@ this.Instant = function() {
         var msg = $cls('message', messageBox);
         if (msg && msg.offsetTop >= tp && pane.scrollTop == 0)
           Instant.logs.pull.more();
+      },
+      /* Adjust the sizes of various UI elements */
+      adjustSizes: function() {
+        Instant.util.adjustScrollbar($cls('sidebar', main),
+                                     $cls('message-pane', main));
       },
       /* Greeting pane */
       greeter: function() {
@@ -7706,10 +7718,7 @@ this.Instant = function() {
     Instant._fireListeners('init.late');
     Instant.settings.load();
     Instant.connection.init();
-    repeat(function() {
-      Instant.util.adjustScrollbar($cls('sidebar', main),
-                                   $cls('message-pane', main));
-    }, 1000);
+    repeat(Instant.animation.adjustSizes.bind(Instant.animation), 1000);
     Instant.notifications.submitNew({text: 'Ready.'});
     Instant._fireListeners('init.final');
   };
