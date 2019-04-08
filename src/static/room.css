@@ -216,7 +216,6 @@ body {
   color: #808080;
 }
 .message-text .sigil.false {
-  display: inline;
   color: inherit;
 }
 .message-text .emph, .message-text .emph-before,
