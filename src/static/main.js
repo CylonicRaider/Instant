@@ -2497,7 +2497,7 @@ this.Instant = function() {
           },
           { /* Monospace blocks */
             name: 'monoBlock',
-            re: /((?:(?!\n)\s)*)```((?:(?!\n)\s)*\n?)/,
+            re: /((?:(?!\n)\s)*)```((?:(?!\n)\s)*)/,
             bef: /[^`]|^$/, aft: /[^`]|^$/,
             cb: function(m, out) {
               var nodes = [makeSigil('```', 'mono-block-before')];
@@ -2573,7 +2573,8 @@ this.Instant = function() {
         /* Functions that may edit the resulting DOM node
          * The return values are ignored. */
         var processors = [
-          /* Coalesce embed containers and insert a strut if necessary */
+          /* Coalesce embed containers, jockey around whitespace, insert a
+           * strut if necessary */
           function(node) {
             /* Coalesce adjacent text nodes
              * This significantly simplifies the next step. */
@@ -2617,8 +2618,22 @@ this.Instant = function() {
               $moveCh(cur, pred);
               cur.parentNode.removeChild(cur);
             }
+            /* Let monospace blocks swallow leading newlines */
+            var monoBlocks = $selAll('.monospace.block', node);
+            var modified = false;
+            for (var i = 0; i < monoBlocks.length; i++) {
+              var cur = monoBlocks[i];
+              var cnt = cur.firstChild;
+              if (cnt && cnt.nodeType == Node.TEXT_NODE &&
+                  /^\n/.test(cnt.nodeValue)) {
+                cnt.splitText(1);
+                cur.parentNode.insertBefore(cnt, cur);
+                modified = true;
+              }
+            }
+            if (modified) node.normalize();
             /* Special-case embeds appearing in the very beginning / end
-             * of a message; insert struts to ensure message height */
+             * of a message; insert strut to ensure message height */
             if (node.firstChild &&
                 node.firstChild.nodeType == Node.ELEMENT_NODE &&
                 node.firstChild.classList.contains('embed-outer')) {
