@@ -182,8 +182,8 @@ function $evalIn() {
 }
 
 // The method aliased from is used for ephemeral debugging statements and
-// scanned aggressively scanned for through the source code by the
-// developer's environment, which is why its name must not be mentioned.
+// scanned for aggressively through the source code by the developer's
+// environment, which is why its name must not be mentioned.
 if (! console.debug) console.debug = console['log'];
 
 /* Early preparation; define most of the functionality */
@@ -195,9 +195,9 @@ this.Instant = function() {
   /* Upcoming return value */
   var Instant = {};
   /* Prepare connection */
-  var roomPaths = new RegExp('^(?:/dev/([a-zA-Z0-9-]+))?(/room/' +
+  var ROOM_PATH_RE = new RegExp('^(?:/dev/([a-zA-Z0-9-]+))?(/room/' +
     '([a-zA-Z](?:[a-zA-Z0-9_-]*[a-zA-Z0-9])?))/?');
-  var roomMatch = roomPaths.exec(document.location.pathname);
+  var roomMatch = ROOM_PATH_RE.exec(document.location.pathname);
   if (roomMatch) {
     var scheme = (document.location.protocol == 'https:') ? 'wss' : 'ws';
     var wsURL = scheme + '://' + document.location.host +
@@ -2884,14 +2884,15 @@ this.Instant = function() {
            * depending on whether they can be embedded or not. */
           markupURL: function(url) {
             linkProbe.href = url;
-            if (Instant.roomName &&
-                linkProbe.protocol == location.protocol &&
+            if (linkProbe.protocol == location.protocol &&
                 linkProbe.host == location.host &&
-                linkProbe.pathname == location.pathname &&
                 linkProbe.search == location.search &&
                 /^#message-\w+$/.test(linkProbe.hash)) {
-              var msgid = linkProbe.hash.substring(9);
-              return '&' + Instant.roomName + '#' + msgid;
+              var roomMatch = ROOM_PATH_RE.exec(linkProbe.pathname);
+              if (roomMatch) {
+                var msgid = linkProbe.hash.substring(9);
+                return '&' + roomMatch[3] + '#' + msgid;
+              }
             }
             /* Otherwise, turn it into an embed or hyperlink. */
             var embedder = Instant.message.parser.queryEmbedder(url);
