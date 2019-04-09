@@ -1285,6 +1285,7 @@ button.button-icon > img {
 
 .pm-popup .pm-subject {
   font-weight: bold;
+  font-style: italic;
 }
 .pm-popup .pm-editor {
   margin: 0;
