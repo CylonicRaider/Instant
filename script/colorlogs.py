@@ -15,7 +15,7 @@ COLORS = {None: '\033[0m', 'bold': '\033[1m', 'black': '\033[30m',
     'blue': '\033[34m', 'magenta': '\033[35m', 'cyan': '\033[36m',
     'gray': '\033[37m'}
 
-def highlight(line):
+def highlight(line, filt=None):
     def highlight_scalar(val):
         if val in instabot.CONSTANTS:
             return (COLORS['magenta'], val)
@@ -25,6 +25,7 @@ def highlight(line):
             return (COLORS[None], val)
     m = instabot.LOGLINE.match(line)
     if not m: return line
+    if filt and not filt(m.group(2)): return None
     ret = [line[:m.start(2)], COLORS['bold'], m.group(2), COLORS[None],
            line[m.end(2):m.start(3)]]
     idx = m.start(3)
@@ -77,13 +78,13 @@ def highlight(line):
         ret.extend((COLORS[None], line[idx:]))
     return ''.join(ret)
 
-def highlight_stream(it, newlines=False):
+def highlight_stream(it, newlines=False, filt=None):
     if not newlines:
         for line in it:
-            yield highlight(line)
+            yield highlight(line, filt)
     else:
         for line in it:
-            yield highlight(line.rstrip('\n')) + '\n'
+            yield highlight(line.rstrip('\n'), filt) + '\n'
 
 def open_file(path, mode):
     if path == '-':
@@ -97,6 +98,8 @@ def open_file(path, mode):
 def main():
     p = instabot.OptionParser(sys.argv[0])
     p.help_action(desc='A syntax highlighter for Scribe logs.')
+    p.option('ignore', short='i', default=[], accum=True,
+             help='Filter out lines of this type (may be repeated)')
     p.option('out', short='o', default='-',
              help='File to write output to (- is standard output and '
                  'the default)')
@@ -108,12 +111,13 @@ def main():
                help='File to read from (- is standard input and '
                    'the default)')
     p.parse(sys.argv[1:])
-    inpath, outpath, append = p.get('in', 'out', 'append')
+    ignore, inpath, outpath, append = p.get('ignore', 'in', 'out', 'append')
     linebuf = p.get('line-buffered')
     outm = ('a' if append else 'w')
     try:
+        filt = (lambda t: t not in ignore) if ignore else None
         with open_file(inpath, 'r') as fi, open_file(outpath, outm) as fo:
-            for l in highlight_stream(fi, True):
+            for l in highlight_stream(fi, True, filt):
                 fo.write(l)
                 if linebuf: fo.flush()
     except KeyboardInterrupt:
