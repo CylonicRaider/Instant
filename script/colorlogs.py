@@ -3,7 +3,7 @@
 
 # Perform syntax highlighting on Scribe logs.
 
-import sys, os, re, io
+import sys, os, re
 import time
 import errno
 
@@ -86,15 +86,6 @@ def highlight_stream(it, newlines=False, filt=None):
         for line in it:
             yield highlight(line.rstrip('\n'), filt) + '\n'
 
-def open_file(path, mode):
-    if path == '-':
-        if mode[:1] in ('a', 'w'):
-            return io.open(sys.stdout.fileno(), mode)
-        else:
-            return io.open(sys.stdin.fileno(), mode)
-    else:
-        return io.open(path, mode)
-
 def main():
     p = instabot.OptionParser(sys.argv[0])
     p.help_action(desc='A syntax highlighter for Scribe logs.')
@@ -103,20 +94,21 @@ def main():
     p.option('out', short='o', default='-',
              help='File to write output to (- is standard output and '
                  'the default)')
-    p.flag('append', short='a',
-           help='Append to output file instead of overwriting it')
+    p.flag_ex('append', short='a', varname='outmode', value='a', default='w',
+              help='Append to output file instead of overwriting it')
     p.flag('line-buffered', short='u',
            help='Flush output after each input line')
     p.argument('in', default='-',
                help='File to read from (- is standard input and '
                    'the default)')
     p.parse(sys.argv[1:])
-    ignore, inpath, outpath, append = p.get('ignore', 'in', 'out', 'append')
+    ignore, inpath, outpath, outmode, append = p.get('ignore', 'in', 'out',
+                                                     'outmode', 'append')
     linebuf = p.get('line-buffered')
-    outm = ('a' if append else 'w')
     try:
         filt = (lambda t: t not in ignore) if ignore else None
-        with open_file(inpath, 'r') as fi, open_file(outpath, outm) as fo:
+        of = instabot.OptionParser.open_file
+        with of(inpath, 'r') as fi, of(outpath, outmode) as fo:
             for l in highlight_stream(fi, True, filt):
                 fo.write(l)
                 if linebuf: fo.flush()

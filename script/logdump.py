@@ -106,37 +106,35 @@ def main():
              help='Maximal amount of messages to output')
     p.option('output', short='o',
              help='Path of file to write to (defaults to standard output)')
+    p.flag_ex('append', short='a', varname='outmode', value='a', default='w',
+              help='Append to output file instead of overwriting it')
     p.flag_ex('detail', short='d', default=0, value=1, accum=True,
               help='Make output more detailed')
     p.flag('mono', short='m',
            help='Optimize indents for monospaced display')
     p.argument('msgdb', help='Database file to dump logs from')
     p.parse(sys.argv[1:])
-    # Open output file
-    outpath = p.get('output')
-    outfile = sys.stdout if outpath is None else open(outpath, 'w')
+    # Retrieve messages
+    lfrom, lto, amount = p.get('from', 'to', 'length')
+    if lfrom is not None: lfrom = lfrom.format_id()
+    if lto is not None: lto = lto.format_id()
+    db = scribe.LogDBSQLite(p.get('msgdb'))
+    db.init()
     try:
-        # Retrieve messages
-        lfrom, lto, amount = p.get('from', 'to', 'length')
-        if lfrom is not None: lfrom = lfrom.format_id()
-        if lto is not None: lto = lto.format_id()
-        db = scribe.LogDBSQLite(p.get('msgdb'))
-        db.init()
-        try:
-            messages = db.query(lfrom, lto, amount)
-            uuids = db.query_uuid(m['from'] for m in messages)
-        finally:
-            db.close()
-        # Sort messages
-        # This step cannot be streamed as someone could reply to an arbitrarily
-        # old messages; since the database API does not include querying by
-        # parent (yet), we also cannot offload that to the DB.
-        messages = sort_threads(messages)
-        # Format messages
-        fmt = LogFormatter(detail=p.get('detail'), mono=p.get('mono'))
+        messages = db.query(lfrom, lto, amount)
+        uuids = db.query_uuid(m['from'] for m in messages)
+    finally:
+        db.close()
+    # Sort messages
+    # This step cannot be streamed as someone could reply to an arbitrarily
+    # old messages; since the database API does not include querying by
+    # parent (yet), we also cannot offload that to the DB.
+    messages = sort_threads(messages)
+    # Format messages
+    fmt = LogFormatter(detail=p.get('detail'), mono=p.get('mono'))
+    output, outmode = p.get('output', 'outmode')
+    with instabot.OptionParser.open_file(output, outmode) as outfile:
         for s in fmt.format_logs_stream(messages, uuids):
             outfile.write(s + '\n')
-    finally:
-        if outfile is not sys.stdout: outfile.close()
 
 if __name__ == '__main__': main()

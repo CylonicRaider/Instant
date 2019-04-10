@@ -3,7 +3,7 @@
 
 # A bot library for Instant.
 
-import sys, os, re, time, stat
+import sys, os, io, re, time, stat
 import traceback
 import collections, heapq, ast
 import json
@@ -507,6 +507,21 @@ class ArgParser:
             self.toofew()
 
 class OptionParser:
+    @staticmethod
+    def open_file(path, mode, **kwds):
+        # We use io.open() since it allows using file descriptors in both Py2K
+        # and Py3K.
+        if path == '-':
+            kwds['closefd'] = False
+            if mode[:1] == 'r':
+                return io.open(sys.stdin.fileno(), mode, **kwds)
+            elif mode[:1] in ('w', 'a'):
+                return io.open(sys.stdout.fileno(), mode, **kwds)
+            else:
+                raise ValueError('Unrecognized open_file() mode: %r' %
+                                 (mode,))
+        else:
+            return io.open(path, mode, **kwds)
     def __init__(self, progname=None):
         self.progname = progname
         self.description = None
