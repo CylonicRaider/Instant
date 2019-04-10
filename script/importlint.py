@@ -212,13 +212,14 @@ def main():
             if arg == '--':
                 in_args = True
             elif arg == '--help':
-                sys.stderr.write('USAGE: %s %s [--report|--report-null|'
-                    '--no-report] <file(s)>\n' % (sys.argv[0], ' '.join(
-                        '[--[no-]%s]' % x for x in ('warn', 'sort', 'prune',
-                                                    'empty-lines'))))
+                sys.stderr.write('USAGE: %s [--help] %s [--report|'
+                    '--report-null|--no-report] <file(s)>\n' % (sys.argv[0],
+                        ' '.join('[--[no-]%s]' % x for x in ('warn', 'sort',
+                            'prune', 'empty-lines'))))
                 sys.stderr.write('Test Java source files for superfluous '
                         'imports and remove them if necessary.\nDefault is '
                         '--warn only.\n'
+                    '--help       : This help.\n'
                     '--warn       : Report unnecessary imports.\n'
                     '--sort       : Lexicographically sort the imports '
                         '(modifies file).\n'
