@@ -101,7 +101,7 @@ def tokenize(data):
             package = normalize_name(tok.group('name'))
         else:
             ret.append(tok.group())
-        lineno += ent.count('\n')
+        lineno += tok.group().count('\n')
     return {None: ret, 'import': imports, 'ident': idents,
             'package': package}
 
