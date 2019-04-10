@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: ascii -*-
 
-# A script removing animations from SVG graphics.
+"""
+A script removing animations from SVG graphics.
+"""
 
 import sys, os, re
 

@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: ascii -*-
 
-# An init script for running Instant and a number of bots.
+"""
+An init script for running Instant and a number of bots.
+"""
 
 import sys, os, re, time, operator, inspect
 import string, uuid

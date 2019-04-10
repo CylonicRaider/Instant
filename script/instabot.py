@@ -1,7 +1,9 @@
 
 # -*- coding: ascii -*-
 
-# A bot library for Instant.
+"""
+A bot library for Instant.
+"""
 
 import sys, os, io, re, time, stat
 import traceback

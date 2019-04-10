@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-# Perform syntax highlighting on Scribe logs.
+"""
+Perform syntax highlighting on Scribe logs.
+"""
 
 import sys, os, re
 import time

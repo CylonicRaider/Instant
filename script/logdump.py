@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 # -*- coding: ascii -*-
 
-# A script dumping Instant message logs in a format similar to the copy-paste
-# pretty-printer.
+"""
+A script dumping Instant message logs in a format similar to the copy-paste
+pretty-printer.
+"""
 
 import sys, time
 import operator

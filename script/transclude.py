@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: ascii -*-
 
-# Utility script for embedding additional class files into JAR files.
+"""
+Utility script for embedding additional class files into JAR files.
+"""
 
 import sys, os
 import fnmatch

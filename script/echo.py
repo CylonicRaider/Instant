@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: ascii -*-
 
-# A small example bot for Instant.
+"""
+A small example bot for Instant.
+"""
 
 import sys
 
