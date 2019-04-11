@@ -13,6 +13,7 @@ public class UniqueCounter implements Counter {
     private long lastSeconds;
     private int sequence;
     private final long nodeID;
+    private final UUID era;
 
     public UniqueCounter() {
         byte[] rnd = Util.getRandomness(6);
@@ -23,6 +24,7 @@ public class UniqueCounter implements Counter {
                  (long) rnd[3] << 16 & 0x000000FF0000L |
                  (long) rnd[4] <<  8 & 0x00000000FF00L |
                  (long) rnd[5] <<  0 & 0x0000000000FFL;
+        era = getUUID();
     }
 
     /**
@@ -88,6 +90,10 @@ public class UniqueCounter implements Counter {
     }
     public UUID getUUID() {
         return getUUID(get());
+    }
+
+    public UUID getEra() {
+        return era;
     }
 
 }

@@ -123,18 +123,27 @@ public class APIWebSocketHook extends WebSocketHook {
     private final List<MessageHook> internalHooks;
     private final Map<RequestData, String> tags;
     private final boolean insecureCookies;
+    private API1 api;
     private MessageDistributor distr;
 
-    public APIWebSocketHook(API1 api, MessageDistributor distributor) {
+    public APIWebSocketHook(API1 apiImpl, MessageDistributor distributor) {
         hooks = new ArrayList<MessageHook>();
         internalHooks = new ArrayList<MessageHook>();
         tags = Collections.synchronizedMap(
             new HashMap<RequestData, String>());
-        insecureCookies = Util.isTrue(api.getConfiguration(K_INSECURE));
+        insecureCookies = Util.isTrue(apiImpl.getConfiguration(K_INSECURE));
+        api = apiImpl;
         distr = distributor;
     }
     public APIWebSocketHook(API1 api) {
         this(api, null);
+    }
+
+    public API1 getAPI() {
+        return api;
+    }
+    public void setAPI(API1 a) {
+        api = a;
     }
 
     public MessageDistributor getDistributor() {
@@ -199,7 +208,8 @@ public class APIWebSocketHook extends WebSocketHook {
         RoomDistributor room = distr.getRoom(roomName);
         MessageData identity = new MessageData("identity");
         identity.updateData("id", id, "uuid", uuid,
-            "version", Main.VERSION, "revision", Main.FINE_VERSION);
+            "version", Main.VERSION, "revision", Main.FINE_VERSION,
+            "era", api.getCounter().getEra());
         PresenceChange event = new PresenceChangeImpl(true, conn, room);
         event.getMessage().updateData("id", id, "uuid", uuid);
         for (MessageHook h : getAllHooks())

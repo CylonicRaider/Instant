@@ -565,7 +565,7 @@ public class InstantRunner implements API1 {
     public void launch() {
         InstantWebSocketServer srv = getServer();
         if (consoleSpawner != null) consoleSpawner.run();
-        LOGGER.info("Listening on " +
+        LOGGER.info("Serving era " + getCounter().getEra() + " on " +
             Formats.formatInetSocketAddress(srv.getAddress()) + "...");
         // The server socket is only actually bound when run() is invoked, so
         // creating the server above is safe.
