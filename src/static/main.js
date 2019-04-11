@@ -278,6 +278,8 @@ this.Instant = function() {
       serverVersion: null,
       /* Fine-grained server version */
       serverRevision: null,
+      /* Identifier of the particular server instance */
+      serverEra: null,
       /* Initialize the identity from the data part of a
        * server-side message */
       initFields: function(data) {
@@ -313,6 +315,7 @@ this.Instant = function() {
         Instant.identity.uuid = data.uuid;
         Instant.identity.serverVersion = data.version;
         Instant.identity.serverRevision = data.revision;
+        Instant.identity.serverEra = data.era;
         Instant._fireListeners('identity.established');
       },
       /* Broadcast or send the current nickname */
