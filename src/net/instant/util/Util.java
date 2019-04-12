@@ -18,7 +18,7 @@ import org.json.JSONObject;
 
 public final class Util {
 
-    public static final int BUFFER_SIZE = 16384;
+    public static final int BUFFER_SIZE = 65536;
 
     private static final SecureRandom RNG = new SecureRandom();
     private static final boolean useFastRNG;
