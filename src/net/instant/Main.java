@@ -121,7 +121,7 @@ public class Main implements Runnable {
             String.class, "plugins", 'p', "List of plugins to load.")
             .defaultsTo(new ArrayList<String>()));
         ValueOption<String> cmd = p.add(ValueOption.of(String.class,
-            "startup-cmd", 'c', "OS command to run before entering " +
+            "startup-cmd", null, "OS command to run before entering " +
             "main loop."));
         ValueOption<List<KeyValue>> options = p.add(ValueOption.ofAccum(
             KeyValue.class, "option", 'o', "Additional configuration " +
