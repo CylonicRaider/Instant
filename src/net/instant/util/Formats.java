@@ -134,9 +134,21 @@ public final class Formats {
     public static final Pattern INETSOCKETADDRESS = Pattern.compile(
         // According to RFCs 952 and 1123, host names may consist of ASCII
         // letters, digits, and hyphens. The IP address matching is
-        // deliberately liberal.
-        "(?<hostname>[a-zA-Z0-9.-]*|\\*)?(?:\\[(?<addr>[0-9a-fA-F.:]+)\\])?" +
-        ":(?<port>[0-9]+)");
+        // deliberately liberal. Admissible characters for IPv6 scope ID-s
+        // are taken from RFC 6874 (excluding the tilde).
+        "(?<hostname>[a-zA-Z0-9.-]*|\\*)?(?:\\[(?<addr>[0-9a-fA-F.:]+" +
+        "(?:%[0-9a-zA-Z._-]+)?)\\])?:(?<port>[0-9]+)");
+
+    private static final Pattern IPV6_LONGEST_ZEROS = Pattern.compile(
+        // RFC 5952 states that the longest run of (at least two) zeroes must
+        // be abbreviated, with ties going to the leftmost one. This regex
+        // selects a run of at least two zeroes if there exists no longer run
+        // in the remainder of the string; assuming that every field in the
+        // input string has leading zeroes stripped and that replaceFirst()
+        // is used, this satisfies all requirements. The optional surrounding
+        // colons are matched to simplify collapsing the matched sequence into
+        // a double colon.
+        ":?(0(?::0)+)(?!.*\\1:0):?");
 
     private static final SimpleDateFormat HTTP_FORMAT;
 
@@ -225,16 +237,31 @@ public final class Formats {
         return HTTPLog.format(req);
     }
 
+    private static String shortenIPv6(String addr) {
+        // Avoid creating ambiguous addresses.
+        if (addr.contains("::")) return addr;
+        // FIXME: Relying on Java's interna to strip redundant zeroes for us.
+        return IPV6_LONGEST_ZEROS.matcher(addr).replaceFirst("::");
+    }
     public static String formatInetSocketAddress(InetSocketAddress addr,
                                                  boolean extended) {
         InetAddress baseAddr = addr.getAddress();
-        if (extended && baseAddr.isAnyLocalAddress())
+        if (extended && baseAddr != null && baseAddr.isAnyLocalAddress())
             return "*:" + addr.getPort();
-        String hostname = baseAddr.getHostName();
-        String hostaddr = baseAddr.getHostAddress();
-        if (! extended || hostname.equals(hostaddr))
-            return hostname + ":" + addr.getPort();
-        return hostname + "[" + hostaddr + "]:" + addr.getPort();
+        String hostname, hostaddr;
+        if (baseAddr == null) {
+            hostname = addr.getHostName();
+            hostaddr = hostname;
+        } else {
+            hostname = baseAddr.getHostName();
+            hostaddr = baseAddr.getHostAddress();
+        }
+        if (! extended || (hostname.equals(hostaddr) &&
+                           ! hostname.contains(":")))
+            return shortenIPv6(hostname) + ":" + addr.getPort();
+        if (hostname.equals(hostaddr))
+            hostname = "";
+        return hostname + "[" + shortenIPv6(hostaddr) + "]:" + addr.getPort();
     }
     public static String formatInetSocketAddress(InetSocketAddress addr) {
         return formatInetSocketAddress(addr, true);
