@@ -160,12 +160,13 @@ public final class Utilities {
     /**
      * Return whether the string represents an affirmative value.
      * Intended to be more lenient than Boolean.parseBoolean(); accepts
-     * inputs such as "y", "yes", "1" (ignoring case).
+     * inputs such as "1", "y", "yes", "on" (ignoring case) as true.
      */
     public static boolean isTrue(String s) {
         if (s == null) return false;
         return (Boolean.parseBoolean(s) || s.equalsIgnoreCase("1") ||
-            s.equalsIgnoreCase("y") || s.equalsIgnoreCase("yes"));
+            s.equalsIgnoreCase("y") || s.equalsIgnoreCase("yes") ||
+            s.equalsIgnoreCase("on"));
     }
 
 }
