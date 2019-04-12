@@ -227,6 +227,8 @@ public class APIWebSocketHook extends WebSocketHook {
 
     public void onInput(ClientConnection conn, String data) {
         RoomDistributor room = distr.getRoom(conn);
+        if (room == null)
+            LOGGER.warning("Connection " + conn + " has a null room?!");
         Message event;
         try {
             event = new MessageImpl(data, conn, room);
@@ -252,7 +254,8 @@ public class APIWebSocketHook extends WebSocketHook {
         for (MessageHook h : getAllHooks())
             h.onDisconnect(event);
         if (room == null) {
-            LOGGER.warning("Closing connection " + conn + " with no room?!");
+            LOGGER.warning("Closing connection " + conn + " with a null " +
+                "room?!");
         } else if (room.getName() != null) {
             room.sendBroadcast(event.getMessage());
         }
