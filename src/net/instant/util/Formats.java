@@ -173,7 +173,7 @@ public final class Formats {
         return '"' + m.replaceAll("\\\\$0") + '"';
     }
 
-    public static String formatHttpTime(Calendar cal) {
+    public static synchronized String formatHttpTime(Calendar cal) {
         return HTTP_FORMAT.format(cal.getTime());
     }
 
