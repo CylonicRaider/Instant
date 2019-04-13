@@ -507,15 +507,19 @@ class Process(BaseProcess):
             self._next_child = result
             self.pidfile_next.set_pid(self._next_child.pid)
             if wait:
-                yield self._next_switcher.Toggle('READY', 'STANDBY', True)
+                suspend, result = yield coroutines.Any(
+                    self._next_switcher.Toggle('READY', 'STANDBY', True),
+                    coroutines.WaitProcess(result))
+                if isinstance(suspend, coroutines.WaitProcess):
+                    self._next_child = None
+                    self.pidfile_next.set_pid(None)
+                    yield exit('EXITED %s' % result)
             yield exit('OK %s' % self._next_child.pid)
         finally:
             self._lock.release()
 
     def start(self, wait=True, verbose=False):
         def restarter(child, marker, delay):
-            # Do not keep reference to potentially heavy closure.
-            verbose = None
             logger = logging.getLogger('restart')
             # First, wait for the process and report its status.
             status = yield coroutines.WaitProcess(child)
