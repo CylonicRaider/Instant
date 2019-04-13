@@ -71,365 +71,6 @@ can be used to report a summary and single-letter aliases):
 Instant.jar`, and point your browser to
 [localhost:8080](http://localhost:8080).
 
-### Orchestrator script
-
-On UNIX platforms, a powerful (and extremely overengineered) Python program
-for automating the management of an Instant backend and any amount of bots
-(and any other processes as well) is available at `script/run.py`.
-
-`run.py` aims to be usable as an init script; however, it includes some
-relative file paths, which might require setting a particular working
-directory (or patching the initial sections of the script).
-
-On every invocation, a subcommand must be specified that defines what action
-should be performed. A full listing can be obtained by invoking the script
-with a `--help` option.
-
-- `status`: Lists processes and displays whether they are running or not.
-- `start`: Launches those processes that are not running.
-- `stop`: Terminates those processes that are running.
-- `restart`: Terminates and re-starts processes.
-- `bg-restart`: Performs a "fast restart": In the background, new instances
-  of those processes that support it are pre-loaded, then the "old" instances
-  of (all named) processes are stopped, and finally the background processes
-  are swapped in (or new instances are started). Requires a master process
-  (see below) to be effective; falls back to an equivalent of `restart`
-  otherwise.
-
-Each subcommand listed here accepts a list of process names (as defined in the
-configuration file; see below) to act upon as positional arguments. The
-subcommands produce *status reports* for each of the processes affected; these
-are accumulated and displayed in the order given on the command line (or the
-configuration file, if no processes are named on the command line) as default;
-to display them as they arrive, pass a `--sort=no` option to the subcommands;
-to disable the status reports entirely, pass a `--verbose=no`.
-
-**TL;DR**: Skip to the example subsection below, copy the configuration file
-to `config/run.ini` in the Instant directory, modify it to your needs, and
-use `script/run.py COMMAND` for `COMMAND`-s listed just above.
-
-#### Master process mode
-
-In this mode of operation, a central background instance of the orchestrator
-script — the *master process* — performs the actual process management and the
-actions are submitted to it via IPC.
-
-Aside from running a master process in the foreground using the `run-master`
-subcommand, the actions listed above can be instructed to interact with a
-master process in various ways using the `--master` command-line switch (which
-must be specified before the subcommand); its possible values are listed
-below:
-
-- `never` — *Never use master*. This may interfere with an already-running
-  master process, but may be useful for recovery nonetheless. All of the
-  following options use an already-master process if available.
-- `auto` — *Use master whenever available*: If no master process is running,
-  this performs the action locally.
-- `spawn` — *Spawn master in background*: If no master process is running,
-  this spawns one and submits the action to it. Useful together with `start`,
-  `restart`, `bg-restart`.
-- `fg` — *Spawn master in foreground*: If no master process is running, the
-  local process assumes its role and performs the action. The process keeps
-  running until shut down explicitly. Useful together with `start` _etc._ when
-  running under `systemd`.
-- `always` — *Always use master*: If no master process is running, this exits
-  with an error message.
-- `restart` — *Restart master*: If no master process is running, spawns a new
-  one in the background; if there *is* one, it is restarted in-place. In
-  either case, the configuration file is (re-)read and the action is performed
-  by a master process. Useful together with `restart` or `bg-restart` for
-  performing live updates.
-- `stop` — *Shut down master*: If no master process is running, executes the
-  action locally; if there *is* a master process, it executes the action and
-  is shut down afterwards.
-- `action` — *Action-dependent selection*: Use one of the modes above
-  depending on the chosen action: The `start` action uses the `spawn` mode,
-  `restart` and `bg-restart` use `restart`, `stop` uses `stop`, all others use
-  `auto`.
-
-The existence and responsiveness of a master process can be queried using the
-`ping` action, which takes no further arguments and produces a report similar
-to those of the `status` action.
-
-#### Configuration file format
-
-`run.py` employs a powerful configuration mechanism in order to offset its
-very generic nature. The configuration file format is introduced below.
-
-**Basic structure**: Configuration files are based upon the well-known `.ini`
-format as implemented by Python's `configparser` module. Files contain
-`key=value` *pairs* (each on an own line) grouped into *sections* introduced
-by section names enclosed in square brackets (on own lines as well), like
-`[section]`; comments may be introduced by semicolons (`;`). Section names are
-restricted to not have leading forward slashes (`/`) and not to contain double
-forward slashes (`//`). Keys starting and ending with double underscores
-(`__`) are reserved; do not use them unless indicated otherwise.
-
-**Template sections**: A section whose name ends with a slash is called a
-*template section*. It is functionally equivalent to a non-template section,
-but ignored when listing sections (which becomes relevant when enumerating the
-sections defining processes to run).
-
-**Inheritance**: A section *inherits* the values of its "parent" section (if
-any), whose name is derived from the current section's name as follows: If the
-section name ends with a slash (`/`), the parent section name is the section
-name without that slash; otherwise, if the section name contains a slash, the
-parent section name is the section name up to and including the last slash;
-otherwise, there is no parent section. Pairs defined in the current section
-take precedence over those of the parent section. Additionally, if the current
-section defines a pair with a key of `__import__`, the pairs of the section
-named by the value of the `__import__` pair (if any) are included in the
-current section, taking precendence over the parent section but being
-overridden by pairs defined directly in the current section. Inheritance and
-importing are performed recursively: the values of a parent of a parent are
-inherited as well (even if the parent is not present in the file).
-
-**Interpolation**: *After* a section's pairs have been aggregated as described
-above, they are *interpolated*: References to other pairs in the section's
-pair set consisting of dollar signs (`$`) followed by pair keys enclosed in
-curly braces (like `${key}`) are replaced by the corresponding pairs' values.
-Only keys consisting of alphanumerics, dashes (`-`), and underscores (`_`) may
-be referenced. The braces may be omitted if none of the mentioned characters
-follow the reference. References are resolved recursively; circular references
-are not allowed and (presently) crash the parser. Some *special names* are
-defined (which override any other pairs and should consequently not be
-defined in the file):
-
-- `__name__`: The final component of the section name, i.e. everything after
-  the last slash. In a template section, this is (consequently) the empty
-  string.
-- `__fullname__`: The full name of the section.
-
-Consider the following example for illustration:
-
-    ; This is a comment.
-
-    [secA]
-    ; This (trivially) resolves to "valueA".
-    a=valueA
-    ; This resolves to the empty string.
-    y=${test1}
-    ; This resolves to "secA".
-    z=${__name__}
-
-    [secA/]
-    ; The following pairs are inherited from secA:
-    ;a=valueA      ; Resolves to "valueA".
-    ;y=${test1}    ; Resolves to the empty string in here.
-    ;z=${__name__} ; Resolves to the empty string in here.
-
-    [secA/subsecA]
-    ; The following pairs are inherited from secA via secA/:
-    ;a=valueA      ; Resolves to "valueA".
-    ;y=${test1}    ; Resolves to "valueA valueB" in here.
-    ;z=${__name__} ; Resolves to "subsecA" in here.
-    ; This resolves (trivially as well) to "valueB".
-    b=valueB
-    ; This resolves to "valueA valueB".
-    test1=${a} $b
-    ; This resolves to "valueA valueBX".
-    test2=${y}X
-    ; This would be an error if it were not a comment.
-    ;test3=${test3}
-    ; This resolves to "I am in subsecA a.k.a. secA/subsecA.".
-    test4=I am in ${z} a.k.a. ${__fullname__}.
-
-#### Configuration files
-
-**Meta-configuration**: Some aspects of the configuration file's
-interpretation can be customized by the configuration file itself via the
-`[meta]` section. The following key is defined:
-
-- `proc-prefixes` — *Process section prefixes*: A space-delimited list of
-  strings that characterize sections which define processes (see below). For
-  a section to define a process, its name must start with any of the strings
-  given here. The built-in default is `proc`.
-
-**Individual processes** are defined by non-template sections whose names
-start with one of the *process section prefixes* (see above). The following
-keys configure the process:
-
-- `name` — *Process name*: The name of the process used on the command line.
-  Must be unique and not contain whitespace or equals signs (`=`). Required.
-- `cmdline` — *Command line*: Used to invoke the process. Parsed using
-  shell-like syntax (as implemented by the `shlex` Python module); that
-  happens **after** interpolation has been performed on the value. Required.
-- `env` — *Environment variables*: The value is, similarly to `cmdline`, split
-  into individual "words" using shell-like syntax; those are then split at
-  the first occurrences of equals signs (`=`; each word must contain at least
-  one) and added to a new process' environment. **Remark** that the syntax is
-  more lax than an actual shell's: `"abc=def"` is valid inside `env`, but
-  would not be a valid variable assignment in a shell.
-- `work-dir` — *Working directory*: A path of a directory to invoke the
-  process in. If the command name in `cmdline` is a relative path, it is
-  interpreted relatively to this directory.
-- `stdin` — *Standard input redirection*: If specified, standard input of the
-  process is redirected according to this; see below for possible values.
-- `stdout` — *Standard output redirection*: Like `stdin`, but for standard
-  output.
-- `stderr` — *Standard error redirection*: Like `stdin`, but for standard
-  error.
-
-The following keys configure the orchestrator's handling of the process:
-
-- `mkdirs` — *Create directories*: A list — similarly to `env` — of
-  directories to create before starting the process. Parent directories are
-  created as necessary.
-- `pid-file` — *PID file*: The path of a file to write the PID of the process
-  to. Used in standalone mode to locate the process. A default value (which
-  includes the process name) is provided.
-- `pid-file-warmup` — *Secondary PID file*: During a "fast restart", if
-  supported by the process, write the PID of its background copy here.
-  Defaults to the value of `pid-file` with a `.new` suffix appended.
-- `startup-notify` — *Fast restart support*: Setting this key enables "fast
-  restart" support for this process. When performing a fast restart, the value
-  of this key is appended to the process' command line (as a single argument),
-  followed by a shell command (as a single argument which is internally
-  delimited by spaces) to invoke (and wait for) when the process is done
-  initializing. The command communicates with the master process (which must
-  be present for fast restarts to be performed) and exits when it is time for
-  the background copy of the process to be swap itself into the foreground.
-- `stop-wait` — *Slow shutdown support*: When stopping the process and if the
-  orchestrator cannot wait for the process to finish (e.g. when not using a
-  master process), this specifies a fixed delay (in seconds; perhaps
-  fractional) to be applied. This is useful when the process holds some
-  exclusive resource (such as a bound network socket) and might take some time
-  to release it.
-- `restart-delay` — *Automatic restarting*: Setting this enables automatic
-  restarting of the process by a master process (which is, again, required)
-  should the process exit with a non-zero status code. The value is a (perhaps
-  fractional) amount of seconds to wait between the old copy's death and
-  starting the new copy.
-- `restart-min-alive` — *Automatic restart eligibility*: In order to be
-  eligible for an automated restart, the process must exit with a nonzero
-  code, and have been running for the amount of time specifieed by this key
-  (in perhaps fractional seconds), which defaults to zero. This is useful to
-  prevent a process that crashes during start-up from being restarted
-  indefinitely.
-
-**Redirections** are specified in a way similar to shell redirections, with
-some special values:
-
-- *(empty string)*: No redirection; the process inherits the corresponding
-  file descriptor of its parent.
-- `devnull`: Opens `/dev/null` for reading/writing.
-- `stdout`: (Only valid when redirecting `stderr`.) Make standard error point
-  whereever standard output goes.
-- `<PATH`: Open `PATH` for reading.
-- `>PATH`: Open `PATH` for writing (creating a new file or truncating an
-  existing file).
-- `>>PATH`: Open `PATH` for appending (creating a new file if necessary).
-- `<>PATH`: Open `PATH` for reading and writing.
-- All other values result in errors.
-
-**The master process** and some miscellanea are configured using the `master`
-section, in which the following keys are significant:
-
-- `work-dir` — *Orchestrator working directory*: If present, changes
-  `run.py`'s working directory to the given path, which is interpreted
-  relatively to the directory containing the configuration file. If not
-  present, the working directory in place when `run.py` is invoked is used.
-- `mode` — *Master process spawning mode*: This provides a default value for
-  the `--master` option for invocations of the orchestrator.
-- `comm-path` — *Socket path*: Where the UNIX domain socket used for
-  communication with the master process is located.
-- `comm-mkdirs` — *Create intermediate directories for socket*: Whether
-  intermediate directories in `comm-path` should be created. Defaults to yes.
-- `pid-file` — *Master PID file*: Where the master process should write a PID
-  file representing itself. If omitted, the master process writes no PID file.
-- `log-file` — *Path of logging file*: Where the master process should send
-  logs. If not given or empty, standard error is used.
-- `log-level` — *Logging level*: Messages at least as severe as this level
-  will be logged. Defaults to `INFO`.
-- `log-timestamps` — *Timestamps in logs*: Whether logging messages should
-  include timestamps. Defaults to `yes`. Disabling this might be useful when
-  logging to `systemd`.
-
-**Note** that all filesystem paths (with the exception of those in
-`cmdline`-s) are relative to the *orchestrator*'s working directory; see the
-`work-dir` key in the `master` section for configuring that. For PID files,
-redirections, and the master process' log file, intermediate directories are
-created as needed.
-
-#### Example configuration
-
-The following configuration file demonstrates the techniques documented above
-and provides an approximate replacement for the `run.bash` script:
-
-    ; General parameters stored in a separate section; [instant] and
-    ; [scribe/] import these.
-    [config/instant]
-    ; The address the backend listens on.
-    instant-host=localhost
-    ; The port the backend listens on.
-    instant-port=8080
-    ; Additional options for the backend.
-    instant-options=
-    ; Batch size for room log delivery.
-    scribe-maxlen=100
-    ; Additional options for Scribe bots.
-    scribe-options=
-
-    ; Master process configuration.
-    [master]
-    ; Uncomment the following line to use a central manager process and to
-    ; make bg-restart work.
-    ;mode=action
-    ; Location of the "main" directory relative to the directory containing
-    ; the configuration file (which, in turn, is expected to be located at
-    ; config/run.ini). All other paths (except process command names) are
-    ; relative to this.
-    work-dir=..
-    ; Logging configuration.
-    log-file=log/master.log
-    ; Let the master process write a PID file.
-    pid-file=run/master.pid
-
-    ; Meta-configuration.
-    [meta]
-    ; Selection of sections that define processes.
-    proc-prefixes=instant scribe
-
-    ; Backend configuration.
-    [instant]
-    __import__=config/instant
-    ; Process name.
-    name=instant
-    ; Command line.
-    cmdline=java -jar Instant.jar -h ${instant-host} ${instant-port}
-        --http-log=log/Instant.log ${instant-options}
-    ; Environment (sets the cookie key location). After the cookie key file is
-    ; created, its access mode should be manually set to 600.
-    env=INSTANT_COOKIES_KEYFILE=config/cookie-key.bin
-        INSTANT_COOKIES_KEYFILE_CREATE=yes
-    ; Redirections.
-    stdout=>>log/Instant.dbg.log
-    stderr=stdout
-    ; Fast restart support.
-    startup-notify=--startup-cmd
-
-    ; The section name ends with a slash, so no actual process is instantiated
-    ; from it.
-    [scribe/]
-    __import__=config/instant
-    ; The (final part of the) section name is used as the room name.
-    room=${__name__}
-    ; Process name.
-    name=scribe-${room}
-    ; Command line.
-    cmdline=script/scribe.py --cookies config/${name}-cookies.txt
-        --msgdb db/messages-${room}.sqlite --maxlen "${scribe-maxlen}"
-        ${scribe-options} ws://${instant-host}:${instant-port}/room/${room}/ws
-    ; Environment (needed to accept Secure cookies over HTTP).
-    env=INSTABOT_RELAXED_COOKIES=y
-    ; Redirections.
-    stdout=>>log/${name}.log
-    stderr=>>log/${name}.err.log
-
-    ; This section screates a Scribe bot in &welcome; it does not need to
-    ; contain values of its own.
-    [scribe/welcome]
-
 ### HTTPS
 
 The backend supports plain HTTP exclusively; to provide HTTPS, you have to
@@ -539,6 +180,368 @@ points:
   `X-Git-Commit` to store the Git commit of the current build, or some
   alternative fine-grained version indicator. Additional semantics may be
   defined in the future.
+
+## Orchestrator script
+
+On UNIX platforms, a powerful (and extremely overengineered) Python program
+for automating the management of an Instant backend and any amount of bots
+(and any other processes as well) is available at `script/run.py`.
+
+`run.py` aims to be usable as an init script; however, it includes some
+relative file paths, which might require setting a particular working
+directory (or patching the initial sections of the script).
+
+On every invocation, a subcommand must be specified that defines what action
+should be performed. A full listing can be obtained by invoking the script
+with a `--help` option.
+
+- `status`: Lists processes and displays whether they are running or not.
+- `start`: Launches those processes that are not running.
+- `stop`: Terminates those processes that are running.
+- `restart`: Terminates and re-starts processes.
+- `bg-restart`: Performs a "fast restart": In the background, new instances
+  of those processes that support it are pre-loaded, then the "old" instances
+  of (all named) processes are stopped, and finally the background processes
+  are swapped in (or new instances are started). Requires a master process
+  (see below) to be effective; falls back to an equivalent of `restart`
+  otherwise.
+
+Each subcommand listed here accepts a list of process names (as defined in the
+configuration file; see below) to act upon as positional arguments. The
+subcommands produce *status reports* for each of the processes affected; these
+are accumulated and displayed in the order given on the command line (or the
+configuration file, if no processes are named on the command line) as default;
+to display them as they arrive, pass a `--sort=no` option to the subcommands;
+to disable the status reports entirely, pass a `--verbose=no`.
+
+**TL;DR**: Skip to the example subsection below, copy the configuration file
+to `config/run.ini` in the Instant directory, modify it to your needs, and
+use `script/run.py COMMAND` for `COMMAND`-s listed just above.
+
+### Master process mode
+
+In this mode of operation, a central background instance of the orchestrator
+script — the *master process* — performs the actual process management and the
+actions are submitted to it via IPC.
+
+Aside from running a master process in the foreground using the `run-master`
+subcommand, the actions listed above can be instructed to interact with a
+master process in various ways using the `--master` command-line switch (which
+must be specified before the subcommand); its possible values are listed
+below:
+
+- `never` — *Never use master*. This may interfere with an already-running
+  master process, but may be useful for recovery nonetheless. All of the
+  following options use an already-master process if available.
+- `auto` — *Use master whenever available*: If no master process is running,
+  this performs the action locally.
+- `spawn` — *Spawn master in background*: If no master process is running,
+  this spawns one and submits the action to it. Useful together with `start`,
+  `restart`, `bg-restart`.
+- `fg` — *Spawn master in foreground*: If no master process is running, the
+  local process assumes its role and performs the action. The process keeps
+  running until shut down explicitly. Useful together with `start` _etc._ when
+  running under `systemd`.
+- `always` — *Always use master*: If no master process is running, this exits
+  with an error message.
+- `restart` — *Restart master*: If no master process is running, spawns a new
+  one in the background; if there *is* one, it is restarted in-place. In
+  either case, the configuration file is (re-)read and the action is performed
+  by a master process. Useful together with `restart` or `bg-restart` for
+  performing live updates.
+- `stop` — *Shut down master*: If no master process is running, executes the
+  action locally; if there *is* a master process, it executes the action and
+  is shut down afterwards.
+- `action` — *Action-dependent selection*: Use one of the modes above
+  depending on the chosen action: The `start` action uses the `spawn` mode,
+  `restart` and `bg-restart` use `restart`, `stop` uses `stop`, all others use
+  `auto`.
+
+The existence and responsiveness of a master process can be queried using the
+`ping` action, which takes no further arguments and produces a report similar
+to those of the `status` action.
+
+### Configuration file format
+
+`run.py` employs a powerful configuration mechanism in order to offset its
+very generic nature. The configuration file format is introduced below.
+
+**Basic structure**: Configuration files are based upon the well-known `.ini`
+format as implemented by Python's `configparser` module. Files contain
+`key=value` *pairs* (each on an own line) grouped into *sections* introduced
+by section names enclosed in square brackets (on own lines as well), like
+`[section]`; comments may be introduced by semicolons (`;`). Section names are
+restricted to not have leading forward slashes (`/`) and not to contain double
+forward slashes (`//`). Keys starting and ending with double underscores
+(`__`) are reserved; do not use them unless indicated otherwise.
+
+**Template sections**: A section whose name ends with a slash is called a
+*template section*. It is functionally equivalent to a non-template section,
+but ignored when listing sections (which becomes relevant when enumerating the
+sections defining processes to run).
+
+**Inheritance**: A section *inherits* the values of its "parent" section (if
+any), whose name is derived from the current section's name as follows: If the
+section name ends with a slash (`/`), the parent section name is the section
+name without that slash; otherwise, if the section name contains a slash, the
+parent section name is the section name up to and including the last slash;
+otherwise, there is no parent section. Pairs defined in the current section
+take precedence over those of the parent section. Additionally, if the current
+section defines a pair with a key of `__import__`, the pairs of the section
+named by the value of the `__import__` pair (if any) are included in the
+current section, taking precendence over the parent section but being
+overridden by pairs defined directly in the current section. Inheritance and
+importing are performed recursively: the values of a parent of a parent are
+inherited as well (even if the parent is not present in the file).
+
+**Interpolation**: *After* a section's pairs have been aggregated as described
+above, they are *interpolated*: References to other pairs in the section's
+pair set consisting of dollar signs (`$`) followed by pair keys enclosed in
+curly braces (like `${key}`) are replaced by the corresponding pairs' values.
+Only keys consisting of alphanumerics, dashes (`-`), and underscores (`_`) may
+be referenced. The braces may be omitted if none of the mentioned characters
+follow the reference. References are resolved recursively; circular references
+are not allowed and (presently) crash the parser. Some *special names* are
+defined (which override any other pairs and should consequently not be
+defined in the file):
+
+- `__name__`: The final component of the section name, i.e. everything after
+  the last slash. In a template section, this is (consequently) the empty
+  string.
+- `__fullname__`: The full name of the section.
+
+Consider the following example for illustration:
+
+    ; This is a comment.
+
+    [secA]
+    ; This (trivially) resolves to "valueA".
+    a=valueA
+    ; This resolves to the empty string.
+    y=${test1}
+    ; This resolves to "secA".
+    z=${__name__}
+
+    [secA/]
+    ; The following pairs are inherited from secA:
+    ;a=valueA      ; Resolves to "valueA".
+    ;y=${test1}    ; Resolves to the empty string in here.
+    ;z=${__name__} ; Resolves to the empty string in here.
+
+    [secA/subsecA]
+    ; The following pairs are inherited from secA via secA/:
+    ;a=valueA      ; Resolves to "valueA".
+    ;y=${test1}    ; Resolves to "valueA valueB" in here.
+    ;z=${__name__} ; Resolves to "subsecA" in here.
+    ; This resolves (trivially as well) to "valueB".
+    b=valueB
+    ; This resolves to "valueA valueB".
+    test1=${a} $b
+    ; This resolves to "valueA valueBX".
+    test2=${y}X
+    ; This would be an error if it were not a comment.
+    ;test3=${test3}
+    ; This resolves to "I am in subsecA a.k.a. secA/subsecA.".
+    test4=I am in ${z} a.k.a. ${__fullname__}.
+
+### Configuration files
+
+This subsection describes which values `run.py` extracts from its
+configuration file and how it interprets them.
+
+**Meta-configuration**: Some aspects of the configuration file's
+interpretation can be customized by the configuration file itself via the
+`[meta]` section. The following key is defined:
+
+- `proc-prefixes` — *Process section prefixes*: A space-delimited list of
+  strings that characterize sections which define processes (see below). For
+  a section to define a process, its name must start with any of the strings
+  given here. The built-in default is `proc`.
+
+**Individual processes** are defined by non-template sections whose names
+start with one of the *process section prefixes* (see above). The following
+keys configure the process:
+
+- `name` — *Process name*: The name of the process used on the command line.
+  Must be unique and not contain whitespace or equals signs (`=`). Required.
+- `cmdline` — *Command line*: Used to invoke the process. Parsed using
+  shell-like syntax (as implemented by the `shlex` Python module); that
+  happens **after** interpolation has been performed on the value. Required.
+- `env` — *Environment variables*: The value is, similarly to `cmdline`, split
+  into individual "words" using shell-like syntax; those are then split at
+  the first occurrences of equals signs (`=`; each word must contain at least
+  one) and added to a new process' environment. **Remark** that the syntax is
+  more lax than an actual shell's: `"abc=def"` is valid inside `env`, but
+  would not be a valid variable assignment in a shell.
+- `work-dir` — *Working directory*: A path of a directory to invoke the
+  process in. If the command name in `cmdline` is a relative path, it is
+  interpreted relatively to this directory.
+- `stdin` — *Standard input redirection*: If specified, standard input of the
+  process is redirected according to this; see below for possible values.
+- `stdout` — *Standard output redirection*: Like `stdin`, but for standard
+  output.
+- `stderr` — *Standard error redirection*: Like `stdin`, but for standard
+  error.
+
+The following keys configure the orchestrator's handling of the process:
+
+- `mkdirs` — *Create directories*: A list — similarly to `env` — of
+  directories to create before starting the process. Parent directories are
+  created as necessary.
+- `pid-file` — *PID file*: The path of a file to write the PID of the process
+  to. Used in standalone mode to locate the process. A default value (which
+  varies according to the process name) is provided.
+- `pid-file-warmup` — *Secondary PID file*: During a "fast restart", if
+  supported by the process, the PID of its background copy is written here.
+  Defaults to the value of `pid-file` with a `.new` suffix appended.
+- `startup-notify` — *Fast restart support*: Setting this key enables "fast
+  restart" support for this process. When performing a fast restart, the value
+  of this key is appended to the process' command line (as a single argument),
+  followed by a shell command (as a single argument which is internally
+  delimited by spaces) to invoke (and wait for) when the process is done
+  initializing. The command communicates with the master process (which must
+  be present for fast restarts to be performed) and exits when it is time for
+  the background copy of the process to be swap itself into the foreground.
+- `stop-wait` — *Slow shutdown support*: When stopping the process and if the
+  orchestrator cannot wait for the process to finish (e.g. when not using a
+  master process), this specifies a fixed delay (in seconds; perhaps
+  fractional) to be applied. This is useful when the process holds some
+  exclusive resource (such as a bound network socket) and might take some time
+  to release it.
+- `restart-delay` — *Automatic restarting*: Setting this enables automatic
+  restarting of the process by a master process (which is, again, required)
+  should the process exit with a non-zero status code. The value is a (perhaps
+  fractional) amount of seconds to wait between the old copy's death and
+  starting the new copy.
+- `restart-min-alive` — *Automatic restart eligibility*: In order to be
+  eligible for an automated restart, the process must exit with a nonzero
+  code, and have been running for the amount of time specifieed by this key
+  (in perhaps fractional seconds), which defaults to zero. This is useful to
+  prevent a process that crashes during start-up from being restarted
+  indefinitely.
+
+**Redirections** are specified in a way similar to shell redirections, with
+some special values:
+
+- *(empty string)*: No redirection; the process inherits the corresponding
+  file descriptor of its parent.
+- `devnull`: Opens `/dev/null` for reading/writing.
+- `stdout`: (Only valid when redirecting `stderr`.) Make standard error point
+  whereever standard output goes.
+- `<PATH`: Open `PATH` for reading.
+- `>PATH`: Open `PATH` for writing (creating a new file or truncating an
+  existing file).
+- `>>PATH`: Open `PATH` for appending (creating a new file if necessary).
+- `<>PATH`: Open `PATH` for reading and writing.
+- All other values result in errors.
+
+**The master process** and some miscellanea are configured using the `master`
+section, in which the following keys are significant:
+
+- `work-dir` — *Orchestrator working directory*: If present, changes
+  `run.py`'s working directory to the given path, which is interpreted
+  relatively to the directory containing the configuration file. If not
+  present, the working directory in place when `run.py` is invoked is used.
+- `mode` — *Master process spawning mode*: This provides a default value for
+  the `--master` option for invocations of the orchestrator.
+- `comm-path` — *Socket path*: Where the UNIX domain socket used for
+  communication with the master process is located.
+- `comm-mkdirs` — *Create intermediate directories for socket*: Whether
+  intermediate directories in `comm-path` should be created. Defaults to yes.
+- `pid-file` — *Master PID file*: Where the master process should write a PID
+  file representing itself. If omitted, the master process writes no PID file.
+- `log-file` — *Path of logging file*: Where the master process should send
+  logs. If not given or empty, standard error is used.
+- `log-level` — *Logging level*: Messages at least as severe as this level
+  will be logged. Defaults to `INFO`.
+- `log-timestamps` — *Timestamps in logs*: Whether logging messages should
+  include timestamps. Defaults to `yes`. Disabling this might be useful when
+  logging to `systemd`.
+
+**Note** that all filesystem paths (with the exception of those in
+`cmdline`-s) are relative to the *orchestrator*'s working directory; see the
+`work-dir` key in the `master` section for configuring that. For PID files,
+redirections, and the master process' log file, intermediate directories are
+created as needed.
+
+### Example configuration
+
+The following configuration file demonstrates the techniques documented above
+and provides an approximate replacement for the `run.bash` script:
+
+    ; General parameters stored in a separate section; [instant] and
+    ; [scribe/] import these.
+    [config/instant]
+    ; The address the backend listens on.
+    instant-host=localhost
+    ; The port the backend listens on.
+    instant-port=8080
+    ; Additional options for the backend.
+    instant-options=
+    ; Batch size for room log delivery.
+    scribe-maxlen=100
+    ; Additional options for Scribe bots.
+    scribe-options=
+
+    ; Master process configuration.
+    [master]
+    ; Uncomment the following line to use a central manager process and to
+    ; make bg-restart work.
+    ;mode=action
+    ; Location of the "main" directory relative to the directory containing
+    ; the configuration file (which, in turn, is expected to be located at
+    ; config/run.ini). All other paths (except process command names) are
+    ; relative to this.
+    work-dir=..
+    ; Logging configuration.
+    log-file=log/master.log
+    ; Let the master process write a PID file.
+    pid-file=run/master.pid
+
+    ; Meta-configuration.
+    [meta]
+    ; Selection of sections that define processes.
+    proc-prefixes=instant scribe
+
+    ; Backend configuration.
+    [instant]
+    __import__=config/instant
+    ; Process name.
+    name=instant
+    ; Command line.
+    cmdline=java -jar Instant.jar -h ${instant-host} ${instant-port}
+        --http-log=log/Instant.log ${instant-options}
+    ; Environment (sets the cookie key location). After the cookie key file is
+    ; created, its access mode should be manually set to 600.
+    env=INSTANT_COOKIES_KEYFILE=config/cookie-key.bin
+        INSTANT_COOKIES_KEYFILE_CREATE=yes
+    ; Redirections.
+    stdout=>>log/Instant.dbg.log
+    stderr=stdout
+    ; Fast restart support.
+    startup-notify=--startup-cmd
+
+    ; The section name ends with a slash, so no actual process is instantiated
+    ; from it.
+    [scribe/]
+    __import__=config/instant
+    ; The (final part of the) section name is used as the room name.
+    room=${__name__}
+    ; Process name.
+    name=scribe-${room}
+    ; Command line.
+    cmdline=script/scribe.py --cookies config/${name}-cookies.txt
+        --msgdb db/messages-${room}.sqlite --maxlen "${scribe-maxlen}"
+        ${scribe-options} ws://${instant-host}:${instant-port}/room/${room}/ws
+    ; Environment (needed to accept Secure cookies over HTTP).
+    env=INSTABOT_RELAXED_COOKIES=y
+    ; Redirections.
+    stdout=>>log/${name}.log
+    stderr=>>log/${name}.err.log
+
+    ; This section screates a Scribe bot in &welcome; it does not need to
+    ; contain values of its own.
+    [scribe/welcome]
 
 ## Running Scribe
 
