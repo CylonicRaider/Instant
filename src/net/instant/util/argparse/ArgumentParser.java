@@ -6,19 +6,35 @@ import java.util.List;
 
 public class ArgumentParser {
 
-    public static class HelpAction extends RunnableAction {
-
-        public static final String USAGE_LINE_HEADER = "USAGE: ";
-
-        private final ArgumentParser parser;
-
-        public HelpAction(ArgumentParser parser) {
-            this.parser = parser;
-        }
+    public abstract class PrintAndExitAction extends RunnableAction {
 
         public ArgumentParser getParser() {
-            return parser;
+            return ArgumentParser.this;
         }
+
+        public void show(String text) {
+            System.err.println(text);
+        }
+        public abstract String createMessage();
+        public void finish() {
+            System.exit(0);
+        }
+
+        public void run() {
+            show(createMessage());
+            finish();
+        }
+
+        public Processor makeOption(String name, Character shortName,
+                                    String help) {
+            return new Option<RunnableAction>(name, shortName, help, this);
+        }
+
+    }
+
+    public class HelpAction extends PrintAndExitAction {
+
+        public static final String USAGE_LINE_HEADER = "USAGE: ";
 
         public String formatParserName() {
             String pn = getParser().getProgName();
@@ -70,29 +86,17 @@ public class ArgumentParser {
             return sb.append('\n').append(formatHelp()).toString();
         }
 
-        public void run() {
-            System.err.println(formatFullHelp());
-            System.exit(0);
+        public String createMessage() {
+            return formatFullHelp();
         }
 
-        public static Processor makeOption(ArgumentParser parser) {
-            return new Option<HelpAction>("help", '?', "Display help.",
-                new HelpAction(parser));
+        public Processor makeOption() {
+            return makeOption("help", '?', "Display help.");
         }
 
     }
 
-    public static class VersionAction extends RunnableAction {
-
-        private final ArgumentParser parser;
-
-        public VersionAction(ArgumentParser parser) {
-            this.parser = parser;
-        }
-
-        public ArgumentParser getParser() {
-            return parser;
-        }
+    public class VersionAction extends PrintAndExitAction {
 
         public String formatVersionLine() {
             String ret = getParser().getProgName();
@@ -101,14 +105,12 @@ public class ArgumentParser {
             return ret;
         }
 
-        public void run() {
-            System.err.println(formatVersionLine());
-            System.exit(0);
+        public String createMessage() {
+            return formatVersionLine();
         }
 
-        public static Processor makeOption(ArgumentParser parser) {
-            return new Option<VersionAction>("version", 'V',
-                "Display version.", new VersionAction(parser));
+        public Processor makeOption() {
+            return makeOption("version", 'V', "Display version.");
         }
 
     }
@@ -166,8 +168,8 @@ public class ArgumentParser {
     }
 
     public void addStandardOptions() {
-        add(HelpAction.makeOption(this));
-        if (version != null) add(VersionAction.makeOption(this));
+        add(new HelpAction().makeOption());
+        if (version != null) add(new VersionAction().makeOption());
     }
 
     public ParseResult parse(String[] args) throws ParsingException {
