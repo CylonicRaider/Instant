@@ -46,7 +46,7 @@ public class Datum implements ClientConnection, ResponseBuilder {
     }
 
     public String toString() {
-        return String.format((Locale) null, "%s[of %s at %tF %<tT %<tZ]",
+        return String.format((Locale) null, "%s[of %s at %tF %<tT.%<tL %<tZ]",
                              super.toString(), reqPath, timestamp);
     }
 
