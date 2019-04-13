@@ -4,7 +4,7 @@
 """
 A PEP 342 generator-based coroutine framework
 
-This module implements the cooperative multitasking in Python using generator
+This module implements cooperative multitasking in Python using generator
 functions. Multiple coroutines can run concurrently, exchanging control with
 each other by suspending themselves regularly, all staying within the same
 thread of execution. Coroutines perform potentially blocking operations (such
@@ -34,7 +34,7 @@ run             : Convenience function for constructing, configuring, running,
 As remarked above, coroutines are implemented as generator functions, like the
 following example:
 
-    def ticker(delay, output):
+    def ticker(delay):
         while 1:
             print ('Tick!')
             yield Sleep(delay)
@@ -42,33 +42,38 @@ following example:
             yield Sleep(delay)
 
 This function regularly writes strings to standard output (remark that the
-example uses the blocking print since it is assumed to be fast enough) and
-sleeps in between them by using a suspend object. Suspend objects can perform
+example uses the blocking print() since it is assumed to be fast enough) and
+sleeps in between by using a suspend object. Suspend objects can perform
 various things; aside from the already-mentioned I/O and sleeping, suspends
 can also perform inter-coroutine communication (with less overhead than
-regular polling of shared variables) or compose other suspends. For example,
+regular polling of shared variables), or compose other suspends. For example,
 the following suspend reads from a file with a timeout:
 
     suspend, result = yield Any(ReadFile(f, 1024), Sleep(5))
 
-The Any suspend returns the first suspend to finish along with its result: if
-the ReadFile does not finish within five seconds, the Sleep's result is
-reported instead. The other sub-suspend of the Any is *cancelled* (which is an
-operation not supported by all suspends), so that no data are actually read
-should the sleep finish first. As seen in the example above, suspends can
-return values to the invoking coroutine (or to enclosing suspends); composing
-suspends can manipulate the return values of their nested suspends.
+The Any suspend returns the first nested suspend to finish along with its
+result: if the ReadFile does not finish within five seconds, the Sleep's
+result (which is not particularly interesting) is reported instead. The other
+sub-suspend of the Any is *cancelled* (which is an operation not supported by
+all suspends), so that no data are actually read should the sleep finish
+first. As seen in the example above, suspends can return values to the
+invoking coroutine (or to enclosing suspends); composing suspends can
+manipulate the return values of their nested suspends.
 
 In order to become effective, a suspend object must be yielded (recall that
 coroutines are implemented as generators) from a coroutine to its executor,
 which schedules the coroutines and provides services to suspend objects, such
 as a central select loop (which is used by ReadFile etc.). Once yielded, it is
 up to the suspend to wake up the coroutine whenever the suspend is done (which
-might be immediately or, for the Exit suspend, never).
+might be immediately or after a prolonged period of time). Aside from
+specially noted exceptions, a coroutine interacts with a suspend only by
+instantiating the suspend, yielding it, and inspecting the returned value (if
+any); the methods on the Suspend class are for use by the executor and other
+suspends only.
 
 A coroutine can also use a bare "yield" to suspend itself without performing
 any special action; it will be immediately resumed after other coroutines have
-had a chance to run (which happens every time a coroutine yields).
+had a chance to run.
 
 The use of generator functions as coroutines forces some restrictions upon
 language features; in particular, generator functions cannot both be
@@ -130,7 +135,7 @@ class ProcessTag(Tag):
 class Suspend(object):
     """
     A Suspend encapsulates a temporary interruption of a coroutine's execution
-    in order to perform some spcecial action
+    in order to perform some special action
 
     "Special actions" include blocking I/O (which is multiplexed through a
     central select() loop), sleeping (which would make other coroutines
@@ -355,6 +360,10 @@ class Selector(CombinationSuspend):
     The result of each child suspend is reported as a 2-tuple (child, value),
     where child is the child suspend that finished and value is its result;
     if a child suspend resulted in an exception, it is re-raised instead.
+
+    The Selector class defines a few public methods beyond those defined by
+    Suspend; as an exception, a coroutine may invoke them, and yield the same
+    Selector object multiple times.
     """
 
     def __init__(self, *suspends):
@@ -572,7 +581,7 @@ class CallbackSuspend(ControlSuspend):
 
     Execute an arbitrary synchronous function in the context of a suspend
 
-    When applied, this suspend forwards the "executor" and "routine" arguemnts
+    When applied, this suspend forwards the "executor" and "routine" arguments
     of its apply() method to callback and finishes with the value callback
     returns (or the exception it raises). This is useful for performing
     actions which are not covered by other suspends and are simple enough not
@@ -1666,7 +1675,9 @@ def const_raise(exc, excclass=RuntimeError):
     A coroutine that immediately raises the given exception
 
     If exc is not actually an exception, excclass is instantiated using it
-    as the only parameter and raised.
+    as the only parameter and raised. If excclass is not an exception class
+    (and not a callable that returns a valid exception object), Python raises
+    a TypeError exception.
     """
     if not isinstance(exc, BaseException):
         raise excclass(exc)
