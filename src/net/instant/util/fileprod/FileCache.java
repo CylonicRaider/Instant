@@ -31,6 +31,10 @@ public class FileCache implements Producer {
         return cell;
     }
 
+    public synchronized void clear() {
+        data.clear();
+    }
+
     public ProducerJob produce(String name) {
         final FileCell cell = get(name);
         if (cell == null) return null;
