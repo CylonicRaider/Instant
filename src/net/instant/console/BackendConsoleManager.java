@@ -14,6 +14,14 @@ import net.instant.console.util.Util;
 
 public class BackendConsoleManager implements BackendConsoleManagerMXBean {
 
+    public static String HELP_STRING = "\"console\" is bound to the " +
+            "console object; \"main\" is bound to the Instant Main object; " +
+            "\"instant\" is bound to the Instant API.\n" +
+        "Use \"console.close()\" to exit.\n" +
+        "Use \"for (var prop in X) println(prop);\" to list the properties " +
+            "available on X, substituting \"this\" to list those on the " +
+            "global object.";
+
     private final Main main;
     private final InstantRunner runner;
     private final Map<Integer, BackendConsole> consoles;
@@ -33,8 +41,7 @@ public class BackendConsoleManager implements BackendConsoleManagerMXBean {
         this.nextID = 1;
         this.closed = false;
         this.server = null;
-        defaultVariables.put("main", main);
-        defaultVariables.put("instant", runner);
+        initDefaultVariables();
     }
 
     public Main getMain() {
@@ -131,6 +138,12 @@ public class BackendConsoleManager implements BackendConsoleManagerMXBean {
         MBeanServer srv = getInstalledServer();
         if (srv == null) return;
         Util.exportMBeanServerRMI(srv, addr, addr, env);
+    }
+
+    protected void initDefaultVariables() {
+        defaultVariables.put("main", main);
+        defaultVariables.put("instant", runner);
+        defaultVariables.put("help", HELP_STRING);
     }
 
     public static BackendConsoleManager makeDefault(InstantRunner runner) {
