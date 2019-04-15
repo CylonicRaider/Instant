@@ -237,8 +237,8 @@ public class GUIClient extends TypescriptTerminal
 
     protected void fillSettingsBottomBox(Container cont) {
         super.fillSettingsBottomBox(cont);
-        close = new JButton("Close");
-        close.setMnemonic(KeyEvent.VK_C);
+        close = new JButton("Disconnect");
+        close.setMnemonic(KeyEvent.VK_D);
         close.addActionListener(this);
         cont.add(close);
     }

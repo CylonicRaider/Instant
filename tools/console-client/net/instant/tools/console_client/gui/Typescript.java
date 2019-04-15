@@ -118,6 +118,13 @@ public class Typescript extends JPanel {
         output.setRows(height);
     }
 
+    public boolean isOutputFocusable() {
+        return output.isFocusable();
+    }
+    public void setOutputFocusable(boolean allowed) {
+        output.setFocusable(allowed);
+    }
+
     public LineWrapPolicy getLineWrapPolicy() {
         return LineWrapPolicy.determine(output);
     }

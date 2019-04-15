@@ -5,26 +5,38 @@ import java.awt.Component;
 import java.awt.Container;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.ItemEvent;
+import java.awt.event.ItemListener;
 import java.awt.event.KeyEvent;
 import javax.swing.Box;
 import javax.swing.JButton;
+import javax.swing.JCheckBox;
 
 public class TypescriptTerminal extends OverlayPane {
 
     protected class SettingsDialog extends OverlayDialog
-            implements ActionListener {
+            implements ActionListener, ItemListener {
 
+        protected final JCheckBox outputFocusable;
         protected final JButton ok;
 
         public SettingsDialog() {
             super("Settings");
+            outputFocusable = new JCheckBox("Output selectable");
             ok = new JButton("OK");
             createUI();
         }
 
         protected void createUI() {
-            getContentPane().add(EnumSelector.createFor(
+            Container content = getContentPane();
+            content.add(EnumSelector.createFor(
                 getTypescript().createLWPModel()));
+
+            outputFocusable.setToolTipText("Workaround around a minor tab " +
+                "order invonvenience.");
+            outputFocusable.setSelected(ts.isOutputFocusable());
+            outputFocusable.addItemListener(this);
+            content.add(outputFocusable, BorderLayout.SOUTH);
 
             Container bottom = getBottomPane();
             fillSettingsBottomBox(bottom);
@@ -38,6 +50,12 @@ public class TypescriptTerminal extends OverlayPane {
                 showPopup(settings);
             } else if (evt.getSource() == ok) {
                 showPopup(null);
+            }
+        }
+
+        public void itemStateChanged(ItemEvent evt) {
+            if (evt.getSource() == outputFocusable) {
+                ts.setOutputFocusable(outputFocusable.isSelected());
             }
         }
 
