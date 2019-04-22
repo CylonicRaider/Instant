@@ -4703,11 +4703,7 @@ this.Instant = function() {
           Instant.privmsg._updateNicks(popup);
           Instant.popups.add(popup);
           Instant.privmsg._update({popup: popup});
-          if (! subject.value) {
-            subject.focus();
-          } else {
-            editor.focus();
-          }
+          editor.focus();
         }
         Instant._fireListeners('pm.write', {popup: popup});
         return popup;
