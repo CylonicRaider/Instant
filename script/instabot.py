@@ -513,7 +513,7 @@ class OptionParser:
     def open_file(path, mode, **kwds):
         # We use io.open() since it allows using file descriptors in both Py2K
         # and Py3K.
-        if path == '-':
+        if path is None or path == '-':
             kwds['closefd'] = False
             if mode[:1] == 'r':
                 return io.open(sys.stdin.fileno(), mode, **kwds)

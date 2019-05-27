@@ -93,14 +93,14 @@ def main():
     p.help_action(desc='A syntax highlighter for Scribe logs.')
     p.option('ignore', short='i', default=[], accum=True,
              help='Filter out lines of this type (may be repeated)')
-    p.option('out', short='o', default='-',
+    p.option('out', short='o',
              help='File to write output to (- is standard output and '
                  'the default)')
     p.flag_ex('append', short='a', varname='outmode', value='a', default='w',
               help='Append to output file instead of overwriting it')
     p.flag('line-buffered', short='u',
            help='Flush output after each input line')
-    p.argument('in', default='-',
+    p.argument('in',
                help='File to read from (- is standard input and '
                    'the default)')
     p.parse(sys.argv[1:])
