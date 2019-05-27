@@ -100,12 +100,11 @@ def main():
               help='Append to output file instead of overwriting it')
     p.flag('line-buffered', short='u',
            help='Flush output after each input line')
-    p.argument('in',
+    p.argument('in', default='-',
                help='File to read from (- is standard input and '
                    'the default)')
     p.parse(sys.argv[1:])
-    ignore, inpath, outpath, outmode, append = p.get('ignore', 'in', 'out',
-                                                     'outmode', 'append')
+    ignore, inpath, outpath, outmode = p.get('ignore', 'in', 'out', 'outmode')
     linebuf = p.get('line-buffered')
     try:
         filt = (lambda t: t not in ignore) if ignore else None
