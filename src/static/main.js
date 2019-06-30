@@ -3172,7 +3172,6 @@ this.Instant = function() {
           var replies = Instant.message._getReplyNode(message);
           if (inputNode.parentNode == replies ||
               Instant.message.getPredecessor(inputNode) != message &&
-              ! Instant.message.hasReplies(message) &&
               ! Instant.message.getSuccessor(message) &&
               (! rootsReply ||
                Instant.message.getParentMessage(message) != null)) {
