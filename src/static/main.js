@@ -7101,6 +7101,19 @@ this.Instant = function() {
         base[k] = ext[k];
       }
     }
+    function testPresence(storageName) {
+      try {
+        // Merely *accessing* localStorage is defined to potentially raise
+        // errors (in case the browser is or is configured to be particularly
+        // privacy-conscious). *sessionStorage*, on the other hand, can be
+        // accessed just fine, but may errors out when being *used* instead.
+        // Ugh.
+        window[storageName].getItem('test');
+        return true;
+      } catch (e) {
+        return false;
+      }
+    }
     /* Storage class */
     function Storage(name, backupSession, backupLocal) {
       this.name = name;
@@ -7157,17 +7170,17 @@ this.Instant = function() {
        * NOTE that merging is not recursive. */
       load: function(merge) {
         var apply = this._apply.bind(this, merge);
-        if (this.backupLocal && window.localStorage)
+        if (this.backupLocal && testPresence('localStorage'))
           apply(thaw(localStorage.getItem(this.name)));
-        if (this.backupSession && window.sessionStorage)
+        if (this.backupSession && testPresence('sessionStorage'))
           apply(thaw(sessionStorage.getItem(this.name)));
       },
       /* Serialize all data to the configured locations */
       save: function() {
         var serData = JSON.stringify(this._data);
-        if (this.backupSession && window.sessionStorage)
+        if (this.backupSession && testPresence('sessionStorage'))
           sessionStorage.setItem(this.name, serData);
-        if (this.backupLocal && window.localStorage)
+        if (this.backupLocal && testPresence('localStorage'))
           localStorage.setItem(this.name, serData);
         return serData;
       }
@@ -7184,7 +7197,7 @@ this.Instant = function() {
     FallbackStorage.prototype.load = function(merge) {
       /* Duplicating because of relevant application order */
       var apply = this._apply.bind(this, merge);
-      if (this.backupLocal && window.localStorage) {
+      if (this.backupLocal && testPresence('localStorage')) {
         apply(thaw(localStorage.getItem(this.name)));
         if (this.fallbackName && this.fallbackInstance) {
           var d = thaw(localStorage.getItem(this.fallbackName));
@@ -7192,14 +7205,14 @@ this.Instant = function() {
             apply(d[this.fallbackInstance]);
         }
       }
-      if (this.backupSession && window.sessionStorage)
+      if (this.backupSession && testPresence('sessionStorage'))
         apply(thaw(sessionStorage.getItem(this.name)));
     };
     /* Serialize all data to the configured locations */
     FallbackStorage.prototype.save = function() {
       Storage.prototype.save.call(this);
-      if (this.backupLocal && window.localStorage && this.fallbackName &&
-          this.fallbackInstance) {
+      if (this.backupLocal && testPresence('localStorage') &&
+          this.fallbackName && this.fallbackInstance) {
         var rd = thaw(localStorage.getItem(this.fallbackName)) || {};
         rd[this.fallbackInstance] = data._data;
         localStorage.setItem(this.fallbackName, JSON.stringify(rd));
