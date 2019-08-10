@@ -4993,7 +4993,9 @@ this.Instant = function() {
           title: $makeFrag(
             'Private message' + ((draft) ? ' editor' : ''),
             ! draft && data.subject && ': ',
-            ! draft && data.subject && ['i', null, [$text(data.subject)]]
+            ! draft && data.subject && ['i', 'pm-subject', [
+              $text(data.subject)
+            ]]
           ),
           id: (draft) ? null : 'pm-' + data.id,
           className: 'pm-popup ' + ((data.unread) ? 'pm-unread ' : '') +
@@ -5101,7 +5103,9 @@ this.Instant = function() {
         send.parentNode.removeChild(send);
         if (subjectText) {
           title.textContent = 'Private message (sent): ';
-          title.appendChild($makeNode('i', null, [$text(subjectText)]));
+          title.appendChild($makeNode('i', 'pm-subject', [
+            $text(subjectText)
+          ]));
         } else {
           title.textContent = 'Private message (sent)';
         }
