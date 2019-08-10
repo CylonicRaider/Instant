@@ -4907,7 +4907,7 @@ this.Instant = function() {
                 draft && ['input', 'pm-subject', {type: 'text'}],
                 ! draft && ((data.subject) ?
                   ['span', 'pm-subject', [$text(data.subject)]] :
-                  ['i', null, 'None'])
+                  ['small', 'pm-subject-none', '(None)'])
               ]]
             ]],
           ]],
@@ -4993,7 +4993,7 @@ this.Instant = function() {
           title: $makeFrag(
             'Private message' + ((draft) ? ' editor' : ''),
             ! draft && data.subject && ': ',
-            ! draft && data.subject && ['i', 'pm-subject', [
+            ! draft && data.subject && ['span', 'pm-subject', [
               $text(data.subject)
             ]]
           ),
@@ -5080,7 +5080,7 @@ this.Instant = function() {
             $makeNode('span', 'pm-subject', [
               $text(subjectText)
             ]) :
-            $makeNode('i', null, 'None')
+            $makeNode('small', 'pm-subject-none', '(None)')
         ), subject);
         subject.parentNode.removeChild(subject);
         while (body.firstChild) body.removeChild(body.firstChild);
@@ -5103,7 +5103,7 @@ this.Instant = function() {
         send.parentNode.removeChild(send);
         if (subjectText) {
           title.textContent = 'Private message (sent): ';
-          title.appendChild($makeNode('i', 'pm-subject', [
+          title.appendChild($makeNode('span', 'pm-subject', [
             $text(subjectText)
           ]));
         } else {
