@@ -1,0 +1,24 @@
+# Bytecode files
+*.pyc
+__pycache__
+/src/*.class
+/src/net/instant/**/*.class
+/tools/**/*.class
+
+# Build files
+/.build.jar
+/Instant-run.jar
+/tools/build
+
+# Data
+*.sqlite
+*.log
+
+# Runtime
+/config
+/db
+/log
+/run
+
+# Miscellaneous
+/local
