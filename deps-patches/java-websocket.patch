@@ -1,0 +1,11 @@
+--- org/java_websocket/drafts/Draft.java
++++ org/java_websocket/drafts/Draft.java
+@@ -239,7 +239,7 @@
+ 		if( handshakedata instanceof ClientHandshake ) {
+ 			bui.append( "GET " ).append( ( (ClientHandshake) handshakedata ).getResourceDescriptor() ).append( " HTTP/1.1" );
+ 		} else if( handshakedata instanceof ServerHandshake ) {
+-			bui.append("HTTP/1.1 101 ").append(((ServerHandshake) handshakedata).getHttpStatusMessage());
++			bui.append( "HTTP/1.1 " ).append( ( (ServerHandshake) handshakedata ).getHttpStatus() ).append( ' ' ).append( ( (ServerHandshake) handshakedata ).getHttpStatusMessage() );
+ 		} else {
+ 			throw new IllegalArgumentException( "unknown role" );
+ 		}

@@ -1,0 +1,6 @@
+url="https://github.com/qos-ch/slf4j/"
+ref="v_1.7.28"
+commit="b44fbd53cc8bc87f40e5412e60495b19bbf07bb0"
+extract="slf4j-api/src/main/java/ slf4j-jdk14/src/main/java/ :LICENSE.txt"
+install="LICENSE.txt:org/slf4j/LICENSE"
+install_manifest="org/slf4j"

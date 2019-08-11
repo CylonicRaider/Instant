@@ -1,0 +1,7 @@
+url="https://github.com/TooTallNate/Java-WebSocket/"
+ref="v1.4.0"
+commit="fbd60ae4dad3727235cf14cc6ec6953393738d9a"
+extract="src/main/java/ :LICENSE"
+build_depends="slf4j"
+install="LICENSE:org/java_websocket/"
+install_manifest="org/java_websocket"

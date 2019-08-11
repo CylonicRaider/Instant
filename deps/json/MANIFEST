@@ -1,0 +1,5 @@
+url="https://github.com/stleary/JSON-java/"
+ref="20190722"
+commit="5b845f28cfdc26919b1416ec2067da4a0753aeb6"
+install="LICENSE:org/json/"
+install_manifest="org/json"
