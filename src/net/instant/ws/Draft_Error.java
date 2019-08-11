@@ -1,6 +1,7 @@
 package net.instant.ws;
 
 import org.java_websocket.drafts.Draft;
+import org.java_websocket.enums.HandshakeState;
 import org.java_websocket.handshake.ClientHandshake;
 import org.java_websocket.handshake.ServerHandshake;
 

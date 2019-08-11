@@ -3,10 +3,12 @@ package net.instant.ws;
 import java.nio.ByteBuffer;
 import java.util.List;
 import net.instant.api.RequestType;
+import org.java_websocket.WebSocketImpl;
 import org.java_websocket.drafts.Draft;
+import org.java_websocket.enums.CloseHandshakeType;
+import org.java_websocket.enums.HandshakeState;
 import org.java_websocket.exceptions.InvalidDataException;
 import org.java_websocket.exceptions.InvalidHandshakeException;
-import org.java_websocket.exceptions.LimitExedeedException;
 import org.java_websocket.framing.Framedata;
 import org.java_websocket.handshake.ClientHandshake;
 import org.java_websocket.handshake.ClientHandshakeBuilder;
@@ -62,6 +64,11 @@ public class DraftWrapper extends Draft {
     }
 
     @Override
+    public void processFrame(WebSocketImpl webSocketImpl, Framedata frame) throws InvalidDataException {
+        wrapped.processFrame(webSocketImpl, frame);
+    }
+
+    @Override
     public HandshakeBuilder postProcessHandshakeResponseAsServer(ClientHandshake request, ServerHandshakeBuilder response) throws InvalidHandshakeException {
         HandshakeBuilder ret = wrapped.postProcessHandshakeResponseAsServer(request, response);
         if (hook != null) hook.postProcess(request, response, ret);
@@ -79,7 +86,7 @@ public class DraftWrapper extends Draft {
     }
 
     @Override
-    public List<Framedata> translateFrame(ByteBuffer buffer) throws InvalidDataException, LimitExedeedException {
+    public List<Framedata> translateFrame(ByteBuffer buffer) throws InvalidDataException {
         return wrapped.translateFrame(buffer);
     }
 

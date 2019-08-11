@@ -3,6 +3,7 @@ package net.instant.ws;
 import java.util.List;
 import net.instant.util.Formats;
 import org.java_websocket.drafts.Draft;
+import org.java_websocket.enums.HandshakeState;
 import org.java_websocket.handshake.ClientHandshake;
 import org.java_websocket.handshake.HandshakeBuilder;
 import org.java_websocket.handshake.ServerHandshakeBuilder;

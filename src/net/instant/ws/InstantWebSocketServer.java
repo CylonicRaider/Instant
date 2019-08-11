@@ -21,8 +21,8 @@ import net.instant.util.Formats;
 import net.instant.util.StringSigner;
 import net.instant.util.Util;
 import org.java_websocket.WebSocket;
-import org.java_websocket.WebSocketImpl;
 import org.java_websocket.drafts.Draft;
+import org.java_websocket.drafts.Draft_6455;
 import org.java_websocket.exceptions.InvalidDataException;
 import org.java_websocket.exceptions.InvalidHandshakeException;
 import org.java_websocket.framing.CloseFrame;
@@ -46,7 +46,8 @@ public class InstantWebSocketServer extends WebSocketServer
         List<Draft> l =  new ArrayList<Draft>();
         l.add(new Draft_SSE());
         l.add(new Draft_Raw());
-        l.addAll(WebSocketImpl.defaultdraftlist);
+        // The upstream default is to -- urgh -- hard-code this one.
+        l.add(new Draft_6455());
         l.add(new Draft_Error());
         DEFAULT_DRAFTS = Collections.unmodifiableList(l);
     }
@@ -115,6 +116,7 @@ public class InstantWebSocketServer extends WebSocketServer
      * 2. onWebsocketHandshakeReceivedAsServer (directly)
      * 3. postProcess (via DraftWrapper from
      *    postProcessHandshakeResponseAsServer) */
+    @Override
     public void handleRequestLine(Handshakedata handshake, String line) {
         collector.addRequestLine(handshake, line);
     }
@@ -129,6 +131,7 @@ public class InstantWebSocketServer extends WebSocketServer
             conn, draft, request);
     }
 
+    @Override
     public void postProcess(ClientHandshake request,
             ServerHandshakeBuilder response, HandshakeBuilder result)
             throws InvalidHandshakeException {
@@ -150,24 +153,34 @@ public class InstantWebSocketServer extends WebSocketServer
         throw new InvalidHandshakeException("try another draft");
     }
 
+    @Override
+    public void onStart() {
+        /* NOP */
+        // FIXME: Propagate this events to hooks?
+    }
+
+    @Override
     public void onOpen(WebSocket conn, ClientHandshake handshake) {
         RequestHook h = assignments.get(conn);
         Datum d = collector.get(conn);
         if (h != null) h.onOpen(d);
     }
 
+    @Override
     public void onMessage(WebSocket conn, String message) {
         RequestHook h = assignments.get(conn);
         Datum d = collector.get(conn);
         if (h != null) h.onInput(d, message);
     }
 
+    @Override
     public void onMessage(WebSocket conn, ByteBuffer message) {
         RequestHook h = assignments.get(conn);
         Datum d = collector.get(conn);
         if (h != null) h.onInput(d, message);
     }
 
+    @Override
     public void onClose(WebSocket conn, int code, String reason,
                         boolean remote) {
         RequestHook h = assignments.get(conn);
@@ -181,6 +194,7 @@ public class InstantWebSocketServer extends WebSocketServer
         }
     }
 
+    @Override
     public void onError(WebSocket conn, Exception ex) {
         if (conn == null) {
             LOGGER.log(Level.SEVERE, "Backend exception", ex);
