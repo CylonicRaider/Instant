@@ -15,8 +15,11 @@ import java.util.Set;
 import java.util.WeakHashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import net.instant.Main;
 import net.instant.api.API1;
+import net.instant.api.RequestData;
 import net.instant.api.RequestHook;
+import net.instant.api.ResponseBuilder;
 import net.instant.util.Formats;
 import net.instant.util.StringSigner;
 import net.instant.util.Util;
@@ -39,6 +42,7 @@ public class InstantWebSocketServer extends WebSocketServer
 
     private static final String K_KEYFILE = "instant.cookies.keyfile";
     private static final String K_CREATE = "instant.cookies.keyfile.create";
+    private static final String K_NO_REUSEADDR = "instant.server.noReuseAddr";
 
     public static final List<Draft> DEFAULT_DRAFTS;
 
@@ -70,6 +74,7 @@ public class InstantWebSocketServer extends WebSocketServer
         gc = new ConnectionGC(api);
         cookies = new CookieHandler(makeStringSigner(api));
         httpLog = System.err;
+        setReuseAddr(! Util.isTrue(api.getConfiguration(K_NO_REUSEADDR)));
         for (Draft d : getDraft()) {
             if (d instanceof DraftWrapper)
                 ((DraftWrapper) d).setHook(this);
@@ -136,6 +141,7 @@ public class InstantWebSocketServer extends WebSocketServer
             ServerHandshakeBuilder response, HandshakeBuilder result)
             throws InvalidHandshakeException {
         Datum d = collector.addResponse(request, response, result);
+        postProcessInner(d, d);
         for (RequestHook h : getAllHooks()) {
             try {
                 if (h.evaluateRequest(d, d)) {
@@ -151,6 +157,10 @@ public class InstantWebSocketServer extends WebSocketServer
             }
         }
         throw new InvalidHandshakeException("try another draft");
+    }
+
+    protected void postProcessInner(RequestData req, ResponseBuilder resp) {
+        resp.addHeader("Server", Main.APPNAME + "/" + Main.VERSION);
     }
 
     @Override
