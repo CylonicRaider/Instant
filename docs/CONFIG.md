@@ -106,3 +106,10 @@ work (otherwise, a fatal error may occur).
 An integer setting the `max-age` parameter of the `Cache-Control` HTTP header
 for static resources, i.e., controlling for how long (compliant) browsers
 will cache them.
+
+### instant.server.noReuseAddr
+
+A Boolean indicating whether the server should *disable* the `SO_REUSEADDR`
+option on its main listening socket. The default is to enable `SO_REUSEADDR`,
+allowing the server to be restarted quickly without getting "address in use"
+errors.
