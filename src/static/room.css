@@ -399,7 +399,7 @@ body {
   overflow: auto;
 }
 .sidebar-middle-wrapper.overflow {
-  padding-right: 3px;
+  margin-right: 3px;
 }
 
 .sidebar-widget {
