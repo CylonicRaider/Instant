@@ -130,3 +130,16 @@ integrated into Instant's master branch as follows:
     `make pre-commit`), and perform additional correctness _etc._ tests as
     appropriate.
   - Commit the results similarly to previous dependency commits.
+
+### Adding and removing dependencies
+
+In order to add a dependency, create a manifest file for it (see the pertinent
+section above), leaving the `commit` field set to a dummy value, and fetch and
+build the dependency as described above.
+
+In order to remove a dependency, delete its subdirectory in `deps/` as well
+as its patch file in `deps-patches/`, and perform a full rebuild (using
+`make build`).
+
+In either case, after the dependencies have been built, the steps **Fixating**
+and **Integrating** from above apply.
