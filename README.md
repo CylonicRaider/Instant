@@ -17,9 +17,9 @@ integrating them into the master branch is done manually.
 ### Manifests
 
 Each dependency is defined by a file located at `deps/<NAME>/MANIFEST`, where
-`<NAME>` is a codename for the dependency. The name must match the regular
+`<NAME>` is a codename for the dependency, which must match the regular
 expression `[a-zA-Z0-9-]+`. The manifest itself is a shell script fragment
-that contains variable definitions, with the additional constraint that each
+that contains variable definitions, with the additional constraints that each
 variable must be defined on an individual line, may not span multiple lines,
 and the lines may not contain extraneous whitespace.
 
@@ -31,8 +31,8 @@ default value is the empty string):
     out and deleted upon completion of dependency retrieval.
 
   - `ref` *(optional)*: The name of a tag or branch within the repository at
-    `url` specifying which version of the code to retrieve. If not specified,
-    the `HEAD` of the original repository is used.
+    `url` specifying which version of the code to retrieve. If not given, the
+    `HEAD` of the original repository is used.
 
   - `commit` *(required)*: The exact commit the local copy of the source code
     was constructed from. *This variable is edited by the build script
@@ -71,8 +71,8 @@ default value is the empty string):
     dependency's license to a file called `LICENSE` located adjacent to the
     installed manifest (see `install_manifest`).
 
-  - `install_manifest` *(required)*: The name of a directory inside `src/`
-    whither a redacted copy of the manifest is installed.
+  - `install_manifest` *(required)*: The name of a directory relative to
+    `src/` whither a redacted copy of the manifest is installed.
 
     The manifest is installed into a file called `MANIFEST` inside the
     specified directory; it only includes the lines from the original
@@ -94,14 +94,16 @@ applies the file inside the dependency's directory.
 
 After updating the dependencies' sources, the dependencies can be built by
 invoking `make build`; similarily to fetching, `make build-<NAME>` can be used
-to build only the dependency `<NAME>`, along with and after all dependencies
-it depends on.
+to build only the dependency `<NAME>`; dissimilarly, this also builds all
+dependencies `<NAME>` "depends" on (see `build_depends`) before actually
+building `<NAME>`.
 
 The behavior differs slightly between "full" builds and those of individual
 dependencies: In the beginning of a full build, the `src/` directory is
-cleared. The order of building is not specified except as described in the
-definition of the `build_depends` variable above (a dependency is built not
-before any of its "dependencies" is finished).
+cleared, which does not happen for individual builds. The order of building is
+not specified except as described in the definition of the `build_depends`
+variable above (a dependency is not built before any of its "dependencies" is
+finished).
 
 As part of the build, Java class file derived from the dependencies' sources
 are stored in the `src/` diretory (in respectively appropriate
