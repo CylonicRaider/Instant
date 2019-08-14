@@ -206,7 +206,7 @@ public class Main implements Runnable {
             System.err.println(exc);
             System.exit(2);
         } catch (Exception exc) {
-            exc.printStackTrace();
+            LOGGER.log(Level.SEVERE, "Exception during setup:", exc);
             System.exit(2);
         }
         runner.registerShutdownHook();
