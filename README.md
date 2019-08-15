@@ -6,13 +6,64 @@ of the backend of Instant.
 ## Managing the dependencies
 
 Retrieving and building the dependencies is automated via the `Makefile`
-adjacent to this file. The `Makefile` reads `MANIFEST` files from immediate
-subdirectories of `deps/`, retrieves the dependencies according to them,
-applies patches from `deps-patches/`, builds the dependencies, and stores the
-resulting files in `src/`.
+adjacent to this file; adding/removing dependencies and selecting their
+versions must be done manually. The processes for storing the changes in VCS
+and for integrating them into the master branch are described in the
+correspondingly named subsections.
 
-Adding/removing dependencies and changing their versions, as well as
-integrating them into the master branch is done manually.
+### Adding dependencies
+
+In order to add a dependency `<NAME>`, create a manifest file for it at
+`deps/<NAME>/MANIFEST` (see the pertinent section below for details), leaving
+the `commit` field set to a dummy value, and fetch and build the dependency
+using `make fetch-<NAME> build-<NAME>`. If multiple dependencies are to be
+added, the corresponding command lines can be coalesced into
+`make fetch-<NAME1> fetch-<NAME2> ... build-<NAME1> build-<NAME2> ...`.
+
+### Removing dependencies
+
+In order to remove the dependency `<NAME>`, delete its directory inside `deps`
+as well its patch file inside `deps-patches/` (if any), and perform a full
+rebuild by running `make build`. If multiple dependencies are to be removed,
+only one full build need be done.
+
+### Changing dependency versions
+
+In order to change the version of dependency `<NAME>`, update its manifest
+file at `deps/<NAME>/MANIFEST` to refer to the new version, and refresh the
+dependency using `make fetch-<NAME> build-<NAME>`. If multiple dependencies
+are being updated, performing a full fetch-and-build cycle via `make update`
+may be advisable (_e.g._ to catch incompatibilities).
+
+### Fixating changes
+
+After the dependencies have been retrieved and built without errors or
+anomalies, their sources and the compiled files are committed into VCS
+similarly to older commits on this branch.
+
+### Integrating changes
+
+After a new set of dependencies is retrieved, built, and committed, it is
+integrated into Instant's master branch as follows:
+
+  - On `master`, delete the files belonging to the old dependencies.
+  - Transfer the files and directories from `src/` on this branch into `src/`
+    on `master`.
+  - If the dependencies include Java class files inside `src/net/` (or
+    directly inside `src/`), adjust the `Makefile` and `.gitignore` _etc._
+    files to deal with that.
+  - Verify that the results build and lint correctly (using
+    `make pre-commit`), and perform additional correctness _etc._ tests as
+    appropriate.
+  - Commit the results similarly to previous dependency commits.
+
+## Automation reference
+
+As mentioned above, the `Makefile` automates retrieving and building
+dependencies. To do that, it reads `MANIFEST` files from immediate
+subdirectories of `deps/`, actually retrieves the dependencies according to
+the manifests, applies patches from `deps-patches/`, builds the dependencies,
+and stores the resulting files in `src/`.
 
 ### Manifests
 
@@ -111,37 +162,8 @@ subdirectories); additionally, auxiliary files and a redacted copy of the
 dependency's manifest are stored as described in the definitions of the
 variables `install` and `install_manifest` above.
 
-### Fixating
+### All together
 
-After the dependencies have been retrieved and built without errors or
-anomalies, their sources and the compiled files are committed into VCS
-similarly to older commits on this branch.
-
-### Integrating
-
-After a new set of dependencies is retrieved, built, and committed, it is
-integrated into Instant's master branch as follows:
-
-  - On `master`, delete the files belonging to the old dependencies.
-  - Transfer the files and directories from `src/` on this branch into `src/`
-    on `master`.
-  - If the dependencies include Java class files inside `src/net/` (or
-    directly inside `src/`), adjust the `Makefile` and `.gitignore` _etc._
-    files to deal with that.
-  - Verify that the results build and lint correctly (using
-    `make pre-commit`), and perform additional correctness _etc._ tests as
-    appropriate.
-  - Commit the results similarly to previous dependency commits.
-
-### Adding and removing dependencies
-
-In order to add a dependency, create a manifest file for it (see the pertinent
-section above), leaving the `commit` field set to a dummy value, and fetch and
-build the dependency as described above.
-
-In order to remove a dependency, delete its subdirectory in `deps/` as well
-as its patch file in `deps-patches/`, and perform a full rebuild (using
-`make build`).
-
-In either case, after the dependencies have been built, the steps **Fixating**
-and **Integrating** from above apply.
+Running `make update` is equivalent to running `make fetch build`; this Make
+target is mentioned here for completeness and is the default if no targets
+are specified (_e.g._ when invoking a bare `make`).
