@@ -6,7 +6,7 @@ import org.json.JSONObject;
 /**
  * An HTTP cookie.
  * The mapping part of the interface handles cookie attributes (such as
- * Path or Secure); to insert an attribute with an explicit value (such
+ * Path or Secure); to insert an attribute without an explicit value (such
  * as Secure), map the name to a null value. Although not part of the
  * interface, cookies maintain insertion order for attributes.
  */
@@ -30,6 +30,16 @@ public interface Cookie extends Map<String, String> {
      */
     String getValue();
     void setValue(String value);
+
+    /**
+     * Amend this cookie with attribute from the variadic arguments.
+     * pairs must have an even amount of entries, with entries at even-indexed
+     * entries being keys and entries at odd-indexed entries being values
+     * corresponding to the respectively immediately preceding key.
+     * withAttributes() returns this Cookie instance.
+     */
+    void updateAttributes(String... pairs);
+    Cookie withAttributes(String... pairs);
 
     /**
      * Data stored inside the cookie.

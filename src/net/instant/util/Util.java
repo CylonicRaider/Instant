@@ -8,6 +8,7 @@ import java.net.URL;
 import java.nio.ByteBuffer;
 import java.security.SecureRandom;
 import java.util.Arrays;
+import java.util.Calendar;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
@@ -51,6 +52,10 @@ public final class Util {
             if (p.matcher(probe).matches()) return true;
         }
         return false;
+    }
+
+    public static Calendar calendarIn(int field, int adjust) {
+        return Utilities.calendarIn(field, adjust);
     }
 
     public static String escapeStringJS(String data, boolean full) {

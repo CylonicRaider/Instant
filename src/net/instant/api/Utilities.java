@@ -5,6 +5,7 @@ import java.io.UnsupportedEncodingException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLDecoder;
+import java.util.Calendar;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -27,6 +28,20 @@ public final class Utilities {
 
     /* Prevent (unintended) construction */
     private Utilities() {}
+
+    /**
+     * Return a Calendar object whose given field has been incremented by
+     * adjust relative to the time of the method call.
+     * This is a shortcut for the following:
+     *     Calendar cal = Calendar.getInstance();
+     *     cal.add(field, adjust);
+     *     return cal;
+     */
+    public static Calendar calendarIn(int field, int adjust) {
+        Calendar cal = Calendar.getInstance();
+        cal.add(field, adjust);
+        return cal;
+    }
 
     /**
      * Escape the given string for inclusion into JavaScript source code.

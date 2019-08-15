@@ -56,6 +56,19 @@ public class CookieHandler {
             data = null;
         }
 
+        public void updateAttributes(String... pairs) {
+            if (pairs.length % 2 != 0)
+                throw new IllegalArgumentException("Invalid argument " +
+                    "amount for withAttributes()");
+            for (int i = 0; i < pairs.length; i += 2) {
+                put(pairs[i], pairs[i + 1]);
+            }
+        }
+        public DefaultCookie withAttributes(String... pairs) {
+            updateAttributes(pairs);
+            return this;
+        }
+
         public JSONObject getData() {
             if (data == null) data = parseCookieContent(getValue());
             return data;
