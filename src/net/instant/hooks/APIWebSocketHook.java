@@ -190,11 +190,9 @@ public class APIWebSocketHook extends WebSocketHook {
         req.getExtraData().put("id", UniqueCounter.INSTANCE.getString(id));
         data.put("uuid", uuid.toString());
         cookie = resp.makeCookie(COOKIE_NAME, data);
-        cookie.put("Path", "/");
-        cookie.put("HttpOnly", null);
-        Calendar expiry = Calendar.getInstance();
-        expiry.add(Calendar.YEAR, 2);
-        cookie.put("Expires", Formats.formatHttpTime(expiry));
+        cookie.updateAttributes("Path", "/", "HttpOnly", null,
+            "Expires", Formats.formatHttpTime(Util.calendarIn(Calendar.YEAR,
+                                                              2)));
         if (! insecureCookies) cookie.put("Secure", null);
         resp.addCookie(cookie);
         return true;
