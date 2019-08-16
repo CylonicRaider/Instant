@@ -71,6 +71,10 @@ public final class Utilities {
 
     /**
      * Split the given path into the path proper and the query string.
+     * The return value is an array with two elements, the path (never null
+     * but may be empty) and the query string (null signifies that fullPath
+     * contained no question marks while an empty value means an empty query
+     * string).
      */
     public static String[] splitQueryString(String fullPath) {
         Matcher m = QUERY.matcher(fullPath);
@@ -82,11 +86,31 @@ public final class Utilities {
     }
 
     /**
+     * Recombine the two values returned from splitQueryString().
+     * path may not be null, and is assumed not to contain question marks;
+     * if query is null, the return value is path; otherwise, the return
+     * value is path + "?" + query.
+     */
+    public static String joinQueryString(String path, String query) {
+        if (path == null) {
+            throw new NullPointerException("joinQueryString() path may not " +
+                "be null");
+        } else if (query == null) {
+            return path;
+        } else {
+            return path + '?' + query;
+        }
+    }
+
+    /**
      * Parse the given query string into a Map.
-     * The order of first appearance is preserved. If a query string entry
-     * has no "value" (i.e. no equals sign), its entirety is used as the key.
+     * A query of null is treated like an empty string. The order of first
+     * appearance is preserved. If a query string entry has no "value" (i.e.
+     * no equals sign), its entirety is used as the key and is mapped to a
+     * value of null.
      */
     public static Map<String, String> parseQueryString(String query) {
+        if (query == null) query = "";
         Map<String, String> ret = new LinkedHashMap<String, String>();
         for (String entry : query.split("&")) {
             String[] parts = entry.split("=", 2);

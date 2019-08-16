@@ -66,6 +66,10 @@ public final class Util {
         return Utilities.splitQueryString(fullPath);
     }
 
+    public static String joinQueryString(String path, String query) {
+        return Utilities.joinQueryString(path, query);
+    }
+
     public static JSONObject createJSONObject(Object... params) {
         return Utilities.createJSONObject(params);
     }
