@@ -4,6 +4,8 @@ import java.io.FileNotFoundException;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import net.instant.api.ClientConnection;
 import net.instant.api.RequestData;
 import net.instant.api.RequestType;
@@ -16,6 +18,8 @@ import net.instant.util.fileprod.ProducerJob;
 import net.instant.util.stringmatch.ListStringMatcher;
 
 public class StaticFileHook extends HookAdapter {
+
+    private static final Logger LOGGER = Logger.getLogger("StaticFileHook");
 
     private static final String K_MAXAGE = "instant.http.maxCacheAge";
     public static final int DEFAULT_MAX_CACHE_AGE = 3600;
@@ -63,17 +67,19 @@ public class StaticFileHook extends HookAdapter {
         if (producer == null || req.getRequestType() != RequestType.HTTP ||
                 ! req.getMethod().equals("GET"))
             return false;
-        String path = aliases.match(req.getPath());
-        if (path == null) path = req.getPath();
+        String[] rawParts = Util.splitQueryString(req.getPath());
+        String basePath = aliases.match(rawParts[0]);
+        if (basePath == null) basePath = rawParts[0];
+        String fullPath = Util.joinQueryString(basePath, rawParts[1]);
         FileCell ent;
         try {
-            ent = producer.get(path);
+            ent = producer.get(fullPath);
         } catch (FileNotFoundException exc) {
             return false;
         }
         if (ent == null) {
             resp.respond(200, "OK", -1);
-            paths.put(req, path);
+            paths.put(req, fullPath);
         } else {
             boolean cached = false;
             if (ent.getETag() != null) {
@@ -83,8 +89,7 @@ public class StaticFileHook extends HookAdapter {
                     maxCacheAge);
                 resp.addHeader("ETag", fullETag);
             } else {
-                // Prevent reverse proxy from sending the non-revalidatable
-                // version over and over.
+                // Prevent proxies from caching the non-revalidatable version.
                 resp.addHeader("Cache-Control", "no-cache");
             }
             if (cached) {
@@ -92,10 +97,9 @@ public class StaticFileHook extends HookAdapter {
                 // Not registering path to not send response body.
             } else {
                 resp.respond(200, "OK", ent.getSize());
-                paths.put(req, path);
+                paths.put(req, fullPath);
             }
         }
-        String basePath = Util.splitQueryString(path)[0];
         String contentType = contentTypes.match(basePath);
         if (contentType != null)
             resp.addHeader("Content-Type", contentType);
@@ -103,23 +107,28 @@ public class StaticFileHook extends HookAdapter {
     }
 
     public void onOpen(final ClientConnection conn) {
+        String path = paths.remove(conn);
+        if (path == null) {
+            conn.getConnection().close();
+            return;
+        }
         try {
-            String path = paths.remove(conn);
-            if (path == null) {
-                conn.getConnection().close();
-                return;
-            }
             producer.get(path, new ProducerJob.Callback() {
                 public void fileProduced(String name, FileCell result) {
-                    // Cannot do anything about failure now...
-                    if (result != null)
+                    if (result != null) {
                         conn.getConnection().send(result.getData());
+                    } else {
+                        // Cannot do anything about failure now...
+                        LOGGER.warning("Could not deliver static file " +
+                            name + " although promised.");
+                    }
                     conn.getConnection().close();
                 }
             });
         } catch (FileNotFoundException exc) {
-            // Should not happen
-            throw new RuntimeException(exc);
+            LOGGER.log(Level.WARNING, "Static file " + path +
+                " disappeared?!", exc);
+            conn.getConnection().close();
         }
     }
 

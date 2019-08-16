@@ -8,6 +8,7 @@ import java.util.regex.Pattern;
 import net.instant.api.ClientConnection;
 import net.instant.api.RequestData;
 import net.instant.api.ResponseBuilder;
+import net.instant.util.Util;
 import net.instant.util.stringmatch.DefaultStringMatcher;
 import net.instant.util.stringmatch.StringMatcher;
 
@@ -107,12 +108,13 @@ public class RedirectHook extends HookAdapter {
     }
 
     public boolean evaluateRequest(RequestData req, ResponseBuilder resp) {
+        String[] parts = Util.splitQueryString(req.getPath());
         for (Redirect r : redirects) {
-            String l = r.match(req.getPath());
+            String l = r.match(parts[0]);
             if (l == null) continue;
             RedirectType t = r.getRedirectType();
             resp.respond(t.getCode(), t.getMessage(), -1);
-            resp.addHeader("Location", l);
+            resp.addHeader("Location", Util.joinQueryString(l, parts[1]));
             return true;
         }
         return false;
