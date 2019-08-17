@@ -20,7 +20,6 @@ import net.instant.api.PresenceChange;
 import net.instant.api.RequestData;
 import net.instant.api.ResponseBuilder;
 import net.instant.api.Room;
-import net.instant.proto.MessageData;
 import net.instant.proto.MessageDistributor;
 import net.instant.proto.ProtocolError;
 import net.instant.proto.RoomDistributor;
@@ -48,7 +47,7 @@ public class APIWebSocketHook extends WebSocketHook {
             this.present = present;
             this.source = source;
             this.room = room;
-            this.message = new MessageData((present) ? "joined" : "left");
+            this.message = new MessageContents((present) ? "joined" : "left");
         }
 
         public boolean isPresent() {
@@ -81,7 +80,7 @@ public class APIWebSocketHook extends WebSocketHook {
                            Room room) throws JSONException {
             this.rawData = rawData;
             this.parsedData = new JSONObject(rawData);
-            this.data = new MessageData(parsedData);
+            this.data = new MessageContents(parsedData);
             this.source = source;
             this.room = room;
        }
@@ -112,7 +111,7 @@ public class APIWebSocketHook extends WebSocketHook {
         }
 
         public MessageContents makeMessage(String type) {
-            return new MessageData(type);
+            return new MessageContents(type);
         }
 
     }
@@ -204,8 +203,8 @@ public class APIWebSocketHook extends WebSocketHook {
         String roomName = tags.remove(conn);
         if (roomName.equals("")) roomName = null;
         RoomDistributor room = distr.getRoom(roomName);
-        MessageData identity = new MessageData("identity");
-        identity.updateData("id", id, "uuid", uuid,
+        MessageContents identity = new MessageContents("identity").withData(
+            "id", id, "uuid", uuid,
             "version", Main.VERSION, "revision", Main.FINE_VERSION,
             "era", api.getCounter().getEra());
         PresenceChange event = new PresenceChangeImpl(true, conn, room);

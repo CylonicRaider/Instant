@@ -37,7 +37,7 @@ public class APIHook implements MessageHook {
     }
 
     protected boolean handlePing(Message msg) {
-        msg.sendResponse(new MessageData("pong"));
+        msg.sendResponse(new MessageContents("pong"));
         Object data = msg.getData().getData();
         if (data instanceof JSONObject) {
             Long next = ((JSONObject) data).optLong("next");
@@ -58,9 +58,9 @@ public class APIHook implements MessageHook {
             return true;
         }
         String id = UniqueCounter.INSTANCE.getString();
-        msg.sendResponse(new MessageData("response").withData("id", id,
+        msg.sendResponse(new MessageContents("response").withData("id", id,
             "type", "unicast"));
-        msg.getRoom().sendUnicast(recipient, new MessageData("unicast")
+        msg.getRoom().sendUnicast(recipient, new MessageContents("unicast")
             .id(id).from((String) msg.getSource().getExtraData().get("id"))
             .to(cnt.getTo()).data(cnt.getData()));
         return true;
@@ -69,9 +69,9 @@ public class APIHook implements MessageHook {
     protected boolean handleBroadcast(Message msg) {
         if (msg.getRoom().getName() == null) return false;
         String id = UniqueCounter.INSTANCE.getString();
-        msg.sendResponse(new MessageData("response").withData("id", id,
+        msg.sendResponse(new MessageContents("response").withData("id", id,
             "type", "broadcast"));
-        msg.getRoom().sendBroadcast(new MessageData("broadcast").id(id)
+        msg.getRoom().sendBroadcast(new MessageContents("broadcast").id(id)
             .from((String) msg.getSource().getExtraData().get("id"))
             .data(msg.getData().getData()));
         return true;
@@ -88,7 +88,7 @@ public class APIHook implements MessageHook {
                 rdata.put(id, Util.createJSONObject("uuid", uuid));
             }
         }
-        msg.sendResponse(new MessageData("who").data(rdata));
+        msg.sendResponse(new MessageContents("who").data(rdata));
         return true;
     }
 

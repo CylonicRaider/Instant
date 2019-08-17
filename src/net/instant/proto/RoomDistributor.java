@@ -54,8 +54,8 @@ public class RoomDistributor implements Room {
     }
 
     public MessageContents makeMessage(boolean makeID, String type) {
-        return new MessageData(((makeID) ?
-            UniqueCounter.INSTANCE.getString() : null), type);
+        return new MessageContents(type).id((makeID) ?
+            UniqueCounter.INSTANCE.getString() : null);
     }
 
     public synchronized void add(ClientConnection client) {
