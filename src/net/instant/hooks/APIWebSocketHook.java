@@ -3,10 +3,7 @@ package net.instant.hooks;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Calendar;
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 import java.util.logging.Logger;
 import net.instant.Main;
@@ -120,7 +117,6 @@ public class APIWebSocketHook extends WebSocketHook {
 
     private final List<MessageHook> hooks;
     private final List<MessageHook> internalHooks;
-    private final Map<RequestData, String> tags;
     private final boolean insecureCookies;
     private API1 api;
     private MessageDistributor distr;
@@ -128,8 +124,6 @@ public class APIWebSocketHook extends WebSocketHook {
     public APIWebSocketHook(API1 apiImpl, MessageDistributor distributor) {
         hooks = new ArrayList<MessageHook>();
         internalHooks = new ArrayList<MessageHook>();
-        tags = Collections.synchronizedMap(
-            new HashMap<RequestData, String>());
         insecureCookies = Util.isTrue(apiImpl.getConfiguration(K_INSECURE));
         api = apiImpl;
         distr = distributor;
@@ -170,7 +164,7 @@ public class APIWebSocketHook extends WebSocketHook {
 
     protected boolean evaluateRequestInner(RequestData req,
             ResponseBuilder resp, String tag) {
-        tags.put(req, tag);
+        req.getPrivateData().put("room", tag);
         Cookie cookie = req.getCookie(COOKIE_NAME);
         JSONObject data;
         if (cookie == null || cookie.getData() == null) {
@@ -200,7 +194,7 @@ public class APIWebSocketHook extends WebSocketHook {
     public void onOpen(ClientConnection conn) {
         String id = (String) conn.getExtraData().get("id");
         UUID uuid = (UUID) conn.getExtraData().get("uuid");
-        String roomName = tags.remove(conn);
+        String roomName = (String) conn.getPrivateData().get("room");
         if (roomName.equals("")) roomName = null;
         RoomDistributor room = distr.getRoom(roomName);
         MessageContents identity = new MessageContents("identity").withData(

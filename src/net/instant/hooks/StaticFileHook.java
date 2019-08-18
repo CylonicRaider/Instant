@@ -1,9 +1,6 @@
 package net.instant.hooks;
 
 import java.io.FileNotFoundException;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import net.instant.api.ClientConnection;
@@ -24,15 +21,12 @@ public class StaticFileHook extends HookAdapter {
     private static final String K_MAXAGE = "instant.http.maxCacheAge";
     public static final int DEFAULT_MAX_CACHE_AGE = 3600;
 
-    private final Map<RequestData, String> paths;
     private final ListStringMatcher aliases;
     private final ListStringMatcher contentTypes;
     private final int maxCacheAge;
     private FileProducer producer;
 
     public StaticFileHook(Configuration cfg, FileProducer p) {
-        paths = Collections.synchronizedMap(
-            new HashMap<RequestData, String>());
         aliases = new ListStringMatcher();
         contentTypes = new ListStringMatcher();
         int age;
@@ -79,7 +73,7 @@ public class StaticFileHook extends HookAdapter {
         }
         if (ent == null) {
             resp.respond(200, "OK", -1);
-            paths.put(req, fullPath);
+            req.getPrivateData().put("path", fullPath);
         } else {
             boolean cached = false;
             if (ent.getETag() != null) {
@@ -97,7 +91,7 @@ public class StaticFileHook extends HookAdapter {
                 // Not registering path to not send response body.
             } else {
                 resp.respond(200, "OK", ent.getSize());
-                paths.put(req, fullPath);
+                req.getPrivateData().put("path", fullPath);
             }
         }
         String contentType = contentTypes.match(basePath);
@@ -107,7 +101,7 @@ public class StaticFileHook extends HookAdapter {
     }
 
     public void onOpen(final ClientConnection conn) {
-        String path = paths.remove(conn);
+        String path = (String) conn.getPrivateData().get("path");
         if (path == null) {
             conn.getConnection().close();
             return;
