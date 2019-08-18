@@ -86,8 +86,13 @@ public final class Formats {
         public static String formatExtra(Map<String, Object> data) {
             if (data == null || data.isEmpty()) return null;
             StringBuilder sb = new StringBuilder("\"");
+            boolean first = true;
             for (Map.Entry<String, Object> ent : data.entrySet()) {
-                if (sb.length() != 1) sb.append(' ');
+                if (first) {
+                    first = false;
+                } else {
+                    sb.append(' ');
+                }
                 sb.append(escapeInner(ent.getKey()));
                 if (ent.getValue() == null) continue;
                 sb.append('=');
@@ -97,20 +102,20 @@ public final class Formats {
         }
 
         public static String format(RequestResponseData req) {
-            String ret = String.format("%s %s %s %s %s %s %s %s %s",
-                formatAddress(req.getAddress()),
-                escape(req.getRFC1413Identity()),
-                escape(req.getAuthIdentity()),
-                formatDatetime(req.getTimestamp()),
-                quote(req.getMethod() + ' ' + req.getPath() + ' ' +
-                      req.getHTTPVersion()),
-                req.getStatusCode(),
-                formatLength(req.getResponseLength()),
-                quote(req.getReferrer()),
-                quote(req.getUserAgent()));
+            StringBuilder sb = new StringBuilder();
+            sb.append(formatAddress(req.getAddress())).append(' ')
+              .append(escape(req.getRFC1413Identity())).append(' ')
+              .append(escape(req.getAuthIdentity())).append(' ')
+              .append(formatDatetime(req.getTimestamp())).append(' ')
+              .append(quote(req.getMethod() + ' ' + req.getPath() + ' ' +
+                            req.getHTTPVersion())).append(' ')
+              .append(req.getStatusCode()).append(' ')
+              .append(formatLength(req.getResponseLength())).append(' ')
+              .append(quote(req.getReferrer())).append(' ')
+              .append(quote(req.getUserAgent()));
             String extra = formatExtra(req.getExtraData());
-            if (extra != null) ret += ' ' + extra;
-            return ret;
+            if (extra != null) sb.append(' ').append(extra);
+            return sb.toString();
         }
 
     }
