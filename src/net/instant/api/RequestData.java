@@ -93,9 +93,17 @@ public interface RequestData {
 
     /**
      * Additional meta-data about the request.
-     * Not being expressed by the interface, the mapping maintains insertion
-     * order and is read-write.
+     * The mapping maintains insertion order and is read-write. Data stored
+     * here will be displayed in the HTTP request log.
      */
     Map<String, Object> getExtraData();
+
+    /**
+     * More additional meta-data about the request.
+     * Similarly to getExtraData(), the mapping maintains insertion order and
+     * is read-write; dissimilarly, its contents are not flushed into the
+     * HTTP log. Note that this mapping is shared between all plugins.
+     */
+    Map<String, Object> getPrivateData();
 
 }

@@ -33,12 +33,14 @@ public class Datum implements ClientConnection, ResponseBuilder {
     private long respLength;
     private List<Cookie> cookies;
     private Map<String, Object> extraData;
+    private Map<String, Object> privateData;
     private List<Cookie> respCookies;
 
     public Datum(InstantWebSocketServer parent, long timestamp) {
         this.parent = parent;
         this.timestamp = timestamp;
         this.extraData = new LinkedHashMap<String, Object>();
+        this.privateData = new LinkedHashMap<String, Object>();
         this.respCookies = new ArrayList<Cookie>();
     }
     public Datum(InstantWebSocketServer parent) {
@@ -118,6 +120,10 @@ public class Datum implements ClientConnection, ResponseBuilder {
 
     public Map<String, Object> getExtraData() {
         return extraData;
+    }
+
+    public Map<String, Object> getPrivateData() {
+        return privateData;
     }
 
     public int getStatusCode() {
