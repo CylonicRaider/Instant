@@ -22,14 +22,14 @@ public class CookieHandler {
 
         private final String name;
         private String value;
-        private transient JSONObject data;
+        private JSONObject data;
 
         public DefaultCookie(String name, String value) {
             if (! Formats.HTTP_TOKEN.matcher(name).matches())
                 throw new IllegalArgumentException("Bad cookie name");
             this.name = name;
-            this.value = value;
-            this.data = null;
+            this.data = parseCookieContent(value);
+            this.value = (data == null) ? value : null;
         }
         public DefaultCookie(Cookie other) {
             this(other.getName(), other.getValue());
@@ -49,11 +49,15 @@ public class CookieHandler {
         }
 
         public String getValue() {
-            return value;
+            if (data != null) {
+                return formatCookieContent(data);
+            } else {
+                return value;
+            }
         }
         public void setValue(String v) {
-            value = v;
-            data = null;
+            data = parseCookieContent(v);
+            value = (data == null) ? v : null;
         }
 
         public void updateAttributes(String... pairs) {
@@ -70,18 +74,18 @@ public class CookieHandler {
         }
 
         public JSONObject getData() {
-            if (data == null) data = parseCookieContent(getValue());
             return data;
         }
-        public void setData(JSONObject data) {
-            setValue(formatCookieContent(data));
+        public void setData(JSONObject d) {
+            data = d;
+            value = null;
         }
 
         public String toString() {
             StringBuilder sb = new StringBuilder();
             sb.append(name);
             sb.append('=');
-            sb.append(Formats.escapeHttpString(value));
+            sb.append(Formats.escapeHttpString(getValue()));
             for (Map.Entry<String, String> ent : entrySet()) {
                 sb.append("; ");
                 sb.append(ent.getKey());
@@ -123,7 +127,7 @@ public class CookieHandler {
             if (cookies == null) continue;
             for (Map.Entry<String, String> ent : cookies.entrySet()) {
                 try {
-                    ret.add(new DefaultCookie(ent.getKey(), ent.getValue()));
+                    ret.add(makeCookie(ent.getKey(), ent.getValue()));
                 } catch (IllegalArgumentException exc) {}
             }
         }
@@ -143,10 +147,11 @@ public class CookieHandler {
         return new DefaultCookie(name, value);
     }
     public Cookie makeCookie(String name, JSONObject data) {
-        return new DefaultCookie(name, formatCookieContent(data));
+        return makeCookie(name, formatCookieContent(data));
     }
 
     public JSONObject parseCookieContent(String value) {
+        if (value.isEmpty()) return null;
         String[] parts = value.split("\\|", -1);
         if (parts.length == 1) {
             synchronized (this) {

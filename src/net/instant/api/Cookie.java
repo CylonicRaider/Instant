@@ -44,11 +44,16 @@ public interface Cookie extends Map<String, String> {
     /**
      * Data stored inside the cookie.
      * Serialized and deserialized from/to the value on the fly;
-     * authenticated by the core. To push extensibility, interoperability,
-     * and forward compatibility, the API does not define means to
-     * authenticate cookie data in custom formats. If you *need* to
-     * encode opaque data, encode them into a string and map a meaningful
-     * name to them in data.
+     * authenticated by the core.
+     * If this is non-null, the string value of this Cookie "tracks" the data
+     * (as if the value were updated every time the data change). Vice versa,
+     * if the value is set to an authentic serialized data object, this
+     * property is set to a (new) JSONObject representing the data, and if the
+     * value is set to something else, this property becomes null.
+     * To push extensibility, interoperability, and forward compatibility, the
+     * API does not define means to authenticate cookie data in custom
+     * formats. If you *need* to encode opaque data, encode them into a string
+     * and map a meaningful name in this property to them.
      */
     JSONObject getData();
     void setData(JSONObject data);
