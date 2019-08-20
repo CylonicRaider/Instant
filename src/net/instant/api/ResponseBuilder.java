@@ -1,10 +1,12 @@
 package net.instant.api;
 
+import java.util.List;
 import org.json.JSONObject;
 
 /**
  * HTTP response builder.
- * Also includes setters for some RequestData properties.
+ * Also includes setters for some RequestData properties, which allow refining
+ * the corresponding HTTP log fields.
  */
 public interface ResponseBuilder {
 
@@ -33,20 +35,33 @@ public interface ResponseBuilder {
     /**
      * Fabricate a new cookie with the given name and value.
      * Metadata may be set using the put() method. To be actually sent, the
-     * cookie must be passed to addCookie() method.
+     * cookie must be passed to addResponseCookie() method.
      */
     Cookie makeCookie(String name, String value);
 
     /**
      * Fabricate a new cookie with the given name and data.
      * Metadata may be amended using the put() method. To be actually sent,
-     * the cookie must be passed to addCookie() method.
+     * the cookie must be passed to addResponseCookie() method.
      */
     Cookie makeCookie(String name, JSONObject data);
 
     /**
-     * Add an HTTP response header serializing the cookie.
+     * The list of cookies to be sent as a response.
+     * The list can be mutated, and is inspected when response headers are
+     * sent.
      */
-    void addCookie(Cookie cookie);
+    List<Cookie> getResponseCookies();
+
+    /**
+     * Convenience function to retrieve the response cookie with the given
+     * name, or null.
+     */
+    Cookie getResponseCookie(String name);
+
+    /**
+     * Convenience function to add an entry to the response cookie list.
+     */
+    void addResponseCookie(Cookie cookie);
 
 }

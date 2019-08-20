@@ -187,7 +187,7 @@ public class APIWebSocketHook extends WebSocketHook {
             "Expires", Formats.formatHttpTime(Util.calendarIn(Calendar.YEAR,
                                                               2)));
         if (! insecureCookies) cookie.put("Secure", null);
-        resp.addCookie(cookie);
+        resp.addResponseCookie(cookie);
         return true;
     }
 

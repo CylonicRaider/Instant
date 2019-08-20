@@ -148,10 +148,6 @@ public class Datum implements ClientConnection, ResponseBuilder {
         return (ret.isEmpty()) ? null : ret;
     }
 
-    public List<Cookie> getResponseCookies() {
-        return respCookies;
-    }
-
     public Long getDeadline() {
         return parent.getConnectionGC().getDeadline(this);
     }
@@ -188,7 +184,18 @@ public class Datum implements ClientConnection, ResponseBuilder {
         return parent.getCookieHandler().makeCookie(name, data);
     }
 
-    public void addCookie(Cookie cookie) {
+    public List<Cookie> getResponseCookies() {
+        return respCookies;
+    }
+
+    public Cookie getResponseCookie(String name) {
+        for (Cookie c : respCookies) {
+            if (c.getName() == name) return c;
+        }
+        return null;
+    }
+
+    public void addResponseCookie(Cookie cookie) {
         respCookies.add(cookie);
     }
 
