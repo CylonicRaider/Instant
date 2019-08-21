@@ -2,14 +2,12 @@ package net.instant.hooks;
 
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.List;
 import java.util.UUID;
 import java.util.logging.Logger;
 import net.instant.Main;
 import net.instant.api.API1;
 import net.instant.api.ClientConnection;
-import net.instant.api.Cookie;
 import net.instant.api.Message;
 import net.instant.api.MessageContents;
 import net.instant.api.MessageHook;
@@ -20,8 +18,6 @@ import net.instant.api.Room;
 import net.instant.proto.MessageDistributor;
 import net.instant.proto.ProtocolError;
 import net.instant.proto.RoomDistributor;
-import net.instant.util.Formats;
-import net.instant.util.UniqueCounter;
 import net.instant.util.Util;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -120,6 +116,7 @@ public class APIWebSocketHook extends WebSocketHook {
     private final boolean insecureCookies;
     private API1 api;
     private MessageDistributor distr;
+    private IdentityCookieManager idmgr;
 
     public APIWebSocketHook(API1 apiImpl, MessageDistributor distributor) {
         hooks = new ArrayList<MessageHook>();
@@ -127,6 +124,7 @@ public class APIWebSocketHook extends WebSocketHook {
         insecureCookies = Util.isTrue(apiImpl.getConfiguration(K_INSECURE));
         api = apiImpl;
         distr = distributor;
+        idmgr = new IdentityCookieManager(apiImpl);
     }
     public APIWebSocketHook(API1 api) {
         this(api, null);
@@ -144,6 +142,13 @@ public class APIWebSocketHook extends WebSocketHook {
     }
     public void setDistributor(MessageDistributor d) {
         distr = d;
+    }
+
+    public IdentityCookieManager getIdentityCookieManager() {
+        return idmgr;
+    }
+    public void setIdentityCookieManager(IdentityCookieManager mgr) {
+        idmgr = mgr;
     }
 
     public Iterable<MessageHook> getAllHooks() {
@@ -165,29 +170,7 @@ public class APIWebSocketHook extends WebSocketHook {
     protected boolean evaluateRequestInner(RequestData req,
             ResponseBuilder resp, String tag) {
         req.getPrivateData().put("room", tag);
-        Cookie cookie = req.getCookie(COOKIE_NAME);
-        JSONObject data;
-        if (cookie == null || cookie.getData() == null) {
-            data = new JSONObject();
-        } else {
-            data = cookie.getData();
-        }
-        long id = UniqueCounter.INSTANCE.get();
-        UUID uuid;
-        try {
-            uuid = UUID.fromString(data.getString("uuid"));
-        } catch (Exception exc) {
-            uuid = UniqueCounter.INSTANCE.getUUID(id);
-        }
-        req.getExtraData().put("uuid", uuid);
-        req.getExtraData().put("id", UniqueCounter.INSTANCE.getString(id));
-        data.put("uuid", uuid.toString());
-        cookie = resp.makeCookie(COOKIE_NAME, data);
-        cookie.updateAttributes("Path", "/", "HttpOnly", null,
-            "Expires", Formats.formatHttpTime(Util.calendarIn(Calendar.YEAR,
-                                                              2)));
-        if (! insecureCookies) cookie.put("Secure", null);
-        resp.addResponseCookie(cookie);
+        idmgr.make(req, resp, true);
         return true;
     }
 
