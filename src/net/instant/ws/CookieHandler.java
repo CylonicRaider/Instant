@@ -2,7 +2,9 @@ package net.instant.ws;
 
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Collections;
+import java.util.Date;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -60,15 +62,43 @@ public class CookieHandler {
             value = (data == null) ? v : null;
         }
 
-        public void updateAttributes(String... pairs) {
+        public String getAttribute(String key) {
+            return get(key);
+        }
+        public String setAttribute(String key, Object value) {
+            String stringValue;
+            if (value == null) {
+                stringValue = null;
+            } else if (value instanceof String) {
+                stringValue = (String) value;
+            } else if (value instanceof Number) {
+                stringValue = value.toString();
+            } else if (value instanceof Calendar) {
+                stringValue = Formats.formatHttpTime((Calendar) value);
+            } else if (value instanceof Date) {
+                stringValue = Formats.formatHttpTime((Date) value);
+            } else {
+                throw new ClassCastException("Cannot convert cookie " +
+                    "attribute value " + value + " (for key " + key + ")");
+            }
+            return put(key, stringValue);
+        }
+        public String removeAttribute(String key) {
+            return remove(key);
+        }
+
+        public void updateAttributes(Object... pairs) {
             if (pairs.length % 2 != 0)
                 throw new IllegalArgumentException("Invalid argument " +
                     "amount for withAttributes()");
             for (int i = 0; i < pairs.length; i += 2) {
-                put(pairs[i], pairs[i + 1]);
+                if (! (pairs[i] instanceof String))
+                    throw new IllegalArgumentException("Invalid argument " +
+                        pairs[i] + " for updateAttributes(): Not a string");
+                setAttribute((String) pairs[i], pairs[i + 1]);
             }
         }
-        public DefaultCookie withAttributes(String... pairs) {
+        public DefaultCookie withAttributes(Object... pairs) {
             updateAttributes(pairs);
             return this;
         }

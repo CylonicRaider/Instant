@@ -32,14 +32,38 @@ public interface Cookie extends Map<String, String> {
     void setValue(String value);
 
     /**
-     * Amend this cookie with attribute from the variadic arguments.
-     * pairs must have an even amount of entries, with entries at even-indexed
-     * entries being keys and entries at odd-indexed entries being values
-     * corresponding to the respectively immediately preceding key.
-     * withAttributes() returns this Cookie instance.
+     * Accessor methods for cookie attributes.
+     * setAttribute() is similar to put() in the Map interface, but takes an
+     * arbitrary object as the value to set and tries to convert it to a
+     * string before actually put()ting it (raising a ClassCastException if it
+     * cannot be converted); like put(), setAttribute() returns the old
+     * (String) value of the attribute, or null if none.
+     * getAttribute() and removeAttribute() are thin wrappers around get() and
+     * remove(), respectively, and are provided for symmetry to
+     * setAttribute().
+     * At least the following classes can be converted:
+     * - A null reference is kept as is;
+     * - Strings are kept as is, too;
+     * - Instances of java.lang.Number are converted to strings using their
+     *   toString() method;
+     * - Instances of java.util.Date and java.util.Calendar are formatted
+     *   in a way suitable for use as the value of the Expires cookie
+     *   attribute.
      */
-    void updateAttributes(String... pairs);
-    Cookie withAttributes(String... pairs);
+    String getAttribute(String key);
+    String setAttribute(String key, Object value);
+    String removeAttribute(String key);
+
+    /**
+     * Amend this cookie with attribute from the variadic arguments.
+     * pairs must have an even amount of entries, with even-indexed entries
+     * being String keys and entries at odd-indexed entries being values
+     * (suitable as second setAttribute() arguments) corresponding to the
+     * respectively immediately preceding key. withAttributes() returns this
+     * Cookie instance.
+     */
+    void updateAttributes(Object... pairs);
+    Cookie withAttributes(Object... pairs);
 
     /**
      * Data stored inside the cookie.

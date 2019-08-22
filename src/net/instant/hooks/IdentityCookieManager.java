@@ -8,7 +8,6 @@ import net.instant.api.Counter;
 import net.instant.api.RequestData;
 import net.instant.api.ResponseBuilder;
 import net.instant.api.Utilities;
-import net.instant.util.Formats;
 import org.json.JSONObject;
 
 public class IdentityCookieManager {
@@ -83,8 +82,7 @@ public class IdentityCookieManager {
         req.getExtraData().put(DATA_KEY_ID, ctr.getString(id));
         req.getExtraData().put(DATA_KEY_UUID, uuid);
         cookie.updateAttributes("Path", "/", "HttpOnly", null,
-            "Expires", Formats.formatHttpTime(Utilities.calendarIn(
-                Calendar.YEAR, 2)));
+            "Expires", Utilities.calendarIn(Calendar.YEAR, 2));
         if (isSecuringCookies()) cookie.put("Secure", null);
     }
 

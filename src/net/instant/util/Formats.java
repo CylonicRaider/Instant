@@ -6,6 +6,7 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collections;
+import java.util.Date;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -178,8 +179,15 @@ public final class Formats {
         return '"' + m.replaceAll("\\\\$0") + '"';
     }
 
-    public static synchronized String formatHttpTime(Calendar cal) {
-        return HTTP_FORMAT.format(cal.getTime());
+    public static String formatHttpTime(Calendar cal) {
+        synchronized (HTTP_FORMAT) {
+            return HTTP_FORMAT.format(cal.getTime());
+        }
+    }
+    public static String formatHttpTime(Date d) {
+        synchronized (HTTP_FORMAT) {
+            return HTTP_FORMAT.format(d);
+        }
     }
 
     public static List<String> parseCommaList(String list) {
