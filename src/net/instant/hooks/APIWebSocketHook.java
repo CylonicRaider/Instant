@@ -19,6 +19,7 @@ import net.instant.proto.MessageDistributor;
 import net.instant.proto.ProtocolError;
 import net.instant.proto.RoomDistributor;
 import net.instant.util.Util;
+import net.instant.ws.IdentityCookieManager;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -169,8 +170,8 @@ public class APIWebSocketHook extends WebSocketHook {
 
     protected boolean evaluateRequestInner(RequestData req,
             ResponseBuilder resp, String tag) {
+        req.identify(RequestData.IdentMode.INDIVIDUAL);
         req.getPrivateData().put("room", tag);
-        idmgr.make(req, resp, true);
         return true;
     }
 

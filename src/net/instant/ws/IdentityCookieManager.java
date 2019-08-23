@@ -1,4 +1,4 @@
-package net.instant.hooks;
+package net.instant.ws;
 
 import java.util.Calendar;
 import java.util.UUID;
@@ -48,11 +48,12 @@ public class IdentityCookieManager {
     }
 
     public Cookie make(RequestData req, ResponseBuilder resp,
-                       boolean createNew) {
+                       RequestData.IdentMode mode) {
         Cookie cookie = get(resp);
         if (cookie != null) return cookie;
         cookie = req.getCookie(getCookieName());
-        if (! createNew && (cookie == null || cookie.getData() == null)) {
+        if (mode == RequestData.IdentMode.OPTIONAL && (cookie == null ||
+                cookie.getData() == null)) {
             return null;
         } else if (cookie == null) {
             cookie = resp.makeCookie(cookieName, new JSONObject());
@@ -62,13 +63,13 @@ public class IdentityCookieManager {
         if (cookie.getData() == null) {
             cookie.setData(new JSONObject());
         }
-        init(req, resp, cookie);
+        init(req, resp, mode, cookie);
         resp.addResponseCookie(cookie);
         return cookie;
     }
 
     protected void init(RequestData req, ResponseBuilder resp,
-                        Cookie cookie) {
+                        RequestData.IdentMode mode, Cookie cookie) {
         JSONObject data = cookie.getData();
         Counter ctr = api.getCounter();
         long id = ctr.get();
@@ -79,7 +80,8 @@ public class IdentityCookieManager {
             uuid = ctr.getUUID(id);
         }
         data.put(DATA_KEY_UUID, uuid.toString());
-        req.getExtraData().put(DATA_KEY_ID, ctr.getString(id));
+        if (mode == RequestData.IdentMode.INDIVIDUAL)
+            req.getExtraData().put(DATA_KEY_ID, ctr.getString(id));
         req.getExtraData().put(DATA_KEY_UUID, uuid);
         cookie.updateAttributes("Path", "/", "HttpOnly", null,
             "Expires", Utilities.calendarIn(Calendar.YEAR, 2));

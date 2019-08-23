@@ -126,6 +126,10 @@ public class Datum implements ClientConnection, ResponseBuilder {
         return privateData;
     }
 
+    public Cookie identify(IdentMode mode) {
+        return parent.getIdentifier().make(this, this, mode);
+    }
+
     public int getStatusCode() {
         return response.getHttpStatus();
     }

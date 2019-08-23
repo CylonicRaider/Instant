@@ -61,6 +61,7 @@ public class InstantWebSocketServer extends WebSocketServer
     private final Map<WebSocket, RequestHook> assignments;
     private InformationCollector collector;
     private CookieHandler cookies;
+    private IdentityCookieManager identifier;
     private ConnectionGC gc;
     private PrintStream httpLog;
 
@@ -71,8 +72,9 @@ public class InstantWebSocketServer extends WebSocketServer
         assignments = Collections.synchronizedMap(
             new WeakHashMap<WebSocket, RequestHook>());
         collector = new InformationCollector(this);
-        gc = new ConnectionGC(api);
         cookies = new CookieHandler(makeStringSigner(api));
+        identifier = new IdentityCookieManager(api);
+        gc = new ConnectionGC(api);
         httpLog = System.err;
         setReuseAddr(! Util.isTrue(api.getConfiguration(K_NO_REUSEADDR)));
         for (Draft d : getDraft()) {
@@ -100,6 +102,13 @@ public class InstantWebSocketServer extends WebSocketServer
     }
     public void setCookieHandler(CookieHandler c) {
         cookies = c;
+    }
+
+    public IdentityCookieManager getIdentifier() {
+        return identifier;
+    }
+    public void setIdentifier(IdentityCookieManager i) {
+        identifier = i;
     }
 
     public ConnectionGC getConnectionGC() {
