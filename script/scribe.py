@@ -353,16 +353,16 @@ class LogDBSQLite(LogDB):
             self.conn.commit()
             return False
     def extend_uuid(self, mapping):
-        ret = []
+        added = []
         for k in mapping.keys():
             self.cursor.execute('SELECT 1 FROM uuid WHERE user = ?',
                                 (self.make_strkey(k),))
-            if not self.cursor.fetchone(): ret.append(k)
+            if not self.cursor.fetchone(): added.append(k)
         self.cursor.executemany('INSERT OR REPLACE INTO uuid (user, uuid) '
             'VALUES (?, ?)',
             ((self.make_strkey(k), v) for k, v in mapping.items()))
         self.conn.commit()
-        return ret
+        return added
     def get_uuid(self, uid):
         self.cursor.execute('SELECT uuid FROM uuid WHERE user = ?',
                             (self.make_strkey(uid),))
