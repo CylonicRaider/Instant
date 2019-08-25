@@ -562,14 +562,16 @@ class OptionParser:
                 res = '...'
             else:
                 res = placeholder
+                placeholder = None
         else:
             if opt.get('short'):
                 res = '--%s|-%s' % (name, opt['short'])
             else:
                 res = '--' + name
-            if placeholder is not None:
-                res += ' ' + placeholder
-        opt['rawdesc'] = res
+        opt['namedesc'] = res
+        opt['argdesc'] = placeholder or ''
+        if placeholder is not None:
+            res += ' ' + placeholder
         if opt.get('accum'):
             res += ' [...]'
         if 'default' in opt or opt.get('omissible'):
@@ -624,15 +626,22 @@ class OptionParser:
     def help(self, exit=None, write=True):
         help = [self.usage(write=False)]
         if self.description is not None: help.append(self.description)
-        descs, helps = [], []
+        names, seps, params, helps = [], [], [], []
         for item in list(self.options.values()) + self.arguments:
             if not item['help']: continue
-            descs.append(item['rawdesc'])
+            names.append(item['namedesc'])
+            seps.append('' if item.get('option') or not item['argdesc']
+                           else ':')
+            params.append(item['argdesc'])
             helps.append(item['help'])
-        mdl = max(map(len, descs))
-        newline = '\n' + ' ' * (mdl + 2)
-        for d, h in zip(descs, helps):
-            help.append('%-*s: %s' % (mdl, d, h.replace('\n', newline)))
+        mnl = max(len(n) + len(s) for n, s in zip(names, seps))
+        sp = ' ' if any(params) else ''
+        mpl = max(map(len, params))
+        newline = '\n' + ' ' * (mnl + len(sp) + mpl + 2)
+        for n, s, p, h in zip(names, seps, params, helps):
+            fn = n.ljust(mnl - len(s)) + s
+            help.append('%s%s%-*s: %s' % (fn, sp, mpl, p,
+                                          h.replace('\n', newline)))
         help = '\n'.join(help)
         if write:
             sys.stderr.write(help + '\n')
