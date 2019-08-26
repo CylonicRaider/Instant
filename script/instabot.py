@@ -26,6 +26,38 @@ RELAXED_COOKIES = bool(os.environ.get('INSTABOT_RELAXED_COOKIES'))
 _unicode = websocket_server.compat.unicode
 
 class EventScheduler(object):
+    """
+    EventScheduler(time=None, sleep=None) -> new instance
+
+    An EventScheduler executes callbacks at dynamically specified times.
+
+    time is a function that returns the current time as a floating-point
+    number; the default implementation returns the current UNIX time. sleep
+    is a function that takes a single floating-point argument or None, blocks
+    the calling thread for that time (where None means "arbitrarily long"),
+    and returns whether there is anything to be done in the EventScheduler's
+    queue; the default implementation does this in such a way that it can be
+    interrupted by concurrent callback submissions.
+
+    As the requirements suggest, specifying a non-default implementation for
+    sleep would be unwise; therefore, time should use the same time units as
+    the default sleep, i.e. seconds.
+
+    Callbacks to be run are added to the EventScheduler via add(), add_abs(),
+    and add_now(); these return instances of the enclosed Event class that can
+    be passed to the cancel() method (of this class) in order to prevent
+    them from running (before they have started).
+
+    The actual execution of the callbacks is dispatched by the run() method
+    (or its run_once() relative); the method returns whenever there are no
+    pending callbacks in the scheduelr and its "forever" flag (which defaults
+    to being set; see set_forever()) is cleared. If a thread wants to wait
+    for an EventScheduler executing in another thread to finish, it can use
+    the join() method for that.
+
+    See also the standard library's "sched" module for similar (but not
+    well-suited for concurrent scenarios) functionality.
+    """
     class Event:
         def __init__(self, time, seq, callback):
             self.time = time
@@ -48,6 +80,7 @@ class EventScheduler(object):
         def __lt__(self, other):
             return self.sortkey < other.sortkey
     def __init__(self, time=None, sleep=None):
+        "Instance initializer; see the class docstring for details."
         if time is None: time = self._time
         if sleep is None: sleep = self._sleep
         self.pending = []
@@ -58,16 +91,27 @@ class EventScheduler(object):
         self.cond = threading.Condition()
         self._seq = 0
     def __enter__(self):
+        "Context manager entry; internal."
         return self.cond.__enter__()
     def __exit__(self, *args):
+        "Context manager exit; internal."
         return self.cond.__exit__(*args)
     def _time(self):
+        "Internal: Default implementation of the time callback."
         return time.time()
     def _sleep(self, delay):
+        "Internal: Default implementation of the sleep callback."
         with self:
             self.cond.wait(delay)
             return bool(self.pending)
     def add_abs(self, timestamp, callback):
+        """
+        Schedule callback to be invoked at timestamp and return an Event
+        object representing the registration.
+
+        The Event can be passed to cancel() to cancel the callback's execution
+        (before it starts). See the class docstring for time unit details.
+        """
         with self:
             evt = self.Event(timestamp, self._seq, callback)
             self._seq += 1
@@ -75,32 +119,90 @@ class EventScheduler(object):
             self.cond.notifyAll()
             return evt
     def add(self, delay, callback):
+        """
+        Schedule callback to be invoked in delay time units and return an
+        Event object representing the registration.
+
+        See the notes for add_abs() for more details.
+        """
         return self.add_abs(self.time() + delay, callback)
     def add_now(self, callback):
+        """
+        Schedule callback to be invoked as soon as possible.
+
+        Like add_abs() and add(), this returns an Event object representing
+        the registration, but actually cancelling the event may be hard. See
+        also the notes for add_abs() for additional details.
+        """
         return self.add_abs(self.time(), callback)
     def cancel(self, event):
+        """
+        Attempt to cancel the given Event's callback's execution and return
+        whether that was successful.
+
+        An Event can only be cancelled if its callback has not started
+        executing yet.
+        """
         with self:
             event.canceled = True
             ret = (not event.handled)
             self.cond.notifyAll()
             return ret
     def clear(self):
+        """
+        Unconditionally remove all pending callbacks.
+
+        As a side effect and depending on the forever flag, concurrent
+        invocation of the run() method may return.
+        """
         with self:
             self.pending[:] = []
             self.cond.notifyAll()
     def set_forever(self, v):
+        """
+        Set whether this EventScheduler should wait for additional tasks when
+        there are none queued.
+
+        If this is cleared while there are no queued tasks, the Scheduler may
+        shut down as a side effect. If this is cleared while there *are*
+        pending tasks, they will be given a chance to execute (and potentially
+        to spawn new tasks ad infinitum).
+        """
         with self:
             self.forever = v
             self.cond.notifyAll()
     def shutdown(self):
+        "A convenience alias for set_forever(False)."
         self.set_forever(False)
     def join(self):
+        """
+        Wait until a concurrent invocation of the run() method returns.
+        """
         with self:
             while self.running:
                 self.cond.wait()
     def on_error(self, exc):
-        raise exc
+        """
+        Error handling callback.
+
+        When an exception is raised in a callback, this method is invoked in
+        the exception handler with the caught exception object as the only
+        argument. sys.exc_info() may be inspected.
+
+        The default implementation re-raises the exception.
+        """
+        raise
     def run_once(self, hangup=True):
+        """
+        Execute all currently pending callbacks and wait until it would be
+        time to run the next one.
+
+        If hangup is true and there are no callbacks to run, this will wait
+        indefinitely.
+
+        Because of the somewhat backwards interface, this method may be of
+        little use except as a part of run().
+        """
         wait = None
         while 1:
             with self:
@@ -120,6 +222,12 @@ class EventScheduler(object):
         if wait is None and not hangup: return False
         return self.sleep(wait)
     def run(self):
+        """
+        Execute all currently pending and future callbacks.
+
+        Whenever the forever flag is cleared and there are no pending
+        callbacks, this method returns.
+        """
         try:
             with self:
                 self.running = True
