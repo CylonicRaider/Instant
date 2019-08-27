@@ -59,25 +59,47 @@ class EventScheduler(object):
     well-suited for concurrent scenarios) functionality.
     """
     class Event:
+        """
+        Event(time, seq, callback) -> new instance
+
+        An object enclosing a function to be executed by an EventScheduler.
+
+        time is the time at which the callback is to be run; seq is a value
+        used to disambiguate events with the same time (e.g. a sequentially
+        increasing integer); callback is the actual function to run (taking
+        no arguments and with the return value ignored).
+
+        Event objects can be called and forward these calls to their
+        callbacks; additionally, comparing two Event objects yields the same
+        result as comparing their (time, seq) tuples.
+        """
         def __init__(self, time, seq, callback):
+            "Instance initializer; see the class docstring for details."
             self.time = time
             self.sortkey = (time, seq)
             self.callback = callback
             self.handled = False
             self.canceled = False
         def __call__(self):
+            "Calling protocol support; see the class docstring for details."
             self.callback()
         def __gt__(self, other):
+            "Comparison support; see the class docstring for details."
             return self.sortkey > other.sortkey
         def __ge__(self, other):
+            "Comparison support; see the class docstring for details."
             return self.sortkey >= other.sortkey
         def __eq__(self, other):
+            "Comparison support; see the class docstring for details."
             return self.sortkey == other.sortkey
         def __ne__(self, other):
+            "Comparison support; see the class docstring for details."
             return self.sortkey != other.sortkey
         def __le__(self, other):
+            "Comparison support; see the class docstring for details."
             return self.sortkey <= other.sortkey
         def __lt__(self, other):
+            "Comparison support; see the class docstring for details."
             return self.sortkey < other.sortkey
     def __init__(self, time=None, sleep=None):
         "Instance initializer; see the class docstring for details."
