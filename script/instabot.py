@@ -262,10 +262,24 @@ class EventScheduler(object):
                 self.cond.notifyAll()
 
 class AtomicSequence(object):
+    """
+    AtomicSequence() -> new instance
+
+    An atomic (i.e. thread-safe) counter.
+
+    Instances of this class are callable; they expect no arguments and return
+    a single integer which is the current value of the counter. Subsequent
+    calls return increasing integers.
+
+    Counting starts at zero: The first call of a new instance will return 0,
+    the next will return 1, etc.
+    """
     def __init__(self):
+        "Instance initializer; see the class docstring for details."
         self.value = -1
         self._lock = threading.Lock()
     def __call__(self):
+        "Calling protocol support; see the class docstring for details."
         with self._lock:
             self.value += 1
             return self.value
