@@ -285,9 +285,39 @@ class AtomicSequence(object):
             return self.value
 
 class InstantClient(object):
+    """
+    InstantClient(url, [timeout], [cookies], keepalive=False) -> new instance
+
+    Generic Instant API endpoint wrapper.
+
+    url is the URL of the API endpoint; timeout is the connection timeout (a
+    floating-point amount of seconds or None for no timeout), which defaults
+    to the TIMEOUT class attribute; cookies is a CookieJar instance (or None)
+    which is used for cookie management, and defaults to the COOKIES class
+    attribute; keepalive indicates whether the client should reconnect when
+    its connection breaks.
+
+    timeout and cookies are forwarded to the underlying WebSocket connect()
+    call.
+
+    The following groups of methods are provided:
+    - The underlying connection can be managed via connect() and close();
+      additionally, the keepalive attribute (initialized from the
+      corresponding constructor parameter) is relevant.
+    - Synchronous sending/receiving can be done via send_*() and recv().
+    - Generic connection events as well as certain received data are handled
+      by on_*() methods.
+    - Specific messages received from the backend are processed by handle_*()
+      methods; see in particular on_message() for details on how the default
+      implementations dispatch further calls.
+    - A main loop managing reconnects, message reception, and event handler
+      dispatch is invoked via run() or put into a background thread via
+      start().
+    """
     TIMEOUT = None
     COOKIES = None
     def __init__(self, url, **kwds):
+        "Instance initializer; see the class docstring for details."
         self.url = url
         self.timeout = kwds.get('timeout', self.TIMEOUT)
         self.cookies = kwds.get('cookies', self.COOKIES)
@@ -296,6 +326,12 @@ class InstantClient(object):
         self.sequence = AtomicSequence()
         self._wslock = threading.RLock()
     def connect(self):
+        """
+        Create a connection to the stored URL and return it.
+
+        If there already is an active connection, it is returned without
+        creating a new one.
+        """
         with self._wslock:
             if self.ws is not None: return self.ws
             jar = self.cookies
@@ -305,8 +341,32 @@ class InstantClient(object):
                 jar.save()
         return self.ws
     def on_open(self):
+        """
+        Event handler method invoked when the connection opens.
+
+        The default implementation does nothing.
+        """
         pass
     def on_message(self, rawmsg):
+        """
+        Event handler method invoked when a text frame arrives via the
+        Websocket.
+
+        rawmsg is the payload of the frame.
+
+        The default implementation decodes the frame as JSON and dispatches
+        to one of the handle_*() methods (if the "type" field of the message
+        is in a fixed known whitelist) or on_unknown() (otherwise).
+
+        The handle_*() methods and on_unknown() take the same arguments,
+        namely the JSON-decoded contents of the frame (typically a dictionary)
+        and its raw string form as passed to this method.
+
+        As default, handle_unicast() and handle_broadcast() dispatch the
+        "data" field of the received message to on_client_message(); the
+        other handle_*() methods do nothing as default (unless, of course,
+        they are overridden).
+        """
         content = json.loads(rawmsg)
         msgt = content.get('type')
         func = {
@@ -319,39 +379,156 @@ class InstantClient(object):
         }.get(msgt, self.on_unknown)
         func(content, rawmsg)
     def on_frame(self, msgtype, content, final):
+        """
+        Event handler method invoked when a binary frame arrives via the
+        WebSocket.
+
+        msgtype is the WebSocket opcode of the frame, content is its payload,
+        and final indicates whether this is a partial frame (by being False;
+        since the default recv() operates in non-streaming mode, final is
+        usually always True).
+
+        The default implementation does nothing.
+        """
         pass
     def on_connection_error(self, exc):
+        """
+        Event handler method invoked when connect() raises an exception.
+
+        exc is the exception object. sys.exc_info() may be inspected.
+
+        The default implementation reraises the exception unless the keepalive
+        attribute is true.
+        """
         if not self.keepalive:
             raise exc
     def on_timeout(self, exc):
+        """
+        Event handler method invoked when the underlying connection times out
+        while reading.
+
+        exc is the exception object. sys.exc_info() may be inspected.
+
+        Because the underlying standard library I/O buffers may become
+        inconsistent when timeouts happen, the connection is always destroyed
+        after this is called. The default implementation re-raises the
+        exception unconditionally, effectively handing it off to on_error().
+        """
         raise exc
     def on_error(self, exc):
+        """
+        Event handler method invoked when a general exception happens during
+        the main loop.
+
+        exc is the exception object. sys.exc_info() may be inspected.
+
+        The default implementation re-raises the exception, causing a calling
+        run() to abort.
+        """
         raise exc
     def on_close(self, final):
+        """
+        Event handler method invoked when the underlying connection has
+        closed.
+
+        final indicates whether a reconnect is about to happen (False) or
+        whether the close is really final (True).
+
+        The default implementation does nothing.
+        """
         pass
     def handle_identity(self, content, rawmsg):
+        """
+        Event handler method for "identity" API messages.
+
+        See on_message() for details.
+        """
         pass
     def handle_pong(self, content, rawmsg):
+        """
+        Event handler method for "pong" API messages.
+
+        See on_message() for details.
+        """
         pass
     def handle_joined(self, content, rawmsg):
+        """
+        Event handler method for "joined" API messages.
+
+        See on_message() for details.
+        """
         pass
     def handle_who(self, content, rawmsg):
+        """
+        Event handler method for "who" API messages.
+
+        See on_message() for details.
+        """
         pass
     def handle_unicast(self, content, rawmsg):
+        """
+        Event handler method for "unicast" API messages.
+
+        See on_message() for details.
+        """
         self.on_client_message(content['data'], content, rawmsg)
     def handle_broadcast(self, content, rawmsg):
+        """
+        Event handler method for "broadcast" API messages.
+
+        See on_message() for details.
+        """
         self.on_client_message(content['data'], content, rawmsg)
     def handle_response(self, content, rawmsg):
+        """
+        Event handler method for "response" API messages.
+
+        See on_message() for details.
+        """
         pass
     def handle_left(self, content, rawmsg):
+        """
+        Event handler method for "left" API messages.
+
+        See on_message() for details.
+        """
         pass
     def handle_error(self, content, rawmsg):
+        """
+        Event handler method for "error" API messages.
+
+        See on_message() for details.
+        """
         pass
     def on_unknown(self, content, rawmsg):
+        """
+        Event handler method for unrecognized API messages.
+
+        See on_message() for details.
+        """
         pass
     def on_client_message(self, data, content, rawmsg):
+        """
+        Event handler method for received inter-client messages.
+
+        data is the client-specified message payload, conventionally a
+        dictionary whose "type" entry allows determining its exact purpose;
+        content is the backend message enclosing data and contains additional
+        metadata (e.g. the sender and the timestamp); rawmsg is the original
+        character string as received from the WebSocket.
+
+        The default implementation does nothing.
+        """
         pass
     def recv(self):
+        """
+        Receive and return a single text frame from the underlying WebSocket.
+
+        If there is currently no connection or an EOF is received, this
+        returns None. Non-text frames are processed synchronously via
+        on_frame(). When a text frame is received, this returns its textual
+        content.
+        """
         ws = self.ws
         if ws is None: return None
         while 1:
@@ -362,25 +539,73 @@ class InstantClient(object):
                 continue
             return frame.content
     def send_raw(self, rawmsg):
+        """
+        Send the given text into the underlying WebSocket (nearly) unmodified.
+
+        The input is coerced into a Unicode string; aside from that, no
+        transformations are performed. If there is no connection, this raises
+        a websocket_server.ConnectionClosedError.
+
+        The default implementation takes only one argument; other ones could
+        accept additional (keyword-only) ones.
+        """
         ws = self.ws
         if ws is None: raise websocket_server.ConnectionClosedError
         ws.write_text_frame(_unicode(rawmsg))
     def send_seq(self, content, **kwds):
+        """
+        Augment the given data object with a unique sequence number and send
+        its JSON serialization into the underlying WebSocket.
+
+        The sequence number is stored in the "seq" entry of content in-place
+        and returned; it is unique from every other sequence number generated
+        by this InstantClient instance (via this method).
+
+        Additional keyword-only arguments can be interpreted by overridden
+        versions of this method and should be passed on to send_raw() as
+        appropriate.
+        """
         seq = self.sequence()
         content['seq'] = seq
         self.send_raw(json.dumps(content, separators=(',', ':')), **kwds)
         return seq
     def send_unicast(self, dest, data, **kwds):
+        """
+        Send a unicast API message to the indicated destination with the given
+        data.
+
+        This is a convenience wrapper around send_seq({'type': 'unicast',
+        'to': dest, 'data': data}, **kwds).
+        """
         return self.send_seq({'type': 'unicast', 'to': dest, 'data': data},
                              **kwds)
     def send_broadcast(self, data, **kwds):
+        """
+        Send a broadcast API message with the given data.
+
+        This is a convenience wrapper around send_seq({'type': 'broadcast',
+        'data': data}, **kwds).
+        """
         return self.send_seq({'type': 'broadcast', 'data': data}, **kwds)
     def close(self, final=True):
+        """
+        Close the underlying WebSocket connection.
+
+        If final is true, this clears the keepalive attribute of this instance
+        to ensure that its main loop does not attempt to reconnect.
+        """
         with self._wslock:
             if self.ws is not None: self.ws.close()
             self.ws = None
             if final: self.keepalive = False
     def run(self):
+        """
+        The main loop of an InstantClient.
+
+        This takes care of (re)connecting, backing off on failing connection
+        attempts, message reading, and connection closing. Most on_*() methods
+        are dispatched from here.
+        """
         while 1:
             reconnect = 0
             while 1:
@@ -420,6 +645,11 @@ class InstantClient(object):
                     self.on_close(final)
             if final: break
     def start(self):
+        """
+        Create a daemonic background thread running run() and return it.
+
+        The thread is already started when this returns.
+        """
         thr = threading.Thread(target=self.run)
         thr.setDaemon(True)
         thr.start()
