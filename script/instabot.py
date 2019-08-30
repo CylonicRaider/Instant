@@ -286,7 +286,8 @@ class AtomicSequence(object):
 
 class InstantClient(object):
     """
-    InstantClient(url, [timeout], [cookies], keepalive=False) -> new instance
+    InstantClient(url, [timeout], [cookies], keepalive=False, **kwds)
+        -> new instance
 
     Generic Instant API endpoint wrapper.
 
@@ -295,7 +296,7 @@ class InstantClient(object):
     to the TIMEOUT class attribute; cookies is a CookieJar instance (or None)
     which is used for cookie management, and defaults to the COOKIES class
     attribute; keepalive indicates whether the client should reconnect when
-    its connection breaks.
+    its connection breaks. Unrecognized keyword arguments are ignored.
 
     timeout and cookies are forwarded to the underlying WebSocket connect()
     call.
@@ -656,24 +657,71 @@ class InstantClient(object):
         return thr
 
 class Bot(InstantClient):
+    """
+    Bot(url, nickname=Ellipsis, **kwds) -> new instance
+
+    An InstantClient that maintains a nickname and allows submitting posts.
+
+    url is the WebSocket URL to connect to (typically corresponding to an
+    Instant room); nickname is the nickname to use (either a string or None,
+    with a None nick rendering the bot invisible (in contrast to an empty
+    string as a nick)), defaulting to the NICKNAME class attribute.
+
+    This class can be used as a superclass for complex bots; see also HookBot
+    for convenience functionality for simpler ones.
+    """
     NICKNAME = None
     def __init__(self, url, nickname=Ellipsis, **kwds):
+        "Instance initializer; see the class docstring for details."
         if nickname is Ellipsis: nickname = self.NICKNAME
         InstantClient.__init__(self, url, **kwds)
         self.nickname = nickname
         self.identity = None
         self._nicklock = threading.RLock()
     def on_timeout(self, exc):
+        """
+        Connection timeout event handler.
+
+        This implementation overrides the behavior from InstantClient by only
+        re-raising the exception if there is no connection timeout configured.
+
+        See the base class implementation for more details.
+        """
         if self.timeout is None:
             raise exc
     def handle_identity(self, content, rawmsg):
+        """
+        "identity" API message handler.
+
+        This implementation stores the "data" member of the received object
+        in the "identity" instance attribute and, taking this to be the start
+        of the bot's active lifetime, invokes send_nick() to announce the
+        bot's nickname.
+
+        See the base class implementation for more details.
+        """
         self.identity = content['data']
         self.send_nick()
     def on_client_message(self, data, content, rawmsg):
+        """
+        Client-to-client message handler.
+
+        This implementation checks whether the received message is a nickname
+        query and responds to it using send_nick() if so.
+
+        See the base class implementation for more details.
+        """
         peer = content['from']
         if data.get('type') == 'who' and peer != self.identity['id']:
             self.send_nick(peer)
     def send_nick(self, peer=None):
+        """
+        Announce this bot's nickname to the given peer or everyone.
+
+        Unless None, peer is the ID of a client to send the announcement to;
+        if peer is None, the announcement is broadcast. If this bot's nickname
+        is configured to None, no announcement is sent.
+        """
         with self._nicklock:
             if self.nickname is None: return
             data = {'type': 'nick', 'nick': self.nickname,
@@ -683,6 +731,14 @@ class Bot(InstantClient):
             else:
                 self.send_broadcast(data)
     def send_post(self, text, parent=None, nickname=Ellipsis):
+        """
+        Send a chat post.
+
+        text is the content of the post (as a string); parent is the ID of the
+        post the new post is a response to (or None to create a new top-level
+        post); nickname (if not Ellipsis) allows changing the bot's nickname
+        along with the post.
+        """
         data = {'type': 'post', 'text': text}
         if parent is not None:
             data['parent'] = parent
