@@ -705,14 +705,14 @@ class HookBot(Bot):
         if self.open_cb is not None: self.open_cb(self)
     def on_client_message(self, data, content, rawmsg):
         Bot.on_client_message(self, data, content, rawmsg)
-        if data.get('type') == 'post':
+        if data.get('type') == 'post' and self.post_cb is not None:
             post = dict(data, timestamp=content['timestamp'],
                 id=content['id'], **{'from': content['from']})
-            if self.post_cb is not None:
-                res = self.post_cb(self, post, {'content': content,
-                                                'rawmsg': rawmsg})
-                if res is not None:
-                    self.send_post(res, content['id'])
+            reply = lambda text: self.send_post(text, content['id'])
+            res = self.post_cb(self, post, {'content': content,
+                                            'rawmsg': rawmsg,
+                                            'reply': reply})
+            if res is not None: reply(res)
     def on_close(self, final):
         Bot.on_close(self, final)
         if self.close_cb is not None: self.close_cb(self, final)
