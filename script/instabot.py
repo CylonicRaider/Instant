@@ -749,7 +749,50 @@ class Bot(InstantClient):
             return self.send_broadcast(data)
 
 class HookBot(Bot):
+    """
+    HookBot(url, nickname=Ellipsis, init_cb=None, open_cb=None, post_cb=None,
+            close_cb=None) -> new instance
+
+    An extension of Bot that provides externally settable callbacks for key
+    events.
+
+    All callbacks take the HookBot instance as the first positional argument
+    and are stored in same-named instance attributes; aside from that, their
+    signatures and places of invocation differ:
+    - init_cb(self) -> None
+      Invoked by the HookBot constructor. Allow storing additional state in
+      instance attributes.
+    - open_cb(self) -> None
+      Invoked when a new connection is established. In contrast to init_cb(),
+      this may be called multiple times over the lifetime of a HookBot.
+    - post_cb(self, post, meta) -> str or None
+      Invoked when a new post is submitted. post is the payload of the
+      client-to-client message carrying the post, enriched with additional
+      information (in-place) by the caller; it has the following entries:
+      type     : The string 'post'.
+      text     : The textual content of the post.
+      nick     : The nickname of the sender (as used for this post).
+      timestamp: The timestamp at which the backend processed the post, in
+                 milliseconds since the UNIX Epoch.
+      id       : A unique ID of the post (as a string).
+      from     : The ID of the sender (as a string).
+      meta is a dictionary containing additional less-relevant information:
+      content: The API message via which the post arrived at the HookBot.
+      rawmsg : The textual representation of content as it arrived over the
+               wire (aside from UTF-8 decoding).
+      reply  : A closure that, when invoked with a single positional argument,
+               submits a reply to the post being handled (when it was
+               constructed) with the only argument as the reply's text. See
+               send_post() for more details.
+      The return value of post_cb(), if not None, is sent as a reply to the
+      post being handled as if it had been passed to meta['reply'].
+    - close_cb(self, final) -> None
+      Invoked when a connection is about to be closed. final tells whether
+      the close will be followed by a reconnect (final is false) or not (final
+      is true).
+    """
     def __init__(self, url, nickname=Ellipsis, **kwds):
+        "Instance initializer; see the class docstring for details."
         Bot.__init__(self, url, nickname, **kwds)
         self.init_cb = kwds.get('init_cb')
         self.open_cb = kwds.get('open_cb')
@@ -757,9 +800,21 @@ class HookBot(Bot):
         self.close_cb = kwds.get('close_cb')
         if self.init_cb is not None: self.init_cb(self)
     def on_open(self):
+        """
+        Connection opening event handler.
+
+        This implementation invokes the corresponding callback, if any; see
+        the class docstring for details.
+        """
         Bot.on_open(self)
         if self.open_cb is not None: self.open_cb(self)
     def on_client_message(self, data, content, rawmsg):
+        """
+        Client-to-client message reception handler.
+
+        This implementation invokes the corresponding callback, if any; see
+        the class docstring for details.
+        """
         Bot.on_client_message(self, data, content, rawmsg)
         if data.get('type') == 'post' and self.post_cb is not None:
             post = dict(data, timestamp=content['timestamp'],
@@ -770,6 +825,12 @@ class HookBot(Bot):
                                             'reply': reply})
             if res is not None: reply(res)
     def on_close(self, final):
+        """
+        Connection closing event handler.
+
+        This implementation invokes the corresponding callback, if any; see
+        the class docstring for details.
+        """
         Bot.on_close(self, final)
         if self.close_cb is not None: self.close_cb(self, final)
 
