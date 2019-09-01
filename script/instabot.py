@@ -835,14 +835,72 @@ class HookBot(Bot):
         if self.close_cb is not None: self.close_cb(self, final)
 
 class Logger:
+    """
+    Logger(stream) -> new instance
+
+    A Logger writes timestamp-prefixed messages to a stream or swallows them.
+
+    If stream is None, log() writes nothing; otherwise, each logged message
+    is prefixed with a timestamp, written to stream, and stream is flushed
+    after every message.
+
+    The key method of this class is log(), with its extension log_exception()
+    for providing a standartized and compact response to exceptions.
+
+    It is encouraged to write logs in a particular machine-readable fashion,
+    which is followed by log_exception(). A machine-readable log line consists
+    of the following items:
+
+        [<TIMESTAMP>] <EVENT> <key-1>=<value-1> <key-2>=<value-2> ...
+
+    <TIMESTAMP> is provided by log(); <EVENT> is a (conventionally uppercase)
+    word classifying the log line; any amount of key-value pairs (where keys
+    should use lowercase names and separate words using dashes) may follow.
+    Values should be alike to Python object literals containing no whitespace
+    outside of strings (see the format() method for valid types and their
+    formatting) or bare words (i.e. strings without surrounding quotes). The
+    module-level read_logs() function can read back lines in this format.
+    """
     def __init__(self, stream):
+        "Instance initializer; see the class docstring for details."
         self.stream = stream
     def format(self, obj):
-        if isinstance(obj, tuple):
-            return '(' + ','.join(map(repr, obj)) + ')'
+        """
+        Pretty-print the given object in a way suitable for inclusion into a
+        machine-readable log line.
+
+        Although this method works on any Python object, only the following
+        types (some with special formatting as provided by this method) can be
+        read back by read_logs():
+        - The constants None, True, False, Ellipsis (represented using the
+          given names);
+        - Decimal integer literals;
+        - Python string literals (only a "u" prefix is permitted for Python 2
+          compatibility);
+        - Tuples or lists of any of the above types (both of these are encoded
+          surrounded by parentheses, with the items separated by commata (and
+          no spaces), with no trailing comma). Note that neither tuples nor
+          lists may be nested.
+        """
+        if isinstance(obj, (tuple, list)):
+            return '(' + ','.join(map(self.format, obj)) + ')'
         else:
             return repr(obj)
     def log(self, msg):
+        """
+        Format a logging line containing the given message and write it to
+        the underlying stream.
+
+        msg is the message to be written, and should not be empty (for
+        aesthetic reasons); it is advisable to format it in the way presented
+        in the class docstring.
+
+        If the underlying stream is None, the formatting and writing is not
+        done. Otherwise, after prepending a timestamp, the message is
+        formatted into an ASCII-only form (replacing non-ASCII Unicode
+        characters with \uXXXX or \UXXXXXXXX escape sequences) the stream is
+        always flushed.
+        """
         if self.stream is None: return
         m = '[%s] %s\n' % (time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime()),
                            msg)
@@ -850,6 +908,24 @@ class Logger:
                                    'backslashreplace').decode('ascii'))
         self.stream.flush()
     def log_exception(self, name, exc, trailer=None):
+        """
+        Log a compact message informing about the given exception.
+
+        name is an arbitrary keyword to prepend to the exception information;
+        exc is the exception object (for machine readability, it is subjected
+        to a double repr() since many exceptions provide custom
+        representations that are hard to read back consistently); trailer is
+        an optional string to append to the log line.
+
+        The log line is formatted in the way presented in the class docstring:
+        After the keyword, the exception's representation is given after a
+        "reason=" key; just after the exception, one or two samples from the
+        stack trace (as retrieved from sys.exc_info() at hopefully
+        informative points) are given as "last-frame=" and "cause-frame="
+        (where the latter may be omitted if both frames are the same); after
+        all that, trailer is appended after a space (if trailer is not None).
+        All of that is then passed on to log().
+        """
         try:
             # frame is the frame where the exception is caught; cause is the
             # frame where it originated. The former might be more useful in
@@ -884,7 +960,7 @@ EMPTY_TUPLE = re.compile(r'^\(\s*\)$')
 TRAILING_COMMA = re.compile(r',\s*\)$')
 PARAM = re.compile(r'([a-zA-Z0-9_-]+)=(%s|%s)(?=\s|$)' %
                    (SCALAR.pattern, TUPLE.pattern))
-INTEGER = re.compile(r'^[0-9]+$')
+INTEGER = re.compile(r'^[+-]?[0-9]+$')
 CONSTANTS = {'None': None, 'True': True, 'False': False,
              'Ellipsis': Ellipsis}
 def read_logs(src, filt=None):
