@@ -856,10 +856,12 @@ class Logger:
     <TIMESTAMP> is provided by log(); <EVENT> is a (conventionally uppercase)
     word classifying the log line; any amount of key-value pairs (where keys
     should use lowercase names and separate words using dashes) may follow.
-    Values should be alike to Python object literals containing no whitespace
-    outside of strings (see the format() method for valid types and their
-    formatting) or bare words (i.e. strings without surrounding quotes). The
-    module-level read_logs() function can read back lines in this format.
+    Values should be alike to Python object literals or bare words (see the
+    format() method for details). The module-level read_logs() function can
+    read back valid lines in this format.
+
+    An instance of this class pre-configured to write to standard output is
+    provided as the module-level DEFAULT_LOGGER variable.
     """
     def __init__(self, stream):
         "Instance initializer; see the class docstring for details."
@@ -874,15 +876,36 @@ class Logger:
         read back by read_logs():
         - The constants None, True, False, Ellipsis (represented using the
           given names);
-        - Decimal integer literals;
-        - Python string literals (only a "u" prefix is permitted for Python 2
-          compatibility);
+        - Decimal integers (matching the regular expression /[+-]?[0-9]+/);
+        - Finite floating-point numbers (matching the regular expression
+          /[+-]?[0-9]+(\.[0-9]+)?([eE][+-]?[0-9]+)?/; note that abbreviations
+          like 1. or .1 are *not* permitted);
+        - Python string literals (an optional "u" prefix is permitted for
+          Python 2 compatibility);
         - Tuples or lists of any of the above types (both of these are encoded
           surrounded by parentheses, with the items separated by commata (and
-          no spaces), with no trailing comma). Note that neither tuples nor
-          lists may be nested.
+          no spaces), with no trailing comma).
+        - Dicts of any of the above types (these are encoded, again, without
+          redundant whitespace).
+        Note that tuples, lists, and dicts may not be nested (except that
+        a tuple/list may be contained immediately inside a dict).
+
+        While format() emits strings in the format described above,
+        read_logs() also accepts strings as produced by Python's repr() (which
+        include whitespace and potential trailing commata), although the
+        format described above is preferred.
+
+        For completeness' sake, in read_logs(), parameter values that do not
+        contain any of the forbidden characters matching the character class
+        ['"()[\]{},:\s], and are not any of the constant values named above,
+        are treated as bare words, i.e. they are decoded to strings without
+        further modification. Note that bare words may not be nested inside
+        Python-like object literals.
         """
-        if isinstance(obj, (tuple, list)):
+        if isinstance(obj, dict):
+            return '{' + ','.join(self.format(k) + ':' + self.format(v)
+                                  for k, v in obj.items()) + '}'
+        elif isinstance(obj, (tuple, list)):
             return '(' + ','.join(map(self.format, obj)) + ')'
         else:
             return repr(obj)
@@ -951,19 +974,40 @@ DEFAULT_LOGGER = Logger(sys.stdout)
 
 LOGLINE = re.compile(r'^\[([0-9 Z:-]+)\]\s+([A-Z0-9_-]+)(?:\s+(.*))?$')
 WHITESPACE = re.compile(r'\s+')
-SCALAR = re.compile(r'[^"\'(,\s][^\s),]*|u?"(?:[^"\\]|\\.)*"|'
-    r'u?\'(?:[^\'\\]|\\.)*\'')
-TUPLE_ENTRY = re.compile(r'(%s)\s*(,)\s*' % SCALAR.pattern)
-TUPLE = re.compile(r'\(\s*(?:(?:%s)\s*,\s*)*(?:(?:%s)\s*)?\)' %
-                   (SCALAR.pattern, SCALAR.pattern))
-EMPTY_TUPLE = re.compile(r'^\(\s*\)$')
-TRAILING_COMMA = re.compile(r',\s*\)$')
-PARAM = re.compile(r'([a-zA-Z0-9_-]+)=(%s|%s)(?=\s|$)' %
-                   (SCALAR.pattern, TUPLE.pattern))
+SCALAR = re.compile(r'[^"\'()[\]{},:\s]+|u?"(?:[^"\\]|\\.)*"|'
+                    r'u?\'(?:[^\'\\]|\\.)*\'')
+COMMA = re.compile(r'\s*,\s*')
+TUPLE = re.compile(r'\(\s*(?:(?:%s)%s)*(?:(?:%s)\s*)?\)' %
+                   (SCALAR.pattern, COMMA.pattern, SCALAR.pattern))
+DICT_ENTRY = re.compile(r'(%s|%s)\s*:\s*(%s|%s)' %
+    (SCALAR.pattern, TUPLE.pattern, SCALAR.pattern, TUPLE.pattern))
+DICT = re.compile(r'\{\s*(?:%s%s)*(?:%s\s*)?\}' %
+                  (DICT_ENTRY.pattern, COMMA.pattern, DICT_ENTRY.pattern))
+PARAM = re.compile(r'([a-zA-Z0-9_-]+)=(%s|%s|%s)(?=\s|$)' %
+                   (SCALAR.pattern, TUPLE.pattern, DICT.pattern))
 INTEGER = re.compile(r'^[+-]?[0-9]+$')
+FLOAT = re.compile(r'^[+-]?[0-9]+(\.[0-9]+)?([eE][+-]?[0-9]+)?$')
 CONSTANTS = {'None': None, 'True': True, 'False': False,
              'Ellipsis': Ellipsis}
 def read_logs(src, filt=None):
+    def decode_tuple(val):
+        return tuple(ast.literal_eval('[' + val[1:-1] + ']'))
+    def decode_dict(val):
+        val, idx, ret = val[1:-1], 0, {}
+        while 1:
+            m = DICT_ENTRY.match(val, idx)
+            if not m: break
+            idx = m.end()
+            rk, rv = m.group(1, 2)
+            k = decode_tuple(rk) if rk[0] == '(' else ast.literal_eval(rk)
+            v = decode_tuple(rv) if rv[0] == '(' else ast.literal_eval(rv)
+            ret[k] = v
+            m = COMMA.match(val, idx)
+            if not m: break
+            idx = m.end()
+        if idx != len(val):
+            raise RuntimeError('Invalid dictionary literal %r?!' % (val,))
+        return ret
     for line in src:
         m = LOGLINE.match(line)
         if not m: continue
@@ -985,15 +1029,14 @@ def read_logs(src, filt=None):
                     val = CONSTANTS[val]
                 elif INTEGER.match(val):
                     val = int(val)
-                elif val[0] in '\'"':
+                elif FLOAT.match(val):
+                    val = float(val)
+                elif val[0] in '\'"' or val[:2] in ('u"', "u'"):
                     val = ast.literal_eval(val)
                 elif val[0] == '(':
-                    if EMPTY_TUPLE.match(val):
-                        val = ()
-                    elif TRAILING_COMMA.search(val):
-                        val = ast.literal_eval(val)
-                    else:
-                        val = ast.literal_eval('(' + val[1:-1] + ',)')
+                    val = decode_tuple(val)
+                elif val[0] == '{':
+                    val = decode_dict(val)
                 values[name] = val
             if idx != len(args): continue
         yield (ts, tag, values)
