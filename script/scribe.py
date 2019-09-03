@@ -24,6 +24,7 @@ PING_DELAY = 3600 # 1 h
 MAX_PINGS = 3
 
 def parse_version(s):
+    if isinstance(s, float): s = str(s)
     if s.startswith('v'): s = s[1:]
     try:
         return tuple(map(int, s.split('.')))
