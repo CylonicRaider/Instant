@@ -863,10 +863,8 @@ class Logger:
     An instance of this class pre-configured to write to standard output is
     provided as the module-level DEFAULT_LOGGER variable.
     """
-    def __init__(self, stream):
-        "Instance initializer; see the class docstring for details."
-        self.stream = stream
-    def format(self, obj):
+    @classmethod
+    def format(cls, obj):
         """
         Pretty-print the given object in a way suitable for inclusion into a
         machine-readable log line.
@@ -903,12 +901,15 @@ class Logger:
         Python-like object literals.
         """
         if isinstance(obj, dict):
-            return '{' + ','.join(self.format(k) + ':' + self.format(v)
+            return '{' + ','.join(cls.format(k) + ':' + cls.format(v)
                                   for k, v in obj.items()) + '}'
         elif isinstance(obj, (tuple, list)):
-            return '(' + ','.join(map(self.format, obj)) + ')'
+            return '(' + ','.join(map(cls.format, obj)) + ')'
         else:
             return repr(obj)
+    def __init__(self, stream):
+        "Instance initializer; see the class docstring for details."
+        self.stream = stream
     def log(self, msg):
         r"""
         Format a logging line containing the given message and write it to
