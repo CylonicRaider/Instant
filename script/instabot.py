@@ -851,9 +851,9 @@ class Logger:
     which is followed by log_exception(). A machine-readable log line consists
     of the following items:
 
-        [<TIMESTAMP>] <EVENT> <key-1>=<value-1> <key-2>=<value-2> ...
+        [<TIMESTAMP>] <TAG> <key-1>=<value-1> <key-2>=<value-2> ...
 
-    <TIMESTAMP> is provided by log(); <EVENT> is a (conventionally uppercase)
+    <TIMESTAMP> is provided by log(); <TAG> is a (conventionally uppercase)
     word classifying the log line; any amount of key-value pairs (where keys
     should use lowercase names and separate words using dashes) may follow.
     Values should be alike to Python object literals or bare words (see the
@@ -930,11 +930,11 @@ class Logger:
         self.stream.write(m.encode('ascii',
                                    'backslashreplace').decode('ascii'))
         self.stream.flush()
-    def log_exception(self, name, exc, trailer=None):
+    def log_exception(self, tag, exc, trailer=None):
         """
         Log a compact message informing about the given exception.
 
-        name is an arbitrary keyword to prepend to the exception information;
+        tag is an arbitrary keyword to prepend to the exception information;
         exc is the exception object (for machine readability, it is subjected
         to a double repr() since many exceptions provide custom
         representations that are hard to read back consistently); trailer is
@@ -962,10 +962,10 @@ class Logger:
         # custom representations, which are not necessarily machine-readable,
         # and str() is hardly appropriate.
         if frame == cause:
-            msg = '%s reason=%r last-frame=%s' % (name, repr(exc),
+            msg = '%s reason=%r last-frame=%s' % (tag, repr(exc),
                                                   self.format(frame))
         else:
-            msg = '%s reason=%r last-frame=%s cause-frame=%s' % (name,
+            msg = '%s reason=%r last-frame=%s cause-frame=%s' % (tag,
                 repr(exc), self.format(frame), self.format(cause))
         if trailer is not None: msg += ' ' + trailer
         self.log(msg)
@@ -991,6 +991,16 @@ FLOAT = re.compile(r'^[+-]?[0-9]+(\.[0-9]+)?([eE][+-]?[0-9]+)?$')
 CONSTANTS = {'None': None, 'True': True, 'False': False,
              'Ellipsis': Ellipsis}
 def read_logs(src, filt=None):
+    """
+    Parse machine-readable logs taken from src.
+
+    src is an iterable producing lines (e.g. a file object); filt is invoked
+    on the tag of every line before parsing its key-value section to allow
+    quickly rejecting irrelevant lines (a filt of None admits all lines).
+
+    See the Logger class for aid with producing machine-readable logs, as well
+    as for documentation on how they are formatted.
+    """
     def decode_tuple(val):
         return tuple(ast.literal_eval('[' + val[1:-1] + ']'))
     def decode_dict(val):
