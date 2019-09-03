@@ -910,7 +910,7 @@ class Logger:
         else:
             return repr(obj)
     def log(self, msg):
-        """
+        r"""
         Format a logging line containing the given message and write it to
         the underlying stream.
 
@@ -977,6 +977,7 @@ WHITESPACE = re.compile(r'\s+')
 SCALAR = re.compile(r'[^"\'()[\]{},:\s]+|u?"(?:[^"\\]|\\.)*"|'
                     r'u?\'(?:[^\'\\]|\\.)*\'')
 COMMA = re.compile(r'\s*,\s*')
+TUPLE_ENTRY = re.compile(r'(%s)\s*(,)\s*' % SCALAR.pattern) # for colorlogs.py
 TUPLE = re.compile(r'\(\s*(?:(?:%s)%s)*(?:(?:%s)\s*)?\)' %
                    (SCALAR.pattern, COMMA.pattern, SCALAR.pattern))
 DICT_ENTRY = re.compile(r'(%s|%s)\s*:\s*(%s|%s)' %

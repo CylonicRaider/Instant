@@ -83,15 +83,17 @@ def highlight(line, filt=None):
 def highlight_stream(it, newlines=False, filt=None):
     if not newlines:
         for line in it:
-            yield highlight(line, filt)
+            hl = highlight(line, filt)
+            if hl is not None: yield hl
     else:
         for line in it:
-            yield highlight(line.rstrip('\n'), filt) + '\n'
+            hl = highlight(line.rstrip('\n'), filt)
+            if hl is not None: yield hl + '\n'
 
 def main():
     p = instabot.OptionParser(sys.argv[0])
     p.help_action(desc='A syntax highlighter for Scribe logs.')
-    p.option('ignore', short='i', default=[], accum=True,
+    p.option('exclude', short='x', default=[], accum=True,
              help='Filter out lines of this type (may be repeated)')
     p.option('out', short='o',
              help='File to write output to (- is standard output and '
@@ -104,8 +106,8 @@ def main():
                help='File to read from (- is standard input and '
                    'the default)')
     p.parse(sys.argv[1:])
-    ignore, inpath, outpath, outmode = p.get('ignore', 'in', 'out', 'outmode')
-    linebuf = p.get('line-buffered')
+    ignore, inpath, outpath = p.get('exclude', 'in', 'out')
+    outmode, linebuf = p.get('outmode', 'line-buffered')
     try:
         filt = (lambda t: t not in ignore) if ignore else None
         of = instabot.OptionParser.open_file
