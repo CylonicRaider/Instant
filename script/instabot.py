@@ -1054,7 +1054,35 @@ def read_logs(src, filt=None):
         yield (ts, tag, values)
 
 class ArgScanner:
+    """
+    ArgScanner(args, posmin=None, posmax=None) -> new instance
+
+    A simple command-line argument scanner.
+
+    args is a sequence of "raw" arguments (without the program name); posmin
+    and posmax indicate, respectively, the minimum and maximum amount of
+    positional arguments this scanner will emit.
+
+    This class is intended to be used via the iterator protocol; iterating
+    over an instance produces a stream of 2-tuples; in each of the tuples, the
+    first entry is one of the strings "opt" or "arg", indicating whether the
+    second value is an option or a positional argument. In the latter case,
+    the second value is either a single letter (indicating a short option) or
+    a long option preceded by a double dash ("--"). After an option has been
+    received, the argument() method can be invoked to pull an argument.
+
+    If there have been fewer positional arguments processed than posmin (and
+    posmin is not None), an error is raised when all "raw" arguments have been
+    consumed; if there have been emitted posmax arguments and another is about
+    to be, an error is raised.
+
+    Aside from the iterator protocol and argument(), this class also provides
+    some convenience methods, mostly for raising errors.
+    """
+    OPT = 'opt'
+    ARG = 'arg'
     def __init__(self, args, posmin=None, posmax=None):
+        "Instance initializer; see the class docstring for details."
         self.args = args
         self.posmin = posmin
         self.posmax = posmax
@@ -1063,19 +1091,32 @@ class ArgScanner:
         self.last_option = None
         self.next_arg = None
     def __iter__(self):
+        "Iterator protocol support; see the class docstring for details."
         return self
     def __next__(self):
+        "Iterator protocol support; see the class docstring for details."
         if self.iter is None: self.iter = self._pairs()
         return next(self.iter)
     def next(self):
+        "Alias for __next__()."
+        if self.iter is None: self.iter = self._pairs()
         return next(self.iter)
     def close(self):
+        """
+        Stop accepting arguments.
+
+        If there is any pending option or argument, this raises an error;
+        otherwise, nothing happens.
+        """
         try:
             next(self)
             self.toomany()
         except StopIteration:
             pass
     def _pairs(self):
+        """
+        Internal: Generator method backing the iterator protocol.
+        """
         self.at_arguments = False
         self.last_option = None
         self.next_arg = None
@@ -1085,7 +1126,9 @@ class ArgScanner:
                 positional += 1
                 if self.posmax is not None and positional > self.posmax:
                     self.toomany()
-                yield ('arg', arg)
+                self.last_option = None
+                self.next_arg = None
+                yield (self.ARG, arg)
             elif arg == '--':
                 self.at_arguments = True
             elif not arg.startswith('--'):
@@ -1093,18 +1136,21 @@ class ArgScanner:
                     self.last_option = '-' + ch
                     if arg[n:]:
                         self.next_arg = arg[n:]
-                        yield ('opt', ch)
+                        yield (self.OPT, ch)
                         if self.next_arg is None: break
                     else:
                         self.next_arg = None
-                        yield ('opt', ch)
+                        yield (self.OPT, ch)
             else:
                 self.last_option = arg
                 self.next_arg = None
-                yield ('opt', arg)
+                yield (self.OPT, arg)
         if self.posmin is not None and positional < self.posmin:
             self.toofew()
     def argument(self, type=None):
+        """
+        Retrieve an argument, optionally converting it to the given type.
+        """
         try:
             if self.next_arg is not None:
                 arg = self.next_arg
@@ -1118,19 +1164,41 @@ class ArgScanner:
         except ValueError:
             self._die_opt('Bad argument', tail=': %r' % (arg,))
     def die(self, msg=None):
+        """
+        Raise a SystemExit exception with the given (optional) message.
+        """
         if msg is None: raise SystemExit
         raise SystemExit('ERROR: ' + msg)
     def _die_opt(self, msg, tail=None):
+        """
+        Internal: Helper method for bailing out of argument().
+
+        This constructs a message from msg, the option being processed (if
+        any), and tail (if not omitted), and passes that on to die().
+        """
         if self.last_option is not None:
             msg += ' for %r' % (self.last_option,)
         if tail is not None:
             msg += tail
         self.die(msg)
     def toomany(self):
+        """
+        Convenience: Abort with a "Too many arguments" message.
+        """
         self.die('Too many arguments')
     def toofew(self):
+        """
+        Convenience: Abort with a "Too few arguments" message.
+        """
         self.die('Too few arguments')
     def unknown(self):
+        """
+        Convenience: Abort with a message indicating that the current option
+        is not recognized.
+
+        If there is no option being processed, this raises a RuntimeError
+        instead of the SystemExit from die().
+        """
         if self.last_option is None:
             raise RuntimeError('No option to be unknown')
         self.die('Unknown option ' + repr(self.last_option))
