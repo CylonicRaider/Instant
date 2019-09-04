@@ -1053,17 +1053,19 @@ def read_logs(src, filt=None):
             if idx != len(args): continue
         yield (ts, tag, values)
 
-class ArgParser:
-    def __init__(self, args):
+class ArgScanner:
+    def __init__(self, args, posmin=None, posmax=None):
         self.args = args
+        self.posmin = posmin
+        self.posmax = posmax
         self.iter = None
         self.at_arguments = False
         self.last_option = None
         self.next_arg = None
     def __iter__(self):
-        if self.iter is None: self.iter = iter(self.args)
         return self
     def __next__(self):
+        if self.iter is None: self.iter = self._pairs()
         return next(self.iter)
     def next(self):
         return next(self.iter)
@@ -1073,6 +1075,35 @@ class ArgParser:
             self.toomany()
         except StopIteration:
             pass
+    def _pairs(self):
+        self.at_arguments = False
+        self.last_option = None
+        self.next_arg = None
+        positional = 0
+        for arg in self.args:
+            if self.at_arguments or not arg.startswith('-') or arg == '-':
+                positional += 1
+                if self.posmax is not None and positional > self.posmax:
+                    self.toomany()
+                yield ('arg', arg)
+            elif arg == '--':
+                self.at_arguments = True
+            elif not arg.startswith('--'):
+                for n, ch in enumerate(arg[1:], 2):
+                    self.last_option = '-' + ch
+                    if arg[n:]:
+                        self.next_arg = arg[n:]
+                        yield ('opt', ch)
+                        if self.next_arg is None: break
+                    else:
+                        self.next_arg = None
+                        yield ('opt', ch)
+            else:
+                self.last_option = arg
+                self.next_arg = None
+                yield ('opt', arg)
+        if self.posmin is not None and positional < self.posmin:
+            self.toofew()
     def argument(self, type=None):
         try:
             if self.next_arg is not None:
@@ -1103,34 +1134,9 @@ class ArgParser:
         if self.last_option is None:
             raise RuntimeError('No option to be unknown')
         self.die('Unknown option ' + repr(self.last_option))
-    def pairs(self, posmin=None, posmax=None):
-        positional = 0
-        for arg in self:
-            if self.at_arguments or not arg.startswith('-') or arg == '-':
-                positional += 1
-                if posmax is not None and positional > posmax:
-                    self.toomany()
-                yield 'arg', arg
-            elif arg == '--':
-                self.at_arguments = True
-            elif not arg.startswith('--'):
-                for n, ch in enumerate(arg[1:], 2):
-                    self.last_option = '-' + ch
-                    if arg[n:]:
-                        self.next_arg = arg[n:]
-                        yield 'opt', ch
-                        if self.next_arg is None: break
-                    else:
-                        self.next_arg = None
-                        yield 'opt', ch
-            else:
-                self.last_option = arg
-                self.next_arg = None
-                yield 'opt', arg
-        if posmin is not None and positional < posmin:
-            self.toofew()
 
 class OptionParser:
+    Scanner = ArgScanner
     @staticmethod
     def open_file(path, mode, **kwds):
         # We use io.open() since it allows using file descriptors in both Py2K
@@ -1291,8 +1297,8 @@ class OptionParser:
         for item in list(self.options.values()) + self.arguments:
             if 'default' not in item: continue
             self.values.setdefault(item['varname'], item['default'])
-        parser = ArgParser(args)
-        for tp, arg in parser.pairs():
+        parser = self.Scanner(args)
+        for tp, arg in parser:
             if tp == 'arg':
                 try:
                     desc = self.arguments[self.arg_index]
