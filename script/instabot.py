@@ -1071,10 +1071,33 @@ class ArgScanner:
     a long option preceded by a double dash ("--"). After an option has been
     received, the argument() method can be invoked to pull an argument.
 
-    If there have been fewer positional arguments processed than posmin (and
-    posmin is not None), an error is raised when all "raw" arguments have been
-    consumed; if there have been emitted posmax arguments and another is about
-    to be, an error is raised.
+    The "raw" arguments are interpreted as follows:
+    - A double dash ("--") engages arguments-only mode (without emitting
+      anything), where every following raw argument (including another double
+      dash) is interpreted as a positional argument.
+    - Otherwise, a raw argument starting with a double dash is interpreted as
+      a long option. If the raw argument contains an equals sign ("="), the
+      name of the option extends up to the equals sign (exclusively), and an
+      "option argument" follows after the equals sign, which must be consumed
+      via argument() (or ArgScanner raises an error, deeming the command line
+      invalid).
+    - Otherwise, a raw argument starting with a dash ("-"), but not consisting
+      solely of a dash, is interpreted as a group of short options. Each
+      character following the dash is emitted as a single short option; if
+      argument() is called after a short option has been emitted and there are
+      characters in the raw argument after the character being processed,
+      those are interpreted as the option argument instead.
+    - Otherwise, the raw argument is interpreted as a positional argument.
+    - If argument() is called without an option argument as described above
+      being available, the next raw argument is consumed and not interpreted
+      in any special way. E.g., if the option --foo takes an argument, the
+      command line "--foo -- --bar" does *not* result in --bar being
+      interpreted as a positional argument.
+
+    If, when all "raw" arguments have been consumed, there have been fewer
+    positional arguments processed than posmin (and posmin is not None), an
+    error is raised; if posmax arguments have been emitted and another is
+    about to be, an error is raised.
 
     Aside from the iterator protocol and argument(), this class also provides
     some convenience methods, mostly for raising errors.
@@ -1087,6 +1110,7 @@ class ArgScanner:
         self.posmin = posmin
         self.posmax = posmax
         self.iter = None
+        self.argiter = None
         self.at_arguments = False
         self.last_option = None
         self.next_arg = None
@@ -1112,16 +1136,17 @@ class ArgScanner:
             next(self)
             self.toomany()
         except StopIteration:
-            pass
+            self.iter = None
     def _pairs(self):
         """
-        Internal: Generator method backing the iterator protocol.
+        Internal: Generator method backing the iterator protocol support.
         """
+        self.argiter = iter(self.args)
         self.at_arguments = False
         self.last_option = None
         self.next_arg = None
         positional = 0
-        for arg in self.args:
+        for arg in self.argiter:
             if self.at_arguments or not arg.startswith('-') or arg == '-':
                 positional += 1
                 if self.posmax is not None and positional > self.posmax:
@@ -1142,21 +1167,34 @@ class ArgScanner:
                         self.next_arg = None
                         yield (self.OPT, ch)
             else:
-                self.last_option = arg
-                self.next_arg = None
-                yield (self.OPT, arg)
+                idx = arg.find('=')
+                if idx == -1:
+                    self.last_option = arg
+                    self.next_arg = None
+                    yield (self.OPT, arg)
+                else:
+                    self.last_option = arg[:idx]
+                    self.next_arg = arg[idx + 1:]
+                    yield (self.OPT, self.last_option)
+                    if self.next_arg is not None:
+                        self._die_opt('Orphaned argument',
+                                      tail=': %r' % (self.next_arg,))
         if self.posmin is not None and positional < self.posmin:
             self.toofew()
     def argument(self, type=None):
         """
         Retrieve an argument, optionally converting it to the given type.
+
+        Note that this method is intended to be used while an iteration over
+        this ArgScanner is ongoing but currently suspended (e.g. inside a
+        "for" loop iterating over this ArgScanner).
         """
         try:
             if self.next_arg is not None:
                 arg = self.next_arg
                 self.next_arg = None
             else:
-                arg = next(self)
+                arg = next(self.argiter)
             if type is not None: arg = type(arg)
             return arg
         except StopIteration:
@@ -1171,7 +1209,7 @@ class ArgScanner:
         raise SystemExit('ERROR: ' + msg)
     def _die_opt(self, msg, tail=None):
         """
-        Internal: Helper method for bailing out of argument().
+        Internal: Helper method for bailing out of processing an option.
 
         This constructs a message from msg, the option being processed (if
         any), and tail (if not omitted), and passes that on to die().
