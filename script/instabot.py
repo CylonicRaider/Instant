@@ -1383,7 +1383,7 @@ class OptionParser:
         if exit is not None:
             sys.exit(exit)
         return help
-    def parse(self, args):
+    def parse(self, args=None):
         def process(opt, value=None):
             if opt.get('action'):
                 opt['action']()
@@ -1400,6 +1400,7 @@ class OptionParser:
                 sv[varname] = opt['accum'](sv[varname], value)
             else:
                 sv[varname] = value
+        if args is None: args = sys.argv[1:]
         for item in list(self.options.values()) + self.arguments:
             if 'default' not in item: continue
             self.values.setdefault(item['varname'], item['default'])
