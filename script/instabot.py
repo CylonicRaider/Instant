@@ -1241,23 +1241,31 @@ class ArgScanner:
             raise RuntimeError('No option to be unknown')
         self.die('Unknown option ' + repr(self.last_option))
 
+def open_file(path, mode, **kwds):
+    """
+    Helper function for opening files from command-line arguments.
+
+    If path is None or the string "-", a file object wrapping standard input
+    or output is opened (depending on the first character of mode), which does
+    not close the underlying file descriptor when closed; aside from the
+    exception above, all arguments are forwarded to the io.open() function.
+    """
+    # We use io.open() since it allows using file descriptors in both Py2K
+    # and Py3K.
+    if path is None or path == '-':
+        kwds['closefd'] = False
+        if mode[:1] == 'r':
+            return io.open(sys.stdin.fileno(), mode, **kwds)
+        elif mode[:1] in ('w', 'a'):
+            return io.open(sys.stdout.fileno(), mode, **kwds)
+        else:
+            raise ValueError('Unrecognized open_file() mode: %r' %
+                             (mode,))
+    else:
+        return io.open(path, mode, **kwds)
+
 class OptionParser:
     Scanner = ArgScanner
-    @staticmethod
-    def open_file(path, mode, **kwds):
-        # We use io.open() since it allows using file descriptors in both Py2K
-        # and Py3K.
-        if path is None or path == '-':
-            kwds['closefd'] = False
-            if mode[:1] == 'r':
-                return io.open(sys.stdin.fileno(), mode, **kwds)
-            elif mode[:1] in ('w', 'a'):
-                return io.open(sys.stdout.fileno(), mode, **kwds)
-            else:
-                raise ValueError('Unrecognized open_file() mode: %r' %
-                                 (mode,))
-        else:
-            return io.open(path, mode, **kwds)
     def __init__(self, progname=None):
         self.progname = progname
         self.description = None

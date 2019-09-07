@@ -135,7 +135,7 @@ def main():
     # Format messages
     fmt = LogFormatter(detail=p.get('detail'), mono=p.get('mono'))
     output, outmode = p.get('output', 'outmode')
-    with instabot.OptionParser.open_file(output, outmode) as outfile:
+    with instabot.open_file(output, outmode) as outfile:
         for s in fmt.format_logs_stream(messages, uuids):
             outfile.write(s + '\n')
 

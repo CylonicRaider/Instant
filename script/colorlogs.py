@@ -146,7 +146,7 @@ def main():
     outmode, linebuf = p.get('outmode', 'line-buffered')
     try:
         filt = (lambda t: t not in ignore) if ignore else None
-        of = instabot.OptionParser.open_file
+        of = instabot.open_file
         with of(inpath, 'r') as fi, of(outpath, outmode) as fo:
             for l in highlight_stream(fi, True, filt):
                 fo.write(l)
