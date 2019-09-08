@@ -1265,8 +1265,23 @@ def open_file(path, mode, **kwds):
         return io.open(path, mode, **kwds)
 
 class OptionParser:
+    """
+    OptionParser(progname=None) -> new instance
+
+    A declarative command-line argument parser.
+
+    progname is the program name to be used in usage and help displays; if not
+    given, "..." is used.
+
+    After an instance is create, options and arguments can be configured via
+    the option(), flag(), argument(), etc. methods (see in particular
+    help_action() for adding a --help option); after that, parse() can be
+    invoked to assimilate arguments, and finally get() to retrieve the
+    extracted values.
+    """
     Scanner = ArgScanner
     def __init__(self, progname=None):
+        "Instance initializer; see the class docstring for details."
         self.progname = progname
         self.description = None
         self.options = collections.OrderedDict()
@@ -1275,9 +1290,36 @@ class OptionParser:
         self.values = {}
         self.arg_index = 0
     def _add_option(self, opt, kwds):
+        "Internal: Commit the given option into internal indexes."
         self.options[opt['option']] = opt
         if opt.get('short'): self.short_options[opt['short']] = opt
     def _set_accum(self, opt, kwds, default=True):
+        """
+        Internal: Configure the given option's value storing.
+
+        opt is a dictionary describing the option (in an internal format);
+        kwds contains keyword arguments given to the function defining the
+        option; default tells whether a default value should be transferred
+        from kwds to opt.
+
+        The following entries of kwds are interpreted:
+        default: If given (and the default argument of this function is true),
+                 this configured the default value of the option.
+        accum  : If this is a callable, it is an "accumulator" function that
+                 is invoked for every appearance of the option on the command
+                 line, given two arguments (the current state of the
+                 accumulator, initialized as the option's default value (which
+                 must be provided in this case, or parsing fails), and the
+                 converted value of the latest incarnation of the option), and
+                 returns the new value for the option. Otherwise, if this is a
+                 truthy value, a default accumulator function is substituted
+                 depending on the option's default value: If the default is
+                 absent or a Python list, a function that appends to the given
+                 list is used; otherwise, a function that invokes the "+="
+                 operator on the accumulator is used. Finally, if accum is
+                 falsy or absent, no accumulation is done and each appearance
+                 of the option overwrites any values stored by previous ones.
+        """
         def accum_list(list, item):
             list.append(item)
             return list
@@ -1299,6 +1341,13 @@ class OptionParser:
             else:
                 opt['accum'] = accum_add
     def _make_desc(self, opt, name, placeholder):
+        """
+        Internal: Generate the given option's usage and help information.
+
+        opt is a dictionary describing the option (in an internal format);
+        name is the name of the option; placeholder is a placeholder for the
+        argument the option takes (if any).
+        """
         if name is None:
             if placeholder is None:
                 res = '...'
@@ -1320,6 +1369,27 @@ class OptionParser:
             res = '[%s]' % res
         opt['desc'] = res
     def option(self, name, default=None, type=None, **kwds):
+        """
+        Declare an option taking an argument.
+
+        The following arguments may be passed (see the function signature for
+        which are positional and which are keyword-only):
+        name       : The name of the option (without the leading "--").
+        short      : A single letter (or character) naming a short equivalent
+                     for this option.
+        help       : A description of the option for the help listing.
+        varname    : At which key to store the converted argument; defaults to
+                     name.
+        default    : The default value for the argument (note that this does
+                     *not* undergo conversion via type).
+        type       : A callable that takes a string and converts it to some
+                     desired type; defaults to str().
+        placeholder: A string to represent the argument in usage listings;
+                     defaults to the __name__ attribute of type enclosed in
+                     less-then/greater-than signs.
+        As default subsequent appearances of the option override earlier ones;
+        see _set_accum() for means of doing otherwise.
+        """
         if type is None: type = str
         try:
             placeholder = kwds['placeholder']
@@ -1332,6 +1402,25 @@ class OptionParser:
         self._make_desc(opt, name, placeholder)
         self._add_option(opt, kwds)
     def flag_ex(self, name, value=True, varname=None, **kwds):
+        """
+        Declare an option taking no argument.
+
+        The following arguments may be passed:
+        name   : The name of the flag (without the leading "--").
+        short  : A single letter (or character) naming a short equivalent for
+                 this flag.
+        help   : A description of the flag for the help listing.
+        value  : The value to store when the flag is specified.
+        varname: At which key to store the value True if the flag is
+                 specified; defaults to name.
+        default: The default value to use when the flag is not specified. If
+                 omitted, nothing is stored when the flag does not appear on
+                 the command line; this allows letting a flag set a special
+                 value for another option without messing up its default
+                 value.
+        As default subsequent appearances of the flag override earlier ones;
+        see _set_accum() for means of doing otherwise.
+        """
         opt = {'option': name, 'varname': varname or name, 'value': value,
             'omissible': True, 'help': kwds.get('help'),
             'short': kwds.get('short')}
@@ -1339,13 +1428,51 @@ class OptionParser:
         self._make_desc(opt, name, None)
         self._add_option(opt, kwds)
     def flag(self, name, **kwds):
+        """
+        Declare an option taking no argument.
+
+        This is a convenience wrapper around flag_ex() that (always) specifies
+        default=False; see flag_ex() for details.
+        """
         self.flag_ex(name, default=False, **kwds)
     def action(self, name, function, **kwds):
+        """
+        Declare an action option.
+
+        Differently to the other options, this one executes the given function
+        whenever it is encountered on the command line; see help_action()
+        for an example. The following arguments can be passed:
+        name    : The name of the flag (without the leading "--").
+        short   : A single letter (or character) naming a short equivalent for
+                  this flag.
+        help    : A description of the flag for the help listing.
+        function: A callable to execute when the option is encountered. Takes
+                  no arguments and the return value is ignored.
+        """
         opt = {'option': name, 'omissible': True, 'action': function,
             'help': kwds.get('help'), 'short': kwds.get('short')}
         self._make_desc(opt, name, None)
         self._add_option(opt, kwds)
     def argument(self, name=None, type=None, **kwds):
+        """
+        Declare a positional argument.
+
+        The following arguments can be passed:
+        name       : The name of the argument (used to store values and to
+                     construct the default placeholder).
+        help       : A description of the argument for the help listing.
+        default    : The default value to use if the argument is not
+                     specified. If no default is specified and the argument
+                     is not passed, the parser aborts.
+        type       : A callable that takes a string and converts it to some
+                     desired type; defaults to str().
+        placeholder: A string to represent the argument in usage listings;
+                     defaults to the name parameter of type enclosed in
+                     less-then/greater-than signs.
+        As default, exactly one value is assigned to the argument; if the
+        argument is configured to be accumulating (see _set_accum()), it
+        consumes all positional arguments remaining when it is its turn.
+        """
         if type is None: type = str
         placeholder = kwds.get('placeholder', '<%s>' % name)
         arg = {'varname': name, 'convert': type, 'help': kwds.get('help')}
@@ -1353,9 +1480,24 @@ class OptionParser:
         self._make_desc(arg, None, placeholder)
         self.arguments.append(arg)
     def help_action(self, name='help', help='Display help', desc=Ellipsis):
+        """
+        Declare a option providing a help listing.
+
+        name is the name of the option; help is the help entry for the help
+        option itself; desc, if not omitted, allows defining the "description"
+        attribute of the parser, which is printed as part of the help listing.
+        """
         if desc is not Ellipsis: self.description = desc
         self.action(name, lambda: self.help(0), help=help)
     def usage(self, exit=None, write=True):
+        """
+        Format a usage message, optionally print it, and optionally exit.
+
+        If exit is not None, it is a status code to exit with (after writing,
+        if enabled); if write is True, the usage message is written to
+        standard error. If this method returns, the return value is the
+        usage text.
+        """
         usage = ' '.join(['USAGE:', self.progname or '...'] +
             [opt['desc'] for opt in self.options.values()] +
             [arg['desc'] for arg in self.arguments])
@@ -1366,6 +1508,14 @@ class OptionParser:
             sys.exit(exit)
         return usage
     def help(self, exit=None, write=True):
+        """
+        Format the help listing, optionally print it, and optionally exit.
+
+        If exit is not None, it is a status code to exit with (after writing,
+        if enabled); if write is True, the help listing is written to standard
+        error. If this method returns, the return value is the full text of
+        the help listing.
+        """
         help = [self.usage(write=False)]
         if self.description is not None: help.append(self.description)
         names, seps, params, helps = [], [], [], []
@@ -1392,6 +1542,18 @@ class OptionParser:
             sys.exit(exit)
         return help
     def parse(self, args=None):
+        """
+        Parse the given arguments, or the program's command line.
+
+        args is the list of arguments to parse; if it is None, sys.argv[1:]
+        is used.
+
+        This initializes this instance's internal storage with the declared
+        arguments' defaults (as far as that has not happened yet), and parses
+        the given args. The parsing may raise a SystemExit exception to
+        indicate parsing errors or general program termination (e.g. after
+        printing the help listing).
+        """
         def process(opt, value=None):
             if opt.get('action'):
                 opt['action']()
@@ -1442,6 +1604,14 @@ class OptionParser:
                 continue
             parser.toofew()
     def get(self, *names, **kwds):
+        """
+        Retrieve the values of the options with the given names.
+
+        If names has only one entry, the value of the named option is returned
+        directly (without being enclosed in a singleton tuple); if the
+        keyword-only argument force_tuple is provided and a truthy value, this
+        behavior is suppressed.
+        """
         force_tuple = kwds.get('force_tuple')
         try:
             if len(names) == 1 and not force_tuple:
