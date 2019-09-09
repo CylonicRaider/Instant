@@ -1627,8 +1627,43 @@ class OptionParser:
             raise SystemExit('ERROR: Missing value for %r' % n)
 
 class CmdlineBotBuilder:
+    """
+    CmdlineBotBuilder(botcls=None, defnick=None, defurl=Ellipsis)
+        -> new instance
+
+    A command-line-based builder for Bot instances.
+
+    botcls is the bot class to instantiate; must be a subclass of Bot (or
+    anything that takes parameters compatible to the Bot constructor);
+    defaults to HookBot. defnick is the default nickname to use; if None
+    is passed (as the default is), the bot stays invisible. defurl is the
+    default URL to connect to; if not provided, a URL must be specified
+    explicitly; some specialized bots (like Scribe) pass an explicit None
+    here, allowing to be run without a URL.
+
+    The intended workflow for this class is like this:
+    1. Create an instance, providing suitable default configuration.
+    2. Invoke the make_parser() method; use the return value to configure
+       bot-specific command-line arguments.
+    3. Invoke the parse() method.
+    4. Use add() and add_args() to prepare bot constructor parameters.
+    5. Invoke this instance to invoke the bot constructor.
+
+    Cookie handling note: This configures the resulting Bot instance(s) for
+    cookie management depending on the values passed via the command line.
+    If cookie management is enabled, the CookieJar's "relaxed" attribute (for
+    relaxing the handling of Secure cookie attribute) is set to the
+    relaxed_cookies attribute of the CmdlineBotBuilder instance, which
+    defaults to the RELAXED_COOKIES class attribute, which in turn defaults
+    (for CmdlineBotBuilder) to the same-named module-level constant (as it was
+    when the module was created), whose value is (finally) taken from the
+    INSTABOT_RELAXED_COOKIES environment variable (if the variable is
+    nonempty, the constant is True, otherwise False).
+    """
+    Parser = OptionParser
     RELAXED_COOKIES = RELAXED_COOKIES
     def __init__(self, botcls=None, defnick=None, defurl=Ellipsis):
+        "Instance initializer; see the class docstring for details."
         if botcls is None: botcls = HookBot
         self.botcls = botcls
         self.defnick = defnick
@@ -1639,8 +1674,17 @@ class CmdlineBotBuilder:
         self.kwds = {}
         self.parser = None
     def make_parser(self, *args, **kwds):
+        """
+        Create and preliminarily configure the underlying OptionParser.
+
+        All arguments are passed on to the Parser class attribute, which is
+        expected to be a subclass of OptionParser (and defaults to
+        OptionParser itself), with the exception of the keyword-only desc,
+        which is forwarded to the parser's help_action() method instead.
+        Returns the parser object for additional configuration.
+        """
         desc = kwds.pop('desc', Ellipsis)
-        self.parser = OptionParser(*args, **kwds)
+        self.parser = self.Parser(*args, **kwds)
         self.parser.help_action(desc=desc)
         self.parser.option('nick', self.defnick,
                            help='Nickname to use')
@@ -1655,6 +1699,14 @@ class CmdlineBotBuilder:
         self.parser.argument('url', help='URL to connect to', **kwargs)
         return self.parser
     def parse(self, argv=None):
+        """
+        Parse the given arguments.
+
+        If argv is omitted, sys.argv[1:] is used.
+
+        This forwards to the underlying OptionParser's parse() method, and
+        configures this instance's state depending on the result.
+        """
         self.parser.parse(argv)
         c = self.parser.get('cookies')
         if c is None:
@@ -1671,14 +1723,49 @@ class CmdlineBotBuilder:
             self.cookies.load()
             self.kwds['cookies'] = self.cookies
     def add(self, *args, **kwds):
+        """
+        Store the given arguments for passing to the Bot constructor.
+
+        If this is called multiple times, new positional arguments come after
+        positional arguments specified previously, and new keyword arguments
+        override keyword arguments specified previously.
+
+        For more control, you can also mutate the "args" and "kwds" instance
+        attributes directly.
+        """
         self.args.extend(args)
         self.kwds.update(kwds)
     def add_args(self, *names):
+        """
+        Add the values of the named options to the pending Bot constructor
+        arguments.
+
+        E.g., if add_args('foo') is called, the Bot constructor will receive
+        the keyword argument foo= with the value of the option --foo (or the
+        argument <foo>).
+        """
         for n in names:
             self.kwds[n] = self.parser.get(n)
     def get_args(self, *names, **kwds):
+        """
+        Retrieve the values of the given options.
+
+        This forwards to the underlying OptionParser's get() method.
+        """
         return self.parser.get(*names, **kwds)
     def __call__(self, *args, **kwds):
+        """
+        Invoke the constructor of the underlying Bot class and return the
+        result.
+
+        Any arguments are forwarded to the Bot constructor, as if add() had
+        been called with them but the changes by it only applied to this
+        call.
+
+        The values of the "url" and "nick" options are always passed as the
+        first positional arguments, irrespective of the values of the "args"
+        attribute (any values from which come after the two named here).
+        """
         a = [self.parser.get('url'), self.parser.get('nick')]
         a.extend(self.args)
         a.extend(args)
