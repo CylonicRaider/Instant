@@ -1654,7 +1654,7 @@ class CmdlineBotBuilder:
         if self.defurl is not Ellipsis: kwargs['default'] = self.defurl
         self.parser.argument('url', help='URL to connect to', **kwargs)
         return self.parser
-    def parse(self, argv):
+    def parse(self, argv=None):
         self.parser.parse(argv)
         c = self.parser.get('cookies')
         if c is None:
