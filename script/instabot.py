@@ -588,6 +588,18 @@ class InstantClient(object):
         'data': data}, **kwds).
         """
         return self.send_seq({'type': 'broadcast', 'data': data}, **kwds)
+    def send_to(self, dest, data, **kwds):
+        """
+        Send a unicast or broadcast message with the given data.
+
+        If dest is None, the message is a broadcast, otherwise it is a unicast
+        directed to dest. Additional keyword-only arguments are forwarded to
+        send_broadcast()/send_unicast().
+        """
+        if dest is None:
+            return self.send_broadcast(data, **kwds)
+        else:
+            return self.send_unicast(dest, data, **kwds)
     def close(self, final=True):
         """
         Close the underlying WebSocket connection.
@@ -726,10 +738,7 @@ class Bot(InstantClient):
             if self.nickname is None: return
             data = {'type': 'nick', 'nick': self.nickname,
                     'uuid': self.identity['uuid']}
-            if peer is not None:
-                self.send_unicast(peer, data)
-            else:
-                self.send_broadcast(data)
+            self.send_to(peer, data)
     def send_post(self, text, parent=None, nickname=Ellipsis):
         """
         Send a chat post.
