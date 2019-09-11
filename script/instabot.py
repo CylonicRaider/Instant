@@ -401,8 +401,7 @@ class InstantClient(object):
         The default implementation reraises the exception unless the keepalive
         attribute is true.
         """
-        if not self.keepalive:
-            raise exc
+        if not self.keepalive: raise
     def on_timeout(self, exc):
         """
         Event handler method invoked when the underlying connection times out
@@ -415,7 +414,7 @@ class InstantClient(object):
         after this is called. The default implementation re-raises the
         exception unconditionally, effectively handing it off to on_error().
         """
-        raise exc
+        raise
     def on_error(self, exc):
         """
         Event handler method invoked when a general exception happens during
@@ -426,7 +425,7 @@ class InstantClient(object):
         The default implementation re-raises the exception, causing a calling
         run() to abort.
         """
-        raise exc
+        raise
     def on_close(self, final):
         """
         Event handler method invoked when the underlying connection has
@@ -699,8 +698,7 @@ class Bot(InstantClient):
 
         See the base class implementation for more details.
         """
-        if self.timeout is None:
-            raise exc
+        if self.timeout is None: raise
     def handle_identity(self, content, rawmsg):
         """
         "identity" API message handler.
