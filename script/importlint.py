@@ -6,7 +6,6 @@ A script cleaning up imports in Java source files.
 """
 
 import sys, os, re
-import functools
 
 RAW_IDENT = r'[a-zA-Z_$][a-zA-Z0-9_$]*'
 DOT_IDENT = RAW_IDENT + r'(\s*\.\s*' + RAW_IDENT + ')*'
