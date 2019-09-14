@@ -46,6 +46,16 @@ def leading_name(name):
 def trailing_name(name):
     "Extract the trailing portion of an identifier"
     return name.rpartition('.')[2]
+def join_names(a, b):
+    "Combine the two identifiers, possibly inserting a dot between them"
+    if a and b:
+        return a + '.' + b
+    elif a:
+        return a
+    elif b:
+        return b
+    else:
+        return ''
 
 def match_tokens(data, regexes):
     """
@@ -80,7 +90,7 @@ def tokenize(data):
     Partition a Java source file into a list of interesting and
     non-interesting bits along with indexes of the formers
     """
-    lineno, ret, imports, idents, package = 1, [], [], [], None
+    lineno, ret, imports, idents, package = 1, [], [], [], ''
     for ent in match_tokens(data, REGEXES):
         if isinstance(ent, str):
             ret.append(ent)
@@ -105,9 +115,17 @@ def tokenize(data):
             'package': package}
 
 def importlint(filename, warn=True, sort=False, prune=False,
-               empty_lines=False):
+               empty_lines=False, files=None, warn_files=False):
     """
-    Check a Java source file for superfluous imports and optionally sort them
+    Perform various operations on the given Java source file.
+
+    The file is always checked for superfluous imports, they are optionally
+    warned about, optionally pruned, the remaining imports are optionally
+    sorted, and double blank lines resulting from the pruning step are
+    optionally coalesced. If files is not None, it is taken to be be a
+    mapping from class names to file names and the class represented by the
+    given file is recorded into it. If warn_files is true, this will complain
+    if multiple source files appear to represent the same class.
     """
     def sortkey(ent):
         "Sorting key for imports"
@@ -128,7 +146,17 @@ def importlint(filename, warn=True, sort=False, prune=False,
                 redundant.add(n[1])
         excess = imported.difference(used)
         remove = excess.union(trailing_name(n) for n in redundant)
-        # Reomove excess ones.
+        # Enter data into files and deps.
+        if files is not None:
+            classname = join_names(package,
+                                   leading_name(os.path.basename(filename)))
+            if classname in files and warn_files:
+                sys.stderr.write('%s: warning: another file declares the '
+                    'same class\n'
+                    '%s: note: previously declared here\n' %
+                    (filename, files[classname]))
+            files[classname] = filename
+        # Reomove excess imports.
         if prune:
             seen = set()
             for n, ent in enumerate(imports):
@@ -142,7 +170,7 @@ def importlint(filename, warn=True, sort=False, prune=False,
                 sys.stderr.write('%s: note: removed superfluous imports\n' %
                                  filename)
                 writeback = True
-        # Sort them.
+        # Sort the remaining imports.
         if sort:
             oi = list(imports)
             if None in imports:
@@ -156,7 +184,7 @@ def importlint(filename, warn=True, sort=False, prune=False,
             if imports != oi:
                 sys.stderr.write('%s: note: rearranged imports\n' % filename)
                 writeback = True
-        # Overwrite file.
+        # Overwrite the file.
         if writeback:
             f.seek(0)
             nlstate, do_nlprune = 0, False
