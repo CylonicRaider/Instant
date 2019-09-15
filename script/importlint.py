@@ -115,7 +115,7 @@ def tokenize(data):
             'package': package}
 
 def importlint(filename, warn=True, sort=False, prune=False,
-               empty_lines=False, files=None, warn_files=False):
+               empty_lines=False, files=None, deps=None, warn_files=False):
     """
     Perform various operations on the given Java source file.
 
@@ -123,9 +123,14 @@ def importlint(filename, warn=True, sort=False, prune=False,
     warned about, optionally pruned, the remaining imports are optionally
     sorted, and double blank lines resulting from the pruning step are
     optionally coalesced. If files is not None, it is taken to be be a
-    mapping from class names to file names and the class represented by the
-    given file is recorded into it. If warn_files is true, this will complain
-    if multiple source files appear to represent the same class.
+    mapping from class names to file names and the public class defined by the
+    given file is recorded into it. If deps is not None, it is taken to be a
+    mapping from class names to sets of class names, and the entry
+    corresponding to the public class defined by the given file is populated
+    by any classes the file *might potentially* refer to (due to the
+    superficial parsing performed by this tool, this will be a very rough
+    over-estimate). If warn_files is true, this will complain if multiple
+    source files appear to represent the same public class.
     """
     def sortkey(ent):
         "Sorting key for imports"
@@ -136,26 +141,31 @@ def importlint(filename, warn=True, sort=False, prune=False,
         info = tokenize(f.read())
         parts, imports, idents = info[None], info['import'], info['ident']
         package = info['package']
+        classname = join_names(package,
+                               leading_name(os.path.basename(filename)))
         # Enumerate used and imported names.
         used = set(leading_name(n[1]) for n in idents)
-        imported, redundant = set(), set()
+        imported, impmap, redundant = set(), dict(), set()
         for n in imports:
             pref, sep, bn = n[1].rpartition('.')
             imported.add(bn)
+            impmap[bn] = pref
             if sep and pref in (package, 'java.lang'):
                 redundant.add(n[1])
         excess = imported.difference(used)
         remove = excess.union(trailing_name(n) for n in redundant)
+        fqused = set(n[1] for n in idents)
+        fqused.update(join_names(impmap.get(bn, package), bn) for bn in used)
         # Enter data into files and deps.
         if files is not None:
-            classname = join_names(package,
-                                   leading_name(os.path.basename(filename)))
             if classname in files and warn_files:
                 sys.stderr.write('%s: warning: another file declares the '
                     'same class\n'
                     '%s: note: previously declared here\n' %
                     (filename, files[classname]))
             files[classname] = filename
+        if deps is not None:
+            deps.setdefault(classname, set()).update(fqused)
         # Reomove excess imports.
         if prune:
             seen = set()
