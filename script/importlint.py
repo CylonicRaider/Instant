@@ -117,7 +117,7 @@ def tokenize(data):
 def importlint(filename, warn=True, sort=False, prune=False,
                empty_lines=False, files=None, deps=None, warn_files=False):
     """
-    Perform various operations on the given Java source file.
+    Perform various operations on the given Java source file
 
     The file is always checked for superfluous imports, they are optionally
     warned about, optionally pruned, the remaining imports are optionally
@@ -154,7 +154,7 @@ def importlint(filename, warn=True, sort=False, prune=False,
                 redundant.add(n[1])
         excess = imported.difference(used)
         remove = excess.union(trailing_name(n) for n in redundant)
-        fqused = set(n[1] for n in idents)
+        fqused = set(n[1] for n in idents if '.' in n[1])
         fqused.update(join_names(impmap.get(bn, package), bn) for bn in used)
         # Enter data into files and deps.
         if files is not None:
@@ -237,12 +237,88 @@ def importlint(filename, warn=True, sort=False, prune=False,
                         'of %s\n' % (filename, ent[2], impdatum[1]))
     return ret
 
+def gather_deps(files, rawdeps):
+    """
+    Aggregate the dependency information collected by importlint() and
+    optionally print it out in Make format
+    """
+    def visit_scc(cn):
+        "Helper function for strongly connected component search"
+        # We use the length of lowlinks instead of a global counter because
+        # of the scoping rules of Python 2 (which we want to remain compatible
+        # to).
+        indices[cn] = len(lowlinks)
+        lowlinks[cn] = len(lowlinks)
+        stack.append(cn)
+        stackset.add(cn)
+        # Now, look through the 'successors' of cn.
+        for d in deps.get(cn, ()):
+            if d not in indices:
+                visit_scc(d)
+                lowlinks[cn] = min(lowlinks[cn], lowlinks[d])
+            elif d in stackset:
+                lowlinks[cn] = min(lowlinks[cn], indices[d])
+        # If the current node does not refer to a predecessor on the stack,
+        # we have finished traversing a strongly connected component and can
+        # recover it from the stack.
+        if lowlinks[cn] == indices[cn]:
+            scc = set()
+            scc_groups[cn] = scc
+            while 1:
+                d = stack.pop()
+                stackset.remove(d)
+                scc.add(d)
+                rev_scc_groups[d] = cn
+                if d == cn: break
+    def visit_fd(rcn):
+        "Helper function for transitive dependency enumeration"
+        if rcn in fulldeps:
+            return
+        fdl = set(scc_groups[rcn])
+        for rd in scc_deps[rcn]:
+            if rd == rcn: continue
+            visit_fd(rd)
+            fdl.update(fulldeps[rd])
+        for cn in scc_groups[rcn]:
+            fulldeps[cn] = fdl
+    # Filter out bogus dependencies.
+    deps = {}
+    for cn, dl in rawdeps.items():
+        deps[cn] = set(d for d in dl if d in files)
+        deps[cn].add(cn)
+    # We use Tarjan's pertinent algorithm to locate the strongly connected
+    # components of the dependency graph; every node in a strongly connected
+    # component has (because of the strong connectedness) the same set of
+    # dependencies.
+    indices, lowlinks, stack, stackset = {}, {}, [], set()
+    scc_groups, rev_scc_groups = {}, {}
+    for cn in deps:
+        if cn not in indices:
+            visit_scc(cn)
+    # We contract the SCCs to single representative vertices to simplify the
+    # next step.
+    scc_deps = {}
+    for cn, dl in deps.items():
+        scc_deps.setdefault(rev_scc_groups[cn], set()).update(
+            rev_scc_groups[d] for d in deps[cn])
+    # Finally, we can traverse the resulting (acyclic) graph to collect the
+    # transitive dependencies of every node.
+    fulldeps = {}
+    for rcn in scc_deps:
+        visit_fd(rcn)
+    # Map the class names to file names.
+    filedeps = {}
+    for cn, dl in fulldeps.items():
+        filedeps[files[cn]] = set(files[d] for d in dl)
+    # Done.
+    return filedeps
+
 def main():
     """
     Main function
     """
     warn, sort, prune, empty_lines = True, False, False, False
-    report = False
+    deps, report = False, False
     in_args, filenames = False, []
     for arg in sys.argv[1:]:
         if not in_args and arg.startswith('-'):
@@ -252,9 +328,10 @@ def main():
                 sys.stderr.write('USAGE: %s [--help] %s [--report|'
                     '--report-null|--no-report] <file(s)>\n' % (sys.argv[0],
                         ' '.join('[--[no-]%s]' % x for x in ('warn', 'sort',
-                            'prune', 'empty-lines'))))
+                            'prune', 'empty-lines', 'deps'))))
                 sys.stderr.write('Test Java source files for superfluous '
-                        'imports and remove them if necessary.\nDefault is '
+                        'imports and remove them if necessary, and also '
+                        'discover dependencies among them.\nDefault is '
                         '--warn only.\n'
                     '--help       : This help.\n'
                     '--warn       : Report unnecessary imports.\n'
@@ -265,6 +342,9 @@ def main():
                     '--empty-lines: Strip double blank lines arising from '
                         'import removal to single ones (only effective if '
                         '--prune is).\n'
+                    '--deps       : Gather and output Make-style dependency '
+                        'information among (and only among) the specified '
+                        'files (conflicts with --report and --report-null).\n'
                     '--report     : Print names of modified/warned-about '
                         'files (newline-terminated).\n'
                     '--report-null: Print names of modified/warned-about '
@@ -286,6 +366,10 @@ def main():
                 empty_lines = True
             elif arg == '--no-empty-lines':
                 empty_lines = False
+            elif arg == '--deps':
+                deps = True
+            elif arg == '--no-deps':
+                deps = False
             elif arg == '--report':
                 report = True
             elif arg == '--report-null':
@@ -297,12 +381,18 @@ def main():
                 sys.exit(1)
             continue
         filenames.append(arg)
+    if deps and report:
+        sys.stderr.write('Cannot report dependencies and modified files at '
+            'the same time.\n')
+        sys.exit(1)
     checked, res = set(), True
+    filemap, depmap = {}, {}
     for f in filenames:
         if f in checked: continue
         checked.add(f)
         r = importlint(f, warn=warn, sort=sort, prune=prune,
-                       empty_lines=empty_lines)
+                       empty_lines=empty_lines, files=filemap, deps=depmap,
+                       warn_files=deps)
         if not r or r is Ellipsis:
             if report is Ellipsis:
                 sys.stdout.write(f + '\0')
@@ -312,6 +402,12 @@ def main():
                 sys.stdout.flush()
         if not r:
             res = False
+    if deps:
+        fulldeps = gather_deps(filemap, depmap)
+        for fn in sorted(fulldeps):
+            sys.stdout.write('%s:%s\n' % (fn, ''.join(' ' + dn
+                for dn in sorted(fulldeps[fn]))))
+        sys.stdout.flush()
     sys.exit(0 if res else 2)
 
 if __name__ == '__main__': main()
