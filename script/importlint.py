@@ -30,7 +30,8 @@ REGEXES = {
     'import': re.compile(r'(?m)(^[^\n\S]*)?(?<![a-zA-Z0-9_$])import\s+'
                          r'((?P<static>static)\s+)?(?P<name>%s)\s*;'
                          r'[^\n\S]*\n?' % DOT_IDENT),
-    # Character or string. (The code is supposed to be syntactically valid.)
+    # Character or string. (This will also match invalid things like 'abc' or
+    # '\u' -- the code is supposed to by syntactically valid.)
     'charstring': re.compile(r'''(?s)'([^\\']|\\.)+'|"([^\\"]|\\.)*"'''),
     # Comments.
     'linecomment': re.compile(r'(?m)//.*?$'),
