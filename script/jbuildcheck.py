@@ -10,12 +10,35 @@ import sys, os, re
 COMMENT_RE = re.compile(r'^\s*(#.*)?$')
 MAP_LINE_RE = re.compile(r'^([^\s:#]+):((?:\s*[^\s:#]+)*)\s*$')
 
-def path_matches(dirname, filename):
-    "Check whether filename is inside dirname (..-s notwithstanding)"
-    ld = len(dirname)
-    return (filename.startswith(dirname) and
-            (dirname.endswith(os.path.sep) or
-             filename[ld:ld + 1] in ('', os.path.sep)))
+class FSCache:
+    "A caching wrapper around select filesystem operations"
+
+    def __init__(self):
+        "Instance initializer"
+        self.stats = {}
+        self.listings = {}
+
+    def stat(self, path):
+        "Caching counterpart of os.stat()"
+        try:
+            return self.stats[path]
+        except KeyError:
+            st = os.stat(path)
+            self.stats[path] = st
+            return st
+
+    def listdir(self, path):
+        "Caching counterpart of os.listdir()"
+        try:
+            return self.listings[path]
+        except KeyError:
+            ls = os.listdir(path)
+            self.listings[path] = ls
+            return ls
+
+    def getmtime(self, path):
+        "Convenience wrapper around stat(path).st_mtime"
+        return self.stat(path).st_mtime
 
 def parse_map(fp):
     "Parse a dependency map as created by importlint.py"
@@ -27,6 +50,49 @@ def parse_map(fp):
         if not m: raise ValueError('Invalid input line: %r' % (line,))
         filename, rawdeps = m.group(1, 2)
         ret.setdefault(filename, set()).update(rawdeps.split())
+    return ret
+
+def path_matches(filename, dirname):
+    "Check whether filename is inside dirname (..-s notwithstanding)"
+    ld = len(dirname)
+    return (filename.startswith(dirname) and
+            (dirname.endswith(os.path.sep) or
+             filename[ld:ld + 1] in ('', os.path.sep)))
+
+def filter_paths(files, dirs):
+    "Return those elements of files that match dirs (or all if dirs is None)"
+    if dirs is None:
+        return list(files)
+    else:
+        return [f for f in files if any(path_matches(f, d) for d in dirs)]
+
+def find_classes(fs, path):
+    "Locate the class file(s) belonging to the given Java source file"
+    if not path.endswith('.java'): return ()
+    dirname = os.path.dirname(path)
+    siblings = fs.listdir(dirname)
+    pathbase = os.path.basename(path)[:-5]
+    nested_prefix = pathbase + '$'
+    return [os.path.join(dirname, p) for p in siblings
+            if p.endswith('.class') and (p[:-6] == pathbase or
+                                         p.startswith(nested_prefix))]
+
+def check_build(files, depmap):
+    "Locate those of the given files that need be rebuilt"
+    fs = FSCache()
+    ret = {}
+    for path in files:
+        if path in ret or not depmap.get(path): continue
+        classes = find_classes(fs, path)
+        if classes:
+            # If there are classes, we can check them for staleness.
+            oldest_class = min(fs.getmtime(cp) for cp in classes)
+            newest_dep = max(fs.getmtime(dp) for dp in depmap[path])
+            if newest_dep > oldest_class: ret[path] = classes
+        elif path.endswith('.java'):
+            # Otherwise (if this *is* a Java source file), there *ought* to
+            # be classes.
+            ret[path] = []
     return ret
 
 def main():
@@ -73,12 +139,16 @@ def main():
         with open(mapfile) as f:
             depmap = parse_map(f)
     # Apply the filters.
-    if not filters:
-        files = list(depmap)
-    else:
-        files = [f for f in depmap
-                 if any(path_matches(d, f) for d in filters)]
-    # The rest is NYI.
-    raise SystemExit('Error: Not yet implemented')
+    files = filter_paths(depmap, filters or None)
+    # Perform the actual build checking.
+    tobuild = check_build(files, depmap)
+    # Perform class file cleanup.
+    if cleanup:
+        for cfl in tobuild.values():
+            for cf in cfl:
+                os.unlink(cf)
+    # Report the source files to be rebuilt.
+    for sf in sorted(tobuild):
+        print (sf)
 
 if __name__ == '__main__': main()
