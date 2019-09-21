@@ -95,9 +95,23 @@ def check_build(files, depmap):
             ret[path] = []
     return ret
 
+def summarize(filelist):
+    "Bring a list of potentially redundant paths into a compact form"
+    ret, index = [], {}
+    for entry in filelist:
+        dirname, basename = os.path.split(entry)
+        prefix = os.path.join(dirname, '')
+        stem, ext = os.path.splitext(basename)
+        if (prefix, ext) in index:
+            index[prefix, ext].append(stem)
+        else:
+            index[prefix, ext] = [stem]
+            ret.append((prefix, index[prefix, ext], ext))
+    return ret
+
 def main():
     # Parse command line.
-    mapfile, cleanup, filters = None, False, []
+    mapfile, cleanup, report, filters = None, False, False, []
     try:
         it, args_only = iter(sys.argv[1:]), False
         for opt in it:
@@ -107,11 +121,13 @@ def main():
                 args_only = True
             elif opt == '--help':
                 sys.stderr.write('USAGE: %s [--help] [--[no-]cleanup] '
-                        '[--map MAPFILE] [DIR [DIR ...]]\n'
+                        '[--[no-]report] [--map MAPFILE] [DIR [DIR ...]]\n'
                     'Locate Java source files needing a recompile and print '
                         'their paths to standard output.\n'
                     '--help   : Display help.\n'
                     '--cleanup: Also delete stale class files.\n'
+                    '--report : Print a human-readable message about the '
+                        'files to be rebuilt to standard error.\n'
                     '--map    : A file describing the dependencies among '
                         'Java source files. Only files listed in the map are '
                         'inspected. Use "importlint.py --deps" to generate '
@@ -124,6 +140,10 @@ def main():
                 cleanup = True
             elif opt == '--no-cleanup':
                 cleanup = False
+            elif opt == '--report':
+                report = True
+            elif opt == '--no-report':
+                report = False
             elif opt == '--map':
                 mapfile = next(it)
             else:
@@ -142,13 +162,24 @@ def main():
     files = filter_paths(depmap, filters or None)
     # Perform the actual build checking.
     tobuild = check_build(files, depmap)
+    buildlist = sorted(tobuild)
+    # Report information for the user.
+    if report and buildlist:
+        words = []
+        for prefix, bases, suffix in summarize(buildlist):
+            if len(bases) == 1:
+                words.append(prefix + bases[0] + suffix)
+            else:
+                words.append('%s{%s}%s' % (prefix, ','.join(bases), suffix))
+        sys.stderr.write('Recompiling ' + ' '.join(words) + '...\n')
+        sys.stderr.flush()
     # Perform class file cleanup.
     if cleanup:
         for cfl in tobuild.values():
             for cf in cfl:
                 os.unlink(cf)
-    # Report the source files to be rebuilt.
-    for sf in sorted(tobuild):
+    # Generate main output.
+    for sf in buildlist:
         print (sf)
 
 if __name__ == '__main__': main()
