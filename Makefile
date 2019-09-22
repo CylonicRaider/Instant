@@ -25,8 +25,13 @@ Instant.jar: .build.jar $(LIBRARIES) $(ASSETS) $(AUTOASSETS)
 # Avoid recompiling the backend on frontend changes.
 .SECONDARY: .build.jar
 .build.jar: $(SOURCES)
+ifeq ($(strip $(MAKE_NO_PARTIAL_BUILDS)),)
+	@cd src && javac $(JAVACFLAGS) $$(../script/importlint.py --deps \
+	$(_JAVA_SOURCES) | ../script/jbuildcheck.py --cleanup --report)
+else
 	find src/net/ -name '*.class' -exec rm {} +
 	cd src && javac $(JAVACFLAGS) $(_JAVA_SOURCES)
+endif
 	cd src && jar cfe ../.build.jar Main $$(find . -name '*.class')
 
 Instant-run.jar: Instant.jar tools/amend-manifest.jar
