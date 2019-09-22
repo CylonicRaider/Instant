@@ -32,7 +32,7 @@ class FSCache:
         try:
             return self.listings[path]
         except KeyError:
-            ls = os.listdir(path)
+            ls = os.listdir(path or '.')
             self.listings[path] = ls
             return ls
 
