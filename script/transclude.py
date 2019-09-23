@@ -37,8 +37,9 @@ def parse_config(filename):
         transcludes = [(src_base, path)
                        for path in get('transclude', '').split()]
         filters = get('filter', '').split()
+        deps = filters + get('deps', '').split()
         ret[dest] = {'transcludes': transcludes, 'filters': filters,
-                     'get': get}
+                     'deps': deps, 'get': get}
     return ret
 
 def _null_config(key, default=None):
@@ -54,22 +55,22 @@ def _resolve_transcludes(transcludes, filters):
                     relpath = os.path.normpath(os.path.join(reldir, fn))
                     yield (srcbase, relpath)
 
-def transclude(dest, transcludes, filters, config=None):
+def transclude(dest, transcludes, filters, getconfig=None):
     with zipfile.ZipFile(dest, 'a', zipfile.ZIP_DEFLATED) as destfile:
         for srcdir, relpath in _resolve_transcludes(transcludes, filters):
             destfile.write(os.path.join(srcdir, relpath), relpath)
 
-def transclude_jar(dest, transcludes, filters, config=None):
+def transclude_jar(dest, transcludes, filters, getconfig=None):
     def flush(srcdir, toadd):
-        if srcdir is None: return
+        if srcdir is None or not toadd: return
         os.chdir(srcdir)
         cmdline = [jar_path, 'uf', dest] + toadd
         subprocess.check_call(cmdline)
-    if config is None: config = _null_config
-    jar_path = config('jar', 'jar') # Binks!
+    if getconfig is None: getconfig = _null_config
+    jar_path = getconfig('jar', 'jar') # Binks!
     last_srcdir, toadd = None, None
-    # We buffer all resolution results to avoid changing directory while an
-    # os.walk() is in progress.
+    # We buffer all resolution results in a tuple to avoid changing directory
+    # while an os.walk() is in progress.
     for srcdir, relpath in tuple(_resolve_transcludes(transcludes, filters)):
         if srcdir != last_srcdir:
             flush(last_srcdir, toadd)
@@ -77,9 +78,16 @@ def transclude_jar(dest, transcludes, filters, config=None):
         toadd.append(relpath)
     flush(last_srcdir, toadd)
 
+def makedeps(dest, transcludes, filters, getconfig=None):
+    items = [os.path.relpath(os.path.join(srcdir, relpath))
+        for srcdir, relpath in _resolve_transcludes(transcludes, filters)]
+    if not items: return None
+    return '%s: %s' % (os.path.relpath(dest), ' '.join(items))
+
 def main():
     # Parse command line.
-    confpath, files, jarmode, quiet = None, [], False, False
+    jarmode, quiet, confpath, depsfile = False, False, None, None
+    allfiles, files = False, []
     try:
         it, only_args = iter(sys.argv[1:]), False
         for arg in it:
@@ -88,8 +96,8 @@ def main():
                     only_args = True
                 elif arg == '--help':
                     sys.stderr.write('USAGE: %s [--help] [--[no-]jar] '
-                        '[--[no-]quiet] --config CONFFILE '
-                        'PATH1 [PATH2 [...]]\n' % sys.argv[0])
+                        '[--[no-]quiet] --config CONFFILE [--deps DEPSFILE] '
+                        '[--[no-]all] [PATH1 [PATH2 [...]]]\n' % sys.argv[0])
                     sys.stderr.write(
                         'Incorporate files matching a pattern into a ZIP (or '
                             'JAR) file.\n'
@@ -98,11 +106,13 @@ def main():
                             '(instead of using Python\'s ZIP file support).\n'
                         '--quiet : Only print error messages.\n'
                         '--config: Read configuration file at this path.\n'
+                        '--deps  : Generate dependency information for Make '
+                            'and write it into the given file.\n'
+                        '--all   : Ignore PATHn-s and process all files '
+                            'defined by configuration.\n'
                         'PATHn   : Process this file according to the '
                             'corresponding configuration section.\n')
                     raise SystemExit
-                elif arg == '--config':
-                    confpath = next(it)
                 elif arg == '--jar':
                     jarmode = True
                 elif arg == '--no-jar':
@@ -111,6 +121,14 @@ def main():
                     quiet = True
                 elif arg == '--no-quiet':
                     quiet = False
+                elif arg == '--config':
+                    confpath = next(it)
+                elif arg == '--deps':
+                    depsfile = next(it)
+                elif arg == '--all':
+                    allfiles = True
+                elif arg == '--no-all':
+                    allfiles = False
                 else:
                     raise SystemExit('ERROR: Unknown option %s' % arg)
             else:
@@ -125,6 +143,23 @@ def main():
     except Exception as exc:
         raise SystemExit('ERROR: Could not load configuration file (%s: %s)' %
                          (exc.__class__.__name__, exc))
+    # Apply --all.
+    if allfiles:
+        files = list(config)
+    # If selected, make dependencies instead of transcluding.
+    if depsfile is not None:
+        with open(depsfile, 'w') as f:
+            for filename in files:
+                absfilename = os.path.abspath(filename)
+                this_conf = config.get(absfilename)
+                if not this_conf:
+                    continue
+                line = makedeps(absfilename, this_conf['transcludes'],#
+                                this_conf['deps'], this_conf['get'])
+                if line is None:
+                    continue
+                f.write(line + '\n')
+        return
     # Transclude!
     transcluder = transclude_jar if jarmode else transclude
     for filename in files:
