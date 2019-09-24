@@ -86,7 +86,7 @@ def makedeps(dest, transcludes, filters, getconfig=None):
 
 def main():
     # Parse command line.
-    jarmode, quiet, confpath, depsfile = False, False, None, None
+    jarmode, quiet, confpath, depspath = False, False, None, None
     allfiles, files = False, []
     try:
         it, only_args = iter(sys.argv[1:]), False
@@ -124,7 +124,7 @@ def main():
                 elif arg == '--config':
                     confpath = next(it)
                 elif arg == '--deps':
-                    depsfile = next(it)
+                    depspath = next(it)
                 elif arg == '--all':
                     allfiles = True
                 elif arg == '--no-all':
@@ -147,18 +147,25 @@ def main():
     if allfiles:
         files = list(config)
     # If selected, make dependencies instead of transcluding.
-    if depsfile is not None:
-        with open(depsfile, 'w') as f:
+    if depspath is not None:
+        if depspath == '-':
+            depsfile = sys.stdout
+        else:
+            depsfile = open(depspath, 'w')
+        try:
             for filename in files:
                 absfilename = os.path.abspath(filename)
                 this_conf = config.get(absfilename)
                 if not this_conf:
                     continue
-                line = makedeps(absfilename, this_conf['transcludes'],#
+                line = makedeps(absfilename, this_conf['transcludes'],
                                 this_conf['deps'], this_conf['get'])
                 if line is None:
                     continue
-                f.write(line + '\n')
+                depsfile.write(line + '\n')
+        finally:
+            if depsfile is not sys.stdout:
+                depsfile.close()
         return
     # Transclude!
     transcluder = transclude_jar if jarmode else transclude
