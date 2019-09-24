@@ -9,6 +9,7 @@ __pycache__
 /.build.jar
 /Instant-run.jar
 /tools/build
+.deps.mk
 
 # Data
 *.sqlite
