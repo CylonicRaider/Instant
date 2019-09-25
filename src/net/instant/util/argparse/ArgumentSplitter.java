@@ -111,7 +111,8 @@ public class ArgumentSplitter implements Iterable<String> {
 
             public void remove() {
                 // While we *could* remove from the underlying iterator,
-                // it is not clear how this should interact with pushback.
+                // it is not clear how this should interact with partially
+                // consumed options.
                 throw new UnsupportedOperationException("Cannot remove " +
                     "from ArgumentSplitter");
             }

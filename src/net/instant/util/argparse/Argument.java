@@ -7,7 +7,6 @@ public class Argument<T> extends BaseOption implements ValueProcessor<T> {
     public static final String DEFAULT_PREFIX = "default";
     public static final String NESTED_DEFAULT_PREFIX = "argument default";
 
-    private boolean optional;
     private Converter<T> converter;
     private Committer<T> committer;
     private T defaultValue;
