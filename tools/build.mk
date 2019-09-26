@@ -53,6 +53,6 @@ tools/_clean:
 tools/_pre-commit:
 	@git add $(TOOL_ARCHIVES)
 
-tools/.deps.mk: tools/transclude.conf $(SOURCES) tools/build.mk
+tools/.deps.mk: tools/transclude.conf $(SOURCES)
 	@script/transclude.py $(TRANSCLUDEFLAGS) --deps - --all | \
 	sed -e 's/\$$/&&/g' > $@
