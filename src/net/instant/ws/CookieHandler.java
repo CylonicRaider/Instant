@@ -182,11 +182,13 @@ public class CookieHandler {
 
     public JSONObject parseCookieContent(String value) {
         if (value.isEmpty()) return null;
+        StringSigner signer;
+        synchronized (this) {
+            signer = this.signer;
+        }
         String[] parts = value.split("\\|", -1);
         if (parts.length == 1) {
-            synchronized (this) {
-                if (signer != null) return null;
-            }
+            if (signer != null) return null;
             try {
                 return new JSONObject(new String(Encodings.fromBase64(value),
                                                  "utf-8"));
@@ -203,10 +205,8 @@ public class CookieHandler {
         } catch (IllegalArgumentException exc) {
             return null;
         }
-        synchronized (this) {
-            if (signer == null || ! signer.verify(data, signature))
-                return null;
-        }
+        if (signer == null || ! signer.verify(data, signature))
+            return null;
         try {
             return new JSONObject(new String(data, "utf-8"));
         } catch (Exception exc) {

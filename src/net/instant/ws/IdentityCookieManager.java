@@ -44,27 +44,27 @@ public class IdentityCookieManager {
     }
 
     public Cookie get(ResponseBuilder resp) {
-        return resp.getResponseCookie(getCookieName());
+        Cookie ret = resp.getResponseCookie(getCookieName());
+        if (ret == null || ret.getData() == null) ret = null;
+        return ret;
     }
 
     public Cookie make(RequestData req, ResponseBuilder resp,
                        ResponseBuilder.IdentMode mode) {
         Cookie cookie = get(resp);
-        if (cookie != null) return cookie;
-        cookie = req.getCookie(getCookieName());
-        if (mode == ResponseBuilder.IdentMode.OPTIONAL && (cookie == null ||
-                cookie.getData() == null)) {
-            return null;
-        } else if (cookie == null) {
-            cookie = resp.makeCookie(cookieName, new JSONObject());
-        } else {
-            cookie = cookie.copy();
+        if (mode == ResponseBuilder.IdentMode.OPTIONAL) {
+            return cookie;
+        }
+        if (cookie == null) {
+            Cookie origCookie = req.getCookie(getCookieName());
+            cookie = (origCookie != null) ? origCookie.copy() :
+                resp.makeCookie(getCookieName(), "");
+            resp.addResponseCookie(cookie);
         }
         if (cookie.getData() == null) {
             cookie.setData(new JSONObject());
         }
         init(req, resp, mode, cookie);
-        resp.addResponseCookie(cookie);
         return cookie;
     }
 
@@ -72,17 +72,20 @@ public class IdentityCookieManager {
                         ResponseBuilder.IdentMode mode, Cookie cookie) {
         JSONObject data = cookie.getData();
         Counter ctr = api.getCounter();
-        long id = ctr.get();
+        long id = -1;
         UUID uuid;
         try {
             uuid = UUID.fromString(data.getString(DATA_KEY_UUID));
         } catch (Exception exc) {
+            if (id == -1) id = ctr.get();
             uuid = ctr.getUUID(id);
         }
         data.put(DATA_KEY_UUID, uuid.toString());
-        if (mode == ResponseBuilder.IdentMode.INDIVIDUAL)
-            req.getExtraData().put(DATA_KEY_ID, ctr.getString(id));
         req.getExtraData().put(DATA_KEY_UUID, uuid);
+        if (mode == ResponseBuilder.IdentMode.INDIVIDUAL) {
+            if (id == -1) id = ctr.get();
+            req.getExtraData().put(DATA_KEY_ID, ctr.getString(id));
+        }
         cookie.updateAttributes("Path", "/", "HttpOnly", null,
             "Expires", Utilities.calendarIn(Calendar.YEAR, 2));
         if (isSecuringCookies()) cookie.put("Secure", null);
