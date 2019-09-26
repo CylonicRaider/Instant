@@ -10,27 +10,6 @@ import java.util.Map;
  */
 public interface RequestData {
 
-    /** Mode selector for identify(); see there. */
-    public enum IdentMode {
-        /**
-         * Return identification data if already allocated.
-         */
-        OPTIONAL,
-        /**
-         * Create identification data if necessary.
-         * The data property of identify()'s return value includes a
-         * string-encoded UUID, which identifies the client, at the "uuid"
-         * key; additionally, the UUID is exposed (as a java.util.UUID
-         * instance) in the extraData property at the same key.
-         */
-        ALWAYS,
-        /**
-         * Like ALWAYS, but also assign the connection an individual ID.
-         * The individual ID is available at the "id" key in extraData.
-         */
-        INDIVIDUAL
-    }
-
     /**
      * The address the request originated from.
      */
@@ -128,11 +107,10 @@ public interface RequestData {
     Map<String, Object> getPrivateData();
 
     /**
-     * Determine the identity of the user causing the request.
-     * The return value, if not null, is the identity cookie, which is
-     * automatically added to the ResponseBuilder corresponding to this
-     * RequestData. See the values of IdentMode for details.
+     * Determine the identity of the user causing the request, if available.
+     * This is equivalent to the same-named method in ResponseBuilder called
+     * with in the OPTIONAL mode; see there for more details.
      */
-    Cookie identify(IdentMode mode);
+    Cookie identify();
 
 }

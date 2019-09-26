@@ -126,8 +126,8 @@ public class Datum implements ClientConnection, ResponseBuilder {
         return privateData;
     }
 
-    public Cookie identify(IdentMode mode) {
-        return parent.getIdentifier().make(this, this, mode);
+    public Cookie identify() {
+        return identify(IdentMode.OPTIONAL);
     }
 
     public int getStatusCode() {
@@ -201,6 +201,10 @@ public class Datum implements ClientConnection, ResponseBuilder {
 
     public void addResponseCookie(Cookie cookie) {
         respCookies.add(cookie);
+    }
+
+    public Cookie identify(IdentMode mode) {
+        return parent.getIdentifier().make(this, this, mode);
     }
 
     protected void initRequestLine(String line) {

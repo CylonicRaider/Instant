@@ -170,8 +170,8 @@ public class APIWebSocketHook extends WebSocketHook {
 
     protected boolean evaluateRequestInner(RequestData req,
             ResponseBuilder resp, String tag) {
-        req.identify(RequestData.IdentMode.INDIVIDUAL);
         req.getPrivateData().put("room", tag);
+        resp.identify(ResponseBuilder.IdentMode.INDIVIDUAL);
         return true;
     }
 

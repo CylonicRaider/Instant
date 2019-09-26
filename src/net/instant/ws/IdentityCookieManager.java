@@ -48,11 +48,11 @@ public class IdentityCookieManager {
     }
 
     public Cookie make(RequestData req, ResponseBuilder resp,
-                       RequestData.IdentMode mode) {
+                       ResponseBuilder.IdentMode mode) {
         Cookie cookie = get(resp);
         if (cookie != null) return cookie;
         cookie = req.getCookie(getCookieName());
-        if (mode == RequestData.IdentMode.OPTIONAL && (cookie == null ||
+        if (mode == ResponseBuilder.IdentMode.OPTIONAL && (cookie == null ||
                 cookie.getData() == null)) {
             return null;
         } else if (cookie == null) {
@@ -69,7 +69,7 @@ public class IdentityCookieManager {
     }
 
     protected void init(RequestData req, ResponseBuilder resp,
-                        RequestData.IdentMode mode, Cookie cookie) {
+                        ResponseBuilder.IdentMode mode, Cookie cookie) {
         JSONObject data = cookie.getData();
         Counter ctr = api.getCounter();
         long id = ctr.get();
@@ -80,7 +80,7 @@ public class IdentityCookieManager {
             uuid = ctr.getUUID(id);
         }
         data.put(DATA_KEY_UUID, uuid.toString());
-        if (mode == RequestData.IdentMode.INDIVIDUAL)
+        if (mode == ResponseBuilder.IdentMode.INDIVIDUAL)
             req.getExtraData().put(DATA_KEY_ID, ctr.getString(id));
         req.getExtraData().put(DATA_KEY_UUID, uuid);
         cookie.updateAttributes("Path", "/", "HttpOnly", null,
