@@ -170,8 +170,7 @@ public class JSONTokener {
             throw new JSONException("Unable to preserve stream position", e);
         }
         try {
-            // -1 is EOF, but next() can not consume the null character '\0'
-            if(this.reader.read() <= 0) {
+            if(this.reader.read() < 0) {
                 this.eof = true;
                 return false;
             }
@@ -187,7 +186,8 @@ public class JSONTokener {
      * Get the next character in the source string.
      *
      * @return The next character, or 0 if past the end of the source string.
-     * @throws JSONException Thrown if there is an error reading the source string.
+     * @throws JSONException Thrown if there is an error reading the source string, or
+     *  the source string contains null characters.
      */
     public char next() throws JSONException {
         int c;
@@ -201,7 +201,9 @@ public class JSONTokener {
                 throw new JSONException(exception);
             }
         }
-        if (c <= 0) { // End of stream
+        if (c == 0) {
+            throw this.syntaxError("Encountered invalid null character");
+        } else if (c < 0) { // End of stream
             this.eof = true;
             return 0;
         }
