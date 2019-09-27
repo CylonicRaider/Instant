@@ -15,6 +15,7 @@ import java.util.List;
 import java.util.regex.Pattern;
 import net.instant.api.Utilities;
 import net.instant.util.config.Configuration;
+import org.json.JSONException;
 import org.json.JSONObject;
 
 public final class Util {
@@ -68,6 +69,11 @@ public final class Util {
 
     public static String joinQueryString(String path, String query) {
         return Utilities.joinQueryString(path, query);
+    }
+
+    public static Object parseOneJSONValue(String input)
+            throws JSONException {
+        return Utilities.parseOneJSONValue(input);
     }
 
     public static JSONObject createJSONObject(Object... params) {

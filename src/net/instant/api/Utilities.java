@@ -11,7 +11,9 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import org.json.JSONException;
 import org.json.JSONObject;
+import org.json.JSONTokener;
 
 /**
  * Miscellaneous static utility methods.
@@ -128,6 +130,21 @@ public final class Utilities {
             }
             ret.put(key, value);
         }
+        return ret;
+    }
+
+    /**
+     * Extract exactly one JSON value from the given string and return it.
+     * Differently to the JSONObject constructor etc., this method does not
+     * accept garbage after the end of the value and throws an exception if
+     * such garbage is encountered.
+     */
+    public static Object parseOneJSONValue(String input)
+            throws JSONException {
+        JSONTokener tok = new JSONTokener(input);
+        Object ret = tok.nextValue();
+        if (tok.nextClean() != 0)
+            throw tok.syntaxError("Unexpected garbage after JSON value");
         return ret;
     }
 
