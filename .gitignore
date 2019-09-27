@@ -6,10 +6,10 @@ __pycache__
 /tools/**/*.class
 
 # Build files
-/.deps.mk
 /.build.jar
 /Instant-run.jar
 /tools/build
+.deps.mk
 
 # Data
 *.sqlite
