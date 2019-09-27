@@ -12,6 +12,7 @@ import net.instant.api.Cookie;
 import net.instant.util.Encodings;
 import net.instant.util.Formats;
 import net.instant.util.StringSigner;
+import net.instant.util.Util;
 import org.java_websocket.handshake.ClientHandshake;
 import org.java_websocket.handshake.ServerHandshakeBuilder;
 import org.json.JSONObject;
@@ -190,8 +191,11 @@ public class CookieHandler {
         if (parts.length == 1) {
             if (signer != null) return null;
             try {
-                return new JSONObject(new String(Encodings.fromBase64(value),
-                                                 "utf-8"));
+                String decText = new String(Encodings.fromBase64(value),
+                                            "utf-8");
+                Object liveValue = Util.parseOneJSONValue(decText);
+                // This deliberately may throw a ClassCastException.
+                return (JSONObject) liveValue;
             } catch (Exception exc) {
                 return null;
             }
@@ -208,7 +212,10 @@ public class CookieHandler {
         if (signer == null || ! signer.verify(data, signature))
             return null;
         try {
-            return new JSONObject(new String(data, "utf-8"));
+            String decData = new String(data, "utf-8");
+            Object liveValue = Util.parseOneJSONValue(decData);
+            // Again, we deliberately allow ClassCastException-s.
+            return (JSONObject) liveValue;
         } catch (Exception exc) {
             return null;
         }

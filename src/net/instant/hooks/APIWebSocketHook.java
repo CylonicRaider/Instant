@@ -73,8 +73,12 @@ public class APIWebSocketHook extends WebSocketHook {
         public MessageImpl(String rawData, ClientConnection source,
                            Room room) throws JSONException {
             this.rawData = rawData;
-            this.parsedData = new JSONObject(rawData);
-            this.data = new MessageContents(parsedData);
+            Object parsedData = Util.parseOneJSONValue(rawData);
+            if (!(parsedData instanceof JSONObject))
+                throw new JSONException(
+                    "Top-level value must be a JSON object");
+            this.parsedData = (JSONObject) parsedData;
+            this.data = new MessageContents(this.parsedData);
             this.source = source;
             this.room = room;
        }
