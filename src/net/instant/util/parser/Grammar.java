@@ -16,8 +16,9 @@ public class Grammar {
 
         private final SymbolType type;
         private final String content;
+        private final boolean inlined;
 
-        public Symbol(SymbolType type, String content) {
+        public Symbol(SymbolType type, String content, boolean inlined) {
             if (type == null)
                 throw new NullPointerException("Symbol type may not be null");
             if (content == null)
@@ -25,17 +26,20 @@ public class Grammar {
                     "Symbol content may not be null");
             this.type = type;
             this.content = content;
+            this.inlined = inlined;
         }
 
         public boolean equals(Object other) {
             if (! (other instanceof Symbol)) return false;
             Symbol so = (Symbol) other;
             return (getType() == so.getType() &&
+                    isInlined() == so.isInlined() &&
                     getContent().equals(so.getContent()));
         }
 
         public int hashCode() {
-            return getType().hashCode() ^ getContent().hashCode();
+            return getType().hashCode() ^ getContent().hashCode() ^
+                (isInlined() ? 1231 : 1237);
         }
 
         public SymbolType getType() {
@@ -44,6 +48,10 @@ public class Grammar {
 
         public String getContent() {
             return content;
+        }
+
+        public boolean isInlined() {
+            return inlined;
         }
 
     }
