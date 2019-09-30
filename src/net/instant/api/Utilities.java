@@ -145,6 +145,9 @@ public final class Utilities {
         Object ret = tok.nextValue();
         if (tok.nextClean() != 0)
             throw tok.syntaxError("Unexpected garbage after JSON value");
+        // This should not happen, but we guard against it anyway.
+        if (tok.more())
+            throw tok.syntaxError("Unexpected garbage after JSON value?!");
         return ret;
     }
 
