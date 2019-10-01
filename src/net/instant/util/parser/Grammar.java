@@ -29,6 +29,12 @@ public class Grammar {
             this.inlined = inlined;
         }
 
+        public String toString() {
+            return String.format("%s@%h[type=%s,content=%s,inlined=%s]",
+                                 getClass().getName(), this, getType(),
+                                 getContent(), isInlined());
+        }
+
         public boolean equals(Object other) {
             if (! (other instanceof Symbol)) return false;
             Symbol so = (Symbol) other;
@@ -73,6 +79,11 @@ public class Grammar {
                 new ArrayList<Symbol>(symbols));
         }
 
+        public String toString() {
+            return String.format("%s@%h[name=%s,symbols=%s]",
+                getClass().getName(), this, getName(), getSymbols());
+        }
+
         public boolean equals(Object other) {
             if (! (other instanceof Production)) return false;
             Production po = (Production) other;
@@ -94,12 +105,35 @@ public class Grammar {
 
     }
 
+    public static final String START_SYMBOL = "$start";
+
     private final Map<String, Set<Production>> productions;
     private final Map<String, Set<Production>> productionsView;
 
     public Grammar() {
         productions = new LinkedHashMap<String, Set<Production>>();
         productionsView = Collections.unmodifiableMap(productions);
+    }
+
+    public String toString() {
+        StringBuilder sb = new StringBuilder();
+        sb.append(getClass().getName());
+        sb.append('@');
+        sb.append(Integer.toHexString(hashCode()));
+        sb.append('[');
+        boolean first = true;
+        for (Set<Production> ps : productions.values()) {
+            for (Production p : ps) {
+                if (first) {
+                    first = true;
+                } else {
+                    sb.append(',');
+                }
+                sb.append(p);
+            }
+        }
+        sb.append(']');
+        return sb.toString();
     }
 
     public Map<String, Set<Production>> getProductions() {
@@ -122,6 +156,25 @@ public class Grammar {
         if (subset == null) return;
         subset.remove(prod);
         if (subset.isEmpty()) productions.remove(prod.getName());
+    }
+
+    private boolean hasProductions(String name) {
+        Set<Production> res = getProductionSet(name, false);
+        return (res != null && ! res.isEmpty());
+    }
+    public void validate() throws InvalidGrammarException {
+        if (! hasProductions(START_SYMBOL))
+            throw new InvalidGrammarException("Missing start symbol");
+        for (Set<Production> ps : productions.values()) {
+            for (Production p : ps) {
+                for (Symbol s : p.getSymbols()) {
+                    if (s.getType() == SymbolType.NONTERMINAL &&
+                            ! hasProductions(s.getContent()))
+                        throw new InvalidGrammarException("Symbol " + s +
+                            " referencing a nonexistent production");
+                }
+            }
+        }
     }
 
 }
