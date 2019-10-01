@@ -114,6 +114,11 @@ public class Grammar {
         productions = new LinkedHashMap<String, Set<Production>>();
         productionsView = Collections.unmodifiableMap(productions);
     }
+    public Grammar(Grammar other) {
+        productions = new LinkedHashMap<String, Set<Production>>(
+            other.getProductions());
+        productionsView = Collections.unmodifiableMap(productions);
+    }
 
     public String toString() {
         StringBuilder sb = new StringBuilder();
