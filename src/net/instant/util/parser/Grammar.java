@@ -16,36 +16,39 @@ public class Grammar {
 
         private final SymbolType type;
         private final String content;
-        private final boolean inlined;
+        private final int flags;
 
-        public Symbol(SymbolType type, String content, boolean inlined) {
+        public Symbol(SymbolType type, String content, int flags) {
             if (type == null)
                 throw new NullPointerException("Symbol type may not be null");
             if (content == null)
                 throw new NullPointerException(
                     "Symbol content may not be null");
+            if ((flags & SYM_ALL_FLAGS) != 0)
+                throw new IllegalArgumentException(
+                    "Unknown Symbol flags specified");
             this.type = type;
             this.content = content;
-            this.inlined = inlined;
+            this.flags = flags;
         }
 
         public String toString() {
-            return String.format("%s@%h[type=%s,content=%s,inlined=%s]",
+            return String.format("%s@%h[type=%s,content=%s,flags=%s]",
                                  getClass().getName(), this, getType(),
-                                 getContent(), isInlined());
+                                 getContent(), getFlags());
         }
 
         public boolean equals(Object other) {
             if (! (other instanceof Symbol)) return false;
             Symbol so = (Symbol) other;
             return (getType() == so.getType() &&
-                    isInlined() == so.isInlined() &&
+                    getFlags() == so.getFlags() &&
                     getContent().equals(so.getContent()));
         }
 
         public int hashCode() {
             return getType().hashCode() ^ getContent().hashCode() ^
-                (isInlined() ? 1231 : 1237);
+                getFlags();
         }
 
         public SymbolType getType() {
@@ -56,8 +59,8 @@ public class Grammar {
             return content;
         }
 
-        public boolean isInlined() {
-            return inlined;
+        public int getFlags() {
+            return flags;
         }
 
     }
@@ -104,6 +107,11 @@ public class Grammar {
         }
 
     }
+
+    public static final int SYM_INLINE = 1;
+    public static final int SYM_NONESSENTIAL = 2;
+
+    public static final int SYM_ALL_FLAGS = 3;
 
     public static final String START_SYMBOL = "$start";
 
