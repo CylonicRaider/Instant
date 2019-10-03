@@ -149,11 +149,14 @@ public class Grammar {
         return sb.toString();
     }
 
+    protected Map<String, Set<Production>> getRawProductions() {
+        return productions;
+    }
     public Map<String, Set<Production>> getProductions() {
         return productionsView;
     }
 
-    private Set<Production> getProductionSet(String name, boolean create) {
+    protected Set<Production> getProductionSet(String name, boolean create) {
         Set<Production> ret = productions.get(name);
         if (ret == null && create) {
             ret = new LinkedHashSet<Production>();
