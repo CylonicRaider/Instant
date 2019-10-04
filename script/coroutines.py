@@ -1610,8 +1610,14 @@ def sigpipe_handler(rfd, waits, cleanup):
                 except OSError as e:
                     if e.errno != errno.ECHILD: raise
                     break
-                if pid == 0: break
-                code = -(status & 0x7F) if status & 0xFF else status >> 8
+                if pid == 0:
+                    break
+                elif os.WIFEXITED(status):
+                    code = os.WEXITSTATUS(status)
+                elif os.WIFSIGNALED(status):
+                    code = -os.WTERMSIG(status)
+                else:
+                    continue
                 wakelist.append((ProcessTag(pid), code))
             yield Trigger(*wakelist)
     finally:

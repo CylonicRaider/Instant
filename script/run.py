@@ -346,8 +346,10 @@ class BaseProcess:
                     if e.errno != errno.ECHILD: raise
                     pid, status = 0, 0
                 if pid != 0:
-                    code = -(status & 0x7F) if status & 0xFF else status >> 8
-                    self.returncode = code
+                    if os.WIFEXITED(status):
+                        self.returncode = os.WEXITSTATUS(status)
+                    elif os.WIFSIGNALED(status):
+                        self.returncode = -os.WTERMSIG(status)
             return self.returncode
 
         def terminate(self):
