@@ -7,16 +7,18 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Pattern;
 
 public class Grammar {
 
-    public enum SymbolType { TERMINAL, NONTERMINAL }
+    public enum SymbolType { NONTERMINAL, TERMINAL, PATTERN_TERMINAL }
 
     public static class Symbol {
 
         private final SymbolType type;
         private final String content;
         private final int flags;
+        private final Pattern pattern;
 
         public Symbol(SymbolType type, String content, int flags) {
             if (type == null)
@@ -30,6 +32,19 @@ public class Grammar {
             this.type = type;
             this.content = content;
             this.flags = flags;
+            switch (type) {
+                case NONTERMINAL:
+                    this.pattern = null;
+                    break;
+                case TERMINAL:
+                    this.pattern = Pattern.compile(Pattern.quote(content));
+                    break;
+                case PATTERN_TERMINAL:
+                    this.pattern = Pattern.compile(content);
+                    break;
+                default:
+                    throw new AssertionError("This should not happen?!");
+            }
         }
 
         public String toString() {
@@ -61,6 +76,10 @@ public class Grammar {
 
         public int getFlags() {
             return flags;
+        }
+
+        public Pattern getPattern() {
+            return pattern;
         }
 
     }
