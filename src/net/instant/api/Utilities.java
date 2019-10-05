@@ -179,7 +179,7 @@ public final class Utilities {
      * JSONObject, the values are merged recursively.
      */
     public static void mergeJSONObjects(JSONObject base, JSONObject add) {
-        // Whoever made that API was a jerk.
+        // That API... may not have been designed well.
         Iterator<String> keys = add.keys();
         while (keys.hasNext()) {
             String k = keys.next();
