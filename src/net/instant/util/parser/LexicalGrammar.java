@@ -5,6 +5,8 @@ import java.util.Set;
 
 public class LexicalGrammar extends Grammar {
 
+    public static final String LEXER_START_SYMBOL = "$tokens";
+
     public LexicalGrammar() {
         super();
     }
@@ -32,7 +34,7 @@ public class LexicalGrammar extends Grammar {
     }
     public void validate() throws InvalidGrammarException {
         super.validate();
-        validateAcyclicity(START_SYMBOL, new HashSet<String>(),
+        validateAcyclicity(LEXER_START_SYMBOL, new HashSet<String>(),
                            new HashSet<String>());
     }
 
