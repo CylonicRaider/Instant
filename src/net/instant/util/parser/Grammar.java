@@ -174,6 +174,9 @@ public class Grammar {
     public Map<String, Set<Production>> getProductions() {
         return productionsView;
     }
+    public Set<Production> getProductions(String name) {
+        return productionsView.get(name);
+    }
 
     protected Set<Production> getProductionSet(String name, boolean create) {
         Set<Production> ret = productions.get(name);
