@@ -32,10 +32,14 @@ public class LexicalGrammar extends Grammar {
         stack.remove(name);
         seen.add(name);
     }
-    public void validate() throws InvalidGrammarException {
-        super.validate();
+    protected void validate(String startSymbol)
+            throws InvalidGrammarException {
+        super.validate(startSymbol);
         validateAcyclicity(LEXER_START_SYMBOL, new HashSet<String>(),
                            new HashSet<String>());
+    }
+    public void validate() throws InvalidGrammarException {
+        validate(LEXER_START_SYMBOL);
     }
 
 }

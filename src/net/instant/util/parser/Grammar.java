@@ -178,6 +178,10 @@ public class Grammar {
         return productionsView.get(name);
     }
 
+    protected boolean hasProductions(String name) {
+        Set<Production> res = getProductionSet(name, false);
+        return (res != null && ! res.isEmpty());
+    }
     protected Set<Production> getProductionSet(String name, boolean create) {
         Set<Production> ret = productions.get(name);
         if (ret == null && create) {
@@ -196,12 +200,9 @@ public class Grammar {
         if (subset.isEmpty()) productions.remove(prod.getName());
     }
 
-    private boolean hasProductions(String name) {
-        Set<Production> res = getProductionSet(name, false);
-        return (res != null && ! res.isEmpty());
-    }
-    public void validate() throws InvalidGrammarException {
-        if (! hasProductions(START_SYMBOL))
+    protected void validate(String startSymbol)
+            throws InvalidGrammarException {
+        if (! hasProductions(startSymbol))
             throw new InvalidGrammarException("Missing start symbol");
         for (Set<Production> ps : productions.values()) {
             for (Production p : ps) {
@@ -213,6 +214,9 @@ public class Grammar {
                 }
             }
         }
+    }
+    public void validate() throws InvalidGrammarException {
+        validate(START_SYMBOL);
     }
 
 }
