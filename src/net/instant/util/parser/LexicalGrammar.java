@@ -35,7 +35,7 @@ public class LexicalGrammar extends Grammar {
     protected void validate(String startSymbol)
             throws InvalidGrammarException {
         super.validate(startSymbol);
-        validateAcyclicity(LEXER_START_SYMBOL, new HashSet<String>(),
+        validateAcyclicity(startSymbol, new HashSet<String>(),
                            new HashSet<String>());
     }
     public void validate() throws InvalidGrammarException {
