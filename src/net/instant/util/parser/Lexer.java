@@ -19,7 +19,7 @@ public class Lexer {
     }
 
     private static void compileProductions(LexicalGrammar g,
-            String name, StringBuilder sb) {
+            String name, boolean top, StringBuilder sb) {
         boolean first = true;
         for (Grammar.Production pr : g.getProductions(name)) {
             if (first) {
@@ -28,9 +28,18 @@ public class Lexer {
                 sb.append('|');
             }
             for (Grammar.Symbol sym : pr.getSymbols()) {
-                sb.append("(?:");
+                if (top) {
+                    if (sym.getType() != Grammar.SymbolType.NONTERMINAL)
+                        throw new IllegalArgumentException(
+                            "Trying to compile a grammar with invalid " +
+                            LexicalGrammar.LEXER_START_SYMBOL +
+                            " productions");
+                    sb.append("(?<").append(sym.getContent()).append('>');
+                } else {
+                    sb.append("(?:");
+                }
                 if (sym.getType() == Grammar.SymbolType.NONTERMINAL) {
-                    compileProductions(g, sym.getContent(), sb);
+                    compileProductions(g, sym.getContent(), false, sb);
                 } else {
                     sb.append(sym.getPattern().pattern());
                 }
@@ -43,7 +52,7 @@ public class Lexer {
         LexicalGrammar cg = new LexicalGrammar(g);
         cg.validate();
         StringBuilder sb = new StringBuilder();
-        compileProductions(cg, LexicalGrammar.LEXER_START_SYMBOL, sb);
+        compileProductions(cg, LexicalGrammar.LEXER_START_SYMBOL, true, sb);
         return new CompiledGrammar(Pattern.compile(sb.toString()));
     }
 
