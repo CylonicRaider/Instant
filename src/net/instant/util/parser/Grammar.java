@@ -86,6 +86,9 @@ public class Grammar {
 
     public static class Production {
 
+        public static final Pattern NAME_PATTERN = Pattern.compile(
+            "[a-zA-Z$_-][A-Za-z0-9$_-]*");
+
         private final String name;
         private final List<Symbol> symbols;
 
@@ -204,8 +207,11 @@ public class Grammar {
             throws InvalidGrammarException {
         if (! hasProductions(startSymbol))
             throw new InvalidGrammarException("Missing start symbol");
-        for (Set<Production> ps : productions.values()) {
-            for (Production p : ps) {
+        for (Map.Entry<String, Set<Production>> e : productions.entrySet()) {
+            if (! Production.NAME_PATTERN.matcher(e.getKey()).matches())
+                throw new InvalidGrammarException("Invalid production name " +
+                    e.getKey());
+            for (Production p : e.getValue()) {
                 for (Symbol s : p.getSymbols()) {
                     if (s.getType() == SymbolType.NONTERMINAL &&
                             ! hasProductions(s.getContent()))
