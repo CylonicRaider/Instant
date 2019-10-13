@@ -4,8 +4,68 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.regex.Pattern;
+import net.instant.util.LineColumnReader;
 
 public class Lexer {
+
+    public static class Token {
+
+        private final LineColumnReader.Coordinates location;
+        private final String production;
+        private final String text;
+
+        public Token(LineColumnReader.Coordinates location,
+                     String production, String text) {
+            if (location == null)
+                throw new NullPointerException(
+                    "Token coordinates may not be null");
+            if (text == null)
+                throw new NullPointerException(
+                    "Token text may not be null");
+            this.location = location;
+            this.production = production;
+            this.text = text;
+        }
+
+        public String toString() {
+            return String.format("%s@%h[location=%s,production=%s,text=%s]",
+                getClass().getName(), this, getLocation(), getProduction(),
+                getText());
+        }
+
+        public boolean equals(Object other) {
+            if (! (other instanceof Token)) return false;
+            Token to = (Token) other;
+            return (getLocation().equals(to.getLocation()) &&
+                    equalOrNull(getProduction(), to.getProduction()) &&
+                    getText().equals(to.getText()));
+        }
+
+        public int hashCode() {
+            return getLocation().hashCode() ^
+                hashCodeOrNull(getProduction()) ^ getText().hashCode();
+        }
+
+        public LineColumnReader.Coordinates getLocation() {
+            return location;
+        }
+
+        public String getProduction() {
+            return production;
+        }
+
+        public String getText() {
+            return text;
+        }
+
+        private static boolean equalOrNull(String a, String b) {
+            return (a == null) ? (b == null) : a.equals(b);
+        }
+        private static int hashCodeOrNull(Object o) {
+            return (o == null) ? 0 : o.hashCode();
+        }
+
+    }
 
     public static class CompiledGrammar {
 
