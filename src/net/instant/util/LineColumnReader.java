@@ -21,6 +21,7 @@ public class LineColumnReader extends BufferedReader {
         private long line;
         private long column;
         private long characterIndex;
+        private boolean inNL;
 
         public CoordinatesBuilder(long line, long column,
                                   long characterIndex) {
@@ -57,25 +58,6 @@ public class LineColumnReader extends BufferedReader {
             characterIndex = c;
         }
 
-        public void set(Coordinates other) {
-            setLine(other.getLine());
-            setColumn(other.getColumn());
-            setCharacterIndex(other.getCharacterIndex());
-        }
-
-    }
-
-    protected static class State extends CoordinatesBuilder {
-
-        private boolean inNL;
-
-        public State() {
-            super();
-        }
-        public State(State other) {
-            set(other);
-        }
-
         public boolean isInNL() {
             return inNL;
         }
@@ -83,8 +65,16 @@ public class LineColumnReader extends BufferedReader {
             inNL = i;
         }
 
-        public void set(State other) {
-            super.set(other);
+        public void set(Coordinates other) {
+            setLine(other.getLine());
+            setColumn(other.getColumn());
+            setCharacterIndex(other.getCharacterIndex());
+            setInNL(false);
+        }
+        public void set(CoordinatesBuilder other) {
+            setLine(other.getLine());
+            setColumn(other.getColumn());
+            setCharacterIndex(other.getCharacterIndex());
             setInNL(other.isInNL());
         }
 
@@ -109,6 +99,17 @@ public class LineColumnReader extends BufferedReader {
             }
             setInNL(ch == '\r');
         }
+        public void advance(char[] data, int offset, int size, int tabSize) {
+            for (int i = offset, ei = offset + size; i < ei; i++) {
+                advance(data[i], tabSize);
+            }
+        }
+        public void advance(CharSequence data, int offset, int size,
+                            int tabSize) {
+            for (int i = offset, ei = offset + size; i < ei; i++) {
+                advance(data.charAt(i), tabSize);
+            }
+        }
 
     }
 
@@ -116,13 +117,13 @@ public class LineColumnReader extends BufferedReader {
 
     private static final int SKIP_BUFSIZE = 32768;
 
-    private final State coords;
-    private final State markCoords;
+    private final CoordinatesBuilder coords;
+    private final CoordinatesBuilder markCoords;
     private int tabSize;
 
     {
-        coords = new State();
-        markCoords = new State();
+        coords = new CoordinatesBuilder();
+        markCoords = new CoordinatesBuilder();
         tabSize = DEFAULT_TAB_SIZE;
     }
 
@@ -184,10 +185,7 @@ public class LineColumnReader extends BufferedReader {
     public int read(char[] cbuf, int offset, int length) throws IOException {
         synchronized (lock) {
             int ret = super.read(cbuf, offset, length);
-            // On EOF, ret is -1 and the loop does not run at all.
-            for (int i = offset, ei = offset + ret; i < ei; i++) {
-                coords.advance(cbuf[i], tabSize);
-            }
+            coords.advance(cbuf, offset, ret, tabSize);
             return ret;
         }
     }
