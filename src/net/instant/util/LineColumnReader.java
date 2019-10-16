@@ -16,7 +16,55 @@ public class LineColumnReader extends BufferedReader {
         long getCharacterIndex();
     }
 
-    public static class CoordinatesBuilder implements Coordinates {
+    public static class FixedCoordinates implements Coordinates {
+
+        private final long line;
+        private final long column;
+        private final long characterIndex;
+
+        public FixedCoordinates(long line, long column, long characterIndex) {
+            this.line = line;
+            this.column = column;
+            this.characterIndex = characterIndex;
+        }
+        public FixedCoordinates(Coordinates other) {
+            this(other.getLine(), other.getColumn(),
+                 other.getCharacterIndex());
+        }
+
+        public String toString() {
+            return String.format("line %d column %d (char %d)", getLine(),
+                                 getColumn(), getCharacterIndex());
+        }
+
+        public boolean equals(Object other) {
+            if (! (other instanceof Coordinates)) return false;
+            Coordinates co = (Coordinates) other;
+            return (line == co.getLine() &&
+                    column == co.getColumn() &&
+                    characterIndex == co.getCharacterIndex());
+        }
+
+        public int hashCode() {
+            return (int) (line ^ line >>> 31 ^ column ^ column >>> 31 ^
+                characterIndex ^ characterIndex >>> 31);
+        }
+
+        public long getLine() {
+            return line;
+        }
+
+        public long getColumn() {
+            return column;
+        }
+
+        public long getCharacterIndex() {
+            return characterIndex;
+        }
+
+    }
+
+    public static class CoordinatesTracker implements Coordinates {
 
         public static final int DEFAULT_TAB_SIZE = 8;
 
@@ -26,18 +74,36 @@ public class LineColumnReader extends BufferedReader {
         private boolean inNL;
         private int tabSize;
 
-        public CoordinatesBuilder(long line, long column,
-                                  long characterIndex) {
+        public CoordinatesTracker(long line, long column,
+                                  long characterIndex, boolean inNL,
+                                  int tabSize) {
             this.line = line;
             this.column = column;
             this.characterIndex = characterIndex;
+            this.inNL = inNL;
+            this.tabSize = tabSize;
         }
-        public CoordinatesBuilder(Coordinates other) {
+        public CoordinatesTracker(long line, long column,
+                                  long characterIndex) {
+            this(line, column, characterIndex, false, DEFAULT_TAB_SIZE);
+        }
+        public CoordinatesTracker(Coordinates other) {
             this(other.getLine(), other.getColumn(),
                  other.getCharacterIndex());
         }
-        public CoordinatesBuilder() {
+        public CoordinatesTracker(CoordinatesTracker other) {
+            this(other.getLine(), other.getColumn(),
+                 other.getCharacterIndex(), other.isInNL(),
+                 other.getTabSize());
+        }
+        public CoordinatesTracker() {
             this(1, 1, 0);
+        }
+
+        public String toString() {
+            return String.format("%s@%h[line=%s,column=%s,char=%s,inNL=%s," +
+                "tabSize=%s]", getClass().getName(), hashCode(), getLine(),
+                getColumn(), getCharacterIndex(), isInNL(), getTabSize());
         }
 
         public long getLine() {
@@ -81,7 +147,7 @@ public class LineColumnReader extends BufferedReader {
             setCharacterIndex(other.getCharacterIndex());
             setInNL(false);
         }
-        public void set(CoordinatesBuilder other) {
+        public void set(CoordinatesTracker other) {
             setLine(other.getLine());
             setColumn(other.getColumn());
             setCharacterIndex(other.getCharacterIndex());
@@ -125,12 +191,12 @@ public class LineColumnReader extends BufferedReader {
 
     private static final int SKIP_BUFSIZE = 32768;
 
-    private final CoordinatesBuilder coords;
-    private final CoordinatesBuilder markCoords;
+    private final CoordinatesTracker coords;
+    private final CoordinatesTracker markCoords;
 
     {
-        coords = new CoordinatesBuilder();
-        markCoords = new CoordinatesBuilder();
+        coords = new CoordinatesTracker();
+        markCoords = new CoordinatesTracker();
     }
 
     public LineColumnReader(Reader in) {
@@ -143,7 +209,7 @@ public class LineColumnReader extends BufferedReader {
     public Coordinates getCoordinates() {
         return coords;
     }
-    public void getCoordinates(CoordinatesBuilder recipient) {
+    public void getCoordinates(CoordinatesTracker recipient) {
         synchronized (lock) {
             recipient.set(coords);
         }
