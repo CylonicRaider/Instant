@@ -113,6 +113,7 @@ public class Lexer implements Closeable {
     private final StringBuilder inputBuffer;
     private final LineColumnReader.CoordinatesTracker inputPosition;
     private final Matcher matcher;
+    private boolean atEOF;
     private Token outputBuffer;
 
     public Lexer(CompiledGrammar grammar, LineColumnReader input) {
@@ -121,8 +122,9 @@ public class Lexer implements Closeable {
         this.inputBuffer = new StringBuilder();
         this.inputPosition = new LineColumnReader.CoordinatesTracker();
         this.matcher = grammar.getPattern().matcher(inputBuffer);
+        this.atEOF = false;
         this.outputBuffer = null;
-        this.matcher.useAnchoringBounds(false);
+        matcher.useAnchoringBounds(false);
     }
     public Lexer(CompiledGrammar grammar, Reader input) {
         this(grammar, new LineColumnReader(input));
@@ -134,6 +136,10 @@ public class Lexer implements Closeable {
 
     protected Reader getInput() {
         return input;
+    }
+
+    public LineColumnReader.Coordinates getPosition() {
+        return inputPosition;
     }
 
     protected int pullInput() throws IOException {
@@ -156,9 +162,7 @@ public class Lexer implements Closeable {
     public Token peek() throws IOException, LexerException {
         if (outputBuffer != null)
             return outputBuffer;
-        boolean atEOF = false;
         for (;;) {
-            matcher.reset();
             if (matcher.lookingAt() && (atEOF || ! matcher.hitEnd())) {
                 int groupIdx = CompiledGrammar.findMatchedGroup(matcher);
                 outputBuffer = consumeInput(matcher.end(),
@@ -186,6 +190,7 @@ public class Lexer implements Closeable {
         input.close();
         inputBuffer.setLength(0);
         matcher.reset();
+        atEOF = true;
         outputBuffer = null;
     }
 
