@@ -14,6 +14,9 @@ public class LexicalGrammar extends Grammar {
     public LexicalGrammar(Grammar copyFrom) {
         super(copyFrom);
     }
+    public LexicalGrammar(Production... productions) {
+        super(productions);
+    }
 
     private void validateAcyclicity(String name, Set<String> stack,
             Set<String> seen) throws InvalidGrammarException {

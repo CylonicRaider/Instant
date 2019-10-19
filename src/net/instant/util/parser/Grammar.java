@@ -149,6 +149,10 @@ public class Grammar {
             other.getProductions());
         productionsView = Collections.unmodifiableMap(productions);
     }
+    public Grammar(Production... productions) {
+        this();
+        for (Production p : productions) addProduction(p);
+    }
 
     public String toString() {
         StringBuilder sb = new StringBuilder();
