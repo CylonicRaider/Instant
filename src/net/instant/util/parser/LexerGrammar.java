@@ -4,17 +4,17 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-public class LexicalGrammar extends Grammar {
+public class LexerGrammar extends Grammar {
 
     public static final String LEXER_START_SYMBOL = "$tokens";
 
-    public LexicalGrammar() {
+    public LexerGrammar() {
         super();
     }
-    public LexicalGrammar(Grammar copyFrom) {
+    public LexerGrammar(Grammar copyFrom) {
         super(copyFrom);
     }
-    public LexicalGrammar(Production... productions) {
+    public LexerGrammar(Production... productions) {
         super(productions);
     }
 
@@ -24,7 +24,7 @@ public class LexicalGrammar extends Grammar {
             return;
         if (stack.contains(name))
             throw new InvalidGrammarException(
-                "LexicalGrammar contains production cycle");
+                "LexerGrammar contains production cycle");
         stack.add(name);
         for (Production pr : getProductions().get(name)) {
             for (Symbol sym : pr.getSymbols()) {
@@ -42,10 +42,10 @@ public class LexicalGrammar extends Grammar {
         for (Production pr : getProductions().get(startSymbol)) {
             List<Symbol> syms = pr.getSymbols();
             if (syms.size() != 1)
-                throw new InvalidGrammarException("LexicalGrammar start " +
+                throw new InvalidGrammarException("LexerGrammar start " +
                     "symbol productions must have exactly one symbol each");
             if (syms.get(0).getType() != SymbolType.NONTERMINAL)
-                throw new InvalidGrammarException("LexicalGrammar start " +
+                throw new InvalidGrammarException("LexerGrammar start " +
                     "symbol production symbols must be nonterminals");
         }
         validateAcyclicity(startSymbol, new HashSet<String>(),

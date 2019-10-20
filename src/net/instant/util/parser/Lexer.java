@@ -194,14 +194,14 @@ public class Lexer implements Closeable {
         outputBuffer = null;
     }
 
-    private static void compileProductions(LexicalGrammar g,
+    private static void compileProductions(LexerGrammar g,
             String name, boolean top, StringBuilder sb, List<String> names) {
         boolean first = true;
         for (Grammar.Production pr : g.getProductions(name)) {
             if (top && pr.getSymbols().size() != 1)
                 throw new IllegalArgumentException(
                     "Trying to compile a grammar with incorrect " +
-                    LexicalGrammar.LEXER_START_SYMBOL +
+                    LexerGrammar.LEXER_START_SYMBOL +
                     " production symbol counts?!");
             if (first) {
                 first = false;
@@ -213,7 +213,7 @@ public class Lexer implements Closeable {
                     if (sym.getType() != Grammar.SymbolType.NONTERMINAL)
                         throw new IllegalArgumentException(
                             "Trying to compile a grammar with invalid " +
-                            LexicalGrammar.LEXER_START_SYMBOL +
+                            LexerGrammar.LEXER_START_SYMBOL +
                             " production symbols?!");
                     names.add(pr.getName());
                     sb.append('(');
@@ -229,13 +229,13 @@ public class Lexer implements Closeable {
             }
         }
     }
-    public static CompiledGrammar compile(LexicalGrammar g)
+    public static CompiledGrammar compile(LexerGrammar g)
             throws InvalidGrammarException {
-        LexicalGrammar lg = new LexicalGrammar(g);
+        LexerGrammar lg = new LexerGrammar(g);
         lg.validate();
         StringBuilder sb = new StringBuilder();
         ArrayList<String> prodNames = new ArrayList<String>();
-        compileProductions(lg, LexicalGrammar.LEXER_START_SYMBOL, true, sb,
+        compileProductions(lg, LexerGrammar.LEXER_START_SYMBOL, true, sb,
                            prodNames);
         prodNames.trimToSize();
         return new CompiledGrammar(Pattern.compile(sb.toString()),
