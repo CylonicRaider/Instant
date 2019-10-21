@@ -6,6 +6,7 @@ A script for locating Java source files in need of a recompile.
 """
 
 import sys, os, re
+import stat
 
 COMMENT_RE = re.compile(r'^\s*(#.*)?$')
 MAP_LINE_RE = re.compile(r'^([^\s:#]+):((?:\s*[^\s:#]+)*)\s*$')
@@ -39,6 +40,24 @@ class FSCache:
     def getmtime(self, path):
         "Convenience wrapper around stat(path).st_mtime"
         return self.stat(path).st_mtime
+
+    def walk(self, path):
+        "Stripped-down but caching variant of os.walk()"
+        stack = [path]
+        while stack:
+            base = stack.pop()
+            listing = self.listdir(base)
+            dirnames, filenames = [], []
+            for name in listing:
+                entpath = os.path.join(base, name)
+                st = self.stat(entpath)
+                if stat.S_ISDIR(st.st_mode):
+                    dirnames.append(name)
+                else:
+                    filenames.append(name)
+            yield (base, dirnames, filenames)
+            dirnames.reverse()
+            stack.extend(os.path.join(base, name) for name in dirnames)
 
 def parse_map(fp):
     "Parse a dependency map as created by importlint.py"
@@ -77,10 +96,10 @@ def find_classes(fs, path):
             if p.endswith('.class') and (p[:-6] == pathbase or
                                          p.startswith(nested_prefix))]
 
-def check_build(files, depmap):
-    "Locate those of the given files that need be rebuilt"
-    fs = FSCache()
-    ret = {}
+def check_build(files, depmap, cleanup_dirs):
+    "Locate files that need to be built or deleted"
+    fs, cwd = FSCache(), os.getcwd()
+    ret, clret, seen_classes = {}, [], set()
     for path in files:
         if path in ret or not depmap.get(path): continue
         classes = find_classes(fs, path)
@@ -89,11 +108,20 @@ def check_build(files, depmap):
             oldest_class = min(fs.getmtime(cp) for cp in classes)
             newest_dep = max(fs.getmtime(dp) for dp in depmap[path])
             if newest_dep > oldest_class: ret[path] = classes
+            seen_classes.update(os.path.join(cwd, cfn) for cfn in classes)
         elif path.endswith('.java'):
             # Otherwise (if this *is* a Java source file), there *ought* to
             # be classes.
             ret[path] = []
-    return ret
+    if cleanup_dirs:
+        for d in frozenset(cleanup_dirs):
+            for base, dirnames, filenames in fs.walk(d):
+                for fn in filenames:
+                    if not fn.endswith('.class'): continue
+                    fp = os.path.join(base, fn)
+                    afp = os.path.join(cwd, fp)
+                    if afp not in seen_classes: clret.append(fp)
+    return (ret, clret)
 
 def summarize(filelist):
     "Bring a list of potentially redundant paths into a compact form"
@@ -111,7 +139,8 @@ def summarize(filelist):
 
 def main():
     # Parse command line.
-    mapfile, cleanup, report, filters = None, False, False, []
+    mapfile, cleanup, report = None, False, False
+    cleanup_dirs, filters = [], []
     try:
         it, args_only = iter(sys.argv[1:]), False
         for opt in it:
@@ -121,18 +150,22 @@ def main():
                 args_only = True
             elif opt == '--help':
                 sys.stderr.write('USAGE: %s [--help] [--[no-]cleanup] '
-                        '[--[no-]report] [--map MAPFILE] [DIR [DIR ...]]\n'
+                        '[--cleandir DIR [...]] [--[no-]report] '
+                        '[--map MAPFILE] [DIR [DIR ...]]\n'
                     'Locate Java source files needing a recompile and print '
                         'their paths to standard output.\n'
-                    '--help   : Display help.\n'
-                    '--cleanup: Also delete stale class files.\n'
-                    '--report : Print a human-readable message about the '
+                    '--help    : Display help.\n'
+                    '--cleanup : Also delete stale class files.\n'
+                    '--cleandir: Delete unrecognized class files below this '
+                        'directory (may be specified multiple times; '
+                        'only effective if --cleanup is).\n'
+                    '--report  : Print a human-readable message about the '
                         'files to be rebuilt to standard error.\n'
-                    '--map    : A file describing the dependencies among '
+                    '--map     : A file describing the dependencies among '
                         'Java source files. Only files listed in the map are '
                         'inspected. Use "importlint.py --deps" to generate '
                         'this. If not specified, standard input is read.\n'
-                    'DIR      : If not given, report all files; otherwise, '
+                    'DIR       : If not given, report all files; otherwise, '
                         'report files located in DIR.\n' %
                     sys.argv[0])
                 raise SystemExit
@@ -140,6 +173,8 @@ def main():
                 cleanup = True
             elif opt == '--no-cleanup':
                 cleanup = False
+            elif opt == '--cleandir':
+                cleanup_dirs.append(next(it))
             elif opt == '--report':
                 report = True
             elif opt == '--no-report':
@@ -161,7 +196,8 @@ def main():
     # Apply the filters.
     files = filter_paths(depmap, filters or None)
     # Perform the actual build checking.
-    tobuild = check_build(files, depmap)
+    tobuild, cleanup_paths = check_build(files, depmap,
+                                         cleanup_dirs if cleanup else ())
     buildlist = sorted(tobuild)
     # Report information for the user.
     if report and buildlist:
@@ -175,9 +211,11 @@ def main():
         sys.stderr.flush()
     # Perform class file cleanup.
     if cleanup:
-        for cfl in tobuild.values():
+        for sf, cfl in tobuild.items():
             for cf in cfl:
                 os.unlink(cf)
+        for path in cleanup_paths:
+            os.unlink(path)
     # Generate main output.
     for sf in buildlist:
         print (sf)
