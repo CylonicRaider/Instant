@@ -28,7 +28,7 @@ Instant.jar: .build.jar $(LIBRARIES) $(ASSETS) $(AUTOASSETS)
 ifeq ($(strip $(MAKE_NO_PARTIAL_BUILDS)),)
 	@cd src && javac $(JAVACFLAGS) $$(../script/importlint.py --deps \
 	$(_JAVA_SOURCES) | ../script/jbuildcheck.py --report \
-	--cleanup --cleandir src/net/)
+	--cleanup --cleandir net/)
 else
 	find src/net/ -name '*.class' -exec rm {} +
 	cd src && javac $(JAVACFLAGS) $(_JAVA_SOURCES)
