@@ -185,10 +185,6 @@ public class Grammar {
         return productionsView.get(name);
     }
 
-    protected boolean hasProductions(String name) {
-        Set<Production> res = getProductionSet(name, false);
-        return (res != null && ! res.isEmpty());
-    }
     protected Set<Production> getProductionSet(String name, boolean create) {
         Set<Production> ret = productions.get(name);
         if (ret == null && create) {
@@ -207,9 +203,13 @@ public class Grammar {
         if (subset.isEmpty()) productions.remove(prod.getName());
     }
 
+    protected boolean checkProductions(String name) {
+        Set<Production> res = getProductionSet(name, false);
+        return (res != null && ! res.isEmpty());
+    }
     protected void validate(String startSymbol)
             throws InvalidGrammarException {
-        if (! hasProductions(startSymbol))
+        if (! checkProductions(startSymbol))
             throw new InvalidGrammarException("Missing start symbol");
         for (Map.Entry<String, Set<Production>> e : productions.entrySet()) {
             if (! Production.NAME_PATTERN.matcher(e.getKey()).matches())
@@ -218,7 +218,7 @@ public class Grammar {
             for (Production p : e.getValue()) {
                 for (Symbol s : p.getSymbols()) {
                     if (s.getType() == SymbolType.NONTERMINAL &&
-                            ! hasProductions(s.getContent()))
+                            ! checkProductions(s.getContent()))
                         throw new InvalidGrammarException("Symbol " + s +
                             " referencing a nonexistent production");
                 }
