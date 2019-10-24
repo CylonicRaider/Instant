@@ -2,6 +2,8 @@ package net.instant.util.parser;
 
 public class ParserGrammar extends Grammar {
 
+    public static final String START_SYMBOL = "$start";
+
     private Grammar reference;
 
     public ParserGrammar() {
@@ -24,6 +26,9 @@ public class ParserGrammar extends Grammar {
     protected boolean checkProductions(String name) {
         return (super.checkProductions(name) ||
             (reference != null && reference.checkProductions(name)));
+    }
+    public void validate() throws InvalidGrammarException {
+        validate(START_SYMBOL);
     }
 
 }

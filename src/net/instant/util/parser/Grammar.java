@@ -135,8 +135,6 @@ public class Grammar {
 
     public static final int SYM_ALL_FLAGS = 3;
 
-    public static final String START_SYMBOL = "$start";
-
     private final Map<String, Set<Production>> productions;
     private final Map<String, Set<Production>> productionsView;
 
@@ -225,8 +223,6 @@ public class Grammar {
             }
         }
     }
-    public void validate() throws InvalidGrammarException {
-        validate(START_SYMBOL);
-    }
+    public void validate() throws InvalidGrammarException {}
 
 }
