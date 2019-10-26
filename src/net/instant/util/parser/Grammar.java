@@ -1,7 +1,10 @@
 package net.instant.util.parser;
 
+import java.util.AbstractSet;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -130,20 +133,72 @@ public class Grammar {
 
     }
 
+    public static class ProductionSet extends AbstractSet<Production> {
+
+        private final String name;
+        private final Set<Production> data;
+
+        public ProductionSet(String name) {
+            if (name == null)
+                throw new NullPointerException(
+                    "ProductionSet must have a name");
+            this.name = name;
+            this.data = new LinkedHashSet<Production>();
+        }
+        public ProductionSet(String name,
+                             Collection<? extends Production> base) {
+            this(name);
+            addAll(base);
+        }
+
+        public String getName() {
+            return name;
+        }
+
+        public int size() {
+            return data.size();
+        }
+
+        public Iterator<Production> iterator() {
+            // Iterator does not implement addition so exposing this is fine.
+            return data.iterator();
+        }
+
+        public boolean contains(Production prod) {
+            return data.contains(prod);
+        }
+
+        public boolean add(Production prod) {
+            if (! getName().equals(prod.getName()))
+                throw new IllegalArgumentException(
+                    "Adding mismatching Production to ProductionSet");
+            return data.add(prod);
+        }
+
+        public boolean remove(Object obj) {
+            return data.remove(obj);
+        }
+
+        public void clear() {
+            data.clear();
+        }
+
+    }
+
     public static final int SYM_INLINE = 1;
     public static final int SYM_NONESSENTIAL = 2;
 
     public static final int SYM_ALL_FLAGS = 3;
 
-    private final Map<String, Set<Production>> productions;
-    private final Map<String, Set<Production>> productionsView;
+    private final Map<String, ProductionSet> productions;
+    private final Map<String, ProductionSet> productionsView;
 
     public Grammar() {
-        productions = new LinkedHashMap<String, Set<Production>>();
+        productions = new LinkedHashMap<String, ProductionSet>();
         productionsView = Collections.unmodifiableMap(productions);
     }
     public Grammar(Grammar other) {
-        productions = new LinkedHashMap<String, Set<Production>>(
+        productions = new LinkedHashMap<String, ProductionSet>(
             other.getProductions());
         productionsView = Collections.unmodifiableMap(productions);
     }
@@ -159,7 +214,7 @@ public class Grammar {
         sb.append(Integer.toHexString(hashCode()));
         sb.append('[');
         boolean first = true;
-        for (Set<Production> ps : productions.values()) {
+        for (ProductionSet ps : productions.values()) {
             for (Production p : ps) {
                 if (first) {
                     first = true;
@@ -173,20 +228,20 @@ public class Grammar {
         return sb.toString();
     }
 
-    protected Map<String, Set<Production>> getRawProductions() {
+    protected Map<String, ProductionSet> getRawProductions() {
         return productions;
     }
-    public Map<String, Set<Production>> getProductions() {
+    public Map<String, ProductionSet> getProductions() {
         return productionsView;
     }
-    public Set<Production> getProductions(String name) {
+    public ProductionSet getProductions(String name) {
         return productionsView.get(name);
     }
 
-    protected Set<Production> getProductionSet(String name, boolean create) {
-        Set<Production> ret = productions.get(name);
+    protected ProductionSet getProductionSet(String name, boolean create) {
+        ProductionSet ret = productions.get(name);
         if (ret == null && create) {
-            ret = new LinkedHashSet<Production>();
+            ret = new ProductionSet(name);
             productions.put(name, ret);
         }
         return ret;
@@ -195,21 +250,21 @@ public class Grammar {
         getProductionSet(prod.getName(), true).add(prod);
     }
     public void removeProduction(Production prod) {
-        Set<Production> subset = getProductionSet(prod.getName(), false);
+        ProductionSet subset = getProductionSet(prod.getName(), false);
         if (subset == null) return;
         subset.remove(prod);
         if (subset.isEmpty()) productions.remove(prod.getName());
     }
 
     protected boolean checkProductions(String name) {
-        Set<Production> res = getProductionSet(name, false);
+        ProductionSet res = getProductionSet(name, false);
         return (res != null && ! res.isEmpty());
     }
     protected void validate(String startSymbol)
             throws InvalidGrammarException {
         if (! checkProductions(startSymbol))
             throw new InvalidGrammarException("Missing start symbol");
-        for (Map.Entry<String, Set<Production>> e : productions.entrySet()) {
+        for (Map.Entry<String, ProductionSet> e : productions.entrySet()) {
             if (! Production.NAME_PATTERN.matcher(e.getKey()).matches())
                 throw new InvalidGrammarException("Invalid production name " +
                     e.getKey());
