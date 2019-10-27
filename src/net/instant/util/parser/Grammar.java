@@ -1,16 +1,15 @@
 package net.instant.util.parser;
 
-import java.util.AbstractSet;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
-import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
+import net.instant.util.NamedMap;
+import net.instant.util.NamedSet;
+import net.instant.util.NamedValue;
 
 public class Grammar {
 
@@ -87,7 +86,7 @@ public class Grammar {
 
     }
 
-    public static class Production {
+    public static class Production implements NamedValue {
 
         public static final Pattern NAME_PATTERN = Pattern.compile(
             "[a-zA-Z$_-][A-Za-z0-9$_-]*");
@@ -133,74 +132,21 @@ public class Grammar {
 
     }
 
-    public static class ProductionSet extends AbstractSet<Production> {
-
-        private final String name;
-        private final Set<Production> data;
-
-        public ProductionSet(String name) {
-            if (name == null)
-                throw new NullPointerException(
-                    "ProductionSet must have a name");
-            this.name = name;
-            this.data = new LinkedHashSet<Production>();
-        }
-        public ProductionSet(String name,
-                             Collection<? extends Production> base) {
-            this(name);
-            addAll(base);
-        }
-
-        public String getName() {
-            return name;
-        }
-
-        public int size() {
-            return data.size();
-        }
-
-        public Iterator<Production> iterator() {
-            // Iterator does not implement addition so exposing this is fine.
-            return data.iterator();
-        }
-
-        public boolean contains(Production prod) {
-            return data.contains(prod);
-        }
-
-        public boolean add(Production prod) {
-            if (! getName().equals(prod.getName()))
-                throw new IllegalArgumentException(
-                    "Adding mismatching Production to ProductionSet");
-            return data.add(prod);
-        }
-
-        public boolean remove(Object obj) {
-            return data.remove(obj);
-        }
-
-        public void clear() {
-            data.clear();
-        }
-
-    }
-
     public static final int SYM_INLINE = 1;
     public static final int SYM_NONESSENTIAL = 2;
 
     public static final int SYM_ALL_FLAGS = 3;
 
-    private final Map<String, ProductionSet> productions;
-    private final Map<String, ProductionSet> productionsView;
+    private final NamedMap<NamedSet<Production>> productions;
 
     public Grammar() {
-        productions = new LinkedHashMap<String, ProductionSet>();
-        productionsView = Collections.unmodifiableMap(productions);
+        productions = new NamedMap<NamedSet<Production>>(
+            new LinkedHashMap<String, NamedSet<Production>>());
     }
     public Grammar(Grammar other) {
-        productions = new LinkedHashMap<String, ProductionSet>(
-            other.getProductions());
-        productionsView = Collections.unmodifiableMap(productions);
+        productions = new NamedMap<NamedSet<Production>>(
+            new LinkedHashMap<String, NamedSet<Production>>(
+                other.getProductions()));
     }
     public Grammar(Production... productions) {
         this();
@@ -214,7 +160,7 @@ public class Grammar {
         sb.append(Integer.toHexString(hashCode()));
         sb.append('[');
         boolean first = true;
-        for (ProductionSet ps : productions.values()) {
+        for (Set<Production> ps : productions.values()) {
             for (Production p : ps) {
                 if (first) {
                     first = true;
@@ -228,20 +174,18 @@ public class Grammar {
         return sb.toString();
     }
 
-    protected Map<String, ProductionSet> getRawProductions() {
+    public NamedMap<NamedSet<Production>> getProductions() {
         return productions;
     }
-    public Map<String, ProductionSet> getProductions() {
-        return productionsView;
-    }
-    public ProductionSet getProductions(String name) {
-        return productionsView.get(name);
+    public Set<Production> getProductions(String name) {
+        return productions.get(name);
     }
 
-    protected ProductionSet getProductionSet(String name, boolean create) {
-        ProductionSet ret = productions.get(name);
+    protected Set<Production> getProductionSet(String name, boolean create) {
+        NamedSet<Production> ret = productions.get(name);
         if (ret == null && create) {
-            ret = new ProductionSet(name);
+            ret = new NamedSet<Production>(name,
+                                           new LinkedHashSet<Production>());
             productions.put(name, ret);
         }
         return ret;
@@ -250,25 +194,25 @@ public class Grammar {
         getProductionSet(prod.getName(), true).add(prod);
     }
     public void removeProduction(Production prod) {
-        ProductionSet subset = getProductionSet(prod.getName(), false);
+        Set<Production> subset = getProductionSet(prod.getName(), false);
         if (subset == null) return;
         subset.remove(prod);
         if (subset.isEmpty()) productions.remove(prod.getName());
     }
 
     protected boolean checkProductions(String name) {
-        ProductionSet res = getProductionSet(name, false);
+        Set<Production> res = getProductionSet(name, false);
         return (res != null && ! res.isEmpty());
     }
     protected void validate(String startSymbol)
             throws InvalidGrammarException {
         if (! checkProductions(startSymbol))
             throw new InvalidGrammarException("Missing start symbol");
-        for (Map.Entry<String, ProductionSet> e : productions.entrySet()) {
-            if (! Production.NAME_PATTERN.matcher(e.getKey()).matches())
+        for (NamedSet<Production> ps : productions.values()) {
+            if (! Production.NAME_PATTERN.matcher(ps.getName()).matches())
                 throw new InvalidGrammarException("Invalid production name " +
-                    e.getKey());
-            for (Production p : e.getValue()) {
+                    ps.getName());
+            for (Production p : ps) {
                 for (Symbol s : p.getSymbols()) {
                     if (s.getType() == SymbolType.NONTERMINAL &&
                             ! checkProductions(s.getContent()))
