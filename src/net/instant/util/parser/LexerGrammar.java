@@ -11,7 +11,7 @@ public class LexerGrammar extends Grammar {
     public LexerGrammar() {
         super();
     }
-    public LexerGrammar(Grammar copyFrom) {
+    public LexerGrammar(GrammarView copyFrom) {
         super(copyFrom);
     }
     public LexerGrammar(Production... productions) {
@@ -26,7 +26,7 @@ public class LexerGrammar extends Grammar {
             throw new InvalidGrammarException(
                 "LexerGrammar contains production cycle");
         stack.add(name);
-        for (Production pr : getProductions().get(name)) {
+        for (Production pr : getRawProductions(name)) {
             for (Symbol sym : pr.getSymbols()) {
                 if (sym.getType() != SymbolType.NONTERMINAL)
                     continue;
@@ -39,7 +39,7 @@ public class LexerGrammar extends Grammar {
     protected void validate(String startSymbol)
             throws InvalidGrammarException {
         super.validate(startSymbol);
-        for (Production pr : getProductions().get(startSymbol)) {
+        for (Production pr : getRawProductions(startSymbol)) {
             List<Symbol> syms = pr.getSymbols();
             if (syms.size() != 1)
                 throw new InvalidGrammarException("LexerGrammar start " +

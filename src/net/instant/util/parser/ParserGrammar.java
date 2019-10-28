@@ -9,7 +9,7 @@ public class ParserGrammar extends Grammar {
     public ParserGrammar() {
         super();
     }
-    public ParserGrammar(Grammar copyFrom) {
+    public ParserGrammar(GrammarView copyFrom) {
         super(copyFrom);
     }
     public ParserGrammar(Production... productions) {

@@ -11,7 +11,7 @@ import net.instant.util.NamedMap;
 import net.instant.util.NamedSet;
 import net.instant.util.NamedValue;
 
-public class Grammar {
+public class Grammar implements GrammarView {
 
     public enum SymbolType { NONTERMINAL, TERMINAL, PATTERN_TERMINAL }
 
@@ -143,10 +143,13 @@ public class Grammar {
         productions = new NamedMap<NamedSet<Production>>(
             new LinkedHashMap<String, NamedSet<Production>>());
     }
-    public Grammar(Grammar other) {
-        productions = new NamedMap<NamedSet<Production>>(
-            new LinkedHashMap<String, NamedSet<Production>>(
-                other.getProductions()));
+    public Grammar(GrammarView other) {
+        this();
+        for (String name : other.getProductionNames()) {
+            for (Production prod : other.getProductions(name)) {
+                addProduction(prod);
+            }
+        }
     }
     public Grammar(Production... productions) {
         this();
@@ -174,14 +177,21 @@ public class Grammar {
         return sb.toString();
     }
 
-    public NamedMap<NamedSet<Production>> getProductions() {
-        return productions;
+    public Set<String> getProductionNames() {
+        return Collections.unmodifiableSet(productions.keySet());
     }
     public Set<Production> getProductions(String name) {
-        return productions.get(name);
+        return Collections.unmodifiableSet(productions.get(name));
     }
 
-    protected Set<Production> getProductionSet(String name, boolean create) {
+    public NamedMap<NamedSet<Production>> getRawProductions() {
+        return productions;
+    }
+    public NamedSet<Production> getRawProductions(String name) {
+        return productions.get(name);
+    }
+    protected NamedSet<Production> getRawProductions(String name,
+                                                     boolean create) {
         NamedSet<Production> ret = productions.get(name);
         if (ret == null && create) {
             ret = new NamedSet<Production>(name,
@@ -190,18 +200,19 @@ public class Grammar {
         }
         return ret;
     }
+
     public void addProduction(Production prod) {
-        getProductionSet(prod.getName(), true).add(prod);
+        getRawProductions(prod.getName(), true).add(prod);
     }
     public void removeProduction(Production prod) {
-        Set<Production> subset = getProductionSet(prod.getName(), false);
+        Set<Production> subset = getRawProductions(prod.getName(), false);
         if (subset == null) return;
         subset.remove(prod);
         if (subset.isEmpty()) productions.remove(prod.getName());
     }
 
     protected boolean checkProductions(String name) {
-        Set<Production> res = getProductionSet(name, false);
+        Set<Production> res = getRawProductions(name, false);
         return (res != null && ! res.isEmpty());
     }
     protected void validate(String startSymbol)
