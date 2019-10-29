@@ -5,13 +5,68 @@ import java.io.IOException;
 import java.io.Reader;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.regex.MatchResult;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import net.instant.util.LineColumnReader;
 
 public class Lexer implements Closeable {
+
+    public static class LexerGrammar extends Grammar {
+
+        public static final String START_SYMBOL = "$tokens";
+
+        public LexerGrammar() {
+            super();
+        }
+        public LexerGrammar(GrammarView copyFrom) {
+            super(copyFrom);
+        }
+        public LexerGrammar(Production... productions) {
+            super(productions);
+        }
+
+        private void validateAcyclicity(String name, Set<String> stack,
+                Set<String> seen) throws InvalidGrammarException {
+            if (seen.contains(name))
+                return;
+            if (stack.contains(name))
+                throw new InvalidGrammarException(
+                    "LexerGrammar contains production cycle");
+            stack.add(name);
+            for (Production pr : getRawProductions(name)) {
+                for (Symbol sym : pr.getSymbols()) {
+                    if (sym.getType() != SymbolType.NONTERMINAL)
+                        continue;
+                    validateAcyclicity(sym.getContent(), stack, seen);
+                }
+            }
+            stack.remove(name);
+            seen.add(name);
+        }
+        protected void validate(String startSymbol)
+                throws InvalidGrammarException {
+            super.validate(startSymbol);
+            for (Production pr : getRawProductions(startSymbol)) {
+                List<Symbol> syms = pr.getSymbols();
+                if (syms.size() != 1)
+                    throw new InvalidGrammarException("LexerGrammar start " +
+                        "symbol productions must have exactly one symbol each");
+                if (syms.get(0).getType() != SymbolType.NONTERMINAL)
+                    throw new InvalidGrammarException("LexerGrammar start " +
+                        "symbol production symbols must be nonterminals");
+            }
+            validateAcyclicity(startSymbol, new HashSet<String>(),
+                               new HashSet<String>());
+        }
+        public void validate() throws InvalidGrammarException {
+            validate(START_SYMBOL);
+        }
+
+    }
 
     public static class Token {
 
@@ -201,7 +256,7 @@ public class Lexer implements Closeable {
             if (top && pr.getSymbols().size() != 1)
                 throw new IllegalArgumentException(
                     "Trying to compile a grammar with incorrect " +
-                    LexerGrammar.LEXER_START_SYMBOL +
+                    LexerGrammar.START_SYMBOL +
                     " production symbol counts?!");
             if (first) {
                 first = false;
@@ -213,7 +268,7 @@ public class Lexer implements Closeable {
                     if (sym.getType() != Grammar.SymbolType.NONTERMINAL)
                         throw new IllegalArgumentException(
                             "Trying to compile a grammar with invalid " +
-                            LexerGrammar.LEXER_START_SYMBOL +
+                            LexerGrammar.START_SYMBOL +
                             " production symbols?!");
                     names.add(pr.getName());
                     sb.append('(');
@@ -235,7 +290,7 @@ public class Lexer implements Closeable {
         lg.validate();
         StringBuilder sb = new StringBuilder();
         ArrayList<String> prodNames = new ArrayList<String>();
-        compileProductions(lg, LexerGrammar.LEXER_START_SYMBOL, true, sb,
+        compileProductions(lg, LexerGrammar.START_SYMBOL, true, sb,
                            prodNames);
         prodNames.trimToSize();
         return new CompiledGrammar(Pattern.compile(sb.toString()),
