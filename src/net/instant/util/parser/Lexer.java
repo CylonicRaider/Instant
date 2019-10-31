@@ -161,6 +161,34 @@ public class Lexer implements Closeable {
 
     }
 
+    public class LexerException extends ParserException {
+
+        private final LineColumnReader.Coordinates position;
+
+        public LexerException(LineColumnReader.Coordinates pos) {
+            super();
+            position = pos;
+        }
+        public LexerException(LineColumnReader.Coordinates pos, String message) {
+            super(message);
+            position = pos;
+        }
+        public LexerException(LineColumnReader.Coordinates pos, Throwable cause) {
+            super(cause);
+            position = pos;
+        }
+        public LexerException(LineColumnReader.Coordinates pos, String message,
+                              Throwable cause) {
+            super(message, cause);
+            position = pos;
+        }
+
+        public LineColumnReader.Coordinates getPosition() {
+            return position;
+        }
+
+    }
+
     private static final int BUFFER_SIZE = 8192;
 
     private final CompiledGrammar grammar;
