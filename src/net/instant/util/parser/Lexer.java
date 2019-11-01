@@ -161,7 +161,7 @@ public class Lexer implements Closeable {
 
     }
 
-    public class LexerException extends ParserException {
+    public class LexerException extends BaseParserException {
 
         private final LineColumnReader.Coordinates position;
 
@@ -169,16 +169,18 @@ public class Lexer implements Closeable {
             super();
             position = pos;
         }
-        public LexerException(LineColumnReader.Coordinates pos, String message) {
+        public LexerException(LineColumnReader.Coordinates pos,
+                              String message) {
             super(message);
             position = pos;
         }
-        public LexerException(LineColumnReader.Coordinates pos, Throwable cause) {
+        public LexerException(LineColumnReader.Coordinates pos,
+                              Throwable cause) {
             super(cause);
             position = pos;
         }
-        public LexerException(LineColumnReader.Coordinates pos, String message,
-                              Throwable cause) {
+        public LexerException(LineColumnReader.Coordinates pos,
+                              String message, Throwable cause) {
             super(message, cause);
             position = pos;
         }
