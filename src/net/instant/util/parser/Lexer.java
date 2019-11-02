@@ -68,6 +68,40 @@ public class Lexer implements Closeable {
 
     }
 
+    public static class CompiledGrammar {
+
+        private final Pattern pattern;
+        private final List<String> prodNames;
+
+        public CompiledGrammar(Pattern pattern, List<String> prodNames) {
+            this.pattern = pattern;
+            this.prodNames = prodNames;
+        }
+
+        public Pattern getPattern() {
+            return pattern;
+        }
+
+        public List<String> getProductionNames() {
+            return prodNames;
+        }
+
+        public Lexer makeLexer(LineColumnReader input) {
+            return new Lexer(this, input);
+        }
+        public Lexer makeLexer(Reader input) {
+            return new Lexer(this, input);
+        }
+
+        public static int findMatchedGroup(MatchResult res) {
+            for (int i = 1; i < res.groupCount(); i++) {
+                if (res.start(i) != -1) return i;
+            }
+            return -1;
+        }
+
+    }
+
     public static class Token {
 
         private final LineColumnReader.Coordinates position;
@@ -123,40 +157,6 @@ public class Lexer implements Closeable {
         }
         private static int hashCodeOrNull(Object o) {
             return (o == null) ? 0 : o.hashCode();
-        }
-
-    }
-
-    public static class CompiledGrammar {
-
-        private final Pattern pattern;
-        private final List<String> prodNames;
-
-        public CompiledGrammar(Pattern pattern, List<String> prodNames) {
-            this.pattern = pattern;
-            this.prodNames = prodNames;
-        }
-
-        public Pattern getPattern() {
-            return pattern;
-        }
-
-        public List<String> getProductionNames() {
-            return prodNames;
-        }
-
-        public Lexer makeLexer(LineColumnReader input) {
-            return new Lexer(this, input);
-        }
-        public Lexer makeLexer(Reader input) {
-            return new Lexer(this, input);
-        }
-
-        public static int findMatchedGroup(MatchResult res) {
-            for (int i = 1; i < res.groupCount(); i++) {
-                if (res.start(i) != -1) return i;
-            }
-            return -1;
         }
 
     }
