@@ -70,12 +70,19 @@ public class Lexer implements Closeable {
 
     public static class CompiledGrammar {
 
+        private final LexerGrammar source;
         private final Pattern pattern;
         private final List<String> prodNames;
 
-        public CompiledGrammar(Pattern pattern, List<String> prodNames) {
+        protected CompiledGrammar(LexerGrammar source, Pattern pattern,
+                                  List<String> prodNames) {
+            this.source = source;
             this.pattern = pattern;
             this.prodNames = prodNames;
+        }
+
+        public GrammarView getSource() {
+            return source;
         }
 
         public Pattern getPattern() {
@@ -323,7 +330,7 @@ public class Lexer implements Closeable {
         compileProductions(lg, LexerGrammar.START_SYMBOL, true, sb,
                            prodNames);
         prodNames.trimToSize();
-        return new CompiledGrammar(Pattern.compile(sb.toString()),
+        return new CompiledGrammar(lg, Pattern.compile(sb.toString()),
                                    Collections.unmodifiableList(prodNames));
     }
 
