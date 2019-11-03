@@ -168,32 +168,22 @@ public class Lexer implements Closeable {
 
     }
 
-    public class LexerException extends BaseParserException {
-
-        private final LineColumnReader.Coordinates position;
+    public class LexerException extends LocatedParserException {
 
         public LexerException(LineColumnReader.Coordinates pos) {
-            super();
-            position = pos;
+            super(pos);
         }
         public LexerException(LineColumnReader.Coordinates pos,
                               String message) {
-            super(message);
-            position = pos;
+            super(pos, message);
         }
         public LexerException(LineColumnReader.Coordinates pos,
                               Throwable cause) {
-            super(cause);
-            position = pos;
+            super(pos, cause);
         }
         public LexerException(LineColumnReader.Coordinates pos,
                               String message, Throwable cause) {
-            super(message, cause);
-            position = pos;
-        }
-
-        public LineColumnReader.Coordinates getPosition() {
-            return position;
+            super(pos, message, cause);
         }
 
     }
