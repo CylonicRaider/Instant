@@ -68,17 +68,17 @@ public class Lexer implements Closeable {
 
     }
 
-    public static class CompiledGrammar {
+    public static class CompiledGrammar implements GrammarView {
 
         private final LexerGrammar source;
         private final Pattern pattern;
-        private final List<String> prodNames;
+        private final List<String> groupNames;
 
         protected CompiledGrammar(LexerGrammar source, Pattern pattern,
-                                  List<String> prodNames) {
+                                  List<String> groupNames) {
             this.source = source;
             this.pattern = pattern;
-            this.prodNames = prodNames;
+            this.groupNames = groupNames;
         }
 
         public GrammarView getSource() {
@@ -89,8 +89,16 @@ public class Lexer implements Closeable {
             return pattern;
         }
 
-        public List<String> getProductionNames() {
-            return prodNames;
+        public List<String> getGroupNames() {
+            return groupNames;
+        }
+
+        public Set<String> getProductionNames() {
+            return source.getProductionNames();
+        }
+
+        public Set<Grammar.Production> getProductions(String name) {
+            return source.getProductions(name);
         }
 
         public Lexer makeLexer(LineColumnReader input) {
@@ -248,7 +256,7 @@ public class Lexer implements Closeable {
             if (matcher.lookingAt() && (atEOF || ! matcher.hitEnd())) {
                 int groupIdx = CompiledGrammar.findMatchedGroup(matcher);
                 outputBuffer = consumeInput(matcher.end(),
-                    grammar.getProductionNames().get(groupIdx));
+                    grammar.getGroupNames().get(groupIdx));
                 return outputBuffer;
             } else if (atEOF) {
                 if (inputBuffer.length() == 0)
@@ -316,12 +324,12 @@ public class Lexer implements Closeable {
         LexerGrammar lg = new LexerGrammar(g);
         lg.validate();
         StringBuilder sb = new StringBuilder();
-        ArrayList<String> prodNames = new ArrayList<String>();
+        ArrayList<String> groupNames = new ArrayList<String>();
         compileProductions(lg, LexerGrammar.START_SYMBOL, true, sb,
-                           prodNames);
-        prodNames.trimToSize();
+                           groupNames);
+        groupNames.trimToSize();
         return new CompiledGrammar(lg, Pattern.compile(sb.toString()),
-                                   Collections.unmodifiableList(prodNames));
+                                   Collections.unmodifiableList(groupNames));
     }
 
 }
