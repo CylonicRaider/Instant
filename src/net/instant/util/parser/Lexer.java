@@ -176,20 +176,20 @@ public class Lexer implements Closeable {
 
     }
 
-    public class LexerException extends LocatedParserException {
+    public class LexingException extends LocatedParserException {
 
-        public LexerException(LineColumnReader.Coordinates pos) {
+        public LexingException(LineColumnReader.Coordinates pos) {
             super(pos);
         }
-        public LexerException(LineColumnReader.Coordinates pos,
+        public LexingException(LineColumnReader.Coordinates pos,
                               String message) {
             super(pos, message);
         }
-        public LexerException(LineColumnReader.Coordinates pos,
+        public LexingException(LineColumnReader.Coordinates pos,
                               Throwable cause) {
             super(pos, cause);
         }
-        public LexerException(LineColumnReader.Coordinates pos,
+        public LexingException(LineColumnReader.Coordinates pos,
                               String message, Throwable cause) {
             super(pos, message, cause);
         }
@@ -249,7 +249,7 @@ public class Lexer implements Closeable {
         return ret;
     }
 
-    public Token peek() throws IOException, LexerException {
+    public Token peek() throws IOException, LexingException {
         if (outputBuffer != null)
             return outputBuffer;
         for (;;) {
@@ -261,7 +261,7 @@ public class Lexer implements Closeable {
             } else if (atEOF) {
                 if (inputBuffer.length() == 0)
                     return null;
-                throw new LexerException(
+                throw new LexingException(
                     new LineColumnReader.FixedCoordinates(inputPosition),
                     "Unconsumed input");
             }
@@ -269,7 +269,7 @@ public class Lexer implements Closeable {
         }
     }
 
-    public Token read() throws IOException, LexerException {
+    public Token read() throws IOException, LexingException {
         if (outputBuffer == null) peek();
         Token ret = outputBuffer;
         outputBuffer = null;

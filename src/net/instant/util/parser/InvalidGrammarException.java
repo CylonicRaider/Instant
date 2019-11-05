@@ -1,6 +1,6 @@
 package net.instant.util.parser;
 
-public class InvalidGrammarException extends BaseParserException {
+public class InvalidGrammarException extends ParserException {
 
     public InvalidGrammarException() {
         super();

@@ -2,7 +2,7 @@ package net.instant.util.parser;
 
 import net.instant.util.LineColumnReader;
 
-public class LocatedParserException extends BaseParserException {
+public class LocatedParserException extends ParserException {
 
     private final LineColumnReader.Coordinates position;
 
