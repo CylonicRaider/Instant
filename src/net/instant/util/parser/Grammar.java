@@ -84,6 +84,12 @@ public class Grammar implements GrammarView {
             return pattern;
         }
 
+        public boolean matches(String input) {
+            Pattern pat = getPattern();
+            if (pat == null) return false;
+            return pat.matcher(input).matches();
+        }
+
     }
 
     public static class Production implements NamedValue {

@@ -167,6 +167,10 @@ public class Lexer implements Closeable {
             return text;
         }
 
+        public boolean matches(Grammar.Symbol sym) {
+            return sym.matches(getText());
+        }
+
         private static boolean equalOrNull(String a, String b) {
             return (a == null) ? (b == null) : a.equals(b);
         }
