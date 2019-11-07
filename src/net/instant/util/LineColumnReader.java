@@ -9,11 +9,13 @@ import java.io.Reader;
 public class LineColumnReader extends BufferedReader {
 
     public interface Coordinates {
+
         long getLine();
 
         long getColumn();
 
         long getCharacterIndex();
+
     }
 
     public static class FixedCoordinates implements Coordinates {
