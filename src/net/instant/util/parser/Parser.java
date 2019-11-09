@@ -57,7 +57,7 @@ public class Parser {
 
     }
 
-    public class ParsingException extends LocatedParserException {
+    public static class ParsingException extends LocatedParserException {
 
         public ParsingException(LineColumnReader.Coordinates pos) {
             super(pos);

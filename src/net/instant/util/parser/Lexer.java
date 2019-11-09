@@ -180,7 +180,7 @@ public class Lexer implements Closeable {
 
     }
 
-    public class LexingException extends LocatedParserException {
+    public static class LexingException extends LocatedParserException {
 
         public LexingException(LineColumnReader.Coordinates pos) {
             super(pos);
