@@ -48,6 +48,8 @@ public class Parser {
 
         void nextToken() throws ParsingException;
 
+        void storeToken(Lexer.Token tok);
+
         void setState(State next);
 
         void pushState(State st, String treeNodeName);
@@ -124,12 +126,12 @@ public class Parser {
 
     }
 
-    public static class CheckState implements State {
+    public static class LiteralState implements State {
 
         private final Grammar.Symbol expected;
         private final State successor;
 
-        public CheckState(Grammar.Symbol expected, State successor) {
+        public LiteralState(Grammar.Symbol expected, State successor) {
             this.expected = expected;
             this.successor = successor;
         }
@@ -150,6 +152,7 @@ public class Parser {
                 throw status.parsingException("Unexpected token " + tok +
                     ", expected " + expected);
             } else {
+                status.storeToken(tok);
                 status.nextToken();
                 status.setState(successor);
             }
