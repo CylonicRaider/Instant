@@ -1,7 +1,9 @@
 package net.instant.util.parser;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import net.instant.util.LineColumnReader;
 
@@ -40,6 +42,16 @@ public class Parser {
 
     }
 
+    public interface ParseTree {
+
+        Grammar.Symbol getSymbol();
+
+        Lexer.Token getToken();
+
+        List<ParseTree> getChildren();
+
+    }
+
     public static class ParsingException extends LocatedParserException {
 
         public ParsingException(LineColumnReader.Coordinates pos) {
@@ -56,6 +68,42 @@ public class Parser {
         public ParsingException(LineColumnReader.Coordinates pos,
                               String message, Throwable cause) {
             super(pos, message, cause);
+        }
+
+    }
+
+    public static class ParseTreeImpl implements ParseTree {
+
+        private final Grammar.Symbol symbol;
+        private final Lexer.Token token;
+        private final List<ParseTree> children;
+        private final List<ParseTree> childrenView;
+
+        public ParseTreeImpl(Grammar.Symbol symbol, Lexer.Token token) {
+            this.symbol = symbol;
+            this.token = token;
+            this.children = new ArrayList<ParseTree>();
+            this.childrenView = Collections.unmodifiableList(children);
+        }
+
+        public Grammar.Symbol getSymbol() {
+            return symbol;
+        }
+
+        public Lexer.Token getToken() {
+            return token;
+        }
+
+        public List<ParseTree> getChildren() {
+            return childrenView;
+        }
+
+        protected List<ParseTree> getRawChildren() {
+            return children;
+        }
+
+        public void addChild(ParseTree ch) {
+            getRawChildren().add(ch);
         }
 
     }
