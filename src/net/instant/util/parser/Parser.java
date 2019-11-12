@@ -72,6 +72,32 @@ public class Parser {
 
     }
 
+    public interface Status {
+
+        LineColumnReader.Coordinates getCurrentPosition();
+
+        Lexer.Token getCurrentToken();
+
+        void nextToken() throws ParsingException;
+
+        void storeToken(Lexer.Token tok);
+
+        void setState(State next);
+
+        void pushState(State st, String treeNodeName);
+
+        void popState() throws ParsingException;
+
+        ParsingException parsingException(String message);
+
+    }
+
+    public interface State {
+
+        void apply(Status status) throws ParsingException;
+
+    }
+
     public static class ParseTreeImpl implements ParseTree {
 
         private final Grammar.Symbol symbol;
@@ -105,32 +131,6 @@ public class Parser {
         public void addChild(ParseTree ch) {
             getRawChildren().add(ch);
         }
-
-    }
-
-    public interface Status {
-
-        LineColumnReader.Coordinates getCurrentPosition();
-
-        Lexer.Token getCurrentToken();
-
-        void nextToken() throws ParsingException;
-
-        void storeToken(Lexer.Token tok);
-
-        void setState(State next);
-
-        void pushState(State st, String treeNodeName);
-
-        void popState() throws ParsingException;
-
-        ParsingException parsingException(String message);
-
-    }
-
-    public interface State {
-
-        void apply(Status status) throws ParsingException;
 
     }
 
