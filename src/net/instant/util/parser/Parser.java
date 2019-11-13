@@ -58,15 +58,15 @@ public class Parser {
             super(pos);
         }
         public ParsingException(LineColumnReader.Coordinates pos,
-                              String message) {
+                                String message) {
             super(pos, message);
         }
         public ParsingException(LineColumnReader.Coordinates pos,
-                              Throwable cause) {
+                                Throwable cause) {
             super(pos, cause);
         }
         public ParsingException(LineColumnReader.Coordinates pos,
-                              String message, Throwable cause) {
+                                String message, Throwable cause) {
             super(pos, message, cause);
         }
 

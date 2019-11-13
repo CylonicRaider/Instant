@@ -186,15 +186,15 @@ public class Lexer implements Closeable {
             super(pos);
         }
         public LexingException(LineColumnReader.Coordinates pos,
-                              String message) {
+                               String message) {
             super(pos, message);
         }
         public LexingException(LineColumnReader.Coordinates pos,
-                              Throwable cause) {
+                               Throwable cause) {
             super(pos, cause);
         }
         public LexingException(LineColumnReader.Coordinates pos,
-                              String message, Throwable cause) {
+                               String message, Throwable cause) {
             super(pos, message, cause);
         }
 
