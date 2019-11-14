@@ -1,11 +1,13 @@
 package net.instant.util.parser;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import net.instant.util.LineColumnReader;
+import net.instant.util.NamedValue;
 
 public class Parser {
 
@@ -42,9 +44,7 @@ public class Parser {
 
     }
 
-    public interface ParseTree {
-
-        Grammar.Symbol getSymbol();
+    public interface ParseTree extends NamedValue {
 
         Lexer.Token getToken();
 
@@ -76,7 +76,7 @@ public class Parser {
 
         LineColumnReader.Coordinates getCurrentPosition();
 
-        Lexer.Token getCurrentToken();
+        Lexer.Token getCurrentToken() throws ParsingException;
 
         void nextToken() throws ParsingException;
 
@@ -100,20 +100,27 @@ public class Parser {
 
     public static class ParseTreeImpl implements ParseTree {
 
-        private final Grammar.Symbol symbol;
+        private final String name;
         private final Lexer.Token token;
         private final List<ParseTree> children;
         private final List<ParseTree> childrenView;
 
-        public ParseTreeImpl(Grammar.Symbol symbol, Lexer.Token token) {
-            this.symbol = symbol;
-            this.token = token;
+        {
             this.children = new ArrayList<ParseTree>();
             this.childrenView = Collections.unmodifiableList(children);
         }
 
-        public Grammar.Symbol getSymbol() {
-            return symbol;
+        public ParseTreeImpl(Lexer.Token token) {
+            this.name = token.getProduction();
+            this.token = token;
+        }
+        public ParseTreeImpl(String name) {
+            this.name = name;
+            this.token = null;
+        }
+
+        public String getName() {
+            return name;
         }
 
         public Lexer.Token getToken() {
@@ -130,6 +137,66 @@ public class Parser {
 
         public void addChild(ParseTree ch) {
             getRawChildren().add(ch);
+        }
+
+    }
+
+    private class StatusImpl implements Status {
+
+        public LineColumnReader.Coordinates getCurrentPosition() {
+            return getSource().getPosition();
+        }
+
+        public Lexer.Token getCurrentToken() throws ParsingException {
+            try {
+                return getSource().peek();
+            } catch (IOException exc) {
+                throw new ParsingException(getCurrentPosition(), exc);
+            } catch (Lexer.LexingException exc) {
+                throw new ParsingException(exc.getPosition(), exc);
+            }
+        }
+
+        public void nextToken() throws ParsingException {
+            try {
+                getSource().read();
+            } catch (IOException exc) {
+                throw new ParsingException(getCurrentPosition(), exc);
+            } catch (Lexer.LexingException exc) {
+                throw new ParsingException(exc.getPosition(), exc);
+            }
+        }
+
+        public void storeToken(Lexer.Token tok) {
+            List<ParseTreeImpl> stack = getTreeStack();
+            if (stack.size() == 0)
+                throw new IllegalStateException(
+                    "Trying to append token without a parse tree?!");
+            ParseTreeImpl top = stack.get(stack.size() - 1);
+            top.addChild(new ParseTreeImpl(tok));
+        }
+
+        public void setState(State next) {
+            Parser.this.setState(next);
+        }
+
+        public void pushState(State st, String treeNodeName) {
+            getTreeStack().add(new ParseTreeImpl(treeNodeName));
+            getStateStack().add(st);
+        }
+
+        public void popState() throws ParsingException {
+            List<State> stateStack = getStateStack();
+            List<ParseTreeImpl> treeStack = getTreeStack();
+            if (stateStack.isEmpty())
+                throw new IllegalStateException(
+                    "Attempting to pop empty stack!");
+            stateStack.remove(stateStack.size() - 1);
+            treeStack.remove(treeStack.size() - 1);
+        }
+
+        public ParsingException parsingException(String message) {
+            return new ParsingException(getCurrentPosition(), message);
         }
 
     }
@@ -250,6 +317,43 @@ public class Parser {
             status.setState(succ);
         }
 
+    }
+
+    private final Lexer source;
+    private final List<ParseTreeImpl> treeStack;
+    private final List<State> stateStack;
+    private final Status status;
+    private State state;
+
+    public Parser(Lexer source, State initialState) {
+        this.source = source;
+        this.treeStack = new ArrayList<ParseTreeImpl>();
+        this.stateStack = new ArrayList<State>();
+        this.status = new StatusImpl();
+        this.state = initialState;
+    }
+
+    protected Lexer getSource() {
+        return source;
+    }
+
+    private List<ParseTreeImpl> getTreeStack() {
+        return treeStack;
+    }
+
+    private List<State> getStateStack() {
+        return stateStack;
+    }
+
+    public Status getStatus() {
+        return status;
+    }
+
+    protected State getState() {
+        return state;
+    }
+    protected void setState(State st) {
+        state = st;
     }
 
 }
