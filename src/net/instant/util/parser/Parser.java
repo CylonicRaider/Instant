@@ -50,6 +50,10 @@ public class Parser {
 
         List<ParseTree> getChildren();
 
+        int childCount();
+
+        ParseTree childAt(int index);
+
     }
 
     public static class ParsingException extends LocatedParserException {
@@ -106,8 +110,8 @@ public class Parser {
         private final List<ParseTree> childrenView;
 
         {
-            this.children = new ArrayList<ParseTree>();
-            this.childrenView = Collections.unmodifiableList(children);
+            children = new ArrayList<ParseTree>();
+            childrenView = Collections.unmodifiableList(children);
         }
 
         public ParseTreeImpl(Lexer.Token token) {
@@ -133,6 +137,14 @@ public class Parser {
 
         protected List<ParseTree> getRawChildren() {
             return children;
+        }
+
+        public int childCount() {
+            return children.size();
+        }
+
+        public ParseTree childAt(int index) {
+            return children.get(index);
         }
 
         public void addChild(ParseTree ch) {
@@ -324,6 +336,7 @@ public class Parser {
     private final List<State> stateStack;
     private final Status status;
     private State state;
+    private ParseTree result;
 
     public Parser(Lexer source, State initialState) {
         this.source = source;
@@ -331,6 +344,7 @@ public class Parser {
         this.stateStack = new ArrayList<State>();
         this.status = new StatusImpl();
         this.state = initialState;
+        this.result = null;
     }
 
     protected Lexer getSource() {
@@ -354,6 +368,28 @@ public class Parser {
     }
     protected void setState(State st) {
         state = st;
+    }
+
+    public ParseTree getResult() {
+        return result;
+    }
+
+    public ParseTree parse() throws ParsingException {
+        if (result != null) return result;
+        getTreeStack().add(new ParseTreeImpl((String) null));
+        for (;;) {
+            State st = getState();
+            if (st == null) break;
+            st.apply(getStatus());
+        }
+        if (getStateStack().size() != 0)
+            throw getStatus().parsingException("Unfinished input");
+        if (getTreeStack().size() != 1 ||
+                getTreeStack().get(0).childCount() != 1)
+            throw new IllegalStateException(
+                "Internal parser state corrupted!");
+        result = getTreeStack().remove(0).childAt(0);
+        return result;
     }
 
 }
