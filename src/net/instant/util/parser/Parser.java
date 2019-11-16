@@ -4,8 +4,10 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import net.instant.util.LineColumnReader;
 import net.instant.util.NamedValue;
 
@@ -390,6 +392,35 @@ public class Parser {
                 "Internal parser state corrupted!");
         result = getTreeStack().remove(0).childAt(0);
         return result;
+    }
+
+    private Set<String> findInitialSymbols(Grammar g, String prodName,
+            Map<String, Set<String>> cache, Set<String> seen)
+            throws InvalidGrammarException {
+        Set<String> ret = cache.get(prodName);
+        if (ret != null)
+            return ret;
+        if (seen.contains(prodName))
+            throw new InvalidGrammarException("Grammar is left-recursive");
+        seen.add(prodName);
+        ret = new HashSet<String>();
+        for (Grammar.Production p : g.getRawProductions(prodName)) {
+            List<Grammar.Symbol> sl = p.getSymbols();
+            if (sl.size() == 0) continue;
+            Grammar.Symbol s = sl.get(0);
+            if (s.getType() != Grammar.SymbolType.NONTERMINAL)
+                throw new InvalidGrammarException("First symbol of a " +
+                    "production alternative may not be a terminal");
+            String c = s.getContent();
+            if (g.getRawProductions().containsKey(c)) {
+                ret.addAll(findInitialSymbols(g, c, cache, seen));
+            } else {
+                ret.add(c);
+            }
+        }
+        seen.remove(prodName);
+        cache.put(prodName, ret);
+        return ret;
     }
 
 }
