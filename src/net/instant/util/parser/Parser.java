@@ -333,6 +333,46 @@ public class Parser {
 
     }
 
+    protected static class Compiler {
+
+        private final ParserGrammar grammar;
+        private final Map<String, Set<String>> initialSymbolCache;
+
+        public Compiler(Grammar grammar) {
+            this.grammar = new ParserGrammar(grammar);
+            this.initialSymbolCache = new HashMap<String, Set<String>>();
+        }
+
+        protected Set<String> findInitialSymbols(String prodName,
+                Set<String> seen) throws InvalidGrammarException {
+            Set<String> ret = initialSymbolCache.get(prodName);
+            if (ret != null)
+                return ret;
+            if (seen.contains(prodName))
+                throw new InvalidGrammarException("Grammar is left-recursive");
+            seen.add(prodName);
+            ret = new HashSet<String>();
+            for (Grammar.Production p : grammar.getRawProductions(prodName)) {
+                List<Grammar.Symbol> sl = p.getSymbols();
+                if (sl.size() == 0) continue;
+                Grammar.Symbol s = sl.get(0);
+                if (s.getType() != Grammar.SymbolType.NONTERMINAL)
+                    throw new InvalidGrammarException("First symbol of a " +
+                        "production alternative may not be a terminal");
+                String c = s.getContent();
+                if (grammar.getRawProductions().containsKey(c)) {
+                    ret.addAll(findInitialSymbols(c, seen));
+                } else {
+                    ret.add(c);
+                }
+            }
+            seen.remove(prodName);
+            initialSymbolCache.put(prodName, ret);
+            return ret;
+        }
+
+    }
+
     private final Lexer source;
     private final List<ParseTreeImpl> treeStack;
     private final List<State> stateStack;
@@ -392,35 +432,6 @@ public class Parser {
                 "Internal parser state corrupted!");
         result = getTreeStack().remove(0).childAt(0);
         return result;
-    }
-
-    private Set<String> findInitialSymbols(Grammar g, String prodName,
-            Map<String, Set<String>> cache, Set<String> seen)
-            throws InvalidGrammarException {
-        Set<String> ret = cache.get(prodName);
-        if (ret != null)
-            return ret;
-        if (seen.contains(prodName))
-            throw new InvalidGrammarException("Grammar is left-recursive");
-        seen.add(prodName);
-        ret = new HashSet<String>();
-        for (Grammar.Production p : g.getRawProductions(prodName)) {
-            List<Grammar.Symbol> sl = p.getSymbols();
-            if (sl.size() == 0) continue;
-            Grammar.Symbol s = sl.get(0);
-            if (s.getType() != Grammar.SymbolType.NONTERMINAL)
-                throw new InvalidGrammarException("First symbol of a " +
-                    "production alternative may not be a terminal");
-            String c = s.getContent();
-            if (g.getRawProductions().containsKey(c)) {
-                ret.addAll(findInitialSymbols(g, c, cache, seen));
-            } else {
-                ret.add(c);
-            }
-        }
-        seen.remove(prodName);
-        cache.put(prodName, ret);
-        return ret;
     }
 
 }
