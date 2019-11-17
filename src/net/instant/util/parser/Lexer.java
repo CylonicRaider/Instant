@@ -288,8 +288,8 @@ public class Lexer implements Closeable {
         outputBuffer = null;
     }
 
-    private static void compileProductions(LexerGrammar g,
-            String name, boolean top, StringBuilder sb, List<String> names) {
+    private static void compileProductions(LexerGrammar g, String name,
+            boolean top, StringBuilder sb, List<String> names) {
         boolean first = true;
         for (Grammar.Production pr : g.getProductions(name)) {
             if (top && pr.getSymbols().size() != 1)
