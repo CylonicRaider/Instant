@@ -218,14 +218,17 @@ public class Parser {
     public static class PushState implements State {
 
         private final String treeNodeName;
-        private final State successor;
-        private final State returnSuccessor;
+        private State successor;
+        private State returnSuccessor;
 
         public PushState(String treeNodeName, State successor,
                          State returnSuccessor) {
             this.treeNodeName = treeNodeName;
             this.successor = successor;
             this.returnSuccessor = returnSuccessor;
+        }
+        public PushState(String treeNodeName) {
+            this(treeNodeName, null, null);
         }
 
         public String getTreeNodeName() {
@@ -235,9 +238,15 @@ public class Parser {
         public State getSuccessor() {
             return successor;
         }
+        public void setSuccessor(State s) {
+            successor = s;
+        }
 
         public State getReturnSuccessor() {
             return returnSuccessor;
+        }
+        public void setReturnSuccessor(State s) {
+            returnSuccessor = s;
         }
 
         public void apply(Status status) {
@@ -258,11 +267,14 @@ public class Parser {
     public static class LiteralState implements State {
 
         private final Grammar.Symbol expected;
-        private final State successor;
+        private State successor;
 
         public LiteralState(Grammar.Symbol expected, State successor) {
             this.expected = expected;
             this.successor = successor;
+        }
+        public LiteralState(Grammar.Symbol expected) {
+            this(expected, null);
         }
 
         public Grammar.Symbol getExpected() {
@@ -271,6 +283,9 @@ public class Parser {
 
         public State getSuccessor() {
             return successor;
+        }
+        public void setSuccessor(State s) {
+            successor = s;
         }
 
         public void apply(Status status) throws ParsingException {
@@ -294,12 +309,18 @@ public class Parser {
         private final Map<String, State> successors;
 
         public BranchState(Map<String, State> successors) {
-            this.successors = Collections.unmodifiableMap(
-                new HashMap<String, State>(successors));
+            this.successors = successors;
+        }
+        public BranchState() {
+            this(new HashMap<String, State>());
         }
 
         public Map<String, State> getSuccessors() {
             return successors;
+        }
+
+        public void addSuccessor(String prodName, State st) {
+            successors.put(prodName, st);
         }
 
         public String formatSuccessors() {
