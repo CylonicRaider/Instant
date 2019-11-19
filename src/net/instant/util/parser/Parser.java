@@ -215,6 +215,30 @@ public class Parser {
 
     }
 
+    public static class NullState implements State {
+
+        private State successor;
+
+        public NullState(State successor) {
+            this.successor = successor;
+        }
+        public NullState() {
+            this(null);
+        }
+
+        public State getSuccessor() {
+            return successor;
+        }
+        public void setSuccessor(State s) {
+            successor = s;
+        }
+
+        public void apply(Status status) {
+            status.setState(successor);
+        }
+
+    }
+
     public static class PushState implements State {
 
         private final String treeNodeName;
