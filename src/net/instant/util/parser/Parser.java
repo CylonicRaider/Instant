@@ -381,11 +381,22 @@ public class Parser {
     protected static class Compiler {
 
         private final ParserGrammar grammar;
+        private final Map<String, State> initialStates;
         private final Map<String, Set<String>> initialSymbolCache;
 
         public Compiler(Grammar grammar) {
             this.grammar = new ParserGrammar(grammar);
+            this.initialStates = new HashMap<String, State>();
             this.initialSymbolCache = new HashMap<String, Set<String>>();
+        }
+
+        protected State getInitialState(String prodName) {
+            State ret = initialStates.get(prodName);
+            if (ret == null) {
+                ret = new NullState(new PopState());
+                initialStates.put(prodName, ret);
+            }
+            return ret;
         }
 
         protected Set<String> findInitialSymbols(String prodName,
