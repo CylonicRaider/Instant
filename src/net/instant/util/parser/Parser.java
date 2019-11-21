@@ -104,6 +104,22 @@ public class Parser {
 
     }
 
+    public interface SingleSuccessorState extends State {
+
+        State getSuccessor();
+
+        void setSuccessor(State succ);
+
+    }
+
+    public interface MultiSuccessorState extends State {
+
+        State getSuccessor(Grammar.Symbol selector);
+
+        void setSuccessor(Grammar.Symbol selector, State succ);
+
+    }
+
     public static class ParseTreeImpl implements ParseTree {
 
         private final String name;
@@ -215,7 +231,7 @@ public class Parser {
 
     }
 
-    public static class NullState implements State {
+    public static class NullState implements SingleSuccessorState {
 
         private State successor;
 
@@ -239,17 +255,17 @@ public class Parser {
 
     }
 
-    public static class PushState implements State {
+    public static class PushState implements SingleSuccessorState {
 
         private final String treeNodeName;
         private State successor;
-        private State returnSuccessor;
+        private State callState;
 
         public PushState(String treeNodeName, State successor,
-                         State returnSuccessor) {
+                         State callState) {
             this.treeNodeName = treeNodeName;
             this.successor = successor;
-            this.returnSuccessor = returnSuccessor;
+            this.callState = callState;
         }
         public PushState(String treeNodeName) {
             this(treeNodeName, null, null);
@@ -266,16 +282,16 @@ public class Parser {
             successor = s;
         }
 
-        public State getReturnSuccessor() {
-            return returnSuccessor;
+        public State getCallState() {
+            return callState;
         }
-        public void setReturnSuccessor(State s) {
-            returnSuccessor = s;
+        public void setCallState(State s) {
+            callState = s;
         }
 
         public void apply(Status status) {
-            status.pushState(returnSuccessor, treeNodeName);
-            status.setState(successor);
+            status.pushState(successor, treeNodeName);
+            status.setState(callState);
         }
 
     }
@@ -288,7 +304,7 @@ public class Parser {
 
     }
 
-    public static class LiteralState implements State {
+    public static class LiteralState implements SingleSuccessorState {
 
         private final Grammar.Symbol expected;
         private State successor;
@@ -328,7 +344,7 @@ public class Parser {
 
     }
 
-    public static class BranchState implements State {
+    public static class BranchState implements MultiSuccessorState {
 
         private final Map<String, State> successors;
 
@@ -343,8 +359,16 @@ public class Parser {
             return successors;
         }
 
-        public void addSuccessor(String prodName, State st) {
-            successors.put(prodName, st);
+        public State getSuccessor(Grammar.Symbol selector) {
+            if (selector.getType() != Grammar.SymbolType.NONTERMINAL)
+                return null;
+            return successors.get(selector.getContent());
+        }
+        public void setSuccessor(Grammar.Symbol selector, State succ) {
+            if (selector.getType() != Grammar.SymbolType.NONTERMINAL)
+                throw new IllegalArgumentException(
+                    "Cannot branch on terminal Grammar symbols");
+            successors.put(selector.getContent(), succ);
         }
 
         public String formatSuccessors() {
