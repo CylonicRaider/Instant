@@ -104,6 +104,12 @@ public class Parser {
 
     }
 
+    public interface SelectorState extends State {
+
+        Grammar.Symbol getSelector();
+
+    }
+
     public interface SingleSuccessorState extends State {
 
         State getSuccessor();
@@ -304,21 +310,22 @@ public class Parser {
 
     }
 
-    public static class LiteralState implements SingleSuccessorState {
+    public static class LiteralState implements SelectorState,
+                                                SingleSuccessorState {
 
-        private final Grammar.Symbol expected;
+        private final Grammar.Symbol selector;
         private State successor;
 
-        public LiteralState(Grammar.Symbol expected, State successor) {
-            this.expected = expected;
+        public LiteralState(Grammar.Symbol selector, State successor) {
+            this.selector = selector;
             this.successor = successor;
         }
-        public LiteralState(Grammar.Symbol expected) {
-            this(expected, null);
+        public LiteralState(Grammar.Symbol selector) {
+            this(selector, null);
         }
 
-        public Grammar.Symbol getExpected() {
-            return expected;
+        public Grammar.Symbol getSelector() {
+            return selector;
         }
 
         public State getSuccessor() {
@@ -332,9 +339,9 @@ public class Parser {
             Lexer.Token tok = status.getCurrentToken();
             if (tok == null) {
                 throw status.parsingException("Unexpected EOF");
-            } else if (! tok.matches(expected)) {
+            } else if (! tok.matches(selector)) {
                 throw status.parsingException("Unexpected token " + tok +
-                    ", expected " + expected);
+                    ", expected " + selector);
             } else {
                 status.storeToken(tok);
                 status.nextToken();
@@ -449,6 +456,52 @@ public class Parser {
             seen.remove(prodName);
             initialSymbolCache.put(prodName, ret);
             return ret;
+        }
+
+        protected static Grammar.Symbol getSelector(State st) {
+            if (st instanceof SelectorState) {
+                return ((SelectorState) st).getSelector();
+            } else {
+                throw new IllegalArgumentException(
+                    "Cannot determine state graph splicing selector for " +
+                    st);
+            }
+        }
+        protected static State getSuccessor(State prev,
+                                            Grammar.Symbol selector) {
+            if (prev instanceof MultiSuccessorState) {
+                return ((MultiSuccessorState) prev).getSuccessor(selector);
+            } else if (prev instanceof SingleSuccessorState) {
+                State ret = ((SingleSuccessorState) prev).getSuccessor();
+                if (ret instanceof MultiSuccessorState) {
+                    return ((MultiSuccessorState) ret).getSuccessor(selector);
+                } else {
+                    return ret;
+                }
+            } else {
+                throw new IllegalArgumentException(
+                    "Cannot determine successor of state " + prev);
+            }
+        }
+        protected static void addSuccessor(State prev,
+                Grammar.Symbol selector, State next) {
+            if (prev instanceof MultiSuccessorState) {
+                ((MultiSuccessorState) prev).setSuccessor(selector, next);
+            } else if (prev instanceof SingleSuccessorState) {
+                SingleSuccessorState cprev = (SingleSuccessorState) prev;
+                State mid = cprev.getSuccessor();
+                if (mid instanceof MultiSuccessorState) {
+                    ((MultiSuccessorState) mid).setSuccessor(selector, next);
+                } else {
+                    BranchState newmid = new BranchState();
+                    newmid.setSuccessor(getSelector(mid), mid);
+                    newmid.setSuccessor(selector, next);
+                    cprev.setSuccessor(newmid);
+                }
+            } else {
+                throw new IllegalArgumentException("Cannot splice into " +
+                    "state graph after " + prev);
+            }
         }
 
     }
