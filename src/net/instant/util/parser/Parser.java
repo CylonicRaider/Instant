@@ -78,7 +78,7 @@ public class Parser {
 
     }
 
-    public interface Status {
+    protected interface Status {
 
         LineColumnReader.Coordinates getCurrentPosition();
 
@@ -98,19 +98,19 @@ public class Parser {
 
     }
 
-    public interface State {
+    protected interface State {
 
         void apply(Status status) throws ParsingException;
 
     }
 
-    public interface SelectorState extends State {
+    protected interface SelectorState extends State {
 
         Grammar.Symbol getSelector();
 
     }
 
-    public interface SingleSuccessorState extends State {
+    protected interface SingleSuccessorState extends State {
 
         State getSuccessor();
 
@@ -118,7 +118,7 @@ public class Parser {
 
     }
 
-    public interface MultiSuccessorState extends State {
+    protected interface MultiSuccessorState extends State {
 
         State getSuccessor(Grammar.Symbol selector);
 
@@ -126,7 +126,7 @@ public class Parser {
 
     }
 
-    public static class ParseTreeImpl implements ParseTree {
+    protected static class ParseTreeImpl implements ParseTree {
 
         private final String name;
         private final Lexer.Token token;
@@ -237,7 +237,7 @@ public class Parser {
 
     }
 
-    public static class NullState implements SingleSuccessorState {
+    protected static class NullState implements SingleSuccessorState {
 
         private State successor;
 
@@ -261,7 +261,7 @@ public class Parser {
 
     }
 
-    public static class PushState implements SingleSuccessorState {
+    protected static class PushState implements SingleSuccessorState {
 
         private final String treeNodeName;
         private State successor;
@@ -302,7 +302,7 @@ public class Parser {
 
     }
 
-    public static class PopState implements State {
+    protected static class PopState implements State {
 
         public void apply(Status status) throws ParsingException {
             status.popState();
@@ -310,8 +310,8 @@ public class Parser {
 
     }
 
-    public static class LiteralState implements SelectorState,
-                                                SingleSuccessorState {
+    protected static class LiteralState implements SelectorState,
+                                                   SingleSuccessorState {
 
         private final Grammar.Symbol selector;
         private State successor;
@@ -351,7 +351,7 @@ public class Parser {
 
     }
 
-    public static class BranchState implements MultiSuccessorState {
+    protected static class BranchState implements MultiSuccessorState {
 
         private final Map<String, State> successors;
 
