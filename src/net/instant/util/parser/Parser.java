@@ -104,17 +104,13 @@ public class Parser {
 
     }
 
-    protected interface SelectorState extends State {
+    protected interface SingleSuccessorState extends State {
 
         Grammar.Symbol getSelector();
 
-    }
-
-    protected interface SingleSuccessorState extends State {
-
         State getSuccessor();
 
-        void setSuccessor(State succ);
+        void setSuccessor(Grammar.Symbol selector, State succ);
 
     }
 
@@ -239,53 +235,53 @@ public class Parser {
 
     protected static class NullState implements SingleSuccessorState {
 
+        private Grammar.Symbol selector;
         private State successor;
 
-        public NullState(State successor) {
+        public NullState(Grammar.Symbol selector, State successor) {
+            this.selector = selector;
             this.successor = successor;
         }
         public NullState() {
-            this(null);
+            this(null, null);
+        }
+
+        public Grammar.Symbol getSelector() {
+            return selector;
         }
 
         public State getSuccessor() {
             return successor;
         }
-        public void setSuccessor(State s) {
-            successor = s;
+
+        public void setSuccessor(Grammar.Symbol sel, State st) {
+            selector = sel;
+            successor = st;
         }
 
-        public void apply(Status status) {
+        public void apply(Status status) throws ParsingException {
             status.setState(successor);
         }
 
     }
 
-    protected static class PushState implements SingleSuccessorState {
+    protected static class PushState extends NullState {
 
         private final String treeNodeName;
-        private State successor;
         private State callState;
 
-        public PushState(String treeNodeName, State successor,
-                         State callState) {
+        public PushState(String treeNodeName, State callState,
+                         Grammar.Symbol selector, State successor) {
+            super(selector, successor);
             this.treeNodeName = treeNodeName;
-            this.successor = successor;
             this.callState = callState;
         }
         public PushState(String treeNodeName) {
-            this(treeNodeName, null, null);
+            this(treeNodeName, null, null, null);
         }
 
         public String getTreeNodeName() {
             return treeNodeName;
-        }
-
-        public State getSuccessor() {
-            return successor;
-        }
-        public void setSuccessor(State s) {
-            successor = s;
         }
 
         public State getCallState() {
@@ -296,7 +292,7 @@ public class Parser {
         }
 
         public void apply(Status status) {
-            status.pushState(successor, treeNodeName);
+            status.pushState(getSuccessor(), treeNodeName);
             status.setState(callState);
         }
 
@@ -310,42 +306,34 @@ public class Parser {
 
     }
 
-    protected static class LiteralState implements SelectorState,
-                                                   SingleSuccessorState {
+    protected static class LiteralState extends NullState {
 
-        private final Grammar.Symbol selector;
-        private State successor;
+        private final Grammar.Symbol expected;
 
-        public LiteralState(Grammar.Symbol selector, State successor) {
-            this.selector = selector;
-            this.successor = successor;
+        public LiteralState(Grammar.Symbol expected, Grammar.Symbol selector,
+                            State successor) {
+            super(selector, successor);
+            this.expected = expected;
         }
-        public LiteralState(Grammar.Symbol selector) {
-            this(selector, null);
-        }
-
-        public Grammar.Symbol getSelector() {
-            return selector;
+        public LiteralState(Grammar.Symbol expected) {
+            this(expected, null, null);
         }
 
-        public State getSuccessor() {
-            return successor;
-        }
-        public void setSuccessor(State s) {
-            successor = s;
+        public Grammar.Symbol getExpected() {
+            return expected;
         }
 
         public void apply(Status status) throws ParsingException {
             Lexer.Token tok = status.getCurrentToken();
             if (tok == null) {
                 throw status.parsingException("Unexpected EOF");
-            } else if (! tok.matches(selector)) {
+            } else if (! tok.matches(expected)) {
                 throw status.parsingException("Unexpected token " + tok +
-                    ", expected " + selector);
+                    ", expected " + expected);
             } else {
                 status.storeToken(tok);
                 status.nextToken();
-                status.setState(successor);
+                super.apply(status);
             }
         }
 
@@ -424,7 +412,7 @@ public class Parser {
         protected State getInitialState(String prodName) {
             State ret = initialStates.get(prodName);
             if (ret == null) {
-                ret = new NullState(new PopState());
+                ret = new NullState(null, new PopState());
                 initialStates.put(prodName, ret);
             }
             return ret;
@@ -458,25 +446,22 @@ public class Parser {
             return ret;
         }
 
-        protected static Grammar.Symbol getSelector(State st) {
-            if (st instanceof SelectorState) {
-                return ((SelectorState) st).getSelector();
-            } else {
-                throw new IllegalArgumentException(
-                    "Cannot determine state graph splicing selector for " +
-                    st);
-            }
-        }
         protected static State getSuccessor(State prev,
                                             Grammar.Symbol selector) {
             if (prev instanceof MultiSuccessorState) {
                 return ((MultiSuccessorState) prev).getSuccessor(selector);
             } else if (prev instanceof SingleSuccessorState) {
-                State ret = ((SingleSuccessorState) prev).getSuccessor();
-                if (ret instanceof MultiSuccessorState) {
-                    return ((MultiSuccessorState) ret).getSuccessor(selector);
+                SingleSuccessorState cprev = (SingleSuccessorState) prev;
+                if (selector.equals(cprev.getSelector())) {
+                    return cprev.getSuccessor();
+                } else if (cprev.getSelector() != null) {
+                    return null;
+                }
+                State mid = cprev.getSuccessor();
+                if (mid instanceof MultiSuccessorState) {
+                    return getSuccessor(mid, selector);
                 } else {
-                    return ret;
+                    return null;
                 }
             } else {
                 throw new IllegalArgumentException(
@@ -490,13 +475,16 @@ public class Parser {
             } else if (prev instanceof SingleSuccessorState) {
                 SingleSuccessorState cprev = (SingleSuccessorState) prev;
                 State mid = cprev.getSuccessor();
-                if (mid instanceof MultiSuccessorState) {
+                if (mid == null) {
+                    cprev.setSuccessor(selector, next);
+                    return;
+                } else if (mid instanceof MultiSuccessorState) {
                     ((MultiSuccessorState) mid).setSuccessor(selector, next);
                 } else {
                     BranchState newmid = new BranchState();
-                    newmid.setSuccessor(getSelector(mid), mid);
+                    newmid.setSuccessor(cprev.getSelector(), mid);
                     newmid.setSuccessor(selector, next);
-                    cprev.setSuccessor(newmid);
+                    cprev.setSuccessor(null, newmid);
                 }
             } else {
                 throw new IllegalArgumentException("Cannot splice into " +
