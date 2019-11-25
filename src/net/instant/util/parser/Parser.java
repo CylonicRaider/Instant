@@ -401,12 +401,13 @@ public class Parser {
 
         private final ParserGrammar grammar;
         private final Map<String, State> initialStates;
-        private final Map<String, Set<String>> initialSymbolCache;
+        private final Map<String, Set<Grammar.Symbol>> initialSymbolCache;
 
         public Compiler(Grammar grammar) {
             this.grammar = new ParserGrammar(grammar);
             this.initialStates = new HashMap<String, State>();
-            this.initialSymbolCache = new HashMap<String, Set<String>>();
+            this.initialSymbolCache = new HashMap<String,
+                Set<Grammar.Symbol>>();
         }
 
         protected State getInitialState(String prodName) {
@@ -418,15 +419,15 @@ public class Parser {
             return ret;
         }
 
-        protected Set<String> findInitialSymbols(String prodName,
+        protected Set<Grammar.Symbol> findInitialSymbols(String prodName,
                 Set<String> seen) throws InvalidGrammarException {
-            Set<String> ret = initialSymbolCache.get(prodName);
+            Set<Grammar.Symbol> ret = initialSymbolCache.get(prodName);
             if (ret != null)
                 return ret;
             if (seen.contains(prodName))
                 throw new InvalidGrammarException("Grammar is left-recursive");
             seen.add(prodName);
-            ret = new HashSet<String>();
+            ret = new HashSet<Grammar.Symbol>();
             for (Grammar.Production p : grammar.getRawProductions(prodName)) {
                 List<Grammar.Symbol> sl = p.getSymbols();
                 if (sl.size() == 0) continue;
@@ -438,12 +439,44 @@ public class Parser {
                 if (grammar.getRawProductions().containsKey(c)) {
                     ret.addAll(findInitialSymbols(c, seen));
                 } else {
-                    ret.add(c);
+                    ret.add(s);
                 }
             }
             seen.remove(prodName);
             initialSymbolCache.put(prodName, ret);
             return ret;
+        }
+
+        @SuppressWarnings("fallthrough")
+        protected void addProduction(Grammar.Production prod)
+                throws InvalidGrammarException {
+            State cur = getInitialState(prod.getName());
+            Set<String> seenStates = new HashSet<String>();
+            for (Grammar.Symbol sym : prod.getSymbols()) {
+                State next;
+                Set<Grammar.Symbol> selectors;
+                switch (sym.getType()) {
+                    case NONTERMINAL:
+                        if (grammar.getRawProductions().containsKey(
+                                sym.getContent())) {
+                            next = new PushState(sym.getContent());
+                            selectors = findInitialSymbols(sym.getContent(),
+                                                           seenStates);
+                            seenStates.clear();
+                            break;
+                        }
+                    case TERMINAL: case PATTERN_TERMINAL:
+                        next = new LiteralState(sym);
+                        selectors = Collections.singleton(sym);
+                        break;
+                    default:
+                        throw new AssertionError("This should not happen?!");
+                }
+                for (Grammar.Symbol sel : selectors) {
+                    addSuccessor(cur, sel, next);
+                }
+                cur = next;
+            }
         }
 
         protected static State getSuccessor(State prev,
