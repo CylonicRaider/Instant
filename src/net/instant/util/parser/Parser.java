@@ -401,11 +401,13 @@ public class Parser {
 
         private final ParserGrammar grammar;
         private final Map<String, State> initialStates;
+        private final Map<String, State> finalStates;
         private final Map<String, Set<Grammar.Symbol>> initialSymbolCache;
 
         public Compiler(Grammar grammar) {
             this.grammar = new ParserGrammar(grammar);
             this.initialStates = new HashMap<String, State>();
+            this.finalStates = new HashMap<String, State>();
             this.initialSymbolCache = new HashMap<String,
                 Set<Grammar.Symbol>>();
         }
@@ -413,10 +415,17 @@ public class Parser {
         protected State getInitialState(String prodName) {
             State ret = initialStates.get(prodName);
             if (ret == null) {
-                ret = new NullState(null, new PopState());
+                State end = new PopState();
+                ret = new NullState(null, end);
                 initialStates.put(prodName, ret);
+                finalStates.put(prodName, end);
             }
             return ret;
+        }
+        protected State getFinalState(String prodName) {
+            if (! finalStates.containsKey(prodName))
+                getInitialState(prodName);
+            return finalStates.get(prodName);
         }
 
         protected Set<Grammar.Symbol> findInitialSymbols(String prodName,
