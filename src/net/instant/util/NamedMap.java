@@ -99,7 +99,7 @@ public class NamedMap<V extends NamedValue> extends AbstractMap<String, V> {
     }
 
     public V put(String key, V value) {
-        // Intentionally permissing NPE-s.
+        // Intentionally permitting NPE-s.
         if (! key.equals(value.getName()))
             throw new IllegalArgumentException("Cannot insert pair " + key +
                 ":" + value + " into NamedMap");
