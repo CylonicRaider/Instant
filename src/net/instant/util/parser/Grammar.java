@@ -190,6 +190,9 @@ public class Grammar implements GrammarView {
         return Collections.unmodifiableSet(productions.get(name));
     }
 
+    public boolean hasProductions(String name) {
+        return productions.containsKey(name);
+    }
     public NamedMap<NamedSet<Production>> getRawProductions() {
         return productions;
     }

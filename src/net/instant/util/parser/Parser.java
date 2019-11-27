@@ -445,7 +445,7 @@ public class Parser {
                     throw new InvalidGrammarException("First symbol of a " +
                         "production alternative may not be a terminal");
                 String c = s.getContent();
-                if (grammar.getRawProductions().containsKey(c)) {
+                if (grammar.hasProductions(c)) {
                     ret.addAll(findInitialSymbols(c, seen));
                 } else {
                     ret.add(s);
@@ -466,8 +466,7 @@ public class Parser {
                 Set<Grammar.Symbol> selectors;
                 switch (sym.getType()) {
                     case NONTERMINAL:
-                        if (grammar.getRawProductions().containsKey(
-                                sym.getContent())) {
+                        if (grammar.hasProductions(sym.getContent())) {
                             next = new PushState(sym.getContent());
                             selectors = findInitialSymbols(sym.getContent(),
                                                            seenStates);
