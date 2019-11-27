@@ -54,7 +54,8 @@ public class Lexer implements Closeable {
                 List<Symbol> syms = pr.getSymbols();
                 if (syms.size() != 1)
                     throw new InvalidGrammarException("LexerGrammar start " +
-                        "symbol productions must have exactly one symbol each");
+                        "symbol productions must have exactly one symbol " +
+                        "each");
                 if (syms.get(0).getType() != SymbolType.NONTERMINAL)
                     throw new InvalidGrammarException("LexerGrammar start " +
                         "symbol production symbols must be nonterminals");
