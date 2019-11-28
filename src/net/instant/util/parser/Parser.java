@@ -485,6 +485,7 @@ public class Parser {
                 }
                 cur = next;
             }
+            addSuccessor(cur, null, getFinalState(prod.getName()));
         }
 
         protected static State getSuccessor(State prev,
