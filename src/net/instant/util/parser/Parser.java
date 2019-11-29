@@ -415,17 +415,18 @@ public class Parser {
         protected State getInitialState(String prodName) {
             State ret = initialStates.get(prodName);
             if (ret == null) {
-                State end = new PopState();
-                ret = new NullState(null, end);
+                ret = new NullState();
                 initialStates.put(prodName, ret);
-                finalStates.put(prodName, end);
             }
             return ret;
         }
         protected State getFinalState(String prodName) {
-            if (! finalStates.containsKey(prodName))
-                getInitialState(prodName);
-            return finalStates.get(prodName);
+            State ret = finalStates.get(prodName);
+            if (ret == null) {
+                ret = new PopState();
+                finalStates.put(prodName, ret);
+            }
+            return ret;
         }
 
         protected Set<Grammar.Symbol> findInitialSymbols(String prodName,
