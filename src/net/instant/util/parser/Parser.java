@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import net.instant.util.LineColumnReader;
+import net.instant.util.NamedSet;
 import net.instant.util.NamedValue;
 
 public class Parser {
@@ -400,12 +401,14 @@ public class Parser {
     protected static class Compiler {
 
         private final ParserGrammar grammar;
+        private final Set<String> seenProductions;
         private final Map<String, State> initialStates;
         private final Map<String, State> finalStates;
         private final Map<String, Set<Grammar.Symbol>> initialSymbolCache;
 
         public Compiler(Grammar grammar) {
             this.grammar = new ParserGrammar(grammar);
+            this.seenProductions = new HashSet<String>();
             this.initialStates = new HashMap<String, State>();
             this.finalStates = new HashMap<String, State>();
             this.initialSymbolCache = new HashMap<String,
@@ -472,6 +475,8 @@ public class Parser {
                             selectors = findInitialSymbols(sym.getContent(),
                                                            seenStates);
                             seenStates.clear();
+                            addProductions(grammar.getRawProductions(
+                                sym.getContent()));
                             break;
                         }
                     case TERMINAL: case PATTERN_TERMINAL:
@@ -487,6 +492,15 @@ public class Parser {
                 cur = next;
             }
             addSuccessor(cur, null, getFinalState(prod.getName()));
+        }
+
+        protected void addProductions(NamedSet<Grammar.Production> prods)
+                throws InvalidGrammarException {
+            if (seenProductions.contains(prods.getName())) return;
+            seenProductions.add(prods.getName());
+            for (Grammar.Production p : prods) {
+                addProduction(p);
+            }
         }
 
         protected static State getSuccessor(State prev,
