@@ -8,6 +8,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.Callable;
 import net.instant.util.LineColumnReader;
 import net.instant.util.NamedSet;
 import net.instant.util.NamedValue;
@@ -398,7 +399,7 @@ public class Parser {
 
     }
 
-    protected static class Compiler {
+    protected static class Compiler implements Callable<State> {
 
         private final ParserGrammar grammar;
         private final Set<String> seenProductions;
@@ -501,6 +502,12 @@ public class Parser {
             for (Grammar.Production p : prods) {
                 addProduction(p);
             }
+        }
+
+        public State call() throws InvalidGrammarException {
+            addProductions(grammar.getRawProductions(
+                ParserGrammar.START_SYMBOL));
+            return getInitialState(ParserGrammar.START_SYMBOL);
         }
 
         protected static State getSuccessor(State prev,
