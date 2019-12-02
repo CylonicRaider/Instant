@@ -82,15 +82,15 @@ public class Lexer implements Closeable {
             this.groupNames = groupNames;
         }
 
-        public GrammarView getSource() {
+        protected GrammarView getSource() {
             return source;
         }
 
-        public Pattern getPattern() {
+        protected Pattern getPattern() {
             return pattern;
         }
 
-        public List<String> getGroupNames() {
+        protected List<String> getGroupNames() {
             return groupNames;
         }
 

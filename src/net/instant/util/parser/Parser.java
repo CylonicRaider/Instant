@@ -1,6 +1,7 @@
 package net.instant.util.parser;
 
 import java.io.IOException;
+import java.io.Reader;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -44,6 +45,48 @@ public class Parser {
         }
         public void validate() throws InvalidGrammarException {
             validate(START_SYMBOL);
+        }
+
+    }
+
+    public static class CompiledGrammar implements GrammarView {
+
+        private final Lexer.CompiledGrammar lexerGrammar;
+        private final ParserGrammar source;
+        private final State initialState;
+
+        protected CompiledGrammar(Lexer.CompiledGrammar lexerGrammar,
+                                  ParserGrammar source, State initialState) {
+            this.lexerGrammar = lexerGrammar;
+            this.source = source;
+            this.initialState = initialState;
+        }
+
+        protected Lexer.CompiledGrammar getLexerGrammar() {
+            return lexerGrammar;
+        }
+
+        protected ParserGrammar getSource() {
+            return source;
+        }
+
+        protected State getInitialState() {
+            return initialState;
+        }
+
+        public Set<String> getProductionNames() {
+            return source.getProductionNames();
+        }
+
+        public Set<Grammar.Production> getProductions(String name) {
+            return source.getProductions(name);
+        }
+
+        public Parser makeParser(LineColumnReader input) {
+            return new Parser(this, lexerGrammar.makeLexer(input));
+        }
+        public Parser makeParser(Reader input) {
+            return new Parser(this, lexerGrammar.makeLexer(input));
         }
 
     }
@@ -558,6 +601,7 @@ public class Parser {
 
     }
 
+    private final CompiledGrammar grammar;
     private final Lexer source;
     private final List<ParseTreeImpl> treeStack;
     private final List<State> stateStack;
@@ -565,13 +609,18 @@ public class Parser {
     private State state;
     private ParseTree result;
 
-    public Parser(Lexer source, State initialState) {
+    public Parser(CompiledGrammar grammar, Lexer source) {
+        this.grammar = grammar;
         this.source = source;
         this.treeStack = new ArrayList<ParseTreeImpl>();
         this.stateStack = new ArrayList<State>();
         this.status = new StatusImpl();
-        this.state = initialState;
+        this.state = grammar.getInitialState();
         this.result = null;
+    }
+
+    public CompiledGrammar getGrammar() {
+        return grammar;
     }
 
     protected Lexer getSource() {
