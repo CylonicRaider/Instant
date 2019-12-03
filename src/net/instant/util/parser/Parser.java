@@ -20,10 +20,14 @@ public class Parser {
 
         public static final String START_SYMBOL = "$start";
 
-        private Grammar reference;
+        private Lexer.LexerGrammar reference;
 
         public ParserGrammar() {
             super();
+        }
+        public ParserGrammar(ParserGrammar copyFrom) {
+            super(copyFrom);
+            reference = new Lexer.LexerGrammar(copyFrom.getReference());
         }
         public ParserGrammar(GrammarView copyFrom) {
             super(copyFrom);
@@ -32,10 +36,10 @@ public class Parser {
             super(productions);
         }
 
-        public Grammar getReference() {
+        public Lexer.LexerGrammar getReference() {
             return reference;
         }
-        public void setReference(Grammar ref) {
+        public void setReference(Lexer.LexerGrammar ref) {
             reference = ref;
         }
 
@@ -450,13 +454,17 @@ public class Parser {
         private final Map<String, State> finalStates;
         private final Map<String, Set<Grammar.Symbol>> initialSymbolCache;
 
-        public Compiler(Grammar grammar) {
+        public Compiler(ParserGrammar grammar) {
             this.grammar = new ParserGrammar(grammar);
             this.seenProductions = new HashSet<String>();
             this.initialStates = new HashMap<String, State>();
             this.finalStates = new HashMap<String, State>();
             this.initialSymbolCache = new HashMap<String,
                 Set<Grammar.Symbol>>();
+        }
+
+        public ParserGrammar getGrammar() {
+            return grammar;
         }
 
         protected State getInitialState(String prodName) {
@@ -666,6 +674,14 @@ public class Parser {
                 "Internal parser state corrupted!");
         result = getTreeStack().remove(0).childAt(0);
         return result;
+    }
+
+    public static CompiledGrammar compile(ParserGrammar g)
+            throws InvalidGrammarException {
+        Compiler comp = new Compiler(g);
+        ParserGrammar gc = comp.getGrammar();
+        return new CompiledGrammar(Lexer.compile(gc.getReference()),
+                                   gc, comp.call());
     }
 
 }
