@@ -303,4 +303,14 @@ public final class Formats {
         }
     }
 
+    public static final String formatCharacter(int ch) {
+        if (ch >= ' ' && ch <= '~' && ch != '\'') {
+            return "'" + (char) ch + "'";
+        } else if (ch == '\'') {
+            return "\"" + (char) ch + "\"";
+        } else {
+            return String.format("'%c' (U+%04X)", ch, ch);
+        }
+    }
+
 }
