@@ -303,7 +303,7 @@ public final class Formats {
         }
     }
 
-    public static final String formatCharacter(int ch) {
+    public static String formatCharacter(int ch) {
         if (ch == '\'') {
             return "\"" + (char) ch + "\"";
         } else if (ch >= ' ' && ch <= '~') {
@@ -311,6 +311,62 @@ public final class Formats {
         } else {
             return String.format("'%c'(U+%04X)", ch, ch);
         }
+    }
+
+    private static void formatStringPart(int mode, String str, int copyFrom,
+                                         int copyTo, StringBuilder out) {
+        if (out.length() > 0) out.append('+');
+        switch (mode) {
+            case 1: case 2:
+                out.append('"').append(str, copyFrom, copyTo).append('"');
+                break;
+            case 3:
+                out.append('\'').append(str, copyFrom, copyTo).append('\'');
+                break;
+            case 4:
+                out.append('"').append(str, copyFrom, copyTo).append("\"(U+");
+                boolean first = true;
+                for (int i = copyFrom, ch;
+                     i < copyTo;
+                     i += Character.charCount(ch)) {
+                    ch = Character.codePointAt(str, i);
+                    if (first) {
+                        first = false;
+                    } else {
+                        out.append(',');
+                    }
+                    out.append(String.format("%04X", ch));
+                }
+                out.append(')');
+                break;
+        }
+    }
+    public static String formatString(String str) {
+        StringBuilder res = new StringBuilder();
+        int mode = 0, copyFrom = 0, i = 0;
+        for (int ch, l = str.length(); i < l; i += Character.charCount(ch)) {
+            ch = Character.codePointAt(str, i);
+            int newMode;
+            if (ch == '\'') {
+                newMode = 2;
+            } else if (ch == '"') {
+                newMode = 3;
+            } else if (ch >= ' ' && ch <= '~') {
+                newMode = (mode >= 1 && mode <= 3) ? mode : 1;
+            } else {
+                newMode = 4;
+            }
+            if (mode != newMode) {
+                if (mode != 1 || (newMode != 2 && newMode != 3)) {
+                    formatStringPart(mode, str, copyFrom, i, res);
+                    copyFrom = i;
+                }
+                mode = newMode;
+            }
+        }
+        formatStringPart(mode, str, copyFrom, i, res);
+        if (res.length() == 0) res.append("\"\"");
+        return res.toString();
     }
 
 }
