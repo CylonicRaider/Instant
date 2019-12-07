@@ -222,10 +222,11 @@ public class Parser {
 
     }
 
-    private class StatusImpl implements Status {
+    protected class StatusImpl implements Status {
 
         public LineColumnReader.Coordinates getCurrentPosition() {
-            return getSource().getPosition();
+            return new LineColumnReader.FixedCoordinates(
+                getSource().getPosition());
         }
 
         public Lexer.Token getCurrentToken() throws ParsingException {
@@ -375,10 +376,12 @@ public class Parser {
         public void apply(Status status) throws ParsingException {
             Lexer.Token tok = status.getCurrentToken();
             if (tok == null) {
-                throw status.parsingException("Unexpected EOF");
+                throw status.parsingException("Unexpected EOF at " +
+                    status.getCurrentPosition());
             } else if (! tok.matches(expected)) {
-                throw status.parsingException("Unexpected token " + tok +
-                    ", expected " + expected);
+                throw status.parsingException("Unexpected token " +
+                    tok.toUserString() + ", expected " +
+                    expected.toUserString());
             } else {
                 status.storeToken(tok);
                 status.nextToken();
@@ -426,17 +429,19 @@ public class Parser {
                 }
                 sb.append(pn);
             }
-            if (! first) sb.append("(N/A)");
+            if (! first) sb.append("(none)");
             return sb.toString();
         }
 
         public void apply(Status status) throws ParsingException {
             Lexer.Token tok = status.getCurrentToken();
             if (tok == null)
-                throw status.parsingException("Unexpected EOF");
+                throw status.parsingException("Unexpected EOF at " +
+                    status.getCurrentPosition());
             String prodName = tok.getProduction();
             if (prodName == null)
-                throw status.parsingException("Invalid anonymous token");
+                throw status.parsingException("Invalid anonymous token " +
+                    tok);
             State succ = successors.get(prodName);
             if (succ == null)
                 throw status.parsingException("Unexpected token " + tok +
@@ -490,7 +495,8 @@ public class Parser {
             if (ret != null)
                 return ret;
             if (seen.contains(prodName))
-                throw new InvalidGrammarException("Grammar is left-recursive");
+                throw new InvalidGrammarException(
+                    "Grammar is left-recursive");
             seen.add(prodName);
             ret = new HashSet<Grammar.Symbol>();
             for (Grammar.Production p : grammar.getRawProductions(prodName)) {
@@ -536,7 +542,8 @@ public class Parser {
                         selectors = Collections.singleton(sym);
                         break;
                     default:
-                        throw new AssertionError("This should not happen?!");
+                        throw new AssertionError(
+                            "Unrecognized symbol type?!");
                 }
                 for (Grammar.Symbol sel : selectors) {
                     addSuccessor(cur, sel, next);
@@ -667,7 +674,8 @@ public class Parser {
             st.apply(getStatus());
         }
         if (getStateStack().size() != 0)
-            throw getStatus().parsingException("Unfinished input");
+            throw getStatus().parsingException("Unfinished input at " +
+                getStatus().getCurrentPosition());
         if (getTreeStack().size() != 1 ||
                 getTreeStack().get(0).childCount() != 1)
             throw new IllegalStateException(

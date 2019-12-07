@@ -256,7 +256,7 @@ public class Lexer implements Closeable {
         String tokenText = inputBuffer.substring(0, length);
         inputBuffer.delete(0, length);
         Token ret = new Token(
-            new LineColumnReader.CoordinatesTracker(inputPosition),
+            new LineColumnReader.FixedCoordinates(inputPosition),
             production, tokenText);
         inputPosition.advance(tokenText, 0, length);
         return ret;
