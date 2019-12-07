@@ -11,6 +11,7 @@ import java.util.Set;
 import java.util.regex.MatchResult;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import net.instant.util.Formats;
 import net.instant.util.LineColumnReader;
 
 public class Lexer implements Closeable {
@@ -141,6 +142,13 @@ public class Lexer implements Closeable {
             return String.format("%s@%h[position=%s,production=%s,text=%s]",
                 getClass().getName(), this, getPosition(), getProduction(),
                 getText());
+        }
+        public String toUserString() {
+            String prod = getProduction();
+            return String.format("%s%s at %s",
+                Formats.formatString(getText()),
+                ((prod == null) ? "" : " (" + prod + ")"),
+                getPosition());
         }
 
         public boolean equals(Object other) {

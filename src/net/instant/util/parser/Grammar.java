@@ -7,6 +7,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.regex.Pattern;
+import net.instant.util.Formats;
 import net.instant.util.NamedMap;
 import net.instant.util.NamedSet;
 import net.instant.util.NamedValue;
@@ -53,6 +54,18 @@ public class Grammar implements GrammarView {
             return String.format("%s@%h[type=%s,content=%s,flags=%s]",
                                  getClass().getName(), this, getType(),
                                  getContent(), getFlags());
+        }
+        public String toUserString() {
+            switch (getType()) {
+                case NONTERMINAL:
+                    return getContent();
+                case TERMINAL:
+                    return Formats.formatString(getContent());
+                case PATTERN_TERMINAL:
+                    return Formats.formatPattern(getPattern());
+                default:
+                    throw new AssertionError("Unrecognized pattern type?!");
+            }
         }
 
         public boolean equals(Object other) {
