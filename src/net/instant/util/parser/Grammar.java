@@ -1,6 +1,7 @@
 package net.instant.util.parser;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -103,6 +104,17 @@ public class Grammar implements GrammarView {
             return pat.matcher(input).matches();
         }
 
+        public static Symbol nonterminal(String content, int flags) {
+            return new Symbol(SymbolType.NONTERMINAL, content, flags);
+        }
+        public static Symbol terminal(String content, int flags) {
+            return new Symbol(SymbolType.TERMINAL, content, flags);
+        }
+        public static Symbol terminal(Pattern content, int flags) {
+            return new Symbol(SymbolType.PATTERN_TERMINAL, content.toString(),
+                              flags);
+        }
+
     }
 
     public static class Production implements NamedValue {
@@ -123,6 +135,9 @@ public class Grammar implements GrammarView {
             this.name = name;
             this.symbols = Collections.unmodifiableList(
                 new ArrayList<Symbol>(symbols));
+        }
+        public Production(String name, Symbol... symbols) {
+            this(name, Arrays.asList(symbols));
         }
 
         public String toString() {
