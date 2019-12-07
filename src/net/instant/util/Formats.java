@@ -369,4 +369,10 @@ public final class Formats {
         return res.toString();
     }
 
+    public static String formatPattern(Pattern pat) {
+        // One could suppress escaping backslashes inside parentheses etc.,
+        // but that is too much work.
+        return '/' + pat.toString().replaceAll("/", "\\/") + '/';
+    }
+
 }
