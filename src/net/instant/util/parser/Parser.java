@@ -273,8 +273,9 @@ public class Parser {
             if (stateStack.isEmpty())
                 throw new IllegalStateException(
                     "Attempting to pop empty stack!");
-            stateStack.remove(stateStack.size() - 1);
+            State next = stateStack.remove(stateStack.size() - 1);
             treeStack.remove(treeStack.size() - 1);
+            setState(next);
         }
 
         public ParsingException parsingException(String message) {
