@@ -407,18 +407,27 @@ public class Parser {
         }
 
         public State getSuccessor(Grammar.Symbol selector) {
-            if (selector.getType() != Grammar.SymbolType.NONTERMINAL)
+            if (selector == null) {
+                return successors.get(null);
+            } else if (selector.getType() != Grammar.SymbolType.NONTERMINAL) {
                 return null;
-            return successors.get(selector.getContent());
+            } else {
+                return successors.get(selector.getContent());
+            }
         }
         public void setSuccessor(Grammar.Symbol selector, State succ) {
-            if (selector.getType() != Grammar.SymbolType.NONTERMINAL)
+            if (selector == null) {
+                successors.put(null, succ);
+            } else if (selector.getType() != Grammar.SymbolType.NONTERMINAL) {
                 throw new IllegalArgumentException(
                     "Cannot branch on terminal Grammar symbols");
-            successors.put(selector.getContent(), succ);
+            } else {
+                successors.put(selector.getContent(), succ);
+            }
         }
 
         public String formatSuccessors() {
+            if (successors.containsKey(null)) return "(anything)";
             StringBuilder sb = new StringBuilder();
             boolean first = true;
             for (String pn : successors.keySet()) {
@@ -435,16 +444,15 @@ public class Parser {
 
         public void apply(Status status) throws ParsingException {
             Lexer.Token tok = status.getCurrentToken();
-            if (tok == null)
-                throw status.parsingException("Unexpected EOF at " +
-                    status.getCurrentPosition());
-            String prodName = tok.getProduction();
-            if (prodName == null)
-                throw status.parsingException("Invalid anonymous token " +
-                    tok);
-            State succ = successors.get(prodName);
+            State succ = (tok == null) ? null :
+                successors.get(tok.getProduction());
             if (succ == null)
-                throw status.parsingException("Unexpected token " + tok +
+                succ = successors.get(null);
+            if (succ == null)
+                throw status.parsingException("Unexpected " +
+                    ((tok == null) ?
+                        "EOF at " + status.getCurrentPosition() :
+                        "token " + tok) +
                     ", expected one of " + formatSuccessors());
             status.setState(succ);
         }
@@ -568,13 +576,17 @@ public class Parser {
             return getInitialState(ParserGrammar.START_SYMBOL);
         }
 
+        protected static boolean selectorsEqual(Grammar.Symbol a,
+                                                Grammar.Symbol b) {
+            return (a == null) ? (b == null) : a.equals(b);
+        }
         protected static State getSuccessor(State prev,
                                             Grammar.Symbol selector) {
             if (prev instanceof MultiSuccessorState) {
                 return ((MultiSuccessorState) prev).getSuccessor(selector);
             } else if (prev instanceof SingleSuccessorState) {
                 SingleSuccessorState cprev = (SingleSuccessorState) prev;
-                if (selector.equals(cprev.getSelector())) {
+                if (selectorsEqual(selector, cprev.getSelector())) {
                     return cprev.getSuccessor();
                 } else if (cprev.getSelector() != null) {
                     return null;
@@ -591,21 +603,28 @@ public class Parser {
             }
         }
         protected static void addSuccessor(State prev,
-                Grammar.Symbol selector, State next) {
+                Grammar.Symbol selector, State next)
+                throws InvalidGrammarException {
             if (prev instanceof MultiSuccessorState) {
-                ((MultiSuccessorState) prev).setSuccessor(selector, next);
+                MultiSuccessorState cprev = (MultiSuccessorState) prev;
+                if (cprev.getSuccessor(selector) != null)
+                    throw new InvalidGrammarException(
+                        "Ambiguous successors for state " + prev +
+                        " with selector " +
+                        ((selector == null) ? "(default)" : selector) + ": " +
+                        cprev.getSuccessor(selector) + " and " + next);
+                cprev.setSuccessor(selector, next);
             } else if (prev instanceof SingleSuccessorState) {
                 SingleSuccessorState cprev = (SingleSuccessorState) prev;
                 State mid = cprev.getSuccessor();
                 if (mid == null) {
                     cprev.setSuccessor(selector, next);
-                    return;
                 } else if (mid instanceof MultiSuccessorState) {
-                    ((MultiSuccessorState) mid).setSuccessor(selector, next);
+                    addSuccessor(mid, selector, next);
                 } else {
                     BranchState newmid = new BranchState();
-                    newmid.setSuccessor(cprev.getSelector(), mid);
-                    newmid.setSuccessor(selector, next);
+                    addSuccessor(newmid, cprev.getSelector(), mid);
+                    addSuccessor(newmid, selector, next);
                     cprev.setSuccessor(null, newmid);
                 }
             } else {
