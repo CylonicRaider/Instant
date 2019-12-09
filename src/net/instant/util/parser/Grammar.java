@@ -167,7 +167,7 @@ public class Grammar implements GrammarView {
     }
 
     public static final int SYM_INLINE = 1;
-    public static final int SYM_NONESSENTIAL = 2;
+    public static final int SYM_DISCARD = 2;
 
     public static final int SYM_ALL_FLAGS = 3;
 

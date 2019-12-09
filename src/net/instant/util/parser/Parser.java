@@ -87,10 +87,16 @@ public class Parser {
         }
 
         public Parser makeParser(LineColumnReader input) {
-            return new Parser(this, lexerGrammar.makeLexer(input));
+            return new Parser(this, lexerGrammar.makeLexer(input), false);
         }
         public Parser makeParser(Reader input) {
-            return new Parser(this, lexerGrammar.makeLexer(input));
+            return new Parser(this, lexerGrammar.makeLexer(input), false);
+        }
+        public Parser makeParser(LineColumnReader input, boolean keepAll) {
+            return new Parser(this, lexerGrammar.makeLexer(input), keepAll);
+        }
+        public Parser makeParser(Reader input, boolean keepAll) {
+            return new Parser(this, lexerGrammar.makeLexer(input), keepAll);
         }
 
     }
@@ -129,6 +135,8 @@ public class Parser {
 
     protected interface Status {
 
+        boolean isKeepingAll();
+
         LineColumnReader.Coordinates getCurrentPosition();
 
         Lexer.Token getCurrentToken() throws ParsingException;
@@ -139,7 +147,7 @@ public class Parser {
 
         void setState(State next);
 
-        void pushState(State st, String treeNodeName);
+        void pushState(State st, String treeNodeName, int flags);
 
         void popState() throws ParsingException;
 
@@ -224,6 +232,10 @@ public class Parser {
 
     protected class StatusImpl implements Status {
 
+        public boolean isKeepingAll() {
+            return Parser.this.isKeepingAll();
+        }
+
         public LineColumnReader.Coordinates getCurrentPosition() {
             return new LineColumnReader.FixedCoordinates(
                 getSource().getPosition());
@@ -262,8 +274,18 @@ public class Parser {
             Parser.this.setState(next);
         }
 
-        public void pushState(State st, String treeNodeName) {
-            getTreeStack().add(new ParseTreeImpl(treeNodeName));
+        public void pushState(State st, String treeNodeName, int flags) {
+            List<ParseTreeImpl> treeStack = getTreeStack();
+            ParseTreeImpl top = treeStack.get(treeStack.size() - 1);
+            if ((flags & Grammar.SYM_DISCARD) != 0) {
+                treeStack.add(new ParseTreeImpl(treeNodeName));
+            } else if ((flags & Grammar.SYM_INLINE) != 0) {
+                treeStack.add(top);
+            } else {
+                ParseTreeImpl next = new ParseTreeImpl(treeNodeName);
+                top.addChild(next);
+                treeStack.add(next);
+            }
             getStateStack().add(st);
         }
 
@@ -318,21 +340,21 @@ public class Parser {
 
     protected static class PushState extends NullState {
 
-        private final String treeNodeName;
+        private final Grammar.Symbol sym;
         private State callState;
 
-        public PushState(String treeNodeName, State callState,
+        public PushState(Grammar.Symbol sym, State callState,
                          Grammar.Symbol selector, State successor) {
             super(selector, successor);
-            this.treeNodeName = treeNodeName;
+            this.sym = sym;
             this.callState = callState;
         }
-        public PushState(String treeNodeName) {
-            this(treeNodeName, null, null, null);
+        public PushState(Grammar.Symbol sym) {
+            this(sym, null, null, null);
         }
 
-        public String getTreeNodeName() {
-            return treeNodeName;
+        public Grammar.Symbol getSymbol() {
+            return sym;
         }
 
         public State getCallState() {
@@ -343,7 +365,9 @@ public class Parser {
         }
 
         public void apply(Status status) {
-            status.pushState(getSuccessor(), treeNodeName);
+            int flags = sym.getFlags();
+            if (status.isKeepingAll()) flags &= ~Grammar.SYM_DISCARD;
+            status.pushState(getSuccessor(), sym.getContent(), flags);
             status.setState(callState);
         }
 
@@ -384,7 +408,9 @@ public class Parser {
                     tok.toUserString() + ", expected " +
                     expected.toUserString());
             } else {
-                status.storeToken(tok);
+                if ((expected.getFlags() & Grammar.SYM_DISCARD) == 0 ||
+                        status.isKeepingAll())
+                    status.storeToken(tok);
                 status.nextToken();
                 super.apply(status);
             }
@@ -538,7 +564,7 @@ public class Parser {
                 switch (sym.getType()) {
                     case NONTERMINAL:
                         if (grammar.hasProductions(sym.getContent())) {
-                            next = new PushState(sym.getContent());
+                            next = new PushState(sym);
                             selectors = findInitialSymbols(sym.getContent(),
                                                            seenStates);
                             seenStates.clear();
@@ -638,15 +664,17 @@ public class Parser {
 
     private final CompiledGrammar grammar;
     private final Lexer source;
+    private final boolean keepAll;
     private final List<ParseTreeImpl> treeStack;
     private final List<State> stateStack;
     private final Status status;
     private State state;
     private ParseTree result;
 
-    public Parser(CompiledGrammar grammar, Lexer source) {
+    public Parser(CompiledGrammar grammar, Lexer source, boolean keepAll) {
         this.grammar = grammar;
         this.source = source;
+        this.keepAll = keepAll;
         this.treeStack = new ArrayList<ParseTreeImpl>();
         this.stateStack = new ArrayList<State>();
         this.status = new StatusImpl();
@@ -660,6 +688,10 @@ public class Parser {
 
     protected Lexer getSource() {
         return source;
+    }
+
+    public boolean isKeepingAll() {
+        return keepAll;
     }
 
     private List<ParseTreeImpl> getTreeStack() {
