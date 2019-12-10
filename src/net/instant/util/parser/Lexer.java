@@ -107,7 +107,7 @@ public class Lexer implements Closeable {
             return new Lexer(this, input);
         }
         public Lexer makeLexer(Reader input) {
-            return new Lexer(this, input);
+            return makeLexer(new LineColumnReader(input));
         }
 
         public static int findMatchedGroup(MatchResult res) {
@@ -228,9 +228,6 @@ public class Lexer implements Closeable {
         this.atEOF = false;
         this.outputBuffer = null;
         matcher.useAnchoringBounds(false);
-    }
-    public Lexer(CompiledGrammar grammar, Reader input) {
-        this(grammar, new LineColumnReader(input));
     }
 
     protected CompiledGrammar getGrammar() {

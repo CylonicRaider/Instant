@@ -86,17 +86,17 @@ public class Parser {
             return source.getProductions(name);
         }
 
-        public Parser makeParser(LineColumnReader input) {
-            return new Parser(this, lexerGrammar.makeLexer(input), false);
-        }
-        public Parser makeParser(Reader input) {
-            return new Parser(this, lexerGrammar.makeLexer(input), false);
-        }
         public Parser makeParser(LineColumnReader input, boolean keepAll) {
             return new Parser(this, lexerGrammar.makeLexer(input), keepAll);
         }
         public Parser makeParser(Reader input, boolean keepAll) {
-            return new Parser(this, lexerGrammar.makeLexer(input), keepAll);
+            return makeParser(new LineColumnReader(input), keepAll);
+        }
+        public Parser makeParser(LineColumnReader input) {
+            return makeParser(input, false);
+        }
+        public Parser makeParser(Reader input) {
+            return makeParser(new LineColumnReader(input), false);
         }
 
     }
