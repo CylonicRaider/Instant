@@ -61,8 +61,12 @@ public class Lexer implements Closeable {
                     throw new InvalidGrammarException("LexerGrammar start " +
                         "symbol production symbols must be nonterminals");
             }
-            validateAcyclicity(startSymbol, new HashSet<String>(),
-                               new HashSet<String>());
+            Set<String> stack = new HashSet<String>();
+            Set<String> seen = new HashSet<String>();
+            for (String prodName : getRawProductions().keySet()) {
+                if (seen.contains(prodName)) continue;
+                validateAcyclicity(prodName, stack, seen);
+            }
         }
         public void validate() throws InvalidGrammarException {
             validate(START_SYMBOL);
