@@ -507,10 +507,26 @@ public class Parser {
             return grammar;
         }
 
+        protected NullState createNullState() {
+            return new NullState();
+        }
+        protected PushState createPushState(Grammar.Symbol sym) {
+            return new PushState(sym);
+        }
+        protected LiteralState createLiteralState(Grammar.Symbol sym) {
+            return new LiteralState(sym);
+        }
+        protected BranchState createBranchState() {
+            return new BranchState();
+        }
+        protected PopState createPopState() {
+            return new PopState();
+        }
+
         protected State getInitialState(String prodName) {
             State ret = initialStates.get(prodName);
             if (ret == null) {
-                ret = new NullState();
+                ret = createNullState();
                 initialStates.put(prodName, ret);
             }
             return ret;
@@ -518,7 +534,7 @@ public class Parser {
         protected State getFinalState(String prodName) {
             State ret = finalStates.get(prodName);
             if (ret == null) {
-                ret = new PopState();
+                ret = createPopState();
                 finalStates.put(prodName, ret);
             }
             return ret;
@@ -553,6 +569,60 @@ public class Parser {
             return ret;
         }
 
+        protected boolean selectorsEqual(Grammar.Symbol a, Grammar.Symbol b) {
+            return (a == null) ? (b == null) : a.equals(b);
+        }
+        protected State getSuccessor(State prev, Grammar.Symbol selector) {
+            if (prev instanceof MultiSuccessorState) {
+                return ((MultiSuccessorState) prev).getSuccessor(selector);
+            } else if (prev instanceof SingleSuccessorState) {
+                SingleSuccessorState cprev = (SingleSuccessorState) prev;
+                if (selectorsEqual(selector, cprev.getSelector())) {
+                    return cprev.getSuccessor();
+                } else if (cprev.getSelector() != null) {
+                    return null;
+                }
+                State mid = cprev.getSuccessor();
+                if (mid instanceof MultiSuccessorState) {
+                    return getSuccessor(mid, selector);
+                } else {
+                    return null;
+                }
+            } else {
+                throw new IllegalArgumentException(
+                    "Cannot determine successor of state " + prev);
+            }
+        }
+        protected void addSuccessor(State prev, Grammar.Symbol selector,
+                State next) throws InvalidGrammarException {
+            if (prev instanceof MultiSuccessorState) {
+                MultiSuccessorState cprev = (MultiSuccessorState) prev;
+                if (cprev.getSuccessor(selector) != null)
+                    throw new InvalidGrammarException(
+                        "Ambiguous successors for state " + prev +
+                        " with selector " +
+                        ((selector == null) ? "(default)" : selector) + ": " +
+                        cprev.getSuccessor(selector) + " and " + next);
+                cprev.setSuccessor(selector, next);
+            } else if (prev instanceof SingleSuccessorState) {
+                SingleSuccessorState cprev = (SingleSuccessorState) prev;
+                State mid = cprev.getSuccessor();
+                if (mid == null) {
+                    cprev.setSuccessor(selector, next);
+                } else if (mid instanceof MultiSuccessorState) {
+                    addSuccessor(mid, selector, next);
+                } else {
+                    BranchState newmid = createBranchState();
+                    addSuccessor(newmid, cprev.getSelector(), mid);
+                    addSuccessor(newmid, selector, next);
+                    cprev.setSuccessor(null, newmid);
+                }
+            } else {
+                throw new IllegalArgumentException("Cannot splice into " +
+                    "state graph after " + prev);
+            }
+        }
+
         @SuppressWarnings("fallthrough")
         protected void addProduction(Grammar.Production prod)
                 throws InvalidGrammarException {
@@ -564,7 +634,7 @@ public class Parser {
                 switch (sym.getType()) {
                     case NONTERMINAL:
                         if (grammar.hasProductions(sym.getContent())) {
-                            next = new PushState(sym);
+                            next = createPushState(sym);
                             selectors = findInitialSymbols(sym.getContent(),
                                                            seenStates);
                             seenStates.clear();
@@ -573,7 +643,7 @@ public class Parser {
                             break;
                         }
                     case TERMINAL: case PATTERN_TERMINAL:
-                        next = new LiteralState(sym);
+                        next = createLiteralState(sym);
                         selectors = Collections.singleton(sym);
                         break;
                     default:
@@ -601,63 +671,6 @@ public class Parser {
             addProductions(grammar.getRawProductions(
                 ParserGrammar.START_SYMBOL));
             return getInitialState(ParserGrammar.START_SYMBOL);
-        }
-
-        protected static boolean selectorsEqual(Grammar.Symbol a,
-                                                Grammar.Symbol b) {
-            return (a == null) ? (b == null) : a.equals(b);
-        }
-        protected static State getSuccessor(State prev,
-                                            Grammar.Symbol selector) {
-            if (prev instanceof MultiSuccessorState) {
-                return ((MultiSuccessorState) prev).getSuccessor(selector);
-            } else if (prev instanceof SingleSuccessorState) {
-                SingleSuccessorState cprev = (SingleSuccessorState) prev;
-                if (selectorsEqual(selector, cprev.getSelector())) {
-                    return cprev.getSuccessor();
-                } else if (cprev.getSelector() != null) {
-                    return null;
-                }
-                State mid = cprev.getSuccessor();
-                if (mid instanceof MultiSuccessorState) {
-                    return getSuccessor(mid, selector);
-                } else {
-                    return null;
-                }
-            } else {
-                throw new IllegalArgumentException(
-                    "Cannot determine successor of state " + prev);
-            }
-        }
-        protected static void addSuccessor(State prev,
-                Grammar.Symbol selector, State next)
-                throws InvalidGrammarException {
-            if (prev instanceof MultiSuccessorState) {
-                MultiSuccessorState cprev = (MultiSuccessorState) prev;
-                if (cprev.getSuccessor(selector) != null)
-                    throw new InvalidGrammarException(
-                        "Ambiguous successors for state " + prev +
-                        " with selector " +
-                        ((selector == null) ? "(default)" : selector) + ": " +
-                        cprev.getSuccessor(selector) + " and " + next);
-                cprev.setSuccessor(selector, next);
-            } else if (prev instanceof SingleSuccessorState) {
-                SingleSuccessorState cprev = (SingleSuccessorState) prev;
-                State mid = cprev.getSuccessor();
-                if (mid == null) {
-                    cprev.setSuccessor(selector, next);
-                } else if (mid instanceof MultiSuccessorState) {
-                    addSuccessor(mid, selector, next);
-                } else {
-                    BranchState newmid = new BranchState();
-                    addSuccessor(newmid, cprev.getSelector(), mid);
-                    addSuccessor(newmid, selector, next);
-                    cprev.setSuccessor(null, newmid);
-                }
-            } else {
-                throw new IllegalArgumentException("Cannot splice into " +
-                    "state graph after " + prev);
-            }
         }
 
     }
