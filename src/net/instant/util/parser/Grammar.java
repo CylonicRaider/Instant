@@ -110,9 +110,12 @@ public class Grammar implements GrammarView {
         public static Symbol terminal(String content, int flags) {
             return new Symbol(SymbolType.TERMINAL, content, flags);
         }
-        public static Symbol terminal(Pattern content, int flags) {
+        public static Symbol pattern(Pattern content, int flags) {
             return new Symbol(SymbolType.PATTERN_TERMINAL, content.toString(),
                               flags);
+        }
+        public static Symbol pattern(String content, int flags) {
+            return pattern(Pattern.compile(content), flags);
         }
 
     }
