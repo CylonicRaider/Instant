@@ -65,7 +65,7 @@ public class Grammar implements GrammarView {
                 case PATTERN_TERMINAL:
                     return Formats.formatPattern(getPattern());
                 default:
-                    throw new AssertionError("Unrecognized pattern type?!");
+                    throw new AssertionError("Unrecognized symbol type?!");
             }
         }
 
