@@ -18,7 +18,8 @@ public class Lexer implements Closeable {
 
     public static class LexerGrammar extends Grammar {
 
-        public static final String START_SYMBOL = "$tokens";
+        public static final Symbol START_SYMBOL =
+            Symbol.nonterminal("$tokens", 0);
 
         public LexerGrammar() {
             super();
@@ -69,7 +70,7 @@ public class Lexer implements Closeable {
             }
         }
         public void validate() throws InvalidGrammarException {
-            validate(START_SYMBOL);
+            validate(START_SYMBOL.getContent());
         }
 
     }
@@ -339,8 +340,8 @@ public class Lexer implements Closeable {
         lg.validate();
         StringBuilder sb = new StringBuilder();
         ArrayList<String> groupNames = new ArrayList<String>();
-        compileProductions(lg, LexerGrammar.START_SYMBOL, true, sb,
-                           groupNames);
+        compileProductions(lg, LexerGrammar.START_SYMBOL.getContent(), true,
+                           sb, groupNames);
         groupNames.trimToSize();
         return new CompiledGrammar(lg, Pattern.compile(sb.toString()),
                                    Collections.unmodifiableList(groupNames));

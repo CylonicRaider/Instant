@@ -18,7 +18,8 @@ public class Parser {
 
     public static class ParserGrammar extends Grammar {
 
-        public static final String START_SYMBOL = "$start";
+        public static final Symbol START_SYMBOL =
+            Symbol.nonterminal("$start", 0);
 
         private Lexer.LexerGrammar reference;
 
@@ -50,7 +51,7 @@ public class Parser {
                 (reference != null && reference.checkProductions(name)));
         }
         public void validate() throws InvalidGrammarException {
-            validate(START_SYMBOL);
+            validate(START_SYMBOL.getContent());
         }
 
     }
@@ -672,8 +673,8 @@ public class Parser {
 
         public State call() throws InvalidGrammarException {
             addProductions(grammar.getRawProductions(
-                ParserGrammar.START_SYMBOL));
-            return getInitialState(ParserGrammar.START_SYMBOL);
+                ParserGrammar.START_SYMBOL.getContent()));
+            return getInitialState(ParserGrammar.START_SYMBOL.getContent());
         }
 
     }
