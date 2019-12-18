@@ -437,7 +437,8 @@ public class Parser {
         }
 
         public State getSuccessor(Grammar.Symbol selector) {
-            if (selector == null) {
+            if (selector == null ||
+                    selector.getType() == Grammar.SymbolType.ANYTHING) {
                 return successors.get(null);
             } else if (selector.getType() != Grammar.SymbolType.NONTERMINAL) {
                 return null;
@@ -446,7 +447,8 @@ public class Parser {
             }
         }
         public void setSuccessor(Grammar.Symbol selector, State succ) {
-            if (selector == null) {
+            if (selector == null ||
+                    selector.getType() == Grammar.SymbolType.ANYTHING) {
                 successors.put(null, succ);
             } else if (selector.getType() != Grammar.SymbolType.NONTERMINAL) {
                 throw new IllegalArgumentException(
@@ -468,7 +470,7 @@ public class Parser {
                 }
                 sb.append(pn);
             }
-            if (! first) sb.append("(none)");
+            if (! first) sb.append("(nothing)");
             return sb.toString();
         }
 
@@ -574,6 +576,10 @@ public class Parser {
         }
 
         protected boolean selectorsEqual(Grammar.Symbol a, Grammar.Symbol b) {
+            if (a != null && a.getType() == Grammar.SymbolType.ANYTHING)
+                a = null;
+            if (b != null && b.getType() == Grammar.SymbolType.ANYTHING)
+                b = null;
             return (a == null) ? (b == null) : a.equals(b);
         }
         protected State getSuccessor(State prev, Grammar.Symbol selector) {
@@ -646,7 +652,7 @@ public class Parser {
                                 sym.getContent()));
                             break;
                         }
-                    case TERMINAL: case PATTERN_TERMINAL:
+                    case TERMINAL: case PATTERN_TERMINAL: case ANYTHING:
                         next = createLiteralState(sym);
                         selectors = Collections.singleton(sym);
                         break;

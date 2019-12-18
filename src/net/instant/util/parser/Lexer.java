@@ -306,8 +306,7 @@ public class Lexer implements Closeable {
             if (top && pr.getSymbols().size() != 1)
                 throw new IllegalArgumentException(
                     "Trying to compile a grammar with incorrect " +
-                    LexerGrammar.START_SYMBOL +
-                    " production symbol counts?!");
+                    name + " production symbol counts?!");
             if (first) {
                 first = false;
             } else {
@@ -318,8 +317,7 @@ public class Lexer implements Closeable {
                     if (sym.getType() != Grammar.SymbolType.NONTERMINAL)
                         throw new IllegalArgumentException(
                             "Trying to compile a grammar with invalid " +
-                            LexerGrammar.START_SYMBOL +
-                            " production symbols?!");
+                            name + " production symbols?!");
                     names.add(pr.getName());
                     sb.append('(');
                 } else {
