@@ -499,13 +499,15 @@ public class Parser {
         private final Map<String, State> finalStates;
         private final Map<String, Set<Grammar.Symbol>> initialSymbolCache;
 
-        public Compiler(ParserGrammar grammar) {
+        public Compiler(ParserGrammar grammar)
+                throws InvalidGrammarException {
             this.grammar = new ParserGrammar(grammar);
             this.seenProductions = new HashSet<String>();
             this.initialStates = new HashMap<String, State>();
             this.finalStates = new HashMap<String, State>();
             this.initialSymbolCache = new HashMap<String,
                 Set<Grammar.Symbol>>();
+            this.grammar.validate();
         }
 
         public ParserGrammar getGrammar() {
