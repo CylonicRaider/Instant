@@ -4,7 +4,9 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.io.Reader;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.regex.MatchResult;
 import java.util.regex.Matcher;
@@ -195,22 +197,39 @@ public class Lexer implements Closeable {
     protected static class Compiler {
 
         private final LexerGrammar grammar;
-        private final StringBuilder pattern;
-        private final List<String> groupNames;
+        private final Map<String, StringBuilder> patternBuilders;
+        private final Map<String, List<String>> groupNames;
 
         public Compiler(LexerGrammar grammar) throws InvalidGrammarException {
             this.grammar = new LexerGrammar(grammar);
-            this.pattern = new StringBuilder();
-            this.groupNames = new ArrayList<String>();
+            this.patternBuilders = new HashMap<String, StringBuilder>();
+            this.groupNames = new HashMap<String, List<String>>();
             this.grammar.validate();
         }
 
-        protected void compileTerminal(String name, Set<String> seen)
+        protected StringBuilder getPatternBuilder(String state) {
+            StringBuilder ret = patternBuilders.get(state);
+            if (ret == null) {
+                ret = new StringBuilder();
+                patternBuilders.put(state, ret);
+            }
+            return ret;
+        }
+        protected List<String> getGroupNames(String state) {
+            List<String> ret = groupNames.get(state);
+            if (ret == null) {
+                ret = new ArrayList<String>();
+                groupNames.put(state, ret);
+            }
+            return ret;
+        }
+
+        protected void compileTerminal(String state, String name)
                 throws InvalidGrammarException {
-            if (seen.contains(name))
-                throw new InvalidGrammarException("Production " + name +
-                    " is involved in a cycle");
-            seen.add(name);
+            StringBuilder pattern = getPatternBuilder(state);
+            List<String> names = getGroupNames(state);
+            pattern.append('(');
+            names.add(name);
             boolean first = true;
             for (Grammar.Production pr : grammar.getProductions(name)) {
                 if (first) {
@@ -218,17 +237,18 @@ public class Lexer implements Closeable {
                 } else {
                     pattern.append('|');
                 }
-                for (Grammar.Symbol sym : pr.getSymbols()) {
-                    pattern.append("(?:");
-                    if (sym.getType() == Grammar.SymbolType.NONTERMINAL) {
-                        compileTerminal(sym.getContent(), seen);
-                    } else {
-                        pattern.append(sym.getPattern().pattern());
-                    }
-                    pattern.append(')');
-                }
+                if (pr.getSymbols().size() != 1)
+                    throw new InvalidGrammarException("Lexer token " + name +
+                        " definition must contain exactly one nonterminal " +
+                        "each");
+                Grammar.Symbol sym = pr.getSymbols().get(0);
+                if (sym.getType() == Grammar.SymbolType.NONTERMINAL)
+                    throw new InvalidGrammarException("Lexer token " + name +
+                        " definition may not contain nonterminals");
+                pattern.append("(?:").append(sym.getPattern().pattern())
+                       .append(')');
             }
-            seen.remove(name);
+            pattern.append(')');
         }
 
     }
