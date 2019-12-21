@@ -4,7 +4,6 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.io.Reader;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -13,7 +12,9 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import net.instant.util.Formats;
 import net.instant.util.LineColumnReader;
+import net.instant.util.NamedMap;
 import net.instant.util.NamedSet;
+import net.instant.util.NamedValue;
 
 public class Lexer implements Closeable {
 
@@ -194,40 +195,57 @@ public class Lexer implements Closeable {
 
     }
 
+    protected static class StateBuilder implements NamedValue {
+
+        private final String name;
+        private final StringBuilder pattern;
+        private final List<String> groupNames;
+
+        public StateBuilder(String name) {
+            this.name = name;
+            this.pattern = new StringBuilder();
+            this.groupNames = new ArrayList<String>();
+        }
+
+        public String getName() {
+            return name;
+        }
+
+        public StringBuilder getPattern() {
+            return pattern;
+        }
+
+        public List<String> getGroupNames() {
+            return groupNames;
+        }
+
+    }
+
     protected static class Compiler {
 
         private final LexerGrammar grammar;
-        private final Map<String, StringBuilder> patternBuilders;
-        private final Map<String, List<String>> groupNames;
+        private final Map<String, StateBuilder> states;
 
         public Compiler(LexerGrammar grammar) throws InvalidGrammarException {
             this.grammar = new LexerGrammar(grammar);
-            this.patternBuilders = new HashMap<String, StringBuilder>();
-            this.groupNames = new HashMap<String, List<String>>();
+            this.states = new NamedMap<StateBuilder>();
             this.grammar.validate();
         }
 
-        protected StringBuilder getPatternBuilder(String state) {
-            StringBuilder ret = patternBuilders.get(state);
+        protected StateBuilder getStateBuilder(String name) {
+            StateBuilder ret = states.get(name);
             if (ret == null) {
-                ret = new StringBuilder();
-                patternBuilders.put(state, ret);
-            }
-            return ret;
-        }
-        protected List<String> getGroupNames(String state) {
-            List<String> ret = groupNames.get(state);
-            if (ret == null) {
-                ret = new ArrayList<String>();
-                groupNames.put(state, ret);
+                ret = new StateBuilder(name);
+                states.put(name, ret);
             }
             return ret;
         }
 
         protected void compileTerminal(String state, String name)
                 throws InvalidGrammarException {
-            StringBuilder pattern = getPatternBuilder(state);
-            List<String> names = getGroupNames(state);
+            StateBuilder st = getStateBuilder(state);
+            StringBuilder pattern = st.getPattern();
+            List<String> names = st.getGroupNames();
             pattern.append('(');
             names.add(name);
             boolean first = true;
