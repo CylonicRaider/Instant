@@ -200,11 +200,15 @@ public class Lexer implements Closeable {
         private final String name;
         private final StringBuilder pattern;
         private final List<String> groupNames;
+        private final List<String> nextStates;
+        private boolean accepting;
 
         public StateBuilder(String name) {
             this.name = name;
             this.pattern = new StringBuilder();
             this.groupNames = new ArrayList<String>();
+            this.nextStates = new ArrayList<String>();
+            this.accepting = false;
         }
 
         public String getName() {
@@ -217,6 +221,17 @@ public class Lexer implements Closeable {
 
         public List<String> getGroupNames() {
             return groupNames;
+        }
+
+        public List<String> getNextStates() {
+            return nextStates;
+        }
+
+        public boolean isAccepting() {
+            return accepting;
+        }
+        public void setAccepting(boolean a) {
+            accepting = a;
         }
 
     }
@@ -241,13 +256,13 @@ public class Lexer implements Closeable {
             return ret;
         }
 
-        protected void compileTerminal(String state, String name)
-                throws InvalidGrammarException {
+        protected void compileTerminal(String state, String name,
+                String nextState) throws InvalidGrammarException {
             StateBuilder st = getStateBuilder(state);
             StringBuilder pattern = st.getPattern();
-            List<String> names = st.getGroupNames();
             pattern.append('(');
-            names.add(name);
+            st.getGroupNames().add(name);
+            st.getNextStates().add(nextState);
             boolean first = true;
             for (Grammar.Production pr : grammar.getProductions(name)) {
                 if (first) {
@@ -267,6 +282,33 @@ public class Lexer implements Closeable {
                        .append(')');
             }
             pattern.append(')');
+        }
+
+        @SuppressWarnings("fallthrough")
+        protected void compileState(String state)
+                throws InvalidGrammarException {
+            StateBuilder st = getStateBuilder(state);
+            for (Grammar.Production pr : grammar.getProductions(state)) {
+                List<Grammar.Symbol> syms = pr.getSymbols();
+                String nextState = null;
+                switch (syms.size()) {
+                    case 0:
+                        st.setAccepting(true);
+                        break;
+                    case 2:
+                        // Index-1 symbols are validated to be nonterminals.
+                        nextState = syms.get(1).getContent();
+                    case 1:
+                        Grammar.Symbol sym = syms.get(0);
+                        if (sym.getType() != Grammar.SymbolType.NONTERMINAL)
+                            throw new InvalidGrammarException("Lexer " +
+                                "grammar state productions may only " +
+                                "contain nonterminals");
+                        compileTerminal(state, syms.get(0).getContent(),
+                                        nextState);
+                        break;
+                }
+            }
         }
 
     }
