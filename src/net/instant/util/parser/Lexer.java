@@ -4,6 +4,7 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.io.Reader;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -240,10 +241,12 @@ public class Lexer implements Closeable {
 
         private final LexerGrammar grammar;
         private final Map<String, StateBuilder> states;
+        private final Set<String> seenStates;
 
         public Compiler(LexerGrammar grammar) throws InvalidGrammarException {
             this.grammar = new LexerGrammar(grammar);
             this.states = new NamedMap<StateBuilder>();
+            this.seenStates = new HashSet<String>();
             this.grammar.validate();
         }
 
@@ -287,6 +290,8 @@ public class Lexer implements Closeable {
         @SuppressWarnings("fallthrough")
         protected void compileState(String state)
                 throws InvalidGrammarException {
+            if (seenStates.contains(state)) return;
+            seenStates.add(state);
             StateBuilder st = getStateBuilder(state);
             for (Grammar.Production pr : grammar.getProductions(state)) {
                 List<Grammar.Symbol> syms = pr.getSymbols();
@@ -298,6 +303,7 @@ public class Lexer implements Closeable {
                     case 2:
                         // Index-1 symbols are validated to be nonterminals.
                         nextState = syms.get(1).getContent();
+                        compileState(nextState);
                     case 1:
                         Grammar.Symbol sym = syms.get(0);
                         if (sym.getType() != Grammar.SymbolType.NONTERMINAL)
