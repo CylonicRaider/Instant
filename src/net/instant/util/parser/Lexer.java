@@ -4,6 +4,7 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.io.Reader;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -196,27 +197,41 @@ public class Lexer implements Closeable {
 
     }
 
-    protected static class StateBuilder implements NamedValue {
+    protected interface State extends NamedValue {
+
+        Pattern getPattern();
+
+        List<String> getGroupNames();
+
+        List<State> getSuccessors();
+
+        boolean isAccepting();
+
+    }
+
+    protected static class FinalState implements State {
 
         private final String name;
-        private final StringBuilder pattern;
+        private final Pattern pattern;
         private final List<String> groupNames;
-        private final List<String> nextStates;
-        private boolean accepting;
+        private final List<State> successors;
+        private final boolean accepting;
 
-        public StateBuilder(String name) {
+        public FinalState(String name, Pattern pattern,
+                List<String> groupNames, List<State> successors,
+                boolean accepting) {
             this.name = name;
-            this.pattern = new StringBuilder();
-            this.groupNames = new ArrayList<String>();
-            this.nextStates = new ArrayList<String>();
-            this.accepting = false;
+            this.pattern = pattern;
+            this.groupNames = groupNames;
+            this.successors = successors;
+            this.accepting = accepting;
         }
 
         public String getName() {
             return name;
         }
 
-        public StringBuilder getPattern() {
+        public Pattern getPattern() {
             return pattern;
         }
 
@@ -224,8 +239,49 @@ public class Lexer implements Closeable {
             return groupNames;
         }
 
-        public List<String> getNextStates() {
-            return nextStates;
+        public List<State> getSuccessors() {
+            return successors;
+        }
+
+        public boolean isAccepting() {
+            return accepting;
+        }
+
+    }
+
+    protected static class StateBuilder implements State {
+
+        private final String name;
+        private final StringBuilder patternBuilder;
+        private final List<String> groupNames;
+        private final List<State> successors;
+        private boolean accepting;
+
+        public StateBuilder(String name) {
+            this.name = name;
+            this.patternBuilder = new StringBuilder();
+            this.groupNames = new ArrayList<String>();
+            this.successors = new ArrayList<State>();
+            this.accepting = false;
+        }
+
+        public String getName() {
+            return name;
+        }
+
+        public Pattern getPattern() {
+            return Pattern.compile(patternBuilder.toString());
+        }
+        public StringBuilder getPatternBuilder() {
+            return patternBuilder;
+        }
+
+        public List<String> getGroupNames() {
+            return groupNames;
+        }
+
+        public List<State> getSuccessors() {
+            return successors;
         }
 
         public boolean isAccepting() {
@@ -260,12 +316,13 @@ public class Lexer implements Closeable {
         }
 
         protected void compileTerminal(String state, String name,
-                String nextState) throws InvalidGrammarException {
+                String nextStateName) throws InvalidGrammarException {
             StateBuilder st = getStateBuilder(state);
-            StringBuilder pattern = st.getPattern();
+            StringBuilder pattern = st.getPatternBuilder();
             pattern.append('(');
             st.getGroupNames().add(name);
-            st.getNextStates().add(nextState);
+            st.getSuccessors().add((nextStateName == null) ? null :
+                getStateBuilder(nextStateName));
             boolean first = true;
             for (Grammar.Production pr : grammar.getProductions(name)) {
                 if (first) {
@@ -314,13 +371,34 @@ public class Lexer implements Closeable {
                         if (firstTerminal) {
                             firstTerminal = false;
                         } else {
-                            getStateBuilder(state).getPattern().append('|');
+                            getStateBuilder(state).getPatternBuilder()
+                                                  .append('|');
                         }
                         compileTerminal(state, syms.get(0).getContent(),
                                         nextState);
                         break;
                 }
             }
+        }
+
+        protected State freeze(State base, Map<String, State> memo,
+                               Map<String, List<State>> successorMemo) {
+            if (base == null) return null;
+            State ret = memo.get(base.getName());
+            if (ret == null) {
+                List<State> successors = new ArrayList<State>();
+                ret = new FinalState(base.getName(), base.getPattern(),
+                    Collections.unmodifiableList(new ArrayList<String>(
+                        base.getGroupNames())),
+                    Collections.unmodifiableList(successors),
+                    base.isAccepting());
+                memo.put(ret.getName(), ret);
+                successorMemo.put(ret.getName(), successors);
+                for (State s : base.getSuccessors()) {
+                    successors.add(freeze(s, memo, successorMemo));
+                }
+            }
+            return ret;
         }
 
     }
