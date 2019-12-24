@@ -5,10 +5,12 @@ import java.io.IOException;
 import java.io.Reader;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.Callable;
 import java.util.regex.MatchResult;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -61,26 +63,19 @@ public class Lexer implements Closeable {
     public static class CompiledGrammar implements GrammarView {
 
         private final LexerGrammar source;
-        private final Pattern pattern;
-        private final List<String> groupNames;
+        private final State initialState;
 
-        protected CompiledGrammar(LexerGrammar source, Pattern pattern,
-                                  List<String> groupNames) {
+        protected CompiledGrammar(LexerGrammar source, State initialState) {
             this.source = source;
-            this.pattern = pattern;
-            this.groupNames = groupNames;
+            this.initialState = initialState;
         }
 
         protected GrammarView getSource() {
             return source;
         }
 
-        protected Pattern getPattern() {
-            return pattern;
-        }
-
-        protected List<String> getGroupNames() {
-            return groupNames;
+        protected State getInitialState() {
+            return initialState;
         }
 
         public Set<String> getProductionNames() {
@@ -96,13 +91,6 @@ public class Lexer implements Closeable {
         }
         public Lexer makeLexer(Reader input) {
             return makeLexer(new LineColumnReader(input));
-        }
-
-        public static int findMatchedGroup(MatchResult res) {
-            for (int i = 1; i < res.groupCount(); i++) {
-                if (res.start(i) != -1) return i;
-            }
-            return -1;
         }
 
     }
@@ -293,7 +281,7 @@ public class Lexer implements Closeable {
 
     }
 
-    protected static class Compiler {
+    protected static class Compiler implements Callable<State> {
 
         private final LexerGrammar grammar;
         private final Map<String, StateBuilder> states;
@@ -304,6 +292,10 @@ public class Lexer implements Closeable {
             this.states = new NamedMap<StateBuilder>();
             this.seenStates = new HashSet<String>();
             this.grammar.validate();
+        }
+
+        protected LexerGrammar getGrammar() {
+            return grammar;
         }
 
         protected StateBuilder getStateBuilder(String name) {
@@ -345,11 +337,11 @@ public class Lexer implements Closeable {
         }
 
         @SuppressWarnings("fallthrough")
-        protected void compileState(String state)
+        protected StateBuilder compileState(String state)
                 throws InvalidGrammarException {
-            if (seenStates.contains(state)) return;
-            seenStates.add(state);
             StateBuilder st = getStateBuilder(state);
+            if (seenStates.contains(state)) return st;
+            seenStates.add(state);
             boolean firstTerminal = true;
             for (Grammar.Production pr : grammar.getProductions(state)) {
                 List<Grammar.Symbol> syms = pr.getSymbols();
@@ -379,6 +371,7 @@ public class Lexer implements Closeable {
                         break;
                 }
             }
+            return st;
         }
 
         protected State freeze(State base, Map<String, State> memo,
@@ -401,15 +394,26 @@ public class Lexer implements Closeable {
             return ret;
         }
 
+        public State call() throws InvalidGrammarException {
+            return freeze(
+                compileState(LexerGrammar.START_SYMBOL.getContent()),
+                new HashMap<String, State>(),
+                new HashMap<String, List<State>>());
+        }
+
     }
 
     private static final int BUFFER_SIZE = 8192;
+
+    // I wonder if there is a more elegant way of constructing this.
+    private static final Pattern MATCH_NOTHING = Pattern.compile("[0&&1]");
 
     private final CompiledGrammar grammar;
     private final LineColumnReader input;
     private final StringBuilder inputBuffer;
     private final LineColumnReader.CoordinatesTracker inputPosition;
     private final Matcher matcher;
+    private State state;
     private boolean atEOF;
     private Token outputBuffer;
 
@@ -418,7 +422,8 @@ public class Lexer implements Closeable {
         this.input = input;
         this.inputBuffer = new StringBuilder();
         this.inputPosition = new LineColumnReader.CoordinatesTracker();
-        this.matcher = grammar.getPattern().matcher(inputBuffer);
+        this.state = grammar.getInitialState();
+        this.matcher = state.getPattern().matcher(inputBuffer);
         this.atEOF = false;
         this.outputBuffer = null;
         matcher.useAnchoringBounds(false);
@@ -443,28 +448,42 @@ public class Lexer implements Closeable {
         inputBuffer.append(data, 0, ret);
         return ret;
     }
-    protected Token consumeInput(int length, String production) {
+    protected Token consumeInput(int length, int groupIdx) {
         String tokenText = inputBuffer.substring(0, length);
         inputBuffer.delete(0, length);
         Token ret = new Token(
             new LineColumnReader.FixedCoordinates(inputPosition),
-            production, tokenText);
+            state.getGroupNames().get(groupIdx), tokenText);
         inputPosition.advance(tokenText, 0, length);
         return ret;
+    }
+    protected void advance(int groupIdx) {
+        State oldState = state;
+        state = state.getSuccessors().get(groupIdx);
+        if (oldState == state) {
+            /* NOP */
+        } else if (state == null) {
+            matcher.usePattern(MATCH_NOTHING);
+        } else {
+            matcher.usePattern(state.getPattern());
+        }
     }
 
     public Token peek() throws IOException, LexingException {
         if (outputBuffer != null)
             return outputBuffer;
         for (;;) {
-            if (matcher.lookingAt() && (atEOF || ! matcher.hitEnd())) {
-                int groupIdx = CompiledGrammar.findMatchedGroup(matcher);
-                outputBuffer = consumeInput(matcher.end(),
-                    grammar.getGroupNames().get(groupIdx));
+            if (state != null && matcher.lookingAt() &&
+                    (atEOF || ! matcher.hitEnd())) {
+                int groupIdx = findMatchedGroup(matcher);
+                outputBuffer = consumeInput(matcher.end(), groupIdx);
+                advance(groupIdx);
                 return outputBuffer;
-            } else if (atEOF) {
-                if (inputBuffer.length() == 0)
+            } else if (state == null || atEOF) {
+                if (inputBuffer.length() == 0) {
+                    state = null;
                     return null;
+                }
                 throw new LexingException(
                     new LineColumnReader.FixedCoordinates(inputPosition),
                     "Unconsumed input");
@@ -490,7 +509,15 @@ public class Lexer implements Closeable {
 
     public static CompiledGrammar compile(LexerGrammar g)
             throws InvalidGrammarException {
-        throw new AssertionError("NYI");
+        Compiler comp = new Compiler(g);
+        return new CompiledGrammar(comp.getGrammar(), comp.call());
+    }
+
+    public static int findMatchedGroup(MatchResult res) {
+        for (int i = 1; i < res.groupCount(); i++) {
+            if (res.start(i) != -1) return i;
+        }
+        return -1;
     }
 
 }
