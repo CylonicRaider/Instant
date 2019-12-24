@@ -293,6 +293,7 @@ public class Lexer implements Closeable {
             if (seenStates.contains(state)) return;
             seenStates.add(state);
             StateBuilder st = getStateBuilder(state);
+            boolean firstTerminal = true;
             for (Grammar.Production pr : grammar.getProductions(state)) {
                 List<Grammar.Symbol> syms = pr.getSymbols();
                 String nextState = null;
@@ -310,6 +311,11 @@ public class Lexer implements Closeable {
                             throw new InvalidGrammarException("Lexer " +
                                 "grammar state productions may only " +
                                 "contain nonterminals");
+                        if (firstTerminal) {
+                            firstTerminal = false;
+                        } else {
+                            getStateBuilder(state).getPattern().append('|');
+                        }
                         compileTerminal(state, syms.get(0).getContent(),
                                         nextState);
                         break;
