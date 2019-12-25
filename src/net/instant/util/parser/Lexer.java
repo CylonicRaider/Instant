@@ -479,7 +479,7 @@ public class Lexer implements Closeable {
                 outputBuffer = consumeInput(matcher.end(), groupIdx);
                 advance(groupIdx);
                 return outputBuffer;
-            } else if (state == null || atEOF) {
+            } else if (atEOF) {
                 if (inputBuffer.length() == 0) {
                     state = null;
                     return null;
@@ -487,8 +487,9 @@ public class Lexer implements Closeable {
                 throw new LexingException(
                     new LineColumnReader.FixedCoordinates(inputPosition),
                     "Unconsumed input");
+            } else if (pullInput() == -1) {
+                atEOF = true;
             }
-            if (pullInput() == -1) atEOF = true;
         }
     }
 
