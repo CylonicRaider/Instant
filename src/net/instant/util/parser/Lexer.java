@@ -475,7 +475,7 @@ public class Lexer implements Closeable {
         for (;;) {
             if (state != null && matcher.lookingAt() &&
                     (atEOF || ! matcher.hitEnd())) {
-                int groupIdx = findMatchedGroup(matcher);
+                int groupIdx = chooseMatchedGroup(matcher);
                 outputBuffer = consumeInput(matcher.end(), groupIdx);
                 advance(groupIdx);
                 return outputBuffer;
@@ -514,11 +514,16 @@ public class Lexer implements Closeable {
         return new CompiledGrammar(comp.getGrammar(), comp.call());
     }
 
-    public static int findMatchedGroup(MatchResult res) {
-        for (int i = 1; i < res.groupCount(); i++) {
-            if (res.start(i) != -1) return i;
+    public static int chooseMatchedGroup(MatchResult res) {
+        int maxIdx = -1, maxSize = -1;
+        for (int i = 1; i <= res.groupCount(); i++) {
+            if (res.start(i) == -1) continue;
+            int size = res.end(i) - res.start(i);
+            if (size <= maxSize) continue;
+            maxIdx = i;
+            maxSize = size;
         }
-        return -1;
+        return maxIdx;
     }
 
 }
