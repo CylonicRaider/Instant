@@ -526,4 +526,30 @@ public class Lexer implements Closeable {
         return maxIdx;
     }
 
+    public static Grammar.Production terminalToken(String name,
+                                                   String content) {
+        return new Grammar.Production(name, Grammar.Symbol.terminal(content));
+    }
+    public static Grammar.Production patternToken(String name,
+                                                  String content) {
+        return new Grammar.Production(name, Grammar.Symbol.pattern(content));
+    }
+    public static Grammar.Production anythingToken(String name) {
+        return new Grammar.Production(name, Grammar.Symbol.anything());
+    }
+
+    public static Grammar.Production state(String name) {
+        return new Grammar.Production(name);
+    }
+    public static Grammar.Production state(String name, String token) {
+        return new Grammar.Production(name,
+                                      Grammar.Symbol.nonterminal(token));
+    }
+    public static Grammar.Production state(String name, String token,
+                                           String next) {
+        return new Grammar.Production(name,
+                                      Grammar.Symbol.nonterminal(token),
+                                      Grammar.Symbol.nonterminal(next));
+    }
+
 }
