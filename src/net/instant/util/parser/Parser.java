@@ -640,16 +640,25 @@ public class Parser {
                 throws InvalidGrammarException {
             State cur = getInitialState(prod.getName());
             Set<String> seenStates = new HashSet<String>();
-            for (Grammar.Symbol sym : prod.getSymbols()) {
+            List<Grammar.Symbol> syms = prod.getSymbols();
+            for (int i = 0; i < syms.size(); i++) {
+                Grammar.Symbol sym = syms.get(i);
                 State next;
                 Set<Grammar.Symbol> selectors;
                 switch (sym.getType()) {
                     case NONTERMINAL:
                         if (grammar.hasProductions(sym.getContent())) {
-                            next = createPushState(sym);
+                            seenStates.clear();
                             selectors = findInitialSymbols(sym.getContent(),
                                                            seenStates);
-                            seenStates.clear();
+                            /* Tail recursion optimization */
+                            if (i == syms.size() - 1 &&
+                                    sym.getContent().equals(prod.getName()) &&
+                                    sym.getFlags() == Grammar.SYM_INLINE) {
+                                next = getInitialState(prod.getName());
+                                break;
+                            }
+                            next = createPushState(sym);
                             addProductions(grammar.getRawProductions(
                                 sym.getContent()));
                             break;
