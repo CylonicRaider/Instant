@@ -131,6 +131,19 @@ public class Grammar implements GrammarView {
             return new Symbol(SymbolType.ANYTHING, "", flags);
         }
 
+        public static Symbol nonterminal(String content) {
+            return nonterminal(content, 0);
+        }
+        public static Symbol terminal(String content) {
+            return terminal(content, 0);
+        }
+        public static Symbol pattern(String content) {
+            return pattern(content, 0);
+        }
+        public static Symbol anything() {
+            return anything(0);
+        }
+
     }
 
     public static class Production implements NamedValue {
