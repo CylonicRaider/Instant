@@ -480,13 +480,18 @@ public class Lexer implements Closeable {
                 advance(groupIdx);
                 return outputBuffer;
             } else if (atEOF) {
-                if (inputBuffer.length() == 0) {
+                if (state != null && ! state.isAccepting()) {
+                    throw new LexingException(
+                        new LineColumnReader.FixedCoordinates(inputPosition),
+                        "Unexpected end of input");
+                } else if (inputBuffer.length() == 0) {
                     state = null;
                     return null;
+                } else {
+                    throw new LexingException(
+                        new LineColumnReader.FixedCoordinates(inputPosition),
+                        "Unconsumed input");
                 }
-                throw new LexingException(
-                    new LineColumnReader.FixedCoordinates(inputPosition),
-                    "Unconsumed input");
             } else if (pullInput() == -1) {
                 atEOF = true;
             }
