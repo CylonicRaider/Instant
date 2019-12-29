@@ -404,7 +404,7 @@ public class Parser {
         public void apply(Status status) throws ParsingException {
             Lexer.Token tok = status.getCurrentToken();
             if (tok == null) {
-                throw status.parsingException("Unexpected EOF at " +
+                throw status.parsingException("Unexpected end of input at " +
                     status.getCurrentPosition());
             } else if (! tok.matches(expected)) {
                 throw status.parsingException("Unexpected token " +
@@ -483,7 +483,7 @@ public class Parser {
             if (succ == null)
                 throw status.parsingException("Unexpected " +
                     ((tok == null) ?
-                        "EOF at " + status.getCurrentPosition() :
+                        "end of input at " + status.getCurrentPosition() :
                         "token " + tok) +
                     ", expected one of " + formatSuccessors());
             status.setState(succ);
