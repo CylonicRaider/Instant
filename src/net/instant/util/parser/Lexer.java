@@ -307,6 +307,27 @@ public class Lexer implements Closeable {
             return ret;
         }
 
+        protected void compileProduction(String state, String name,
+                Grammar.Production pr) throws InvalidGrammarException {
+            StateBuilder st = getStateBuilder(state);
+            if (pr.getSymbols().size() != 1)
+                throw new InvalidGrammarException("Lexer token " + name +
+                    " definition must contain exactly one nonterminal " +
+                    "each");
+            Grammar.Symbol sym = pr.getSymbols().get(0);
+            if (sym.getType() == Grammar.SymbolType.NONTERMINAL)
+                throw new InvalidGrammarException("Lexer token " + name +
+                    " definition may not contain nonterminals");
+            Pattern sympat = sym.getPattern();
+            // HACK: Pattern does not allow querying the group count, we need
+            //       to create a dummy Matcher instead.
+            if (sympat.matcher("").groupCount() != 0)
+                throw new InvalidGrammarException("Lexer token " + name +
+                    " has capturing groups.");
+            st.getPatternBuilder().append("(?:").append(sympat.pattern())
+                                  .append(')');
+        }
+
         protected void compileTerminal(String state, String name,
                 String nextStateName) throws InvalidGrammarException {
             StateBuilder st = getStateBuilder(state);
@@ -322,16 +343,7 @@ public class Lexer implements Closeable {
                 } else {
                     pattern.append('|');
                 }
-                if (pr.getSymbols().size() != 1)
-                    throw new InvalidGrammarException("Lexer token " + name +
-                        " definition must contain exactly one nonterminal " +
-                        "each");
-                Grammar.Symbol sym = pr.getSymbols().get(0);
-                if (sym.getType() == Grammar.SymbolType.NONTERMINAL)
-                    throw new InvalidGrammarException("Lexer token " + name +
-                        " definition may not contain nonterminals");
-                pattern.append("(?:").append(sym.getPattern().pattern())
-                       .append(')');
+                compileProduction(state, name, pr);
             }
             pattern.append(')');
         }
