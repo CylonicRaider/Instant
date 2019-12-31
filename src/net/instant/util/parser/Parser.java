@@ -559,7 +559,10 @@ public class Parser {
             ret = new HashSet<Grammar.Symbol>();
             for (Grammar.Production p : grammar.getRawProductions(prodName)) {
                 List<Grammar.Symbol> sl = p.getSymbols();
-                if (sl.size() == 0) continue;
+                if (sl.size() == 0) {
+                    ret.add(null);
+                    continue;
+                }
                 Grammar.Symbol s = sl.get(0);
                 if (s.getType() != Grammar.SymbolType.NONTERMINAL)
                     throw new InvalidGrammarException("First symbol of " +
@@ -638,8 +641,9 @@ public class Parser {
         @SuppressWarnings("fallthrough")
         protected void addProduction(Grammar.Production prod)
                 throws InvalidGrammarException {
-            State cur = getInitialState(prod.getName());
+            Set<State> prevs = new HashSet<State>();
             Set<String> seenStates = new HashSet<String>();
+            prevs.add(getInitialState(prod.getName()));
             List<Grammar.Symbol> syms = prod.getSymbols();
             for (int i = 0; i < syms.size(); i++) {
                 Grammar.Symbol sym = syms.get(i);
@@ -671,12 +675,25 @@ public class Parser {
                         throw new AssertionError(
                             "Unrecognized symbol type?!");
                 }
-                for (Grammar.Symbol sel : selectors) {
-                    addSuccessor(cur, sel, next);
+                boolean optional = selectors.contains(null);
+                if (optional) {
+                    selectors = new HashSet<Grammar.Symbol>(selectors);
+                    selectors.remove(null);
                 }
-                cur = next;
+                for (State pr : prevs) {
+                    for (Grammar.Symbol sel : selectors) {
+                        addSuccessor(pr, sel, next);
+                    }
+                }
+                if (! optional) {
+                    prevs.clear();
+                }
+                prevs.add(next);
             }
-            addSuccessor(cur, null, getFinalState(prod.getName()));
+            State next = getFinalState(prod.getName());
+            for (State pr : prevs) {
+                addSuccessor(pr, null, next);
+            }
         }
 
         protected void addProductions(NamedSet<Grammar.Production> prods)
