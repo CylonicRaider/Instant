@@ -567,7 +567,7 @@ public class Parser {
                 if (s.getType() != Grammar.SymbolType.NONTERMINAL)
                     throw new InvalidGrammarException("First symbol of " +
                         "production " + prodName +
-                        " alternative is a terminal");
+                        " alternative is a raw terminal");
                 String c = s.getContent();
                 if (grammar.hasProductions(c)) {
                     ret.addAll(findInitialSymbols(c, seen));
