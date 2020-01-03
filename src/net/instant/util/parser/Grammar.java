@@ -192,8 +192,19 @@ public class Grammar implements GrammarView {
 
     }
 
+    /* Do not generate an own parsing tree node for this symbol. */
     public static final int SYM_INLINE = 1;
+    /* Discard any parsing tree nodes stemming from this symbol (may be
+     * overridden on a per-parser basis). */
     public static final int SYM_DISCARD = 2;
+    /* Optionally skip this symbol (regular expression x?).
+     * If the symbol is not matched, no parse tree is generated for it. */
+    public static final int SYM_OPTIONAL = 4;
+    /* Permit repetitions of this symbol (regular expression x+).
+     * Multiple matches generate adjacent parse subtrees. Combine with
+     * SYM_OPTIONAL to permit any amount of repetitions (regular expression
+     * x*). */
+    public static final int SYM_REPEAT = 8;
 
     private final NamedMap<NamedSet<Production>> productions;
 

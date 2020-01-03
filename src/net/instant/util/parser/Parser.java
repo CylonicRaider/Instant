@@ -658,7 +658,10 @@ public class Parser {
                             /* Tail recursion optimization */
                             if (i == syms.size() - 1 &&
                                     sym.getContent().equals(prod.getName()) &&
-                                    sym.getFlags() == Grammar.SYM_INLINE) {
+                                    (sym.getFlags() & (Grammar.SYM_INLINE |
+                                                       Grammar.SYM_DISCARD |
+                                                       Grammar.SYM_REPEAT)
+                                    ) == Grammar.SYM_INLINE) {
                                 next = getInitialState(prod.getName());
                                 break;
                             }
@@ -675,17 +678,21 @@ public class Parser {
                         throw new AssertionError(
                             "Unrecognized symbol type?!");
                 }
-                boolean optional = selectors.contains(null);
-                if (optional) {
+                boolean maybeEmpty = selectors.contains(null);
+                if (maybeEmpty) {
                     selectors = new HashSet<Grammar.Symbol>(selectors);
                     selectors.remove(null);
+                }
+                if ((sym.getFlags() & Grammar.SYM_REPEAT) != 0) {
+                    prevs.add(next);
                 }
                 for (State pr : prevs) {
                     for (Grammar.Symbol sel : selectors) {
                         addSuccessor(pr, sel, next);
                     }
                 }
-                if (! optional) {
+                if (! maybeEmpty &&
+                        (sym.getFlags() & Grammar.SYM_OPTIONAL) == 0) {
                     prevs.clear();
                 }
                 prevs.add(next);
