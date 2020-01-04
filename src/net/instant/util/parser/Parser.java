@@ -559,10 +559,15 @@ public class Parser {
             ret = new HashSet<Grammar.Symbol>();
             for (Grammar.Production p : grammar.getRawProductions(prodName)) {
                 List<Grammar.Symbol> sl = p.getSymbols();
-                if (sl.size() == 0) {
-                    ret.add(null);
-                    continue;
+                boolean maybeEmpty = true;
+                for (Grammar.Symbol s : sl) {
+                    if ((s.getFlags() & Grammar.SYM_OPTIONAL) == 0) {
+                        maybeEmpty = false;
+                        break;
+                    }
                 }
+                if (maybeEmpty) ret.add(null);
+                if (sl.size() == 0) continue;
                 Grammar.Symbol s = sl.get(0);
                 if (s.getType() != Grammar.SymbolType.NONTERMINAL)
                     throw new InvalidGrammarException("First symbol of " +
