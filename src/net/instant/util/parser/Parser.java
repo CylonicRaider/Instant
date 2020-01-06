@@ -615,7 +615,9 @@ public class Parser {
         }
         protected void addSuccessor(State prev, Grammar.Symbol selector,
                 State next) throws InvalidGrammarException {
-            if (prev instanceof MultiSuccessorState) {
+            if (getSuccessor(prev, selector) == next) {
+                /* Nothing to do. */
+            } else if (prev instanceof MultiSuccessorState) {
                 MultiSuccessorState cprev = (MultiSuccessorState) prev;
                 if (cprev.getSuccessor(selector) != null)
                     throw new InvalidGrammarException(
