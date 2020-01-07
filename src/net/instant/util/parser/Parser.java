@@ -493,11 +493,60 @@ public class Parser {
 
     protected static class Compiler implements Callable<State> {
 
+        protected class StateInfo {
+
+            private final State state;
+            private int depth;
+            private String anchorName;
+            private Grammar.Symbol predSelector;
+            private State predecessor;
+
+            public StateInfo(State state) {
+                this.state = state;
+                this.depth = -1;
+                this.anchorName = null;
+                this.predSelector = null;
+                this.predecessor = null;
+            }
+
+            public State getState() {
+                return state;
+            }
+
+            public int getDepth() {
+                return depth;
+            }
+
+            public String getAnchorName() {
+                return anchorName;
+            }
+            public void setAnchorName(String name) {
+                anchorName = name;
+                depth = 0;
+            }
+
+            public Grammar.Symbol getPredecessorSelector() {
+                return predSelector;
+            }
+            public State getPredecessor() {
+                return predecessor;
+            }
+            public void setPredecessor(Grammar.Symbol selector, State pred) {
+                StateInfo predInfo = getStateInfo(pred);
+                if (depth != -1 && predInfo.getDepth() >= depth) return;
+                depth = predInfo.getDepth() + 1;
+                predSelector = selector;
+                predecessor = pred;
+            }
+
+        }
+
         private final ParserGrammar grammar;
         private final Set<String> seenProductions;
         private final Map<String, State> initialStates;
         private final Map<String, State> finalStates;
         private final Map<String, Set<Grammar.Symbol>> initialSymbolCache;
+        private final Map<State, StateInfo> info;
 
         public Compiler(ParserGrammar grammar)
                 throws InvalidGrammarException {
@@ -507,6 +556,7 @@ public class Parser {
             this.finalStates = new HashMap<String, State>();
             this.initialSymbolCache = new HashMap<String,
                 Set<Grammar.Symbol>>();
+            this.info = new HashMap<State, StateInfo>();
             this.grammar.validate();
         }
 
@@ -529,12 +579,16 @@ public class Parser {
         protected PopState createPopState() {
             return new PopState();
         }
+        protected StateInfo createStateInfo(State state) {
+            return new StateInfo(state);
+        }
 
         protected State getInitialState(String prodName) {
             State ret = initialStates.get(prodName);
             if (ret == null) {
                 ret = createNullState();
                 initialStates.put(prodName, ret);
+                getStateInfo(ret).setAnchorName(prodName);
             }
             return ret;
         }
@@ -582,6 +636,15 @@ public class Parser {
             }
             seen.remove(prodName);
             initialSymbolCache.put(prodName, ret);
+            return ret;
+        }
+
+        protected StateInfo getStateInfo(State state) {
+            StateInfo ret = info.get(state);
+            if (ret == null) {
+                ret = createStateInfo(state);
+                info.put(state, ret);
+            }
             return ret;
         }
 
@@ -643,6 +706,7 @@ public class Parser {
                 throw new IllegalArgumentException("Cannot splice into " +
                     "state graph after " + prev);
             }
+            getStateInfo(next).setPredecessor(selector, prev);
         }
 
         @SuppressWarnings("fallthrough")
