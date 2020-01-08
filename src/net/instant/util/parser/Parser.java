@@ -357,6 +357,11 @@ public class Parser {
             this(sym, null, null, null);
         }
 
+        public String toString() {
+            return String.format("%s@%h[symbol=%s,callState=%s]",
+                getClass().getName(), this, getSymbol(), getCallState());
+        }
+
         public Grammar.Symbol getSymbol() {
             return sym;
         }
@@ -396,6 +401,11 @@ public class Parser {
         }
         public LiteralState(Grammar.Symbol expected) {
             this(expected, null, null);
+        }
+
+        public String toString() {
+            return String.format("%s@%h[expected=%s]", getClass().getName(),
+                                 this, getExpected());
         }
 
         public Grammar.Symbol getExpected() {
