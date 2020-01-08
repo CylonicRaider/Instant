@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -532,6 +533,7 @@ public class Parser {
                 return predecessor;
             }
             public void setPredecessor(Grammar.Symbol selector, State pred) {
+                if (pred == getState()) return;
                 StateInfo predInfo = getStateInfo(pred);
                 if (depth != -1 && predInfo.getDepth() >= depth) return;
                 depth = predInfo.getDepth() + 1;
@@ -701,6 +703,8 @@ public class Parser {
                     addSuccessor(newmid, cprev.getSelector(), mid);
                     addSuccessor(newmid, selector, next);
                     cprev.setSuccessor(null, newmid);
+                    getStateInfo(newmid).setPredecessor(null, cprev);
+                    prev = newmid;
                 }
             } else {
                 throw new IllegalArgumentException("Cannot splice into " +
@@ -712,7 +716,7 @@ public class Parser {
         @SuppressWarnings("fallthrough")
         protected void addProduction(Grammar.Production prod)
                 throws InvalidGrammarException {
-            Set<State> prevs = new HashSet<State>();
+            List<State> prevs = new LinkedList<State>();
             Set<String> seenStates = new HashSet<String>();
             prevs.add(getInitialState(prod.getName()));
             List<Grammar.Symbol> syms = prod.getSymbols();
@@ -755,7 +759,7 @@ public class Parser {
                     selectors.remove(null);
                 }
                 if ((sym.getFlags() & Grammar.SYM_REPEAT) != 0) {
-                    prevs.add(next);
+                    prevs.add(0, next);
                 }
                 for (State pr : prevs) {
                     for (Grammar.Symbol sel : selectors) {
@@ -766,7 +770,9 @@ public class Parser {
                         (sym.getFlags() & Grammar.SYM_OPTIONAL) == 0) {
                     prevs.clear();
                 }
-                prevs.add(next);
+                if (prevs.isEmpty() || prevs.get(0) != next) {
+                    prevs.add(0, next);
+                }
             }
             State next = getFinalState(prod.getName());
             for (State pr : prevs) {
