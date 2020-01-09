@@ -551,6 +551,30 @@ public class Parser {
                 predecessor = pred;
             }
 
+            public StateInfo getPredecessorInfo() {
+                State pred = getPredecessor();
+                return (pred == null) ? null : getStateInfo(pred);
+            }
+
+            public String getPath() {
+                String name = getAnchorName();
+                if (name != null) return name;
+                StateInfo predInfo = getPredecessorInfo();
+                if (predInfo == null) return null;
+                String predPath = predInfo.getPath();
+                if (predPath == null) return null;
+                Grammar.Symbol sel = getPredecessorSelector();
+                return predPath + " -> " + ((sel == null) ? "(default)" :
+                  sel.toUserString());
+            }
+
+            public String describe() {
+                String ret = getState().toString();
+                String path = getPath();
+                if (path != null) ret += " (" + path + ")";
+                return ret;
+            }
+
         }
 
         private final ParserGrammar grammar;
@@ -659,6 +683,9 @@ public class Parser {
             }
             return ret;
         }
+        protected String describeState(State state) {
+            return getStateInfo(state).describe();
+        }
 
         protected boolean selectorsEqual(Grammar.Symbol a, Grammar.Symbol b) {
             if (a != null && a.getType() == Grammar.SymbolType.ANYTHING)
@@ -685,7 +712,8 @@ public class Parser {
                 }
             } else {
                 throw new IllegalArgumentException(
-                    "Cannot determine successor of state " + prev);
+                    "Cannot determine successor of state " +
+                    describeState(prev));
             }
         }
         protected void addSuccessor(State prev, Grammar.Symbol selector,
@@ -696,10 +724,11 @@ public class Parser {
                 MultiSuccessorState cprev = (MultiSuccessorState) prev;
                 if (cprev.getSuccessor(selector) != null)
                     throw new InvalidGrammarException(
-                        "Ambiguous successors for state " + prev +
-                        " with selector " +
+                        "Ambiguous successors for state " +
+                        describeState(prev) + " with selector " +
                         ((selector == null) ? "(default)" : selector) + ": " +
-                        cprev.getSuccessor(selector) + " and " + next);
+                        describeState(cprev.getSuccessor(selector)) +
+                        " and " + describeState(next));
                 cprev.setSuccessor(selector, next);
             } else if (prev instanceof SingleSuccessorState) {
                 SingleSuccessorState cprev = (SingleSuccessorState) prev;
@@ -718,7 +747,7 @@ public class Parser {
                 }
             } else {
                 throw new IllegalArgumentException("Cannot splice into " +
-                    "state graph after " + prev);
+                    "state graph after " + describeState(prev));
             }
             getStateInfo(next).setPredecessor(selector, prev);
         }
