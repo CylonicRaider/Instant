@@ -831,6 +831,7 @@ public class Parser {
                     prevs.add(0, next);
                     prevsIndex.add(next);
                 }
+                boolean nextUsed = false;
                 for (State pr : prevs) {
                     for (Grammar.Symbol sel : selectors) {
                         State st = getSuccessor(pr, sel);
@@ -842,14 +843,17 @@ public class Parser {
                             continue;
                         }
                         addSuccessor(pr, sel, next);
+                        nextUsed = true;
                     }
+                }
+                if (nextUsed) {
+                    nextPrevs.add(next);
                 }
                 if (! maybeEmpty &&
                         (sym.getFlags() & Grammar.SYM_OPTIONAL) == 0) {
                     prevs.clear();
                     prevsIndex.clear();
                 }
-                nextPrevs.add(0, next);
                 for (State p : nextPrevs) {
                     if (prevsIndex.add(p))
                         prevs.add(0, p);
