@@ -323,6 +323,15 @@ public class Parser {
             this(null, null);
         }
 
+        public boolean equals(Object other) {
+            // As its name suggests, NullState has no distinctive features.
+            return (other instanceof NullState);
+        }
+
+        public int hashCode() {
+            return 0x57A7E; // "STATE".
+        }
+
         public Grammar.Symbol getSelector() {
             return selector;
         }
@@ -360,6 +369,16 @@ public class Parser {
         public String toString() {
             return String.format("%s@%h[symbol=%s,callState=%s]",
                 getClass().getName(), this, getSymbol(), getCallState());
+        }
+
+        public boolean equals(Object other) {
+            if (! (other instanceof PushState) || ! super.equals(other))
+                return false;
+            return getSymbol().equals(((PushState) other).getSymbol());
+        }
+
+        public int hashCode() {
+            return super.hashCode() ^ getSymbol().hashCode();
         }
 
         public Grammar.Symbol getSymbol() {
@@ -406,6 +425,16 @@ public class Parser {
         public String toString() {
             return String.format("%s@%h[expected=%s]", getClass().getName(),
                                  this, getExpected());
+        }
+
+        public boolean equals(Object other) {
+            if (! (other instanceof LiteralState) || ! super.equals(other))
+                return false;
+            return getExpected().equals(((LiteralState) other).getExpected());
+        }
+
+        public int hashCode() {
+            return super.hashCode() ^ getExpected().hashCode();
         }
 
         public Grammar.Symbol getExpected() {
@@ -718,9 +747,7 @@ public class Parser {
         }
         protected void addSuccessor(State prev, Grammar.Symbol selector,
                 State next) throws InvalidGrammarException {
-            if (getSuccessor(prev, selector) == next) {
-                /* Nothing to do. */
-            } else if (prev instanceof MultiSuccessorState) {
+            if (prev instanceof MultiSuccessorState) {
                 MultiSuccessorState cprev = (MultiSuccessorState) prev;
                 if (cprev.getSuccessor(selector) != null)
                     throw new InvalidGrammarException(
@@ -756,8 +783,11 @@ public class Parser {
         protected void addProduction(Grammar.Production prod)
                 throws InvalidGrammarException {
             List<State> prevs = new LinkedList<State>();
+            Set<State> prevsIndex = new HashSet<State>();
+            List<State> nextPrevs = new LinkedList<State>();
             Set<String> seenStates = new HashSet<String>();
             prevs.add(getInitialState(prod.getName()));
+            prevsIndex.add(prevs.get(0));
             List<Grammar.Symbol> syms = prod.getSymbols();
             for (int i = 0; i < syms.size(); i++) {
                 Grammar.Symbol sym = syms.get(i);
@@ -799,19 +829,32 @@ public class Parser {
                 }
                 if ((sym.getFlags() & Grammar.SYM_REPEAT) != 0) {
                     prevs.add(0, next);
+                    prevsIndex.add(next);
                 }
                 for (State pr : prevs) {
                     for (Grammar.Symbol sel : selectors) {
+                        State st = getSuccessor(pr, sel);
+                        // The mutual comparisons ensure that both next and st
+                        // can veto the "merge".
+                        if (st != null && next.equals(st) &&
+                                st.equals(next)) {
+                            nextPrevs.add(st);
+                            continue;
+                        }
                         addSuccessor(pr, sel, next);
                     }
                 }
                 if (! maybeEmpty &&
                         (sym.getFlags() & Grammar.SYM_OPTIONAL) == 0) {
                     prevs.clear();
+                    prevsIndex.clear();
                 }
-                if (prevs.isEmpty() || prevs.get(0) != next) {
-                    prevs.add(0, next);
+                nextPrevs.add(0, next);
+                for (State p : nextPrevs) {
+                    if (prevsIndex.add(p))
+                        prevs.add(0, p);
                 }
+                nextPrevs.clear();
             }
             State next = getFinalState(prod.getName());
             for (State pr : prevs) {
