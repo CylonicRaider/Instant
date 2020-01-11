@@ -866,7 +866,8 @@ public class Parser {
             }
             State next = getFinalState(prod.getName());
             for (State pr : prevs) {
-                addSuccessor(pr, null, next);
+                if (getSuccessor(pr, null) != next)
+                    addSuccessor(pr, null, next);
             }
         }
 
