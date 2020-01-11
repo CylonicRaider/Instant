@@ -318,16 +318,9 @@ public class Parser {
         private Grammar.Symbol selector;
         private State successor;
 
-        public NullState(Grammar.Symbol selector, State successor) {
-            this.selector = selector;
-            this.successor = successor;
-        }
-        public NullState() {
-            this(null, null);
-        }
-
         public boolean equals(Object other) {
-            // As its name suggests, NullState has no distinctive features.
+            // As its name suggests, NullState has no distinctive features
+            // (this may, however, be different for subclasses).
             return (other instanceof NullState);
         }
 
@@ -354,19 +347,17 @@ public class Parser {
 
     }
 
-    protected static class PushState extends NullState {
+    protected static class CallState extends NullState {
 
         private final Grammar.Symbol sym;
         private State callState;
 
-        public PushState(Grammar.Symbol sym, State callState,
-                         Grammar.Symbol selector, State successor) {
-            super(selector, successor);
+        public CallState(Grammar.Symbol sym, State callState) {
             this.sym = sym;
             this.callState = callState;
         }
-        public PushState(Grammar.Symbol sym) {
-            this(sym, null, null, null);
+        public CallState(Grammar.Symbol sym) {
+            this(sym, null);
         }
 
         public String toString() {
@@ -375,9 +366,9 @@ public class Parser {
         }
 
         public boolean equals(Object other) {
-            if (! (other instanceof PushState) || ! super.equals(other))
+            if (! (other instanceof CallState) || ! super.equals(other))
                 return false;
-            return getSymbol().equals(((PushState) other).getSymbol());
+            return getSymbol().equals(((CallState) other).getSymbol());
         }
 
         public int hashCode() {
@@ -404,7 +395,7 @@ public class Parser {
 
     }
 
-    protected static class PopState implements State {
+    protected static class ReturnState implements State {
 
         public void apply(Status status) throws ParsingException {
             status.popState();
@@ -416,13 +407,8 @@ public class Parser {
 
         private final Grammar.Symbol expected;
 
-        public LiteralState(Grammar.Symbol expected, Grammar.Symbol selector,
-                            State successor) {
-            super(selector, successor);
-            this.expected = expected;
-        }
         public LiteralState(Grammar.Symbol expected) {
-            this(expected, null, null);
+            this.expected = expected;
         }
 
         public String toString() {
@@ -629,8 +615,8 @@ public class Parser {
         protected NullState createNullState() {
             return new NullState();
         }
-        protected PushState createPushState(Grammar.Symbol sym) {
-            return new PushState(sym);
+        protected CallState createCallState(Grammar.Symbol sym) {
+            return new CallState(sym, getInitialState(sym.getContent()));
         }
         protected LiteralState createLiteralState(Grammar.Symbol sym) {
             return new LiteralState(sym);
@@ -638,8 +624,8 @@ public class Parser {
         protected BranchState createBranchState() {
             return new BranchState();
         }
-        protected PopState createPopState() {
-            return new PopState();
+        protected ReturnState createReturnState() {
+            return new ReturnState();
         }
         protected StateInfo createStateInfo(State state) {
             return new StateInfo(state);
@@ -657,7 +643,7 @@ public class Parser {
         protected State getFinalState(String prodName) {
             State ret = finalStates.get(prodName);
             if (ret == null) {
-                ret = createPopState();
+                ret = createReturnState();
                 finalStates.put(prodName, ret);
             }
             return ret;
@@ -803,7 +789,7 @@ public class Parser {
                         }
                         addProductions(grammar.getRawProductions(
                             sym.getContent()));
-                        return createPushState(sym);
+                        return createCallState(sym);
                     }
                 case TERMINAL: case PATTERN_TERMINAL: case ANYTHING:
                     selectors.add(sym);
