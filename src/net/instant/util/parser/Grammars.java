@@ -82,18 +82,18 @@ public final class Grammars {
                     Lexer.state("Comment", "LF", ILS),
                     Lexer.state("Comment")
                 ),
-                /* Common definitions */
+                /* Whitespace and comments */
                 prod("S", nt("SP", SYM_OPTIONAL)),
                 prod("EOL", nt("CR")),
                 prod("EOL", nt("LF")),
                 prod("EOL", nt("CR"), nt("LF")),
                 prod("Comment", nt("StartComment"), nt("CommentContent"),
                      nt("EOL")),
-                prod("EOLX", nt("S"), nt("EOL")),
-                prod("EOLX", nt("S"), nt("Comment")),
-                prod("LBS"),
-                prod("LBS", nt("S"), nt("LBS", SYM_INLINE | SYM_OPTIONAL)),
-                prod("LBS", nt("EOLX"), nt("LBS", SYM_INLINE | SYM_OPTIONAL)),
+                prod("EOLX", nt("EOL")),
+                prod("EOLX", nt("Comment")),
+                prod("SEOLX", nt("S"), nt("EOLX")),
+                prod("LBS", nt("S")),
+                prod("LBS", nt("S"), nt("EOLX"), nt("LBS", SYM_INLINE)),
                 /* Symbol definitions */
                 prod("SymbolTrailer"),
                 prod("SymbolTrailer", nt("Question"),
@@ -131,8 +131,8 @@ public final class Grammars {
                      nt("BracketOpen", SYM_DISCARD), nt("S", SYM_DISCARD),
                      nt("Identifier"), nt("S", SYM_DISCARD),
                      nt("BracketClose", SYM_DISCARD),
-                     nt("EOLX", SYM_DISCARD)),
-                prod("SectionContentLine", nt("EOLX", SYM_DISCARD)),
+                     nt("SEOLX", SYM_DISCARD)),
+                prod("SectionContentLine", nt("SEOLX", SYM_DISCARD)),
                 prod("SectionContentLine", nt("Production")),
                 prod("SectionContent",
                      nt("SectionContentLine", SYM_INLINE | SYM_OPTIONAL |
