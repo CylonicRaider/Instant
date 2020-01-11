@@ -818,11 +818,8 @@ public class Parser {
                 throws InvalidGrammarException {
             Set<Grammar.Symbol> selectors = new HashSet<Grammar.Symbol>();
             Deque<State> prevs = new LinkedList<State>();
-            Set<State> prevsIndex = new HashSet<State>();
             Deque<State> nextPrevs = new LinkedList<State>();
-            Set<State> nextPrevsIndex = new HashSet<State>();
             prevs.add(getInitialState(prod.getName()));
-            prevsIndex.add(prevs.getFirst());
             List<Grammar.Symbol> syms = prod.getSymbols();
             int symCount = syms.size();
             for (int i = 0; i < symCount; i++) {
@@ -838,7 +835,7 @@ public class Parser {
                         // The mutual comparisons ensure that both next and st
                         // can veto the "merge".
                         if (next.equals(st) && st.equals(next) &&
-                                nextPrevsIndex.add(st))
+                                ! nextPrevs.contains(st))
                             nextPrevs.addLast(st);
                     }
                 }
@@ -848,7 +845,7 @@ public class Parser {
                     next = nextPrevs.getFirst();
                 }
                 if ((sym.getFlags() & Grammar.SYM_REPEAT) != 0) {
-                    copyPrevs(prevs, prevsIndex, nextPrevs);
+                    copyPrevs(prevs, nextPrevs);
                 }
                 for (State pr : prevs) {
                     for (Grammar.Symbol sel : selectors) {
@@ -858,12 +855,10 @@ public class Parser {
                 }
                 if (! maybeEmpty) {
                     prevs.clear();
-                    prevsIndex.clear();
                 }
-                copyPrevs(prevs, prevsIndex, nextPrevs);
+                copyPrevs(prevs, nextPrevs);
                 selectors.clear();
                 nextPrevs.clear();
-                nextPrevsIndex.clear();
             }
             State next = getFinalState(prod.getName());
             for (State pr : prevs) {
@@ -871,12 +866,11 @@ public class Parser {
                     addSuccessor(pr, null, next);
             }
         }
-        private void copyPrevs(Deque<State> prevs, Set<State> prevsIndex,
-                               Deque<State> nextPrevs) {
+        private void copyPrevs(Deque<State> prevs, Deque<State> nextPrevs) {
             Iterator<State> it = nextPrevs.descendingIterator();
             while (it.hasNext()) {
                 State p = it.next();
-                if (prevsIndex.add(p))
+                if (! prevs.contains(p))
                     prevs.addFirst(p);
             }
         }
