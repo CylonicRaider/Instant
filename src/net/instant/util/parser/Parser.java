@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.IdentityHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -621,7 +622,7 @@ public class Parser {
             this.finalStates = new HashMap<String, State>();
             this.initialSymbolCache = new HashMap<String,
                 Set<Grammar.Symbol>>();
-            this.info = new HashMap<State, StateInfo>();
+            this.info = new IdentityHashMap<State, StateInfo>();
             this.grammar.validate();
         }
 
