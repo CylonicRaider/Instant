@@ -753,21 +753,28 @@ public class Parser {
                 cprev.setSuccessor(selector, next);
             } else if (prev instanceof SingleSuccessorState) {
                 SingleSuccessorState cprev = (SingleSuccessorState) prev;
-                State mid = cprev.getSuccessor();
-                if (mid == null) {
-                    cprev.setSuccessor(selector, next);
-                } else if (mid instanceof MultiSuccessorState) {
-                    addSuccessor(mid, selector, next);
-                } else {
-                    Grammar.Symbol midSelector = cprev.getSelector();
-                    BranchState newmid = createBranchState();
-                    cprev.setSuccessor(null, newmid);
-                    getStateInfo(newmid).clearPredecessor();
-                    getStateInfo(newmid).setPredecessor(null, cprev);
-                    addSuccessor(newmid, midSelector, mid);
-                    addSuccessor(newmid, selector, next);
-                    prev = newmid;
+                try {
+                    State mid = cprev.getSuccessor();
+                    if (mid == null) {
+                        cprev.setSuccessor(selector, next);
+                    } else if (mid instanceof MultiSuccessorState) {
+                        addSuccessor(mid, selector, next);
+                    } else {
+                        Grammar.Symbol midSelector = cprev.getSelector();
+                        BranchState newmid = createBranchState();
+                        cprev.setSuccessor(null, newmid);
+                        getStateInfo(newmid).clearPredecessor();
+                        getStateInfo(newmid).setPredecessor(null, cprev);
+                        addSuccessor(newmid, midSelector, mid);
+                        addSuccessor(newmid, selector, next);
+                        prev = newmid;
+                    }
+                } catch (InvalidGrammarException exc) {
+                    throw new InvalidGrammarException(
+                        "Cannot add successor to state " +
+                        describeState(prev) + ": " + exc.getMessage(), exc);
                 }
+
             } else {
                 throw new IllegalArgumentException("Cannot splice into " +
                     "state graph after " + describeState(prev));
