@@ -724,14 +724,12 @@ public class Parser {
                 return ((MultiSuccessorState) prev).getSuccessor(selector);
             } else if (prev instanceof SingleSuccessorState) {
                 SingleSuccessorState cprev = (SingleSuccessorState) prev;
-                if (selectorsEqual(selector, cprev.getSelector())) {
-                    return cprev.getSuccessor();
-                } else if (cprev.getSelector() != null) {
-                    return null;
-                }
-                State mid = cprev.getSuccessor();
-                if (mid instanceof MultiSuccessorState) {
-                    return getSuccessor(mid, selector);
+                State succ = cprev.getSuccessor();
+                if (cprev.getSelector() == null &&
+                        succ instanceof MultiSuccessorState) {
+                    return getSuccessor(succ, selector);
+                } else if (selectorsEqual(selector, cprev.getSelector())) {
+                    return succ;
                 } else {
                     return null;
                 }
