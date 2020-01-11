@@ -8,6 +8,7 @@ import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -783,96 +784,100 @@ public class Parser {
         }
 
         @SuppressWarnings("fallthrough")
+        protected State compileSymbol(Grammar.Symbol sym, String prodName,
+                int index, int count, Set<Grammar.Symbol> selectors)
+                throws InvalidGrammarException {
+            switch (sym.getType()) {
+                case NONTERMINAL:
+                    if (grammar.hasProductions(sym.getContent())) {
+                        selectors.addAll(findInitialSymbols(sym.getContent(),
+                            new HashSet<String>()));
+                        /* Tail recursion optimization */
+                        if (index == count - 1 &&
+                                sym.getContent().equals(prodName) &&
+                                (sym.getFlags() & (Grammar.SYM_INLINE |
+                                                   Grammar.SYM_DISCARD |
+                                                   Grammar.SYM_REPEAT)
+                                ) == Grammar.SYM_INLINE) {
+                            return getInitialState(prodName);
+                        }
+                        addProductions(grammar.getRawProductions(
+                            sym.getContent()));
+                        return createPushState(sym);
+                    }
+                case TERMINAL: case PATTERN_TERMINAL: case ANYTHING:
+                    selectors.add(sym);
+                    return createLiteralState(sym);
+                default:
+                    throw new AssertionError(
+                        "Unrecognized symbol type?!");
+            }
+        }
+
         protected void addProduction(Grammar.Production prod)
                 throws InvalidGrammarException {
+            Set<Grammar.Symbol> selectors = new HashSet<Grammar.Symbol>();
             Deque<State> prevs = new LinkedList<State>();
             Set<State> prevsIndex = new HashSet<State>();
             Deque<State> nextPrevs = new LinkedList<State>();
-            Set<String> seenStates = new HashSet<String>();
+            Set<State> nextPrevsIndex = new HashSet<State>();
             prevs.add(getInitialState(prod.getName()));
             prevsIndex.add(prevs.getFirst());
             List<Grammar.Symbol> syms = prod.getSymbols();
-            for (int i = 0; i < syms.size(); i++) {
+            int symCount = syms.size();
+            for (int i = 0; i < symCount; i++) {
                 Grammar.Symbol sym = syms.get(i);
-                State next;
-                Set<Grammar.Symbol> selectors;
-                switch (sym.getType()) {
-                    case NONTERMINAL:
-                        if (grammar.hasProductions(sym.getContent())) {
-                            seenStates.clear();
-                            selectors = findInitialSymbols(sym.getContent(),
-                                                           seenStates);
-                            /* Tail recursion optimization */
-                            if (i == syms.size() - 1 &&
-                                    sym.getContent().equals(prod.getName()) &&
-                                    (sym.getFlags() & (Grammar.SYM_INLINE |
-                                                       Grammar.SYM_DISCARD |
-                                                       Grammar.SYM_REPEAT)
-                                    ) == Grammar.SYM_INLINE) {
-                                next = getInitialState(prod.getName());
-                                break;
-                            }
-                            next = createPushState(sym);
-                            addProductions(grammar.getRawProductions(
-                                sym.getContent()));
-                            break;
-                        }
-                    case TERMINAL: case PATTERN_TERMINAL: case ANYTHING:
-                        next = createLiteralState(sym);
-                        selectors = Collections.singleton(sym);
-                        break;
-                    default:
-                        throw new AssertionError(
-                            "Unrecognized symbol type?!");
-                }
-                boolean maybeEmpty = selectors.contains(null);
-                if (maybeEmpty) {
-                    selectors = new HashSet<Grammar.Symbol>(selectors);
-                    selectors.remove(null);
-                }
-                boolean nextUsed = false;
-                if ((sym.getFlags() & Grammar.SYM_REPEAT) != 0) {
-                    // We *append* next to prevs to prevent it from becoming
-                    // a predecessor of itself; later on, we will add it in
-                    // properly.
-                    prevs.addLast(next);
-                    nextUsed = true;
-                }
+                State next = compileSymbol(sym, prod.getName(), i, symCount,
+                                           selectors);
+                boolean maybeEmpty = (selectors.contains(null) ||
+                    (sym.getFlags() & Grammar.SYM_OPTIONAL) != 0);
+                selectors.remove(null);
                 for (State pr : prevs) {
                     for (Grammar.Symbol sel : selectors) {
                         State st = getSuccessor(pr, sel);
                         // The mutual comparisons ensure that both next and st
                         // can veto the "merge".
-                        if (st != null && next.equals(st) &&
-                                st.equals(next)) {
+                        if (next.equals(st) && st.equals(next) &&
+                                nextPrevsIndex.add(st))
                             nextPrevs.addLast(st);
-                        } else {
-                            addSuccessor(pr, sel, next);
-                            nextUsed = true;
-                        }
                     }
                 }
-                if (nextUsed) {
+                if (nextPrevs.isEmpty()) {
                     nextPrevs.addFirst(next);
+                } else {
+                    next = nextPrevs.getFirst();
                 }
-                if (prevs.peekLast() == next) {
-                    prevs.removeLast();
+                if ((sym.getFlags() & Grammar.SYM_REPEAT) != 0) {
+                    copyPrevs(prevs, prevsIndex, nextPrevs);
                 }
-                if (! maybeEmpty &&
-                        (sym.getFlags() & Grammar.SYM_OPTIONAL) == 0) {
+                for (State pr : prevs) {
+                    for (Grammar.Symbol sel : selectors) {
+                        if (! nextPrevs.contains(getSuccessor(pr, sel)))
+                            addSuccessor(pr, sel, next);
+                    }
+                }
+                if (! maybeEmpty) {
                     prevs.clear();
                     prevsIndex.clear();
                 }
-                while (! nextPrevs.isEmpty()) {
-                    State p = nextPrevs.removeLast();
-                    if (prevsIndex.add(p))
-                        prevs.addFirst(p);
-                }
+                copyPrevs(prevs, prevsIndex, nextPrevs);
+                selectors.clear();
+                nextPrevs.clear();
+                nextPrevsIndex.clear();
             }
             State next = getFinalState(prod.getName());
             for (State pr : prevs) {
                 if (getSuccessor(pr, null) != next)
                     addSuccessor(pr, null, next);
+            }
+        }
+        private void copyPrevs(Deque<State> prevs, Set<State> prevsIndex,
+                               Deque<State> nextPrevs) {
+            Iterator<State> it = nextPrevs.descendingIterator();
+            while (it.hasNext()) {
+                State p = it.next();
+                if (prevsIndex.add(p))
+                    prevs.addFirst(p);
             }
         }
 
