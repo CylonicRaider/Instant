@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.io.Reader;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
@@ -537,14 +538,12 @@ public class Parser {
         protected class StateInfo {
 
             private final State state;
-            private int depth;
             private String anchorName;
             private Grammar.Symbol predSelector;
             private State predecessor;
 
             public StateInfo(State state) {
                 this.state = state;
-                this.depth = -1;
                 this.anchorName = null;
                 this.predSelector = null;
                 this.predecessor = null;
@@ -554,16 +553,11 @@ public class Parser {
                 return state;
             }
 
-            public int getDepth() {
-                return depth;
-            }
-
             public String getAnchorName() {
                 return anchorName;
             }
             public void setAnchorName(String name) {
                 anchorName = name;
-                depth = 0;
             }
 
             public Grammar.Symbol getPredecessorSelector() {
@@ -573,12 +567,13 @@ public class Parser {
                 return predecessor;
             }
             public void setPredecessor(Grammar.Symbol selector, State pred) {
-                if (pred == getState()) return;
-                StateInfo predInfo = getStateInfo(pred);
-                if (depth != -1 && predInfo.getDepth() >= depth) return;
-                depth = predInfo.getDepth() + 1;
+                if (predecessor != null || anchorName != null) return;
                 predSelector = selector;
                 predecessor = pred;
+            }
+            public void clearPredecessor() {
+                predSelector = null;
+                predecessor = null;
             }
 
             public StateInfo getPredecessorInfo() {
@@ -766,11 +761,13 @@ public class Parser {
                 } else if (mid instanceof MultiSuccessorState) {
                     addSuccessor(mid, selector, next);
                 } else {
+                    Grammar.Symbol midSelector = cprev.getSelector();
                     BranchState newmid = createBranchState();
-                    addSuccessor(newmid, cprev.getSelector(), mid);
-                    addSuccessor(newmid, selector, next);
                     cprev.setSuccessor(null, newmid);
+                    getStateInfo(newmid).clearPredecessor();
                     getStateInfo(newmid).setPredecessor(null, cprev);
+                    addSuccessor(newmid, midSelector, mid);
+                    addSuccessor(newmid, selector, next);
                     prev = newmid;
                 }
             } else {
@@ -783,12 +780,12 @@ public class Parser {
         @SuppressWarnings("fallthrough")
         protected void addProduction(Grammar.Production prod)
                 throws InvalidGrammarException {
-            List<State> prevs = new LinkedList<State>();
+            Deque<State> prevs = new LinkedList<State>();
             Set<State> prevsIndex = new HashSet<State>();
-            List<State> nextPrevs = new LinkedList<State>();
+            Deque<State> nextPrevs = new LinkedList<State>();
             Set<String> seenStates = new HashSet<String>();
             prevs.add(getInitialState(prod.getName()));
-            prevsIndex.add(prevs.get(0));
+            prevsIndex.add(prevs.getFirst());
             List<Grammar.Symbol> syms = prod.getSymbols();
             for (int i = 0; i < syms.size(); i++) {
                 Grammar.Symbol sym = syms.get(i);
@@ -828,11 +825,14 @@ public class Parser {
                     selectors = new HashSet<Grammar.Symbol>(selectors);
                     selectors.remove(null);
                 }
-                if ((sym.getFlags() & Grammar.SYM_REPEAT) != 0) {
-                    prevs.add(0, next);
-                    prevsIndex.add(next);
-                }
                 boolean nextUsed = false;
+                if ((sym.getFlags() & Grammar.SYM_REPEAT) != 0) {
+                    // We *append* next to prevs to prevent it from becoming
+                    // a predecessor of itself; later on, we will add it in
+                    // properly.
+                    prevs.addLast(next);
+                    nextUsed = true;
+                }
                 for (State pr : prevs) {
                     for (Grammar.Symbol sel : selectors) {
                         State st = getSuccessor(pr, sel);
@@ -840,26 +840,29 @@ public class Parser {
                         // can veto the "merge".
                         if (st != null && next.equals(st) &&
                                 st.equals(next)) {
-                            nextPrevs.add(st);
-                            continue;
+                            nextPrevs.addLast(st);
+                        } else {
+                            addSuccessor(pr, sel, next);
+                            nextUsed = true;
                         }
-                        addSuccessor(pr, sel, next);
-                        nextUsed = true;
                     }
                 }
                 if (nextUsed) {
-                    nextPrevs.add(next);
+                    nextPrevs.addFirst(next);
+                }
+                if (prevs.peekLast() == next) {
+                    prevs.removeLast();
                 }
                 if (! maybeEmpty &&
                         (sym.getFlags() & Grammar.SYM_OPTIONAL) == 0) {
                     prevs.clear();
                     prevsIndex.clear();
                 }
-                for (State p : nextPrevs) {
+                while (! nextPrevs.isEmpty()) {
+                    State p = nextPrevs.removeLast();
                     if (prevsIndex.add(p))
-                        prevs.add(0, p);
+                        prevs.addFirst(p);
                 }
-                nextPrevs.clear();
             }
             State next = getFinalState(prod.getName());
             for (State pr : prevs) {
