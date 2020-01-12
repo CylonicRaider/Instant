@@ -57,15 +57,15 @@ public class NamedSet<E extends NamedValue> extends AbstractSet<E>
         return data.iterator();
     }
 
-    public boolean contains(E prod) {
-        return data.contains(prod);
+    public boolean contains(Object elem) {
+        return data.contains(elem);
     }
 
-    public boolean add(E prod) {
-        if (! getName().equals(prod.getName()))
+    public boolean add(E elem) {
+        if (! getName().equals(elem.getName()))
             throw new IllegalArgumentException(
                 "Adding mismatching value to NamedSet");
-        return data.add(prod);
+        return data.add(elem);
     }
 
     public boolean remove(Object obj) {
