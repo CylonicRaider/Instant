@@ -4,16 +4,14 @@ import java.io.IOException;
 import java.io.Reader;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
-import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Callable;
+import net.instant.util.IdentityLinkedSet;
 import net.instant.util.LineColumnReader;
 import net.instant.util.NamedSet;
 import net.instant.util.NamedValue;
@@ -803,8 +801,9 @@ public class Parser {
         protected void addProduction(Grammar.Production prod)
                 throws InvalidGrammarException {
             Set<Grammar.Symbol> selectors = new HashSet<Grammar.Symbol>();
-            Deque<State> prevs = new LinkedList<State>();
-            Deque<State> nextPrevs = new LinkedList<State>();
+            IdentityLinkedSet<State> prevs = new IdentityLinkedSet<State>();
+            IdentityLinkedSet<State> nextPrevs =
+                new IdentityLinkedSet<State>();
             prevs.add(getInitialState(prod.getName()));
             List<Grammar.Symbol> syms = prod.getSymbols();
             int symCount = syms.size();
@@ -831,7 +830,7 @@ public class Parser {
                     next = nextPrevs.getFirst();
                 }
                 if ((sym.getFlags() & Grammar.SYM_REPEAT) != 0) {
-                    copyPrevs(prevs, nextPrevs);
+                    prevs.addAllLast(nextPrevs);
                 }
                 for (State pr : prevs) {
                     for (Grammar.Symbol sel : selectors) {
@@ -842,7 +841,8 @@ public class Parser {
                 if (! maybeEmpty) {
                     prevs.clear();
                 }
-                copyPrevs(prevs, nextPrevs);
+                prevs.removeAll(nextPrevs);
+                prevs.addAllFirst(nextPrevs);
                 selectors.clear();
                 nextPrevs.clear();
             }
@@ -850,14 +850,6 @@ public class Parser {
             for (State pr : prevs) {
                 if (getSuccessor(pr, null) != next)
                     addSuccessor(pr, null, next);
-            }
-        }
-        private void copyPrevs(Deque<State> prevs, Deque<State> nextPrevs) {
-            Iterator<State> it = nextPrevs.descendingIterator();
-            while (it.hasNext()) {
-                State p = it.next();
-                if (! prevs.contains(p))
-                    prevs.addFirst(p);
             }
         }
 
