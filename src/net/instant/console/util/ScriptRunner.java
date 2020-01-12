@@ -49,15 +49,27 @@ public class ScriptRunner {
         redirectOutput(output, output);
     }
 
-    public void print(String str) {
+    private void printTo(Writer wr, String str) {
         try {
-            engine.getContext().getWriter().write(str);
+            wr.write(str);
+            wr.flush();
         } catch (IOException exc) {
             throw new RuntimeException(exc);
         }
     }
+
+    public void print(String str) {
+        printTo(engine.getContext().getWriter(), str);
+    }
     public void prinln(String str) {
         print(str + "\n");
+    }
+
+    public void printError(String str) {
+        printTo(engine.getContext().getErrorWriter(), str);
+    }
+    public void printlnError(String str) {
+        printError(str + "\n");
     }
 
     public Object execute(String script) throws ScriptException {
@@ -70,9 +82,27 @@ public class ScriptRunner {
             return exc;
         }
     }
+    public Object executeAndPrint(String script) {
+        try {
+            Object ret = execute(script);
+            print(formatObjectLine(ret));
+            return ret;
+        } catch (ScriptException exc) {
+            printlnError(String.valueOf(exc));
+            return exc;
+        }
+    }
 
     public static ScriptEngineManager getEngineManager() {
         return engineManager;
+    }
+
+    public static String formatObjectLine(Object input) {
+        return (input == null) ? "" : input + "\n";
+    }
+
+    public static Object executeSingleAndPrint(String script) {
+        return new ScriptRunner().executeAndPrint(script);
     }
 
 }

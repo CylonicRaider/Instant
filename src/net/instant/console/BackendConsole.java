@@ -147,13 +147,13 @@ public class BackendConsole implements BackendConsoleMXBean,
 
     public synchronized String runCommand(String command) {
         String result = executeCommand(command);
-        writer.write((result == null) ? "" : result + "\n");
+        writer.write(ScriptRunner.formatObjectLine(result));
         return (result == null) ? "" : result;
     }
 
     public synchronized long submitCommand(String command) {
         String result = executeCommand(command);
-        result = (result == null) ? "" : result + "\n";
+        result = ScriptRunner.formatObjectLine(result);
         return writer.writeSeq(result);
     }
 
@@ -213,6 +213,14 @@ public class BackendConsole implements BackendConsoleMXBean,
         n.setUserData(text);
         notifications.sendNotification(n);
         return seq;
+    }
+
+    public static void main(String[] args) {
+        if (args.length != 1) {
+            System.err.println("USAGE: BackendConsole command");
+            System.exit(1);
+        }
+        ScriptRunner.executeSingleAndPrint(args[0]);
     }
 
 }
