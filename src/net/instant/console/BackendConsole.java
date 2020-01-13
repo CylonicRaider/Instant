@@ -15,6 +15,10 @@ import net.instant.console.util.CommandHistory;
 import net.instant.console.util.ScriptRunner;
 import net.instant.console.util.Util;
 import net.instant.console.util.VirtualWriter;
+import net.instant.util.argparse.Argument;
+import net.instant.util.argparse.ArgumentParser;
+import net.instant.util.argparse.ParseResult;
+import net.instant.util.argparse.ParsingException;
 
 public class BackendConsole implements BackendConsoleMXBean,
         NotificationEmitter {
@@ -216,11 +220,22 @@ public class BackendConsole implements BackendConsoleMXBean,
     }
 
     public static void main(String[] args) {
-        if (args.length != 1) {
-            System.err.println("USAGE: BackendConsole command");
+        ArgumentParser p = new ArgumentParser("BackendConsole", null,
+            "One-shot invocation of the Instant backend console.");
+        p.addStandardOptions();
+        Argument<String> script = p.add(Argument.of(String.class, "script",
+            "The script to execute."));
+        script.required();
+        ParseResult r;
+        try {
+            r = p.parse(args);
+        } catch (ParsingException exc) {
+            System.err.println(exc.getMessage());
             System.exit(1);
+            return;
         }
-        ScriptRunner.executeSingleAndPrint(args[0]);
+        String code = r.get(script);
+        ScriptRunner.executeSingleAndPrint(code);
     }
 
 }
