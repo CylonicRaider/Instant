@@ -1,5 +1,7 @@
 package net.instant.console;
 
+import java.io.File;
+import java.util.List;
 import javax.management.AttributeChangeNotification;
 import javax.management.JMException;
 import javax.management.ListenerNotFoundException;
@@ -11,6 +13,7 @@ import javax.management.NotificationEmitter;
 import javax.management.NotificationFilter;
 import javax.management.NotificationListener;
 import javax.management.ObjectName;
+import javax.script.ScriptException;
 import net.instant.console.util.CommandHistory;
 import net.instant.console.util.ScriptRunner;
 import net.instant.console.util.Util;
@@ -19,6 +22,7 @@ import net.instant.util.argparse.Argument;
 import net.instant.util.argparse.ArgumentParser;
 import net.instant.util.argparse.ParseResult;
 import net.instant.util.argparse.ParsingException;
+import net.instant.util.argparse.ValueOption;
 
 public class BackendConsole implements BackendConsoleMXBean,
         NotificationEmitter {
@@ -223,9 +227,11 @@ public class BackendConsole implements BackendConsoleMXBean,
         ArgumentParser p = new ArgumentParser("BackendConsole", null,
             "One-shot invocation of the Instant backend console.");
         p.addStandardOptions();
-        Argument<String> script = p.add(Argument.of(String.class, "script",
-            "The script to execute."));
-        script.required();
+        ValueOption<List<File>> fileOpt = p.add(ValueOption.ofAccum(
+            File.class, "preload", 'p',
+            "A file to execute before the command-line script."));
+        Argument<String> scriptArg = p.add(Argument.of(String.class, "script",
+            "The script to execute (may be omitted if --preload is given)."));
         ParseResult r;
         try {
             r = p.parse(args);
@@ -234,8 +240,25 @@ public class BackendConsole implements BackendConsoleMXBean,
             System.exit(1);
             return;
         }
-        String code = r.get(script);
-        ScriptRunner.executeSingleAndPrint(code);
+        List<File> files = r.get(fileOpt);
+        String script = r.get(scriptArg);
+        if (files.size() == 0 && script == null) {
+            System.err.println(
+                "ERROR: Neither a script nor files to execute specified.");
+            System.exit(1);
+        }
+        ScriptRunner runner = new ScriptRunner();
+        for (File f : files) {
+            try {
+                runner.executeFile(f);
+            } catch (ScriptException exc) {
+                exc.printStackTrace();
+                System.exit(2);
+            }
+        }
+        if (script != null) {
+            runner.executeAndPrint(script);
+        }
     }
 
 }

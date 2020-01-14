@@ -1,6 +1,9 @@
 package net.instant.console.util;
 
+import java.io.File;
+import java.io.FileReader;
 import java.io.IOException;
+import java.io.Reader;
 import java.io.Writer;
 import java.util.Map;
 import javax.script.ScriptContext;
@@ -90,6 +93,22 @@ public class ScriptRunner {
         } catch (ScriptException exc) {
             printlnError(String.valueOf(exc));
             return exc;
+        }
+    }
+
+    public Object executeFile(File path) throws ScriptException {
+        try {
+            Reader rd = new FileReader(path);
+            Object oldFilename = engine.get(ScriptEngine.FILENAME);
+            try {
+                engine.put(ScriptEngine.FILENAME, path.toString());
+                return engine.eval(rd);
+            } finally {
+                engine.put(ScriptEngine.FILENAME, oldFilename);
+                rd.close();
+            }
+        } catch (IOException exc) {
+            throw new ScriptException(exc);
         }
     }
 
