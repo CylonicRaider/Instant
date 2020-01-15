@@ -21,7 +21,8 @@ public class Flag extends Option<ConstantStoreAction<Boolean>>
 
     public Flag inverse(String name, Character shortName) {
         String newHelp = "Inverse of " + formatName();
-        Flag ret = new Flag("no-" + getName(), null, newHelp, ! getValue());
+        Flag ret = new Flag("no-" + getName(), shortName, newHelp,
+                            ! getValue());
         ret.getChild().getCommitter().setKey(this);
         return ret;
     }
