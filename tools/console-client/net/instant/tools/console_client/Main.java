@@ -10,9 +10,9 @@ import net.instant.tools.console_client.gui.GUIClient;
 import net.instant.util.argparse.Argument;
 import net.instant.util.argparse.ArgumentParser;
 import net.instant.util.argparse.Flag;
+import net.instant.util.argparse.Option;
 import net.instant.util.argparse.ParseResult;
 import net.instant.util.argparse.ParsingException;
-import net.instant.util.argparse.ValueOption;
 import net.instant.util.argparse.ValueProcessor;
 
 public class Main {
@@ -96,7 +96,7 @@ public class Main {
                 "terminal-based).");
         p.addStandardOptions();
         for (Mode m : Mode.values()) p.add(m.createOption());
-        p.add(ValueOption.of(String.class, "login", 'l',
+        p.add(Option.of(String.class, "login", 'l',
             "Authenticate with the given username and a password read from " +
             "standard input.")
             .withPlaceholder("<USERNAME>"));

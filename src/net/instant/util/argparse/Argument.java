@@ -2,7 +2,8 @@ package net.instant.util.argparse;
 
 import java.util.List;
 
-public class Argument<T> extends BaseOption implements ValueProcessor<T> {
+public class Argument<T> extends StandardProcessor
+        implements ValueProcessor<T> {
 
     public static final String DEFAULT_PREFIX = "default";
     public static final String NESTED_DEFAULT_PREFIX = "argument default";

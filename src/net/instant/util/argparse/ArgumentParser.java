@@ -27,7 +27,8 @@ public class ArgumentParser {
 
         public Processor makeOption(String name, Character shortName,
                                     String help) {
-            return new Option<RunnableAction>(name, shortName, help, this);
+            return new BaseOption<RunnableAction>(name, shortName, help,
+                                                  this);
         }
 
     }
@@ -156,8 +157,8 @@ public class ArgumentParser {
 
 
     public <X extends Processor> X add(X arg) {
-        if (arg instanceof Option<?>) {
-            getDispatcher().addOption((Option<?>) arg);
+        if (arg instanceof BaseOption<?>) {
+            getDispatcher().addOption((BaseOption<?>) arg);
         } else {
             getDispatcher().addArgument(arg);
         }

@@ -48,7 +48,7 @@ public class OptionDispatcher implements Processor {
         name = n;
     }
 
-    public void addOption(Option<?> opt) {
+    public void addOption(BaseOption<?> opt) {
         options.put(opt.getName(), opt);
         if (opt.getShortName() != null)
             shortOptions.put(opt.getShortName(), opt);
@@ -58,8 +58,8 @@ public class OptionDispatcher implements Processor {
     }
     public void remove(Processor proc) {
         options.remove(proc.getName());
-        if (proc instanceof Option<?>)
-            shortOptions.remove(((Option<?>) proc).getShortName());
+        if (proc instanceof BaseOption<?>)
+            shortOptions.remove(((BaseOption<?>) proc).getShortName());
         arguments.remove(proc);
     }
 

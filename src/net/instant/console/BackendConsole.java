@@ -20,9 +20,9 @@ import net.instant.console.util.Util;
 import net.instant.console.util.VirtualWriter;
 import net.instant.util.argparse.Argument;
 import net.instant.util.argparse.ArgumentParser;
+import net.instant.util.argparse.Option;
 import net.instant.util.argparse.ParseResult;
 import net.instant.util.argparse.ParsingException;
-import net.instant.util.argparse.ValueOption;
 
 public class BackendConsole implements BackendConsoleMXBean,
         NotificationEmitter {
@@ -227,8 +227,8 @@ public class BackendConsole implements BackendConsoleMXBean,
         ArgumentParser p = new ArgumentParser("BackendConsole", null,
             "One-shot invocation of the Instant backend console.");
         p.addStandardOptions();
-        ValueOption<List<File>> fileOpt = p.add(ValueOption.ofAccum(
-            File.class, "preload", 'p',
+        Option<List<File>> fileOpt = p.add(Option.ofAccum(File.class,
+            "preload", 'p',
             "A file to execute before the command-line script."));
         Argument<String> scriptArg = p.add(Argument.of(String.class, "script",
             "The script to execute (may be omitted if --preload is given)."));

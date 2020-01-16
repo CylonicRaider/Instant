@@ -1,114 +1,98 @@
 package net.instant.util.argparse;
 
-public class Option<X extends Processor> extends BaseOption {
+import java.util.ArrayList;
+import java.util.List;
 
-    private Character shortName;
-    private X child;
+public class Option<T> extends BaseOption<Argument<T>>
+        implements ValueProcessor<T> {
 
-    public Option(String name, Character shortName, String help, X child) {
-        super(name, help);
-        this.shortName = shortName;
-        this.child = child;
+    private T defaultValue;
+
+    public Option(String name, Character shortName, String help,
+                  Argument<T> child) {
+        super(name, shortName, help, child);
     }
     public Option(String name, Character shortName, String help) {
         this(name, shortName, help, null);
     }
 
-    public Character getShortName() {
-        return shortName;
-    }
-    public void setShortName(Character sn) {
-        shortName = sn;
-    }
-
-    public X getChild() {
-        return child;
-    }
-    public void setChild(X c) {
-        child = c;
-    }
-    public Option<X> withChild(X c) {
-        setChild(c);
+    public Option<T> setup() {
+        getChild().setRequired(true);
+        getChild().getCommitter().setKey(this);
         return this;
     }
 
-    public String formatName() {
-        return "option --" + getName();
+    public T getDefault() {
+        return defaultValue;
+    }
+    public void setDefault(T v) {
+        defaultValue = v;
+    }
+    public Option<T> defaultsTo(T v) {
+        setDefault(v);
+        return this;
     }
 
-    protected String formatUsageInner() {
-        StringBuilder sb = new StringBuilder("--");
-        sb.append(getName());
-        if (getShortName() != null) sb.append("|-").append(getShortName());
-        String childUsage = getChild().formatUsage();
-        if (childUsage != null) sb.append(' ').append(childUsage);
-        return sb.toString();
+    public Option<T> withPlaceholder(String placeholder) {
+        getChild().withPlaceholder(placeholder);
+        return this;
     }
 
     public HelpLine getHelpLine() {
-        HelpLine ret = new HelpLine("--" + getName(), null, getHelp());
-        ret.getAddenda().addAll(getComments());
-        HelpLine childHelp = getChild().getHelpLine();
-        if (childHelp != null) {
-            ret.setParams(childHelp.getParams());
-            ret.getAddenda().addAll(childHelp.getAddenda());
-        }
+        HelpLine ret = super.getHelpLine();
+        if (ret != null)
+            ret.addAddendum(Argument.formatDefault(Argument.DEFAULT_PREFIX,
+                getChild().getConverter(), getDefault()));
         return ret;
-    }
-
-    public boolean matches(ArgumentSplitter.ArgValue av) {
-        switch (av.getType()) {
-            case SHORT_OPTION:
-                return (getShortName() != null &&
-                        av.getValue().charAt(0) == getShortName());
-            case LONG_OPTION:
-                return getName().equals(av.getValue());
-            default:
-                return false;
-        }
     }
 
     public void startParsing(ParseResultBuilder drain)
             throws ParsingException {
-        try {
-            getChild().startParsing(drain);
-        } catch (ParsingException exc) {
-            rethrow(exc);
+        Committer<T> comm = getChild().getCommitter();
+        T oldValue = comm.get(drain);
+        super.startParsing(drain);
+        if (oldValue == null) {
+            comm.remove(drain);
+        } else {
+            comm.put(oldValue, drain);
         }
-    }
-
-    public void parse(ArgumentSplitter source, ParseResultBuilder drain)
-            throws ParsingException {
-        ArgumentSplitter.ArgValue check = source.peek(
-            ArgumentSplitter.Mode.OPTIONS);
-        if (check != null && ! matches(check)) {
-            throw new ParsingException("Command-line " + check +
-                "does not match", formatName());
-        }
-        source.next(ArgumentSplitter.Mode.OPTIONS);
-        try {
-            getChild().parse(source, drain);
-        } catch (ParsingException exc) {
-            rethrow(exc);
+        if (getDefault() != null) {
+            comm.commit(getDefault(), drain);
         }
     }
 
     public void finishParsing(ParseResultBuilder drain)
             throws ParsingException {
         try {
-            getChild().finishParsing(drain);
-        } catch (ParsingException exc) {
-            rethrow(exc);
+            super.finishParsing(drain);
+        } catch (ValueMissingException exc) {
+            /* Explicitly swallow this one -- we use the argument's
+             * "required" flag for other purposes. */
         }
+        if (isRequired() && ! getChild().getCommitter().containedIn(drain))
+            throw new ValueMissingException("Missing required",
+                                            formatName());
     }
 
-    protected void rethrow(ParsingException exc) throws ParsingException {
-        if (exc instanceof ValueMissingException) {
-            throw new ValueMissingException((ValueMissingException) exc,
-                                            formatName());
-        } else {
-            throw new ParsingException(exc, formatName());
-        }
+    public static <T> Option<T> of(Class<T> cls, String name,
+            Character shortname, String help) {
+        return new Option<T>(name, shortname, help, Argument.of(cls))
+            .setup();
+    }
+    public static <T> Option<List<T>> ofAccum(Class<T> cls, String name,
+            Character shortname, String help) {
+        return new Option<List<T>>(
+            name, shortname, help,
+            new Argument<List<T>>(
+                new ListConverter<T>(Converter.get(cls), null),
+                new ConcatCommitter<T>()
+            )
+        ).setup().defaultsTo(new ArrayList<T>());
+    }
+    public static <T> Option<List<T>> ofList(Class<T> cls, String name,
+            Character shortname, String help) {
+        return new Option<List<T>>(name, shortname, help,
+            Argument.ofList(cls)).setup();
     }
 
 }

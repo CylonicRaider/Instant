@@ -1,6 +1,6 @@
 package net.instant.util.argparse;
 
-public class Flag extends Option<ConstantStoreAction<Boolean>>
+public class Flag extends BaseOption<ConstantStoreAction<Boolean>>
         implements ValueProcessor<Boolean> {
 
     public Flag(String name, Character shortName, String help,
