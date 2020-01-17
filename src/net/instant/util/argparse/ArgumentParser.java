@@ -189,4 +189,14 @@ public class ArgumentParser {
         return result;
     }
 
+    public ParseResult parseOrExit(String[] args) {
+        try {
+            return parse(args);
+        } catch (ParsingException exc) {
+            System.err.println(exc.getMessage());
+            System.exit(1);
+            throw new AssertionError("This should not happen!", exc);
+        }
+    }
+
 }

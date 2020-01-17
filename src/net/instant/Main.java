@@ -23,7 +23,6 @@ import net.instant.util.argparse.ArgumentParser;
 import net.instant.util.argparse.KeyValue;
 import net.instant.util.argparse.Option;
 import net.instant.util.argparse.ParseResult;
-import net.instant.util.argparse.ParsingException;
 import net.instant.util.fileprod.FSResourceProducer;
 
 public class Main implements Runnable {
@@ -138,13 +137,7 @@ public class Main implements Runnable {
         return r;
     }
     protected ParseResult parseArgumentsInner(ArgumentParser p) {
-        try {
-            return p.parse(args);
-        } catch (ParsingException exc) {
-            System.err.println(exc.getMessage());
-            System.exit(1);
-            return null;
-        }
+        return p.parseOrExit(args);
     }
 
     public void run() {

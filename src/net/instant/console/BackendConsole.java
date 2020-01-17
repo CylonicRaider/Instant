@@ -22,7 +22,6 @@ import net.instant.util.argparse.Argument;
 import net.instant.util.argparse.ArgumentParser;
 import net.instant.util.argparse.Option;
 import net.instant.util.argparse.ParseResult;
-import net.instant.util.argparse.ParsingException;
 
 public class BackendConsole implements BackendConsoleMXBean,
         NotificationEmitter {
@@ -232,14 +231,7 @@ public class BackendConsole implements BackendConsoleMXBean,
             "A file to execute before the command-line script."));
         Argument<String> scriptArg = p.add(Argument.of(String.class, "script",
             "The script to execute (may be omitted if --preload is given)."));
-        ParseResult r;
-        try {
-            r = p.parse(args);
-        } catch (ParsingException exc) {
-            System.err.println(exc.getMessage());
-            System.exit(1);
-            return;
-        }
+        ParseResult r = p.parseOrExit(args);
         List<File> files = r.get(fileOpt);
         String script = r.get(scriptArg);
         if (files.size() == 0 && script == null) {
