@@ -226,11 +226,10 @@ public class BackendConsole implements BackendConsoleMXBean,
         ArgumentParser p = new ArgumentParser("BackendConsole", null,
             "One-shot invocation of the Instant backend console.");
         p.addStandardOptions();
-        Option<List<File>> fileOpt = p.add(Option.ofAccum(File.class,
-            "preload", 'p',
-            "A file to execute before the command-line script."));
+        Option<List<File>> fileOpt = p.add(Option.ofAccum(File.class, "file",
+            'f', "A file to execute before the command-line script."));
         Argument<String> scriptArg = p.add(Argument.of(String.class, "script",
-            "The script to execute (may be omitted if --preload is given)."));
+            "The script to execute (may be omitted if --file is given)."));
         ParseResult r = p.parseOrExit(args);
         List<File> files = r.get(fileOpt);
         String script = r.get(scriptArg);
