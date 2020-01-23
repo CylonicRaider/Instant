@@ -7,7 +7,7 @@ public abstract class CompositeMapper<C, T> implements Mapper<T> {
 
     public interface NodeMapper<C, T> {
 
-        T map(Lexer.Token tok, List<C> children);
+        T map(Parser.ParseTree pt, List<C> children);
 
     }
 
@@ -16,10 +16,10 @@ public abstract class CompositeMapper<C, T> implements Mapper<T> {
         for (Parser.ParseTree t : pt.getChildren()) {
             children.add(mapChild(t));
         }
-        return mapInner(pt.getToken(), children);
+        return mapInner(pt, children);
     }
 
-    protected abstract T mapInner(Lexer.Token tok, List<C> children);
+    protected abstract T mapInner(Parser.ParseTree pt, List<C> children);
 
     protected abstract C mapChild(Parser.ParseTree pt);
 
@@ -27,8 +27,8 @@ public abstract class CompositeMapper<C, T> implements Mapper<T> {
             final NodeMapper<C, T> reduce, final Mapper<C> map) {
         return new CompositeMapper<C, T>() {
 
-            protected T mapInner(Lexer.Token tok, List<C> children) {
-                return reduce.map(tok, children);
+            protected T mapInner(Parser.ParseTree pt, List<C> children) {
+                return reduce.map(pt, children);
             }
 
             protected C mapChild(Parser.ParseTree pt) {
