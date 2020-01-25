@@ -5,14 +5,20 @@ import java.util.List;
 public abstract class CompositeMapper<C, T>
         extends BaseCompositeMapper<C, T> {
 
-    private final Mapper<C> childMapper;
+    private Mapper<C> childMapper;
 
     public CompositeMapper(Mapper<C> childMapper) {
         this.childMapper = childMapper;
     }
+    public CompositeMapper() {
+        this(null);
+    }
 
-    protected Mapper<C> getChildMapper() {
+    public Mapper<C> getChildMapper() {
         return childMapper;
+    }
+    public void setChildMapper(Mapper<C> cm) {
+        childMapper = cm;
     }
 
     protected C mapChild(Parser.ParseTree pt) {
