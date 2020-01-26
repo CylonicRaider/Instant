@@ -1,5 +1,6 @@
 package net.instant.util.parser;
 
+import java.util.Collections;
 import java.util.List;
 
 public abstract class CompositeMapper<C, T>
@@ -30,6 +31,38 @@ public abstract class CompositeMapper<C, T>
         return new CompositeMapper<C, T>(map) {
             protected T mapInner(Parser.ParseTree pt, List<C> children) {
                 return reduce.map(pt, children);
+            }
+        };
+    }
+
+    public static <T> CompositeMapper<T, List<T>> aggregate(Mapper<T> nested,
+            final boolean makeImmutable) {
+        return new CompositeMapper<T, List<T>>(nested) {
+            protected List<T> mapInner(Parser.ParseTree pt,
+                                       List<T> children) {
+                if (makeImmutable)
+                    children = Collections.unmodifiableList(children);
+                return children;
+            }
+        };
+    }
+    public static <T> CompositeMapper<T, List<T>> aggregate(
+            Mapper<T> nested) {
+        return aggregate(nested, false);
+    }
+
+    public static <T> CompositeMapper<T, T> passthrough(Mapper<T> nested) {
+        return new CompositeMapper<T, T>(nested) {
+            public T map(Parser.ParseTree pt) {
+                if (pt.childCount() != 1)
+                    throw new IllegalArgumentException("Cannot map parse " +
+                        "tree to object: Expected one subtree, got " +
+                        pt.childCount());
+                return super.map(pt);
+            }
+
+            protected T mapInner(Parser.ParseTree pt, List<T> children) {
+                return children.get(0);
             }
         };
     }
