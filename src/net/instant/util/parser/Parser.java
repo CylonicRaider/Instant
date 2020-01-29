@@ -3,10 +3,12 @@ package net.instant.util.parser;
 import java.io.IOException;
 import java.io.Reader;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -647,6 +649,15 @@ public class Parser {
             return ret;
         }
 
+        private String formatCyclicalProductions(Collection<String> prodNames,
+                                                 String lastProd) {
+            StringBuilder sb = new StringBuilder();
+            for (String pr : prodNames) {
+                sb.append(pr).append(" -> ");
+            }
+            sb.append(lastProd);
+            return sb.toString();
+        }
         protected Set<Grammar.Symbol> findInitialSymbols(String prodName,
                 Set<String> seen) throws InvalidGrammarException {
             Set<Grammar.Symbol> ret = initialSymbolCache.get(prodName);
@@ -654,35 +665,42 @@ public class Parser {
                 return ret;
             if (seen.contains(prodName))
                 throw new InvalidGrammarException(
-                    "Grammar is left-recursive");
+                    "Grammar is left-recursive (cyclical productions " +
+                    formatCyclicalProductions(seen, prodName) + ")");
             seen.add(prodName);
             ret = new HashSet<Grammar.Symbol>();
             for (Grammar.Production p : grammar.getRawProductions(prodName)) {
-                List<Grammar.Symbol> sl = p.getSymbols();
                 boolean maybeEmpty = true;
-                for (Grammar.Symbol s : sl) {
-                    if ((s.getFlags() & Grammar.SYM_OPTIONAL) == 0) {
+                for (Grammar.Symbol s : p.getSymbols()) {
+                    if (s.getType() != Grammar.SymbolType.NONTERMINAL)
+                        throw new InvalidGrammarException(
+                            "Start-significant symbol of production " +
+                            prodName + " alternative is a raw terminal");
+                    boolean symbolMaybeEmpty = ((s.getFlags() &
+                        Grammar.SYM_OPTIONAL) != 0);
+                    String c = s.getContent();
+                    if (grammar.hasProductions(c)) {
+                        Set<Grammar.Symbol> localSymbols =
+                            findInitialSymbols(c, seen);
+                        ret.addAll(localSymbols);
+                        symbolMaybeEmpty |= localSymbols.contains(null);
+                    } else {
+                        ret.add(s);
+                    }
+                    if (! symbolMaybeEmpty) {
                         maybeEmpty = false;
                         break;
                     }
                 }
                 if (maybeEmpty) ret.add(null);
-                if (sl.size() == 0) continue;
-                Grammar.Symbol s = sl.get(0);
-                if (s.getType() != Grammar.SymbolType.NONTERMINAL)
-                    throw new InvalidGrammarException("First symbol of " +
-                        "production " + prodName +
-                        " alternative is a raw terminal");
-                String c = s.getContent();
-                if (grammar.hasProductions(c)) {
-                    ret.addAll(findInitialSymbols(c, seen));
-                } else {
-                    ret.add(s);
-                }
             }
             seen.remove(prodName);
             initialSymbolCache.put(prodName, ret);
             return ret;
+        }
+        protected Set<Grammar.Symbol> findInitialSymbols(String prodName)
+                throws InvalidGrammarException {
+            return findInitialSymbols(prodName, new LinkedHashSet<String>());
         }
 
         protected StateInfo getStateInfo(State state) {
@@ -774,8 +792,8 @@ public class Parser {
             switch (sym.getType()) {
                 case NONTERMINAL:
                     if (grammar.hasProductions(sym.getContent())) {
-                        selectors.addAll(findInitialSymbols(sym.getContent(),
-                            new HashSet<String>()));
+                        selectors.addAll(findInitialSymbols(
+                            sym.getContent()));
                         /* Tail recursion optimization */
                         if (index == count - 1 &&
                                 sym.getContent().equals(prodName) &&
