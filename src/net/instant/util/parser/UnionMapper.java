@@ -32,6 +32,10 @@ public class UnionMapper<T> implements Mapper<T> {
         registry.remove(name);
     }
 
+    public boolean canMap(Parser.ParseTree pt) {
+        return contains(pt.getName());
+    }
+
     public T map(Parser.ParseTree pt) {
         Mapper<? extends T> child = registry.get(pt.getName());
         if (child == null)
