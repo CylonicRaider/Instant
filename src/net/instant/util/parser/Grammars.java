@@ -1,6 +1,7 @@
 package net.instant.util.parser;
 
 import java.io.Reader;
+import java.util.List;
 import net.instant.util.LineColumnReader;
 
 public final class Grammars {
@@ -49,7 +50,7 @@ public final class Grammars {
                     Lexer.patternToken("RegexContent", "[^/\\\\]+"),
                     Lexer.patternToken("CommentContent", "[^\r\n]+"),
                     Lexer.patternToken("Escape",
-                        "\\\\(?:[^uU]|u[0-9a-fA-F]{4}|U[0-9a-fA-F]{8})"),
+                        "\\\\(?:[\\\\\"/]|u[0-9a-fA-F]{4}|U[0-9a-fA-F]{8})"),
                     /* Initial state */
                     Lexer.state(ILS, "CR", ILS),
                     Lexer.state(ILS, "LF", ILS),
@@ -119,13 +120,13 @@ public final class Grammars {
                 prod("Symbol", nt("Caret"), nt("Symbol", SYM_INLINE)),
                 prod("Symbol", nt("Tilde"), nt("Symbol", SYM_INLINE)),
                 /* Production definitions */
-                prod("ProductionContent", nt("Symbol")),
+                prod("ProductionContent", nt("Symbol", SYM_OPTIONAL)),
                 prod("ProductionContent", nt("Symbol"), nt("S", SYM_DISCARD),
                      nt("Bar", SYM_DISCARD), nt("LBS", SYM_DISCARD),
                      nt("ProductionContent", SYM_INLINE)),
                 prod("Production", nt("Identifier"), nt("LBS", SYM_DISCARD),
                      nt("Equals", SYM_DISCARD), nt("S", SYM_DISCARD),
-                     nt("ProductionContent", SYM_INLINE | SYM_OPTIONAL),
+                     nt("ProductionContent"),
                      nt("EOLX", SYM_DISCARD)),
                 /* File sections */
                 prod("SectionHeader",
@@ -159,10 +160,129 @@ public final class Grammars {
 
     }
 
+    private static class MapperHolder {
+
+        public static final UnionMapper<String> STRING_ELEMENT =
+            new UnionMapper<String>();
+
+        public static final Mapper<String> STRING =
+            new CompositeMapper<String, String>(STRING_ELEMENT) {
+                protected String mapInner(Parser.ParseTree pt,
+                                          List<String> children) {
+                    StringBuilder sb = new StringBuilder();
+                    for (String s : children) sb.append(s);
+                    return sb.toString();
+                }
+            };
+
+        public static final UnionMapper<Integer> SYMBOL_FLAG =
+            new UnionMapper<Integer>();
+
+        public static final UnionMapper<Grammar.Symbol> SYMBOL_CONTENT =
+            new UnionMapper<Grammar.Symbol>();
+
+        public static final Mapper<Grammar.Symbol> SYMBOL =
+            new Mapper<Grammar.Symbol>() {
+                public Grammar.Symbol map(Parser.ParseTree pt) {
+                    Grammar.Symbol base = null;
+                    int flags = 0;
+                    for (Parser.ParseTree child : pt.getChildren()) {
+                        if (SYMBOL_FLAG.canMap(child)) {
+                            flags |= SYMBOL_FLAG.map(child);
+                            continue;
+                        }
+                        if (base != null)
+                            throw new IllegalArgumentException(
+                                "Incorrect redundant symbol content");
+                        base = SYMBOL_CONTENT.map(child);
+                    }
+                    if (flags == 0) return base;
+                    return new Grammar.Symbol(base.getType(),
+                                              base.getContent(), flags);
+                }
+            };
+
+        public static final Mapper<String> PRODUCTION_NAME =
+            LeafMapper.string();
+
+        public static final Mapper<List<Grammar.Symbol>> PRODUCTION_CONTENT =
+            CompositeMapper.aggregate(SYMBOL);
+
+        public static final Mapper<Grammar.Production> PRODUCTION =
+            new Mapper<Grammar.Production>() {
+                public Grammar.Production map(Parser.ParseTree pt) {
+                    if (pt.childCount() != 2)
+                        throw new IllegalArgumentException(
+                            "Incorrect production content");
+                    String prodName = PRODUCTION_NAME.map(pt.childAt(0));
+                    List<Grammar.Symbol> symbols = PRODUCTION_CONTENT.map(
+                        pt.childAt(1));
+                    return new Grammar.Production(prodName, symbols);
+                }
+            };
+
+        public static final Mapper<Grammar> GRAMMAR = new CompositeMapper<
+                    Grammar.Production, Grammar>(PRODUCTION) {
+                protected Grammar mapInner(Parser.ParseTree pt,
+                        List<Grammar.Production> children) {
+                    return new Grammar(children);
+                }
+            };
+
+        static {
+            STRING_ELEMENT.add("StringContent", LeafMapper.string());
+            STRING_ELEMENT.add("RegexContent", LeafMapper.string());
+            STRING_ELEMENT.add("Escape", new LeafMapper<String>() {
+                protected String mapInner(Parser.ParseTree pt) {
+                    String data = pt.getContent();
+                    if (data.charAt(1) == 'u' || data.charAt(1) == 'U')
+                        return new String(Character.toChars(Integer.parseInt(
+                            data.substring(2), 16)));
+                    return Character.toString(data.charAt(1));
+                }
+            });
+
+            SYMBOL_FLAG.add("Caret",
+                            LeafMapper.constant(Grammar.SYM_INLINE));
+            SYMBOL_FLAG.add("Tilde",
+                            LeafMapper.constant(Grammar.SYM_DISCARD));
+            SYMBOL_FLAG.add("Question",
+                            LeafMapper.constant(Grammar.SYM_OPTIONAL));
+            SYMBOL_FLAG.add("Plus",
+                            LeafMapper.constant(Grammar.SYM_REPEAT));
+
+            SYMBOL_CONTENT.add("Identifier",
+                new LeafMapper<Grammar.Symbol>() {
+                    protected Grammar.Symbol mapInner(Parser.ParseTree pt) {
+                        return Grammar.Symbol.nonterminal(pt.getContent());
+                    }
+                });
+            SYMBOL_CONTENT.add("String",
+                new Mapper<Grammar.Symbol>() {
+                    public Grammar.Symbol map(Parser.ParseTree pt) {
+                        return Grammar.Symbol.terminal(STRING.map(pt));
+                    }
+                });
+            SYMBOL_CONTENT.add("Regex",
+                new Mapper<Grammar.Symbol>() {
+                    public Grammar.Symbol map(Parser.ParseTree pt) {
+                        return Grammar.Symbol.pattern(STRING.map(pt));
+                    }
+                });
+            SYMBOL_CONTENT.add("Asterisk",
+                LeafMapper.constant(Grammar.Symbol.anything()));
+        }
+
+    }
+
     private Grammars() {}
 
     public static Parser.CompiledGrammar getMetaGrammar() {
         return MetaGrammar.COMPILED_INSTANCE;
+    }
+
+    public static Mapper<Grammar> getGrammarContentMapper() {
+        return MapperHolder.GRAMMAR;
     }
 
     public static Parser makeGrammarParser(Reader input) {
