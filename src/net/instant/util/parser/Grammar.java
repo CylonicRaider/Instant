@@ -220,9 +220,12 @@ public class Grammar implements GrammarView {
             }
         }
     }
-    public Grammar(Production... productions) {
+    public Grammar(List<Production> productions) {
         this();
         for (Production p : productions) addProduction(p);
+    }
+    public Grammar(Production... productions) {
+        this(Arrays.asList(productions));
     }
 
     public String toString() {
