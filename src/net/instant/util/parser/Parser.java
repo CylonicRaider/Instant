@@ -112,6 +112,8 @@ public class Parser {
 
         Lexer.Token getToken();
 
+        String getContent();
+
         List<ParseTree> getChildren();
 
         int childCount();
@@ -213,6 +215,10 @@ public class Parser {
 
         public Lexer.Token getToken() {
             return token;
+        }
+
+        public String getContent() {
+            return token.getContent();
         }
 
         public List<ParseTree> getChildren() {

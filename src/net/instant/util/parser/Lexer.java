@@ -99,30 +99,30 @@ public class Lexer implements Closeable {
 
         private final LineColumnReader.Coordinates position;
         private final String production;
-        private final String text;
+        private final String content;
 
         public Token(LineColumnReader.Coordinates position,
-                     String production, String text) {
+                     String production, String content) {
             if (position == null)
                 throw new NullPointerException(
                     "Token coordinates may not be null");
-            if (text == null)
+            if (content == null)
                 throw new NullPointerException(
-                    "Token text may not be null");
+                    "Token content may not be null");
             this.position = position;
             this.production = production;
-            this.text = text;
+            this.content = content;
         }
 
         public String toString() {
-            return String.format("%s@%h[position=%s,production=%s,text=%s]",
+            return String.format("%s@%h[position=%s,production=%s,content=%s]",
                 getClass().getName(), this, getPosition(), getProduction(),
-                getText());
+                getContent());
         }
         public String toUserString() {
             String prod = getProduction();
             return String.format("%s%s at %s",
-                Formats.formatString(getText()),
+                Formats.formatString(getContent()),
                 ((prod == null) ? "" : " (" + prod + ")"),
                 getPosition());
         }
@@ -132,12 +132,12 @@ public class Lexer implements Closeable {
             Token to = (Token) other;
             return (getPosition().equals(to.getPosition()) &&
                     equalOrNull(getProduction(), to.getProduction()) &&
-                    getText().equals(to.getText()));
+                    getContent().equals(to.getContent()));
         }
 
         public int hashCode() {
             return getPosition().hashCode() ^
-                hashCodeOrNull(getProduction()) ^ getText().hashCode();
+                hashCodeOrNull(getProduction()) ^ getContent().hashCode();
         }
 
         public LineColumnReader.Coordinates getPosition() {
@@ -148,12 +148,12 @@ public class Lexer implements Closeable {
             return production;
         }
 
-        public String getText() {
-            return text;
+        public String getContent() {
+            return content;
         }
 
         public boolean matches(Grammar.Symbol sym) {
-            return sym.matches(getText());
+            return sym.matches(getContent());
         }
 
         private static boolean equalOrNull(String a, String b) {
@@ -461,12 +461,12 @@ public class Lexer implements Closeable {
         return ret;
     }
     protected Token consumeInput(int length, int groupIdx) {
-        String tokenText = inputBuffer.substring(0, length);
+        String tokenContent = inputBuffer.substring(0, length);
         inputBuffer.delete(0, length);
         Token ret = new Token(
             new LineColumnReader.FixedCoordinates(inputPosition),
-            state.getGroupNames().get(groupIdx), tokenText);
-        inputPosition.advance(tokenText, 0, length);
+            state.getGroupNames().get(groupIdx), tokenContent);
+        inputPosition.advance(tokenContent, 0, length);
         return ret;
     }
     protected void advance(int groupIdx) {
