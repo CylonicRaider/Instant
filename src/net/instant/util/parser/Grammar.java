@@ -256,6 +256,9 @@ public class Grammar implements GrammarView {
         return Collections.unmodifiableSet(productions.get(name));
     }
 
+    public boolean isEmpty() {
+        return productions.isEmpty();
+    }
     public boolean hasProductions(String name) {
         return productions.containsKey(name);
     }

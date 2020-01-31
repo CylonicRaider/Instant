@@ -37,6 +37,10 @@ public class Parser {
         public ParserGrammar(GrammarView copyFrom) {
             super(copyFrom);
         }
+        public ParserGrammar(GrammarView lexerGrammar, GrammarView copyFrom) {
+            super(copyFrom);
+            reference = new Lexer.LexerGrammar(lexerGrammar);
+        }
         public ParserGrammar(GrammarView lexerGrammar,
                              Production... productions) {
             super(productions);
