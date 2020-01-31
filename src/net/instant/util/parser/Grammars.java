@@ -1,8 +1,11 @@
 package net.instant.util.parser;
 
 import java.io.Reader;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import net.instant.util.LineColumnReader;
+import net.instant.util.NamedValue;
 
 public final class Grammars {
 
@@ -141,8 +144,10 @@ public final class Grammars {
                                               SYM_REPEAT)),
                 prod("Section", nt("SectionHeader"), nt("SectionContent")),
                 /* Overall file structure */
-                prod("File", nt("SectionContent"),
-                     nt("Section", SYM_OPTIONAL | SYM_REPEAT)),
+                prod("SectionList"),
+                prod("SectionList", nt("Section"),
+                     nt("SectionList", SYM_INLINE | SYM_OPTIONAL)),
+                prod("File", nt("SectionContent"), nt("SectionList")),
                 prod(IPS, nt("File"))
             );
         }
@@ -161,6 +166,26 @@ public final class Grammars {
     }
 
     private static class MapperHolder {
+
+        public static class NamedGrammar implements NamedValue {
+
+            private final String name;
+            private final Grammar grammar;
+
+            public NamedGrammar(String name, Grammar grammar) {
+                this.name = name;
+                this.grammar = grammar;
+            }
+
+            public String getName() {
+                return name;
+            }
+
+            public Grammar getGrammar() {
+                return grammar;
+            }
+
+        }
 
         public static final UnionMapper<String> STRING_ELEMENT =
             new UnionMapper<String>();
@@ -209,16 +234,17 @@ public final class Grammars {
             CompositeMapper.aggregate(SYMBOL);
 
         public static final Mapper<Grammar.Production> PRODUCTION =
-            new Mapper<Grammar.Production>() {
-                public Grammar.Production map(Parser.ParseTree pt) {
-                    if (pt.childCount() != 2)
-                        throw new IllegalArgumentException(
-                            "Incorrect production content");
-                    String prodName = PRODUCTION_NAME.map(pt.childAt(0));
-                    List<Grammar.Symbol> symbols = PRODUCTION_CONTENT.map(
-                        pt.childAt(1));
-                    return new Grammar.Production(prodName, symbols);
+            new RecordMapper<Grammar.Production>() {
+
+                private final Mapper<String> NAME = add(LeafMapper.string());
+                private final Mapper<List<Grammar.Symbol>> CONTENT =
+                    add(CompositeMapper.aggregate(SYMBOL));
+
+                protected Grammar.Production mapInner(Result res) {
+                    return new Grammar.Production(res.get(NAME),
+                                                  res.get(CONTENT));
                 }
+
             };
 
         public static final Mapper<Grammar> GRAMMAR = new CompositeMapper<
@@ -226,6 +252,69 @@ public final class Grammars {
                 protected Grammar mapInner(Parser.ParseTree pt,
                         List<Grammar.Production> children) {
                     return new Grammar(children);
+                }
+            };
+
+        public static final Mapper<NamedGrammar> SECTION =
+            new RecordMapper<NamedGrammar>() {
+
+                private final Mapper<String> NAME = add(LeafMapper.string());
+                private final Mapper<Grammar> CONTENT =
+                    add(GRAMMAR);
+
+                protected NamedGrammar mapInner(Result res) {
+                    return new NamedGrammar(res.get(NAME), res.get(CONTENT));
+                }
+
+            };
+
+        public static final Mapper<Map<String, Grammar>> FILE =
+            new RecordMapper<Map<String, Grammar>>() {
+
+                private final Mapper<Grammar> HEADER = add(GRAMMAR);
+                private final Mapper<List<NamedGrammar>> BODY =
+                    add(CompositeMapper.aggregate(SECTION));
+
+                protected Map<String, Grammar> mapInner(Result res) {
+                    Map<String, Grammar> ret =
+                        new LinkedHashMap<String, Grammar>();
+                    Grammar header = res.get(HEADER);
+                    if (! header.isEmpty())
+                        ret.put(null, header);
+                    for (NamedGrammar ng : res.get(BODY)) {
+                        ret.put(ng.getName(), ng.getGrammar());
+                    }
+                    return ret;
+                }
+
+            };
+
+        public static final Mapper<Map<String, Grammar>> FILE_WRAPPER =
+            RecordMapper.wrap(FILE);
+
+        public static final Mapper<Parser.ParserGrammar> PARSER =
+            new RecordMapper.WrapperMapper<Map<String, Grammar>,
+                                           Parser.ParserGrammar>(FILE) {
+                protected Parser.ParserGrammar process(
+                        Map<String, Grammar> value) {
+                    Grammar lexer = value.get("tokens");
+                    Grammar parser = value.get("grammar");
+                    for (String k : value.keySet()) {
+                        if ("tokens".equals(k) || "grammar".equals(k))
+                            continue;
+                        if (k == null)
+                            throw new IllegalArgumentException("Parser " +
+                                "grammar files should not contain headers");
+                        throw new IllegalArgumentException(
+                            "Unrecognized grammar file section " + k);
+                    }
+                    if (lexer == null)
+                        throw new IllegalArgumentException(
+                            "Missing token definition in grammar file");
+                    if (parser == null)
+                        throw new IllegalArgumentException(
+                            "Missing grammar definition in grammar file");
+                    return new Parser.ParserGrammar(lexer, parser);
                 }
             };
 
@@ -284,12 +373,22 @@ public final class Grammars {
     public static Mapper<Grammar> getGrammarContentMapper() {
         return MapperHolder.GRAMMAR;
     }
-
-    public static Parser makeGrammarParser(Reader input) {
-        return getMetaGrammar().makeParser(input);
+    public static Mapper<Map<String, Grammar>> getGrammarFileMapper() {
+        return MapperHolder.FILE_WRAPPER;
     }
-    public static Parser makeGrammarParser(LineColumnReader input) {
-        return getMetaGrammar().makeParser(input);
+    public static Mapper<Parser.ParserGrammar> getParserMapper() {
+        return MapperHolder.PARSER;
+    }
+
+    public static Parser.ParserGrammar parseGrammar(Reader input)
+            throws Parser.ParsingException {
+        return getParserMapper().map(getMetaGrammar().makeParser(input)
+            .parse());
+    }
+    public static Parser.ParserGrammar parseGrammar(LineColumnReader input)
+            throws Parser.ParsingException {
+        return getParserMapper().map(getMetaGrammar().makeParser(input)
+            .parse());
     }
 
 }
