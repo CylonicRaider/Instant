@@ -787,7 +787,6 @@ public class Parser {
                         "Cannot add successor to state " +
                         describeState(prev) + ": " + exc.getMessage(), exc);
                 }
-
             } else {
                 throw new IllegalArgumentException("Cannot splice into " +
                     "state graph after " + describeState(prev));
