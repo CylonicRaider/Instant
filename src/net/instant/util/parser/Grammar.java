@@ -249,6 +249,7 @@ public class Grammar implements GrammarView {
         return sb.toString();
     }
 
+    // Immutable GrammarView interface.
     public Set<String> getProductionNames() {
         return Collections.unmodifiableSet(productions.keySet());
     }
@@ -256,6 +257,7 @@ public class Grammar implements GrammarView {
         return Collections.unmodifiableSet(productions.get(name));
     }
 
+    // Mutable direct interface.
     public boolean isEmpty() {
         return productions.isEmpty();
     }
