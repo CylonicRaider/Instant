@@ -180,7 +180,8 @@ public class Parser {
 
         State getSuccessor();
 
-        void setSuccessor(Grammar.Symbol selector, State succ);
+        void setSuccessor(Grammar.Symbol selector, State succ)
+            throws BadSuccessorException;
 
     }
 
@@ -188,7 +189,25 @@ public class Parser {
 
         State getSuccessor(Grammar.Symbol selector);
 
-        void setSuccessor(Grammar.Symbol selector, State succ);
+        void setSuccessor(Grammar.Symbol selector, State succ)
+            throws BadSuccessorException;
+
+    }
+
+    protected static class BadSuccessorException extends Exception {
+
+        public BadSuccessorException() {
+            super();
+        }
+        public BadSuccessorException(String message) {
+            super(message);
+        }
+        public BadSuccessorException(Throwable cause) {
+            super(cause);
+        }
+        public BadSuccessorException(String message, Throwable cause) {
+            super(message, cause);
+        }
 
     }
 
@@ -485,12 +504,13 @@ public class Parser {
                 return successors.get(selector.getContent());
             }
         }
-        public void setSuccessor(Grammar.Symbol selector, State succ) {
+        public void setSuccessor(Grammar.Symbol selector, State succ)
+                throws BadSuccessorException {
             if (selector == null ||
                     selector.getType() == Grammar.SymbolType.ANYTHING) {
                 successors.put(null, succ);
             } else if (selector.getType() != Grammar.SymbolType.NONTERMINAL) {
-                throw new IllegalArgumentException(
+                throw new BadSuccessorException(
                     "Cannot branch on terminal Grammar symbols");
             } else {
                 successors.put(selector.getContent(), succ);
@@ -747,6 +767,8 @@ public class Parser {
                     return null;
                 }
             } else {
+                // See corresponding note in addSuccessor() about the
+                // exception type.
                 throw new IllegalArgumentException(
                     "Cannot determine successor of state " +
                     describeState(prev));
@@ -763,7 +785,11 @@ public class Parser {
                         ((selector == null) ? "(default)" : selector) + ": " +
                         describeState(cprev.getSuccessor(selector)) +
                         " and " + describeState(next));
-                cprev.setSuccessor(selector, next);
+                try {
+                    cprev.setSuccessor(selector, next);
+                } catch (BadSuccessorException exc) {
+                    throw new InvalidGrammarException(exc);
+                }
             } else if (prev instanceof SingleSuccessorState) {
                 SingleSuccessorState cprev = (SingleSuccessorState) prev;
                 try {
@@ -782,12 +808,23 @@ public class Parser {
                         addSuccessor(newmid, selector, next);
                         prev = newmid;
                     }
+                } catch (BadSuccessorException exc) {
+                    throw new InvalidGrammarException(
+                        "Cannot add successor to state " +
+                        describeState(prev) + ": " + exc.getMessage(), exc);
                 } catch (InvalidGrammarException exc) {
                     throw new InvalidGrammarException(
                         "Cannot add successor to state " +
                         describeState(prev) + ": " + exc.getMessage(), exc);
                 }
             } else {
+                // While the grammar may (il)legegimately contain things that
+                // are not allowed as successors at places where that matters,
+                // and we reject that with the proper exception type in the
+                // MultiSuccessorState case, it is the compiler's fault if
+                // it generates a state that may not have successors (i.e.,
+                // presently, a ReturnState) and then tries to put something
+                // after it.
                 throw new IllegalArgumentException("Cannot splice into " +
                     "state graph after " + describeState(prev));
             }
