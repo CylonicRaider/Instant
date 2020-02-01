@@ -576,9 +576,10 @@ class Scribe(instabot.Bot):
         elif tp == 'privmsg':
             # Someone is PM-ing us.
             # Just log it.
-            log('PRIVMSG id=%r parent=%r from=%r nick=%r text=%r' %
-                (content['id'], data.get('parent'), content['from'],
-                 data.get('nick'), data.get('text')))
+            data['id'] = content['id']
+            data['from'] = content['from']
+            data['timestamp'] = content['timestamp']
+            self._process_pm(data)
     def send_raw(self, rawmsg, verbose=True):
         if verbose:
             log('SEND content=%r' % (rawmsg,))
@@ -705,6 +706,10 @@ class Scribe(instabot.Bot):
         for i in ids:
             if i in handled: continue
             log('DELETE by=%r id=%r' % (cause, i))
+    def _process_pm(self, data):
+        log('PRIVMSG id=%r parent=%r from=%r nick=%r subject=%r text=%r' %
+            (data['id'], data.get('parent'), data['from'], data.get('nick'),
+             data.get('subject'), data.get('text')))
     def _push_logs(self, peer=None):
         if peer is None:
             if not self.push_logs: return
