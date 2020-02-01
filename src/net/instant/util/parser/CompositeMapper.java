@@ -22,14 +22,15 @@ public abstract class CompositeMapper<C, T>
         childMapper = cm;
     }
 
-    protected C mapChild(Parser.ParseTree pt) {
+    protected C mapChild(Parser.ParseTree pt) throws MappingException {
         return childMapper.map(pt);
     }
 
     public static <C, T> CompositeMapper<C, T> of(
             final NodeMapper<C, T> reduce, Mapper<C> map) {
         return new CompositeMapper<C, T>(map) {
-            protected T mapInner(Parser.ParseTree pt, List<C> children) {
+            protected T mapInner(Parser.ParseTree pt, List<C> children)
+                    throws MappingException {
                 return reduce.map(pt, children);
             }
         };
@@ -53,10 +54,9 @@ public abstract class CompositeMapper<C, T>
 
     public static <T> CompositeMapper<T, T> passthrough(Mapper<T> nested) {
         return new CompositeMapper<T, T>(nested) {
-            public T map(Parser.ParseTree pt) {
+            public T map(Parser.ParseTree pt) throws MappingException {
                 if (pt.childCount() != 1)
-                    throw new IllegalArgumentException("Cannot map parse " +
-                        "tree to object: Expected one subtree, got " +
+                    throw new MappingException("Expected one subtree, got " +
                         pt.childCount());
                 return super.map(pt);
             }

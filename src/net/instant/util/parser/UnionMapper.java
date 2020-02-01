@@ -36,11 +36,11 @@ public class UnionMapper<T> implements Mapper<T> {
         return contains(pt.getName());
     }
 
-    public T map(Parser.ParseTree pt) {
+    public T map(Parser.ParseTree pt) throws MappingException {
         Mapper<? extends T> child = registry.get(pt.getName());
         if (child == null)
-            throw new IllegalArgumentException("Cannot map node type " +
-                                               pt.getName());
+            throw new MappingException("Cannot map node type " +
+                pt.getName());
         return child.map(pt);
     }
 

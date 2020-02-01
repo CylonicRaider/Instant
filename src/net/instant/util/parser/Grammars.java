@@ -208,7 +208,8 @@ public final class Grammars {
 
         public static final Mapper<Grammar.Symbol> SYMBOL =
             new Mapper<Grammar.Symbol>() {
-                public Grammar.Symbol map(Parser.ParseTree pt) {
+                public Grammar.Symbol map(Parser.ParseTree pt)
+                        throws MappingException {
                     Grammar.Symbol base = null;
                     int flags = 0;
                     for (Parser.ParseTree child : pt.getChildren()) {
@@ -217,7 +218,7 @@ public final class Grammars {
                             continue;
                         }
                         if (base != null)
-                            throw new IllegalArgumentException(
+                            throw new MappingException(
                                 "Incorrect redundant symbol content");
                         base = SYMBOL_CONTENT.map(child);
                     }
@@ -296,23 +297,23 @@ public final class Grammars {
             new RecordMapper.WrapperMapper<Map<String, Grammar>,
                                            Parser.ParserGrammar>(FILE) {
                 protected Parser.ParserGrammar process(
-                        Map<String, Grammar> value) {
+                        Map<String, Grammar> value) throws MappingException {
                     Grammar lexer = value.get("tokens");
                     Grammar parser = value.get("grammar");
                     for (String k : value.keySet()) {
                         if ("tokens".equals(k) || "grammar".equals(k))
                             continue;
                         if (k == null)
-                            throw new IllegalArgumentException("Parser " +
-                                "grammar files should not contain headers");
-                        throw new IllegalArgumentException(
+                            throw new MappingException("Parser grammar " +
+                                "files should not contain headers");
+                        throw new MappingException(
                             "Unrecognized grammar file section " + k);
                     }
                     if (lexer == null)
-                        throw new IllegalArgumentException(
+                        throw new MappingException(
                             "Missing token definition in grammar file");
                     if (parser == null)
-                        throw new IllegalArgumentException(
+                        throw new MappingException(
                             "Missing grammar definition in grammar file");
                     return new Parser.ParserGrammar(lexer, parser);
                 }
@@ -348,13 +349,15 @@ public final class Grammars {
                 });
             SYMBOL_CONTENT.add("String",
                 new Mapper<Grammar.Symbol>() {
-                    public Grammar.Symbol map(Parser.ParseTree pt) {
+                    public Grammar.Symbol map(Parser.ParseTree pt)
+                            throws MappingException {
                         return Grammar.Symbol.terminal(STRING.map(pt));
                     }
                 });
             SYMBOL_CONTENT.add("Regex",
                 new Mapper<Grammar.Symbol>() {
-                    public Grammar.Symbol map(Parser.ParseTree pt) {
+                    public Grammar.Symbol map(Parser.ParseTree pt)
+                            throws MappingException {
                         return Grammar.Symbol.pattern(STRING.map(pt));
                     }
                 });
@@ -380,15 +383,21 @@ public final class Grammars {
         return MapperHolder.PARSER;
     }
 
+    private static Parser.ParserGrammar parseGrammarInner(Parser p)
+            throws Parser.ParsingException {
+        try {
+            return getParserMapper().map(p.parse());
+        } catch (MappingException exc) {
+            throw new AssertionError("The meta-grammar is buggy?!", exc);
+        }
+    }
     public static Parser.ParserGrammar parseGrammar(Reader input)
             throws Parser.ParsingException {
-        return getParserMapper().map(getMetaGrammar().makeParser(input)
-            .parse());
+        return parseGrammarInner(getMetaGrammar().makeParser(input));
     }
     public static Parser.ParserGrammar parseGrammar(LineColumnReader input)
             throws Parser.ParsingException {
-        return getParserMapper().map(getMetaGrammar().makeParser(input)
-            .parse());
+        return parseGrammarInner(getMetaGrammar().makeParser(input));
     }
 
 }

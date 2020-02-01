@@ -7,11 +7,11 @@ public abstract class BaseCompositeMapper<C, T> implements Mapper<T> {
 
     public interface NodeMapper<C, T> {
 
-        T map(Parser.ParseTree pt, List<C> children);
+        T map(Parser.ParseTree pt, List<C> children) throws MappingException;
 
     }
 
-    public T map(Parser.ParseTree pt) {
+    public T map(Parser.ParseTree pt) throws MappingException {
         List<C> children = new ArrayList<C>(pt.childCount());
         for (Parser.ParseTree t : pt.getChildren()) {
             children.add(mapChild(t));
@@ -19,8 +19,10 @@ public abstract class BaseCompositeMapper<C, T> implements Mapper<T> {
         return mapInner(pt, children);
     }
 
-    protected abstract T mapInner(Parser.ParseTree pt, List<C> children);
+    protected abstract T mapInner(Parser.ParseTree pt, List<C> children)
+        throws MappingException;
 
-    protected abstract C mapChild(Parser.ParseTree pt);
+    protected abstract C mapChild(Parser.ParseTree pt)
+        throws MappingException;
 
 }

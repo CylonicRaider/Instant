@@ -8,18 +8,20 @@ public abstract class LeafMapper<T> implements Mapper<T> {
         }
     };
 
-    public T map(Parser.ParseTree pt) {
+    public T map(Parser.ParseTree pt) throws MappingException {
         if (pt.childCount() > 0)
-            throw new IllegalArgumentException("Cannot map parse tree to " +
-                "object: Expected leaf, got non-leaf");
+            throw new MappingException(
+                "Expected leaf node, got non-leaf node");
         return mapInner(pt);
     }
 
-    protected abstract T mapInner(Parser.ParseTree pt);
+    protected abstract T mapInner(Parser.ParseTree pt)
+        throws MappingException;
 
     public static <T> LeafMapper<T> of(final Mapper<T> wrapped) {
         return new LeafMapper<T>() {
-            protected T mapInner(Parser.ParseTree pt) {
+            protected T mapInner(Parser.ParseTree pt)
+                    throws MappingException {
                 return wrapped.map(pt);
             }
         };

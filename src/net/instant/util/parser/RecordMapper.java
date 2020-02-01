@@ -46,11 +46,11 @@ public abstract class RecordMapper<T> implements Mapper<T> {
             add(wrapped);
         }
 
-        protected T mapInner(Result res) {
+        protected T mapInner(Result res) throws MappingException {
             return process(res.get(wrapped));
         }
 
-        protected abstract T process(C value);
+        protected abstract T process(C value) throws MappingException;
 
     }
 
@@ -73,12 +73,12 @@ public abstract class RecordMapper<T> implements Mapper<T> {
     }
 
     private <T> void mapAndPut(Mapper<T> mapper, Parser.ParseTree pt,
-                               Result drain) {
+                               Result drain) throws MappingException {
         drain.put(mapper, mapper.map(pt));
     }
-    public T map(Parser.ParseTree pt) {
+    public T map(Parser.ParseTree pt) throws MappingException {
         if (pt.childCount() != mappers.size())
-            throw new IllegalArgumentException(
+            throw new MappingException(
                 "Incorrect child amount in parse tree");
         Result res = new Result();
         for (int i = 0; i < mappers.size(); i++) {
@@ -87,7 +87,7 @@ public abstract class RecordMapper<T> implements Mapper<T> {
         return mapInner(res);
     }
 
-    protected abstract T mapInner(Result res);
+    protected abstract T mapInner(Result res) throws MappingException;
 
     public static <T> RecordMapper<T> wrap(final Mapper<T> mapper) {
         return new WrapperMapper<T, T>(mapper) {
