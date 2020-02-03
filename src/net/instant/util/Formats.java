@@ -158,10 +158,27 @@ public final class Formats {
 
     private static final SimpleDateFormat HTTP_FORMAT;
 
+    public static final Pattern NARROW_ESCAPE_SEQUENCE = Pattern.compile(
+        "\\\\(?:[abtnvfr]|[0-7]{1,2}|[0-3][0-7]{2}|x[0-9a-fA-F]{2}|" +
+        "u[0-9a-fA-F]{4}|U[0-9a-fA-F]{8})");
+    public static final Pattern ESCAPE_SEQUENCE = Pattern.compile(
+        NARROW_ESCAPE_SEQUENCE.pattern() + "|\\\\[^0-7xuU]");
+
+    private static final String[] ESCAPES;
+
     static {
         HTTP_FORMAT = new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss z",
                                            Locale.ROOT);
         HTTP_FORMAT.setTimeZone(TimeZone.getTimeZone("GMT"));
+
+        ESCAPES = new String[16];
+        ESCAPES['a'] = "\u0007";
+        ESCAPES['b'] = "\b";
+        ESCAPES['t'] = "\t";
+        ESCAPES['n'] = "\n";
+        ESCAPES['v'] = "\u000B";
+        ESCAPES['f'] = "\f";
+        ESCAPES['r'] = "\r";
     }
 
     // Prevent construction.
@@ -311,6 +328,26 @@ public final class Formats {
         } else {
             return String.format("'%c'(U+%04X)", ch, ch);
         }
+    }
+
+    public String parseEscapeSequence(String input, String allowedRaw) {
+        if (ESCAPE_SEQUENCE.matcher(input).matches()) {
+            char selector = input.charAt(1);
+            if (selector < ESCAPES.length && ESCAPES[selector] != null)
+                return ESCAPES[selector];
+            switch (selector) {
+                case 'x': case 'u':
+                    return Character.toString((char) Integer.parseInt(
+                        input.substring(2), 16));
+                case 'U':
+                    return new String(Character.toChars(Integer.parseInt(
+                        input.substring(2), 16)));
+            }
+            if (allowedRaw.indexOf(selector) != -1)
+                return Character.toString(selector);
+        }
+        throw new IllegalArgumentException("Invalid escape sequence " +
+            input);
     }
 
     private static void formatStringPart(int mode, String str, int copyFrom,
