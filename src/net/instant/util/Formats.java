@@ -171,7 +171,7 @@ public final class Formats {
                                            Locale.ROOT);
         HTTP_FORMAT.setTimeZone(TimeZone.getTimeZone("GMT"));
 
-        ESCAPES = new String[16];
+        ESCAPES = new String[128];
         ESCAPES['a'] = "\u0007";
         ESCAPES['b'] = "\b";
         ESCAPES['t'] = "\t";
