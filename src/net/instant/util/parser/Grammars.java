@@ -4,6 +4,7 @@ import java.io.Reader;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import net.instant.util.Formats;
 import net.instant.util.LineColumnReader;
 import net.instant.util.NamedValue;
 
@@ -52,8 +53,7 @@ public final class Grammars {
                     Lexer.patternToken("StringContent", "[^\"\\\\]+"),
                     Lexer.patternToken("RegexContent", "[^/\\\\]+"),
                     Lexer.patternToken("CommentContent", "[^\r\n]+"),
-                    Lexer.patternToken("Escape",
-                        "\\\\(?:[\\\\\"/]|u[0-9a-fA-F]{4}|U[0-9a-fA-F]{8})"),
+                    Lexer.patternToken("Escape", Formats.ESCAPE_SEQUENCE),
                     /* Initial state */
                     Lexer.state(ILS, "CR", ILS),
                     Lexer.state(ILS, "LF", ILS),
@@ -323,12 +323,14 @@ public final class Grammars {
             STRING_ELEMENT.add("StringContent", LeafMapper.string());
             STRING_ELEMENT.add("RegexContent", LeafMapper.string());
             STRING_ELEMENT.add("Escape", new LeafMapper<String>() {
-                protected String mapInner(Parser.ParseTree pt) {
-                    String data = pt.getContent();
-                    if (data.charAt(1) == 'u' || data.charAt(1) == 'U')
-                        return new String(Character.toChars(Integer.parseInt(
-                            data.substring(2), 16)));
-                    return Character.toString(data.charAt(1));
+                protected String mapInner(Parser.ParseTree pt)
+                        throws MappingException {
+                    try {
+                        return Formats.parseEscapeSequence(pt.getContent(),
+                                                           null);
+                    } catch (IllegalArgumentException exc) {
+                        throw new MappingException(exc.getMessage(), exc);
+                    }
                 }
             });
 

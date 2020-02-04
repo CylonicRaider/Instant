@@ -548,6 +548,10 @@ public class Lexer implements Closeable {
         return new Grammar.Production(name, Grammar.Symbol.terminal(content));
     }
     public static Grammar.Production patternToken(String name,
+                                                  Pattern content) {
+        return new Grammar.Production(name, Grammar.Symbol.pattern(content));
+    }
+    public static Grammar.Production patternToken(String name,
                                                   String content) {
         return new Grammar.Production(name, Grammar.Symbol.pattern(content));
     }

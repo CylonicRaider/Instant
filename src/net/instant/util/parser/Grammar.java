@@ -134,6 +134,9 @@ public class Grammar implements GrammarView {
         public static Symbol terminal(String content) {
             return terminal(content, 0);
         }
+        public static Symbol pattern(Pattern content) {
+            return pattern(content, 0);
+        }
         public static Symbol pattern(String content) {
             return pattern(content, 0);
         }
