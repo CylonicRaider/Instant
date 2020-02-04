@@ -330,7 +330,8 @@ public final class Formats {
         }
     }
 
-    public String parseEscapeSequence(String input, String allowedRaw) {
+    public static String parseEscapeSequence(String input,
+                                             String allowedRaw) {
         if (ESCAPE_SEQUENCE.matcher(input).matches()) {
             char selector = input.charAt(1);
             if (selector < ESCAPES.length && ESCAPES[selector] != null)
