@@ -343,7 +343,7 @@ public final class Formats {
                     return new String(Character.toChars(Integer.parseInt(
                         input.substring(2), 16)));
             }
-            if (allowedRaw.indexOf(selector) != -1)
+            if (allowedRaw == null || allowedRaw.indexOf(selector) != -1)
                 return Character.toString(selector);
         }
         throw new IllegalArgumentException("Invalid escape sequence " +
