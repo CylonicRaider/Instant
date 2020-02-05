@@ -699,8 +699,9 @@ public class Parser {
                     formatCyclicalProductions(seen, prodName) + ")");
             seen.add(prodName);
             ret = new HashSet<Grammar.Symbol>();
+            boolean maybeEmpty = false;
             for (Grammar.Production p : grammar.getRawProductions(prodName)) {
-                boolean maybeEmpty = true;
+                boolean productionMaybeEmpty = true;
                 for (Grammar.Symbol s : p.getSymbols()) {
                     if (s.getType() != Grammar.SymbolType.NONTERMINAL)
                         throw new InvalidGrammarException(
@@ -718,11 +719,16 @@ public class Parser {
                         ret.add(s);
                     }
                     if (! symbolMaybeEmpty) {
-                        maybeEmpty = false;
+                        productionMaybeEmpty = false;
                         break;
                     }
                 }
-                if (maybeEmpty) ret.add(null);
+                maybeEmpty |= productionMaybeEmpty;
+            }
+            if (maybeEmpty) {
+                ret.add(null);
+            } else {
+                ret.remove(null);
             }
             seen.remove(prodName);
             initialSymbolCache.put(prodName, ret);
