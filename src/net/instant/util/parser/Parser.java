@@ -752,10 +752,6 @@ public class Parser {
         }
 
         protected boolean selectorsEqual(Grammar.Symbol a, Grammar.Symbol b) {
-            if (a != null && a.getType() == Grammar.SymbolType.ANYTHING)
-                a = null;
-            if (b != null && b.getType() == Grammar.SymbolType.ANYTHING)
-                b = null;
             return (a == null) ? (b == null) : a.equals(b);
         }
         protected State getSuccessor(State prev, Grammar.Symbol selector) {
@@ -824,7 +820,7 @@ public class Parser {
                         describeState(prev) + ": " + exc.getMessage(), exc);
                 }
             } else {
-                // While the grammar may (il)legegimately contain things that
+                // While the grammar may (il)legitimately contain things that
                 // are not allowed as successors at places where that matters,
                 // and we reject that with the proper exception type in the
                 // MultiSuccessorState case, it is the compiler's fault if
