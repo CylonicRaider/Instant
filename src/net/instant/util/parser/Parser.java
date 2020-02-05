@@ -833,15 +833,27 @@ public class Parser {
             getStateInfo(next).setPredecessor(selector, prev);
         }
 
+        private Grammar.Symbol symbolWithFlags(Grammar.Symbol base,
+                                               int newFlags) {
+            if (base == null || base.getFlags() == newFlags) return base;
+            return new Grammar.Symbol(base.getType(), base.getContent(),
+                                      newFlags);
+        }
+
         @SuppressWarnings("fallthrough")
         protected State compileSymbol(Grammar.Symbol sym, String prodName,
                 int index, int count, Set<Grammar.Symbol> selectors)
                 throws InvalidGrammarException {
+            Grammar.Symbol cleanedSym = symbolWithFlags(sym,
+                sym.getFlags() & ~COMPILER_FLAGS);
             switch (sym.getType()) {
                 case NONTERMINAL:
                     if (grammar.hasProductions(sym.getContent())) {
-                        selectors.addAll(findInitialSymbols(
-                            sym.getContent()));
+                        for (Grammar.Symbol s : findInitialSymbols(
+                                sym.getContent())) {
+                            selectors.add(symbolWithFlags(s,
+                                cleanedSym.getFlags()));
+                        }
                         /* Tail recursion optimization */
                         if (index == count - 1 &&
                                 sym.getContent().equals(prodName) &&
@@ -853,11 +865,11 @@ public class Parser {
                         }
                         addProductions(grammar.getRawProductions(
                             sym.getContent()));
-                        return createCallState(sym);
+                        return createCallState(cleanedSym);
                     }
                 case TERMINAL: case PATTERN_TERMINAL: case ANYTHING:
-                    selectors.add(sym);
-                    return createLiteralState(sym);
+                    selectors.add(cleanedSym);
+                    return createLiteralState(cleanedSym);
                 default:
                     throw new AssertionError(
                         "Unrecognized symbol type?!");
@@ -935,6 +947,11 @@ public class Parser {
         }
 
     }
+
+    /* Symbol flags that are handled by the parser compiler and thus need not
+     * be considered for certain equivalence tests. */
+    public static final int COMPILER_FLAGS = Grammar.SYM_OPTIONAL |
+                                             Grammar.SYM_REPEAT;
 
     private final CompiledGrammar grammar;
     private final Lexer source;
