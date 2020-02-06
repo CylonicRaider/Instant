@@ -625,6 +625,7 @@ public class Parser {
         private final Map<String, State> finalStates;
         private final Map<String, Set<Grammar.Symbol>> initialSymbolCache;
         private final Map<State, StateInfo> info;
+        private State startState;
 
         public Compiler(ParserGrammar grammar)
                 throws InvalidGrammarException {
@@ -635,6 +636,7 @@ public class Parser {
             this.initialSymbolCache = new HashMap<String,
                 Set<Grammar.Symbol>>();
             this.info = new IdentityHashMap<State, StateInfo>();
+            this.startState = null;
             this.grammar.validate();
         }
 
@@ -863,8 +865,7 @@ public class Parser {
                                 ) == Grammar.SYM_INLINE) {
                             return getInitialState(prodName);
                         }
-                        addProductions(grammar.getRawProductions(
-                            sym.getContent()));
+                        addProductions(sym.getContent());
                         return createCallState(cleanedSym);
                     }
                 case TERMINAL: case PATTERN_TERMINAL: case ANYTHING:
@@ -939,11 +940,21 @@ public class Parser {
                 addProduction(p);
             }
         }
+        protected void addProductions(String prodName)
+                throws InvalidGrammarException {
+            addProductions(grammar.getRawProductions(prodName));
+        }
+
+        protected State getStartState() throws InvalidGrammarException {
+            if (startState == null) {
+                addProductions(ParserGrammar.START_SYMBOL.getContent());
+                startState = createCallState(ParserGrammar.START_SYMBOL);
+            }
+            return startState;
+        }
 
         public State call() throws InvalidGrammarException {
-            addProductions(grammar.getRawProductions(
-                ParserGrammar.START_SYMBOL.getContent()));
-            return getInitialState(ParserGrammar.START_SYMBOL.getContent());
+            return getStartState();
         }
 
     }
