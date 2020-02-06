@@ -154,7 +154,11 @@ public class Lexer implements Closeable {
         }
 
         public boolean matches(Grammar.Symbol sym) {
-            return sym.matches(getContent());
+            if (sym.getType() == Grammar.SymbolType.NONTERMINAL) {
+                return sym.getContent().equals(getProduction());
+            } else {
+                return sym.getPattern().matcher(getContent()).matches();
+            }
         }
 
         private static boolean equalOrNull(String a, String b) {
