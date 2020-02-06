@@ -461,19 +461,21 @@ public class Lexer implements Closeable {
         int ret = input.read(data);
         if (ret < 0) return ret;
         inputBuffer.append(data, 0, ret);
+        matcher.reset();
         return ret;
     }
     protected Token consumeInput(int length, int groupIdx) {
         String tokenContent = inputBuffer.substring(0, length);
         inputBuffer.delete(0, length);
+        matcher.reset();
         Token ret = new Token(copyPosition(),
-            state.getGroupNames().get(groupIdx), tokenContent);
+            state.getGroupNames().get(groupIdx - 1), tokenContent);
         inputPosition.advance(tokenContent, 0, length);
         return ret;
     }
     protected void advance(int groupIdx) {
         State oldState = state;
-        state = state.getSuccessors().get(groupIdx);
+        state = state.getSuccessors().get(groupIdx - 1);
         if (oldState == state) {
             /* NOP */
         } else if (state == null) {
