@@ -164,21 +164,32 @@ public final class Formats {
     public static final Pattern ESCAPE_SEQUENCE = Pattern.compile(
         NARROW_ESCAPE_SEQUENCE.pattern() + "|\\\\[^0-7xuU]");
 
+    public static final Pattern PATTERN_ESCAPE = Pattern.compile(
+        "[\0-\37\177-\237/]");
+
     private static final String[] ESCAPES;
+    private static final String[] REV_ESCAPES;
 
     static {
         HTTP_FORMAT = new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss z",
                                            Locale.ROOT);
         HTTP_FORMAT.setTimeZone(TimeZone.getTimeZone("GMT"));
 
-        ESCAPES = new String[128];
-        ESCAPES['a'] = "\u0007";
-        ESCAPES['b'] = "\b";
-        ESCAPES['t'] = "\t";
-        ESCAPES['n'] = "\n";
-        ESCAPES['v'] = "\u000B";
-        ESCAPES['f'] = "\f";
-        ESCAPES['r'] = "\r";
+        ESCAPES = new String[16];
+        ESCAPES['\0' ] = "\\\\0";
+        ESCAPES['\7' ] = "\\\\a";
+        ESCAPES['\b' ] = "\\\\b";
+        ESCAPES['\t' ] = "\\\\t";
+        ESCAPES['\n' ] = "\\\\n";
+        ESCAPES['\13'] = "\\\\v";
+        ESCAPES['\f' ] = "\\\\f";
+        ESCAPES['\r' ] = "\\\\r";
+
+        REV_ESCAPES = new String[128];
+        for (char i = 0; i < ESCAPES.length; i++) {
+            if (ESCAPES[i] == null) continue;
+            REV_ESCAPES[ESCAPES[i].charAt(2)] = Character.toString(i);
+        }
     }
 
     // Prevent construction.
@@ -325,6 +336,8 @@ public final class Formats {
             return "\"" + (char) ch + "\"";
         } else if (ch >= ' ' && ch <= '~') {
             return "'" + (char) ch + "'";
+        } else if (ch < ' ' || ch >= '\177' && ch <= '\237') {
+            return String.format("<U+%04X>", ch);
         } else {
             return String.format("'%c'(U+%04X)", ch, ch);
         }
@@ -334,8 +347,9 @@ public final class Formats {
                                              String allowedRaw) {
         if (ESCAPE_SEQUENCE.matcher(input).matches()) {
             char selector = input.charAt(1);
-            if (selector < ESCAPES.length && ESCAPES[selector] != null)
-                return ESCAPES[selector];
+            if (selector < REV_ESCAPES.length &&
+                    REV_ESCAPES[selector] != null)
+                return REV_ESCAPES[selector];
             switch (selector) {
                 case 'x': case 'u':
                     return Character.toString((char) Integer.parseInt(
@@ -362,7 +376,17 @@ public final class Formats {
                 out.append('\'').append(str, copyFrom, copyTo).append('\'');
                 break;
             case 4:
-                out.append('"').append(str, copyFrom, copyTo).append("\"(U+");
+                boolean seenNonControl = false;
+                for (int ch, i = copyFrom;
+                     i < copyTo;
+                     i += Character.charCount(ch)) {
+                    ch = Character.codePointAt(str, i);
+                    if (ch <= ' ' || ch >= '\177' && ch <= '\237') continue;
+                    if (! seenNonControl) out.append('"');
+                    seenNonControl = true;
+                    out.appendCodePoint(ch);
+                }
+                out.append((seenNonControl) ? "\"(U+" : "<U+");
                 boolean first = true;
                 for (int i = copyFrom, ch;
                      i < copyTo;
@@ -375,7 +399,7 @@ public final class Formats {
                     }
                     out.append(String.format("%04X", ch));
                 }
-                out.append(')');
+                out.append((seenNonControl) ? ')' : '>');
                 break;
         }
     }
@@ -408,9 +432,26 @@ public final class Formats {
     }
 
     public static String formatPattern(Pattern pat) {
-        // One could suppress escaping backslashes inside parentheses etc.,
-        // but that is too much work.
-        return '/' + pat.toString().replaceAll("/", "\\/") + '/';
+        StringBuffer res = new StringBuffer("/");
+        Matcher m = PATTERN_ESCAPE.matcher(pat.pattern());
+        while (m.find()) {
+            char found = m.group().charAt(0);
+            String replacement;
+            if (found == '/') {
+                // We escape all slashes regardless of whether they are nested
+                // inside parentheses or not (since we already are escaping
+                // other things, and in order to stay compatible to the
+                // parser's meta-grammar).
+                replacement = "\\\\/";
+            } else if (found < ESCAPES.length && ESCAPES[found] != null) {
+                replacement = ESCAPES[found];
+            } else {
+                replacement = String.format("\\\\u%04X", (int) found);
+            }
+            m.appendReplacement(res, replacement);
+        }
+        m.appendTail(res);
+        return res.append('/').toString();
     }
 
 }
