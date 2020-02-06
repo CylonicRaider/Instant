@@ -502,9 +502,14 @@ public class Lexer implements Closeable {
                 return outputBuffer;
             } else if (atEOF) {
                 if (state != null && ! state.isAccepting()) {
+                    // If there is any unconsumed input, we can as well blame
+                    // its first character.
+                    String message = (inputBuffer.length() == 0) ?
+                        "Unexpected end of input" :
+                        "Unexpected character " + Formats.formatCharacter(
+                            Character.codePointAt(inputBuffer, 0));
                     LineColumnReader.Coordinates pos = copyPosition();
-                    throw new LexingException(pos,
-                        "Unexpected end of input at " + pos);
+                    throw new LexingException(pos, message + " at " + pos);
                 } else if (inputBuffer.length() == 0) {
                     state = null;
                     return null;
