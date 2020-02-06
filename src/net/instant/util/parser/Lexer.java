@@ -115,7 +115,8 @@ public class Lexer implements Closeable {
         }
 
         public String toString() {
-            return String.format("%s@%h[position=%s,production=%s,content=%s]",
+            return String.format(
+                "%s@%h[position=%s,production=%s,content=%s]",
                 getClass().getName(), this, getPosition(), getProduction(),
                 getContent());
         }

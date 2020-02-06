@@ -44,8 +44,8 @@ public class Plugin implements PluginData {
     private boolean loaded;
     private Object data;
 
-    public Plugin(PluginManager parent, String name, File source, JarFile file)
-            throws BadPluginException, IOException {
+    public Plugin(PluginManager parent, String name, File source,
+                  JarFile file) throws BadPluginException, IOException {
         this.parent = parent;
         this.name = name;
         this.source = source;
