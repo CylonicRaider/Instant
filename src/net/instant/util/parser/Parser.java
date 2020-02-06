@@ -1016,8 +1016,11 @@ public class Parser {
             if (st == null) break;
             st.apply(getStatus());
         }
+        if (getStatus().getCurrentToken() != null)
+            throw getStatus().parsingException("Unconsumed input at " +
+                getStatus().getCurrentPosition());
         if (getStateStack().size() != 0)
-            throw getStatus().parsingException("Unfinished input at " +
+            throw getStatus().parsingException("Truncated input at " +
                 getStatus().getCurrentPosition());
         if (getTreeStack().size() != 1 ||
                 getTreeStack().get(0).childCount() != 1)

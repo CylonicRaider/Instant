@@ -452,6 +452,9 @@ public class Lexer implements Closeable {
     public LineColumnReader.Coordinates getPosition() {
         return inputPosition;
     }
+    protected LineColumnReader.Coordinates copyPosition() {
+        return new LineColumnReader.FixedCoordinates(inputPosition);
+    }
 
     protected int pullInput() throws IOException {
         char[] data = new char[BUFFER_SIZE];
@@ -463,8 +466,7 @@ public class Lexer implements Closeable {
     protected Token consumeInput(int length, int groupIdx) {
         String tokenContent = inputBuffer.substring(0, length);
         inputBuffer.delete(0, length);
-        Token ret = new Token(
-            new LineColumnReader.FixedCoordinates(inputPosition),
+        Token ret = new Token(copyPosition(),
             state.getGroupNames().get(groupIdx), tokenContent);
         inputPosition.advance(tokenContent, 0, length);
         return ret;
@@ -493,16 +495,16 @@ public class Lexer implements Closeable {
                 return outputBuffer;
             } else if (atEOF) {
                 if (state != null && ! state.isAccepting()) {
-                    throw new LexingException(
-                        new LineColumnReader.FixedCoordinates(inputPosition),
-                        "Unexpected end of input");
+                    LineColumnReader.Coordinates pos = copyPosition();
+                    throw new LexingException(pos,
+                        "Unexpected end of input at " + pos);
                 } else if (inputBuffer.length() == 0) {
                     state = null;
                     return null;
                 } else {
-                    throw new LexingException(
-                        new LineColumnReader.FixedCoordinates(inputPosition),
-                        "Unconsumed input");
+                    LineColumnReader.Coordinates pos = copyPosition();
+                    throw new LexingException(pos, "Unconsumed input at " +
+                                              pos);
                 }
             } else if (pullInput() == -1) {
                 atEOF = true;
