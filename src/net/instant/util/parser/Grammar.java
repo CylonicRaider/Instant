@@ -231,11 +231,13 @@ public class Grammar implements GrammarView {
         sb.append('@');
         sb.append(Integer.toHexString(hashCode()));
         sb.append('[');
-        boolean first = true;
+        String detail = toStringDetail();
+        sb.append(detail);
+        boolean first = detail.isEmpty();
         for (Set<Production> ps : productions.values()) {
             for (Production p : ps) {
                 if (first) {
-                    first = true;
+                    first = false;
                 } else {
                     sb.append(',');
                 }
@@ -244,6 +246,9 @@ public class Grammar implements GrammarView {
         }
         sb.append(']');
         return sb.toString();
+    }
+    protected String toStringDetail() {
+        return "";
     }
 
     // Immutable GrammarView interface.

@@ -47,6 +47,10 @@ public class Parser {
             reference = new Lexer.LexerGrammar(lexerGrammar);
         }
 
+        protected String toStringDetail() {
+            return "reference=" + reference;
+        }
+
         public Lexer.LexerGrammar getReference() {
             return reference;
         }
