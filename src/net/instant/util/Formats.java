@@ -343,10 +343,13 @@ public final class Formats {
         }
     }
 
-    public static String parseEscapeSequence(String input,
-                                             String allowedRaw) {
-        if (ESCAPE_SEQUENCE.matcher(input).matches()) {
-            char selector = input.charAt(1);
+    public static String tryParseEscapeSequence(String input,
+                                                String allowedSpecial,
+                                                String allowedRaw) {
+        if (! ESCAPE_SEQUENCE.matcher(input).matches()) return null;
+        char selector = input.charAt(1);
+        if (allowedSpecial == null ||
+                allowedSpecial.indexOf(selector) != -1) {
             if (selector < REV_ESCAPES.length &&
                     REV_ESCAPES[selector] != null)
                 return REV_ESCAPES[selector];
@@ -358,11 +361,21 @@ public final class Formats {
                     return new String(Character.toChars(Integer.parseInt(
                         input.substring(2), 16)));
             }
-            if (allowedRaw == null || allowedRaw.indexOf(selector) != -1)
-                return Character.toString(selector);
         }
-        throw new IllegalArgumentException("Invalid escape sequence " +
-            input);
+        if (allowedRaw == null || allowedRaw.indexOf(selector) != -1) {
+            return Character.toString(selector);
+        }
+        return null;
+    }
+    public static String parseEscapeSequence(String input,
+                                             String allowedSpecial,
+                                             String allowedRaw) {
+        String ret = tryParseEscapeSequence(input, allowedSpecial,
+                                            allowedRaw);
+        if (ret == null)
+            throw new IllegalArgumentException("Invalid escape sequence " +
+                input);
+        return ret;
     }
 
     private static void formatStringPart(int mode, String str, int copyFrom,

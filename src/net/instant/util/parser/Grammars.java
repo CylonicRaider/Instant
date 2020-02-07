@@ -327,7 +327,7 @@ public final class Grammars {
                         throws MappingException {
                     try {
                         return Formats.parseEscapeSequence(pt.getContent(),
-                                                           null);
+                                                           null, "");
                     } catch (IllegalArgumentException exc) {
                         throw new MappingException(exc.getMessage(), exc);
                     }
