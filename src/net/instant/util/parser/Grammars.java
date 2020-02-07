@@ -1,9 +1,11 @@
 package net.instant.util.parser;
 
 import java.io.Reader;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Pattern;
 import net.instant.util.Formats;
 import net.instant.util.LineColumnReader;
 import net.instant.util.NamedValue;
@@ -43,6 +45,7 @@ public final class Grammars {
                     Lexer.terminalToken("Quote", "\""),
                     Lexer.terminalToken("Slash", "/"),
                     Lexer.terminalToken("Asterisk", "*"),
+                    Lexer.terminalToken("Percent", "%"),
                     Lexer.patternToken("StartComment", "[#;]"),
                     Lexer.terminalToken("Caret", "^"),
                     Lexer.terminalToken("Tilde", "~"),
@@ -65,6 +68,7 @@ public final class Grammars {
                     Lexer.state(ILS, "Quote", "LString"),
                     Lexer.state(ILS, "Slash", "LRegex"),
                     Lexer.state(ILS, "Asterisk", ILS),
+                    Lexer.state(ILS, "Percent", ILS),
                     Lexer.state(ILS, "StartComment", "LComment"),
                     Lexer.state(ILS, "Caret", ILS),
                     Lexer.state(ILS, "Tilde", ILS),
@@ -79,7 +83,7 @@ public final class Grammars {
                     /* Regex state */
                     Lexer.state("LRegex", "RegexContent", "LRegex"),
                     Lexer.state("LRegex", "Escape", "LRegex"),
-                    Lexer.state("LRegex", "Quote", ILS),
+                    Lexer.state("LRegex", "Slash", ILS),
                     /* Comment state */
                     Lexer.state("LComment", "CommentContent", "LComment"),
                     Lexer.state("LComment", "CR", ILS),
@@ -123,8 +127,15 @@ public final class Grammars {
                 prod("Symbol", nt("Caret"), nt("Symbol", SYM_INLINE)),
                 prod("Symbol", nt("Tilde"), nt("Symbol", SYM_INLINE)),
                 /* Production definitions */
-                prod("ProductionContent", nt("Symbol", SYM_OPTIONAL)),
-                prod("ProductionContent", nt("Symbol"), nt("S", SYM_DISCARD),
+                prod("AlternativeList"),
+                prod("AlternativeList", nt("Symbol"), nt("S", SYM_DISCARD),
+                     nt("AlternativeList", SYM_INLINE)),
+                prod("Alternative", nt("Percent", SYM_DISCARD),
+                     nt("S", SYM_DISCARD)),
+                prod("Alternative", nt("Symbol"), nt("S", SYM_DISCARD),
+                     nt("AlternativeList", SYM_INLINE)),
+                prod("ProductionContent", nt("Alternative")),
+                prod("ProductionContent", nt("Alternative"),
                      nt("Bar", SYM_DISCARD), nt("LBS", SYM_DISCARD),
                      nt("ProductionContent", SYM_INLINE)),
                 prod("Production", nt("Identifier"), nt("LBS", SYM_DISCARD),
@@ -190,6 +201,9 @@ public final class Grammars {
         public static final UnionMapper<String> STRING_ELEMENT =
             new UnionMapper<String>();
 
+        public static final UnionMapper<String> REGEX_ELEMENT =
+            new UnionMapper<String>();
+
         public static final Mapper<String> STRING =
             new CompositeMapper<String, String>(STRING_ELEMENT) {
                 protected String mapInner(Parser.ParseTree pt,
@@ -197,6 +211,16 @@ public final class Grammars {
                     StringBuilder sb = new StringBuilder();
                     for (String s : children) sb.append(s);
                     return sb.toString();
+                }
+            };
+
+        public static final Mapper<Pattern> REGEX =
+            new CompositeMapper<String, Pattern>(REGEX_ELEMENT) {
+                protected Pattern mapInner(Parser.ParseTree pt,
+                                           List<String> children) {
+                    StringBuilder sb = new StringBuilder();
+                    for (String s : children) sb.append(s);
+                    return Pattern.compile(sb.toString());
                 }
             };
 
@@ -231,37 +255,49 @@ public final class Grammars {
         public static final Mapper<String> PRODUCTION_NAME =
             LeafMapper.string();
 
-        public static final Mapper<List<Grammar.Symbol>> PRODUCTION_CONTENT =
+        public static final Mapper<List<Grammar.Symbol>> ALTERNATIVE =
             CompositeMapper.aggregate(SYMBOL);
 
-        public static final Mapper<Grammar.Production> PRODUCTION =
-            new RecordMapper<Grammar.Production>() {
+        public static final Mapper<List<Grammar.Production>> PRODUCTIONS =
+            new RecordMapper<List<Grammar.Production>>() {
 
-                private final Mapper<String> NAME = add(LeafMapper.string());
-                private final Mapper<List<Grammar.Symbol>> CONTENT =
-                    add(CompositeMapper.aggregate(SYMBOL));
+                private final Mapper<String> NAME = add(PRODUCTION_NAME);
+                private final Mapper<List<List<Grammar.Symbol>>> CONTENT =
+                    add(CompositeMapper.aggregate(ALTERNATIVE));
 
-                protected Grammar.Production mapInner(Result res) {
-                    return new Grammar.Production(res.get(NAME),
-                                                  res.get(CONTENT));
+                protected List<Grammar.Production> mapInner(Result res) {
+                    List<Grammar.Production> ret =
+                        new ArrayList<Grammar.Production>();
+                    String name = res.get(NAME);
+                    for (List<Grammar.Symbol> syms : res.get(CONTENT)) {
+                        ret.add(new Grammar.Production(name, syms));
+                    }
+                    return ret;
                 }
 
             };
 
         public static final Mapper<Grammar> GRAMMAR = new CompositeMapper<
-                    Grammar.Production, Grammar>(PRODUCTION) {
+                    List<Grammar.Production>, Grammar>(PRODUCTIONS) {
                 protected Grammar mapInner(Parser.ParseTree pt,
-                        List<Grammar.Production> children) {
-                    return new Grammar(children);
+                        List<List<Grammar.Production>> children) {
+                    List<Grammar.Production> productions =
+                        new ArrayList<Grammar.Production>();
+                    for (List<Grammar.Production> ps : children) {
+                        productions.addAll(ps);
+                    }
+                    return new Grammar(productions);
                 }
             };
+
+        public static final Mapper<String> SECTION_HEADER =
+            RecordMapper.wrap(LeafMapper.string());
 
         public static final Mapper<NamedGrammar> SECTION =
             new RecordMapper<NamedGrammar>() {
 
-                private final Mapper<String> NAME = add(LeafMapper.string());
-                private final Mapper<Grammar> CONTENT =
-                    add(GRAMMAR);
+                private final Mapper<String> NAME = add(SECTION_HEADER);
+                private final Mapper<Grammar> CONTENT = add(GRAMMAR);
 
                 protected NamedGrammar mapInner(Result res) {
                     return new NamedGrammar(res.get(NAME), res.get(CONTENT));
@@ -321,16 +357,26 @@ public final class Grammars {
 
         static {
             STRING_ELEMENT.add("StringContent", LeafMapper.string());
-            STRING_ELEMENT.add("RegexContent", LeafMapper.string());
             STRING_ELEMENT.add("Escape", new LeafMapper<String>() {
                 protected String mapInner(Parser.ParseTree pt)
                         throws MappingException {
                     try {
                         return Formats.parseEscapeSequence(pt.getContent(),
-                                                           null, "");
+                                                           null, "\\\"");
                     } catch (IllegalArgumentException exc) {
                         throw new MappingException(exc.getMessage(), exc);
                     }
+                }
+            });
+
+            REGEX_ELEMENT.add("RegexContent", LeafMapper.string());
+            REGEX_ELEMENT.add("Escape", new LeafMapper<String>() {
+                protected String mapInner(Parser.ParseTree pt)
+                        throws MappingException {
+                    String content = pt.getContent();
+                    String parsed = Formats.tryParseEscapeSequence(content,
+                                                                   "av", "/");
+                    return (parsed != null) ? parsed : content;
                 }
             });
 
@@ -360,7 +406,7 @@ public final class Grammars {
                 new Mapper<Grammar.Symbol>() {
                     public Grammar.Symbol map(Parser.ParseTree pt)
                             throws MappingException {
-                        return Grammar.Symbol.pattern(STRING.map(pt));
+                        return Grammar.Symbol.pattern(REGEX.map(pt));
                     }
                 });
             SYMBOL_CONTENT.add("Asterisk",
