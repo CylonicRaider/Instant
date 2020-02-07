@@ -241,7 +241,7 @@ public class Parser {
         }
 
         public String getContent() {
-            return token.getContent();
+            return (token == null) ? null : token.getContent();
         }
 
         public List<ParseTree> getChildren() {
@@ -529,7 +529,7 @@ public class Parser {
                 }
                 sb.append(pn);
             }
-            if (! first) sb.append("(nothing)");
+            if (first) sb.append("(nothing)");
             return sb.toString();
         }
 
@@ -543,7 +543,7 @@ public class Parser {
                 throw status.parsingException("Unexpected " +
                     ((tok == null) ?
                         "end of input at " + status.getCurrentPosition() :
-                        "token " + tok) +
+                        "token " + tok.toUserString()) +
                     ", expected one of " + formatSuccessors());
             status.setState(succ);
         }
