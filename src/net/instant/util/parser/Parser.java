@@ -181,6 +181,8 @@ public class Parser {
 
     protected interface State {
 
+        boolean matches(State other);
+
         void apply(Status status) throws ParsingException;
 
     }
@@ -406,16 +408,6 @@ public class Parser {
         private Grammar.Symbol selector;
         private State successor;
 
-        public boolean equals(Object other) {
-            // As its name suggests, NullState has no distinctive features
-            // (this may, however, be different for subclasses).
-            return (other instanceof NullState);
-        }
-
-        public int hashCode() {
-            return 0x57A7E; // "STATE".
-        }
-
         public Grammar.Symbol getSelector() {
             return selector;
         }
@@ -427,6 +419,12 @@ public class Parser {
         public void setSuccessor(Grammar.Symbol sel, State st) {
             selector = sel;
             successor = st;
+        }
+
+        public boolean matches(State other) {
+            // As its name suggests, NullState has no distinctive features
+            // (this may, however, be different for subclasses).
+            return (other instanceof NullState);
         }
 
         public void apply(Status status) throws ParsingException {
@@ -453,16 +451,6 @@ public class Parser {
                 getClass().getName(), this, getSymbol(), getCallState());
         }
 
-        public boolean equals(Object other) {
-            if (! (other instanceof CallState) || ! super.equals(other))
-                return false;
-            return getSymbol().equals(((CallState) other).getSymbol());
-        }
-
-        public int hashCode() {
-            return super.hashCode() ^ getSymbol().hashCode();
-        }
-
         public Grammar.Symbol getSymbol() {
             return sym;
         }
@@ -472,6 +460,12 @@ public class Parser {
         }
         public void setCallState(State s) {
             callState = s;
+        }
+
+        public boolean matches(State other) {
+            if (! (other instanceof CallState) || ! super.matches(other))
+                return false;
+            return getSymbol().equals(((CallState) other).getSymbol());
         }
 
         public void apply(Status status) {
@@ -484,6 +478,10 @@ public class Parser {
     }
 
     protected static class ReturnState implements State {
+
+        public boolean matches(State other) {
+            return (other instanceof ReturnState);
+        }
 
         public void apply(Status status) throws ParsingException {
             status.popState();
@@ -505,22 +503,18 @@ public class Parser {
                                  this, getExpected());
         }
 
-        public boolean equals(Object other) {
-            if (! (other instanceof LiteralState) || ! super.equals(other))
-                return false;
-            return getExpected().equals(((LiteralState) other).getExpected());
-        }
-
-        public int hashCode() {
-            return super.hashCode() ^ getExpected().hashCode();
-        }
-
         public Grammar.Symbol getExpected() {
             return expected;
         }
 
         public Set<String> getExpectedTokens() {
             return Collections.singleton(expected.toUserString());
+        }
+
+        public boolean matches(State other) {
+            if (! (other instanceof LiteralState) || ! super.matches(other))
+                return false;
+            return getExpected().equals(((LiteralState) other).getExpected());
         }
 
         public void apply(Status status) throws ParsingException {
@@ -582,6 +576,12 @@ public class Parser {
             return ret;
         }
 
+        public boolean matches(State other) {
+            // Successors notwithstanding, every BranchState behaves like
+            // every other.
+            return (other instanceof BranchState);
+        }
+
         public void apply(Status status) throws ParsingException {
             status.addExpectation(this);
             Lexer.Token tok = status.getCurrentToken();
@@ -600,6 +600,10 @@ public class Parser {
 
         public Set<String> getExpectedTokens() {
             return Collections.singleton("end of input");
+        }
+
+        public boolean matches(State other) {
+            return (other instanceof EndState);
         }
 
         public void apply(Status status) throws ParsingException {
@@ -960,7 +964,7 @@ public class Parser {
                         State st = getSuccessor(pr, sel);
                         // The mutual comparisons ensure that both next and st
                         // can veto the "merge".
-                        if (next.equals(st) && st.equals(next) &&
+                        if (next.matches(st) && st.matches(next) &&
                                 ! nextPrevs.contains(st))
                             nextPrevs.addLast(st);
                     }
