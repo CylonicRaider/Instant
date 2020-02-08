@@ -35,9 +35,8 @@ public final class Grammars {
                 /* Lexer grammar */
                 new Grammar(
                     /* Token types */
-                    Lexer.terminalToken("CR", "\r"),
-                    Lexer.terminalToken("LF", "\n"),
-                    Lexer.patternToken("SP", "[ \t\u000b\f]+"),
+                    Lexer.patternToken("EndOfLine", "\r?\n|\r"),
+                    Lexer.patternToken("Space", "[ \t\u000b\f]+"),
                     Lexer.terminalToken("BracketOpen", "["),
                     Lexer.terminalToken("BracketClose", "]"),
                     Lexer.terminalToken("Equals", "="),
@@ -58,9 +57,8 @@ public final class Grammars {
                     Lexer.patternToken("CommentContent", "[^\r\n]+"),
                     Lexer.patternToken("Escape", Formats.ESCAPE_SEQUENCE),
                     /* Initial state */
-                    Lexer.state(ILS, "CR", ILS),
-                    Lexer.state(ILS, "LF", ILS),
-                    Lexer.state(ILS, "SP", ILS),
+                    Lexer.state(ILS, "EndOfLine", ILS),
+                    Lexer.state(ILS, "Space", ILS),
                     Lexer.state(ILS, "BracketOpen", ILS),
                     Lexer.state(ILS, "BracketClose", ILS),
                     Lexer.state(ILS, "Equals", ILS),
@@ -86,18 +84,14 @@ public final class Grammars {
                     Lexer.state("LRegex", "Slash", ILS),
                     /* Comment state */
                     Lexer.state("LComment", "CommentContent", "LComment"),
-                    Lexer.state("LComment", "CR", ILS),
-                    Lexer.state("LComment", "LF", ILS),
+                    Lexer.state("LComment", "EndOfLine", ILS),
                     Lexer.state("LComment")
                 ),
                 /* Whitespace and comments */
-                prod("S", nt("SP", SYM_OPTIONAL)),
-                prod("EOL", nt("CR")),
-                prod("EOL", nt("LF")),
-                prod("EOL", nt("CR"), nt("LF")),
+                prod("S", nt("Space", SYM_OPTIONAL)),
                 prod("Comment", nt("StartComment"), nt("CommentContent"),
-                     nt("EOL")),
-                prod("EOLX", nt("EOL")),
+                     nt("EndOfLine")),
+                prod("EOLX", nt("EndOfLine")),
                 prod("EOLX", nt("Comment")),
                 prod("SEOLX", nt("S"), nt("EOLX")),
                 prod("LBS", nt("S")),
@@ -139,7 +133,7 @@ public final class Grammars {
                      nt("Bar", SYM_DISCARD), nt("LBS", SYM_DISCARD),
                      nt("ProductionContent", SYM_INLINE)),
                 prod("Production", nt("Identifier"), nt("LBS", SYM_DISCARD),
-                     nt("Equals", SYM_DISCARD), nt("S", SYM_DISCARD),
+                     nt("Equals", SYM_DISCARD), nt("LBS", SYM_DISCARD),
                      nt("ProductionContent"),
                      nt("EOLX", SYM_DISCARD)),
                 /* File sections */
