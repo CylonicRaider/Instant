@@ -535,6 +535,7 @@ public class Lexer implements Closeable {
         input.close();
         inputBuffer.setLength(0);
         matcher.reset();
+        state = null;
         atEOF = true;
         outputBuffer = null;
     }

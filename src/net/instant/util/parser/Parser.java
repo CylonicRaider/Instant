@@ -1096,6 +1096,12 @@ public class Parser {
             if (st == null) break;
             st.apply(getStatus());
         }
+        try {
+            source.close();
+        } catch (IOException exc) {
+            throw new ParsingException(null,
+                "Exception while closing lexer: " + exc, exc);
+        }
         if (getStateStack().size() != 0 || getTreeStack().size() != 1 ||
                 getTreeStack().get(0).childCount() != 1)
             throw new IllegalStateException(
