@@ -554,6 +554,18 @@ public class Parser {
 
     }
 
+    protected static class EndState implements State {
+
+        public void apply(Status status) throws ParsingException {
+            Lexer.Token tok = status.getCurrentToken();
+            if (tok != null)
+                throw status.parsingException("Unexpected token " +
+                    tok.toUserString() + ", expected end of input");
+            status.setState(null);
+        }
+
+    }
+
     protected static class Compiler implements Callable<State> {
 
         protected class StateInfo {
@@ -953,6 +965,7 @@ public class Parser {
             if (startState == null) {
                 addProductions(ParserGrammar.START_SYMBOL.getContent());
                 startState = createCallState(ParserGrammar.START_SYMBOL);
+                addSuccessor(startState, null, new EndState());
             }
             return startState;
         }
@@ -1031,13 +1044,7 @@ public class Parser {
             if (st == null) break;
             st.apply(getStatus());
         }
-        if (getStatus().getCurrentToken() != null)
-            throw getStatus().parsingException("Unconsumed input at " +
-                getStatus().getCurrentPosition());
-        if (getStateStack().size() != 0)
-            throw getStatus().parsingException("Truncated input at " +
-                getStatus().getCurrentPosition());
-        if (getTreeStack().size() != 1 ||
+        if (getStateStack().size() != 0 || getTreeStack().size() != 1 ||
                 getTreeStack().get(0).childCount() != 1)
             throw new IllegalStateException(
                 "Internal parser state corrupted!");
