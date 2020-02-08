@@ -8,6 +8,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -162,6 +163,10 @@ public class Parser {
 
         void storeToken(Lexer.Token tok);
 
+        void addExpectation(ExpectationSet exp);
+
+        String formatExpectations();
+
         void setState(State next);
 
         void pushState(State st, String treeNodeName, int flags);
@@ -169,6 +174,8 @@ public class Parser {
         void popState() throws ParsingException;
 
         ParsingException parsingException(String message);
+
+        ParsingException unexpectedToken();
 
     }
 
@@ -195,6 +202,12 @@ public class Parser {
 
         void setSuccessor(Grammar.Symbol selector, State succ)
             throws BadSuccessorException;
+
+    }
+
+    protected interface ExpectationSet {
+
+        Set<String> getExpectedTokens();
 
     }
 
@@ -299,6 +312,7 @@ public class Parser {
             } catch (Lexer.LexingException exc) {
                 throw new ParsingException(exc.getPosition(), exc);
             }
+            getExpectations().clear();
         }
 
         public void storeToken(Lexer.Token tok) {
@@ -308,6 +322,31 @@ public class Parser {
                     "Trying to append token without a parse tree?!");
             ParseTreeImpl top = stack.get(stack.size() - 1);
             top.addChild(new ParseTreeImpl(tok));
+        }
+
+        public void addExpectation(ExpectationSet exp) {
+            getExpectations().add(exp);
+        }
+
+        public String formatExpectations() {
+            Set<String> accum = new LinkedHashSet<String>();
+            for (ExpectationSet exp : getExpectations()) {
+                accum.addAll(exp.getExpectedTokens());
+            }
+            if (accum.isEmpty()) return "nothing";
+            if (accum.contains(null)) return "anything";
+            if (accum.size() == 1) return accum.iterator().next();
+            StringBuilder sb = new StringBuilder("any of ");
+            boolean first = true;
+            for (String exp : accum) {
+                if (first) {
+                    first = false;
+                } else {
+                    sb.append(", ");
+                }
+                sb.append(exp);
+            }
+            return sb.toString();
         }
 
         public void setState(State next) {
@@ -342,6 +381,22 @@ public class Parser {
 
         public ParsingException parsingException(String message) {
             return new ParsingException(getCurrentPosition(), message);
+        }
+
+        public ParsingException unexpectedToken() {
+            Lexer.Token tok;
+            try {
+                tok = getCurrentToken();
+            } catch (ParsingException exc) {
+                // Err... This *looks* like the caller's fault.
+                throw new IllegalStateException("Complaining about an " +
+                    "unexpected token without looking at it?!", exc);
+            }
+            return parsingException("Unexpected " +
+                ((tok != null) ?
+                    "token " + tok.toUserString() :
+                    "end of input at " + getCurrentPosition()) +
+                ", expected " + formatExpectations());
         }
 
     }
@@ -436,7 +491,8 @@ public class Parser {
 
     }
 
-    protected static class LiteralState extends NullState {
+    protected static class LiteralState extends NullState
+            implements ExpectationSet {
 
         private final Grammar.Symbol expected;
 
@@ -463,27 +519,26 @@ public class Parser {
             return expected;
         }
 
+        public Set<String> getExpectedTokens() {
+            return Collections.singleton(expected.toUserString());
+        }
+
         public void apply(Status status) throws ParsingException {
+            status.addExpectation(this);
             Lexer.Token tok = status.getCurrentToken();
-            if (tok == null) {
-                throw status.parsingException("Unexpected end of input at " +
-                    status.getCurrentPosition());
-            } else if (! tok.matches(expected)) {
-                throw status.parsingException("Unexpected token " +
-                    tok.toUserString() + ", expected " +
-                    expected.toUserString());
-            } else {
-                if ((expected.getFlags() & Grammar.SYM_DISCARD) == 0 ||
-                        status.isKeepingAll())
-                    status.storeToken(tok);
-                status.nextToken();
-                super.apply(status);
-            }
+            if (tok == null || ! tok.matches(expected))
+                throw status.unexpectedToken();
+            if ((expected.getFlags() & Grammar.SYM_DISCARD) == 0 ||
+                    status.isKeepingAll())
+                status.storeToken(tok);
+            status.nextToken();
+            super.apply(status);
         }
 
     }
 
-    protected static class BranchState implements MultiSuccessorState {
+    protected static class BranchState implements MultiSuccessorState,
+                                                  ExpectationSet {
 
         private final Map<String, State> successors;
 
@@ -491,7 +546,7 @@ public class Parser {
             this.successors = successors;
         }
         public BranchState() {
-            this(new HashMap<String, State>());
+            this(new LinkedHashMap<String, State>());
         }
 
         public Map<String, State> getSuccessors() {
@@ -521,46 +576,36 @@ public class Parser {
             }
         }
 
-        public String formatSuccessors() {
-            if (successors.containsKey(null)) return "(anything)";
-            StringBuilder sb = new StringBuilder();
-            boolean first = true;
-            for (String pn : successors.keySet()) {
-                if (first) {
-                    first = false;
-                } else {
-                    sb.append(", ");
-                }
-                sb.append(pn);
-            }
-            if (first) sb.append("(nothing)");
-            return sb.toString();
+        public Set<String> getExpectedTokens() {
+            Set<String> ret = new LinkedHashSet<String>(successors.keySet());
+            ret.remove(null);
+            return ret;
         }
 
         public void apply(Status status) throws ParsingException {
+            status.addExpectation(this);
             Lexer.Token tok = status.getCurrentToken();
             State succ = (tok == null) ? null :
                 successors.get(tok.getProduction());
             if (succ == null)
                 succ = successors.get(null);
             if (succ == null)
-                throw status.parsingException("Unexpected " +
-                    ((tok == null) ?
-                        "end of input at " + status.getCurrentPosition() :
-                        "token " + tok.toUserString()) +
-                    ", expected one of " + formatSuccessors());
+                throw status.unexpectedToken();
             status.setState(succ);
         }
 
     }
 
-    protected static class EndState implements State {
+    protected static class EndState implements State, ExpectationSet {
+
+        public Set<String> getExpectedTokens() {
+            return Collections.singleton("end of input");
+        }
 
         public void apply(Status status) throws ParsingException {
+            status.addExpectation(this);
             Lexer.Token tok = status.getCurrentToken();
-            if (tok != null)
-                throw status.parsingException("Unexpected token " +
-                    tok.toUserString() + ", expected end of input");
+            if (tok != null) throw status.unexpectedToken();
             status.setState(null);
         }
 
@@ -716,7 +761,7 @@ public class Parser {
                     "Grammar is left-recursive (cyclical productions " +
                     formatCyclicalProductions(seen, prodName) + ")");
             seen.add(prodName);
-            ret = new HashSet<Grammar.Symbol>();
+            ret = new LinkedHashSet<Grammar.Symbol>();
             boolean maybeEmpty = false;
             for (Grammar.Production p : grammar.getRawProductions(prodName)) {
                 boolean productionMaybeEmpty = true;
@@ -895,7 +940,8 @@ public class Parser {
 
         protected void addProduction(Grammar.Production prod)
                 throws InvalidGrammarException {
-            Set<Grammar.Symbol> selectors = new HashSet<Grammar.Symbol>();
+            Set<Grammar.Symbol> selectors =
+                new LinkedHashSet<Grammar.Symbol>();
             IdentityLinkedSet<State> prevs = new IdentityLinkedSet<State>();
             IdentityLinkedSet<State> nextPrevs =
                 new IdentityLinkedSet<State>();
@@ -984,6 +1030,7 @@ public class Parser {
     private final CompiledGrammar grammar;
     private final Lexer source;
     private final boolean keepAll;
+    private final List<ExpectationSet> expectations;
     private final List<ParseTreeImpl> treeStack;
     private final List<State> stateStack;
     private final Status status;
@@ -994,6 +1041,7 @@ public class Parser {
         this.grammar = grammar;
         this.source = source;
         this.keepAll = keepAll;
+        this.expectations = new ArrayList<ExpectationSet>();
         this.treeStack = new ArrayList<ParseTreeImpl>();
         this.stateStack = new ArrayList<State>();
         this.status = new StatusImpl();
@@ -1011,6 +1059,10 @@ public class Parser {
 
     public boolean isKeepingAll() {
         return keepAll;
+    }
+
+    protected List<ExpectationSet> getExpectations() {
+        return expectations;
     }
 
     private List<ParseTreeImpl> getTreeStack() {
