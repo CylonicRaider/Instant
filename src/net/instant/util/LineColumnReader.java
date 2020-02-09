@@ -104,7 +104,7 @@ public class LineColumnReader extends BufferedReader {
 
         public String toString() {
             return String.format("%s@%h[line=%s,column=%s,char=%s,inNL=%s," +
-                "tabSize=%s]", getClass().getName(), hashCode(), getLine(),
+                "tabSize=%s]", getClass().getName(), this, getLine(),
                 getColumn(), getCharacterIndex(), isInNL(), getTabSize());
         }
 
