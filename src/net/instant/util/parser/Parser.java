@@ -181,6 +181,8 @@ public class Parser {
 
     protected interface State {
 
+        String toUserString();
+
         boolean matches(State other);
 
         void apply(Status status) throws ParsingException;
@@ -421,6 +423,10 @@ public class Parser {
             successor = st;
         }
 
+        public String toUserString() {
+            return String.format("%s@%h", getClass().getSimpleName(), this);
+        }
+
         public boolean matches(State other) {
             // As its name suggests, NullState has no distinctive features
             // (this may, however, be different for subclasses).
@@ -462,6 +468,12 @@ public class Parser {
             callState = s;
         }
 
+        public String toUserString() {
+            return String.format("%s@%h[%s -> %s]",
+                getClass().getSimpleName(), this, getSymbol().toUserString(),
+                getCallState().toUserString());
+        }
+
         public boolean matches(State other) {
             if (! (other instanceof CallState) || ! super.matches(other))
                 return false;
@@ -478,6 +490,10 @@ public class Parser {
     }
 
     protected static class ReturnState implements State {
+
+        public String toUserString() {
+            return String.format("%s@%h", getClass().getSimpleName(), this);
+        }
 
         public boolean matches(State other) {
             return (other instanceof ReturnState);
@@ -509,6 +525,11 @@ public class Parser {
 
         public Set<String> getExpectedTokens() {
             return Collections.singleton(expected.toUserString());
+        }
+
+        public String toUserString() {
+            return String.format("%s@%h[%s]", getClass().getSimpleName(),
+                                 this, getExpected().toUserString());
         }
 
         public boolean matches(State other) {
@@ -576,6 +597,10 @@ public class Parser {
             return ret;
         }
 
+        public String toUserString() {
+            return String.format("%s@%h", getClass().getSimpleName(), this);
+        }
+
         public boolean matches(State other) {
             // Successors notwithstanding, every BranchState behaves like
             // every other.
@@ -600,6 +625,10 @@ public class Parser {
 
         public Set<String> getExpectedTokens() {
             return Collections.singleton("end of input");
+        }
+
+        public String toUserString() {
+            return String.format("%s@%h", getClass().getSimpleName(), this);
         }
 
         public boolean matches(State other) {
@@ -676,7 +705,7 @@ public class Parser {
             }
 
             public String describe() {
-                String ret = getState().toString();
+                String ret = getState().toUserString();
                 String path = getPath();
                 if (path != null) ret += " (" + path + ")";
                 return ret;
@@ -772,8 +801,9 @@ public class Parser {
                 for (Grammar.Symbol s : p.getSymbols()) {
                     if (s.getType() != Grammar.SymbolType.NONTERMINAL)
                         throw new InvalidGrammarException(
-                            "Start-significant symbol of production " +
-                            prodName + " alternative is a raw terminal");
+                            "Start-significant symbol " + s +
+                            " of production " + prodName +
+                            " alternative is a raw terminal");
                     boolean symbolMaybeEmpty = ((s.getFlags() &
                         Grammar.SYM_OPTIONAL) != 0);
                     String c = s.getContent();
@@ -851,7 +881,8 @@ public class Parser {
                     throw new InvalidGrammarException(
                         "Ambiguous successors for state " +
                         describeState(prev) + " with selector " +
-                        ((selector == null) ? "(default)" : selector) + ": " +
+                        ((selector == null) ? "(default)" :
+                            selector.toUserString()) + ": " +
                         describeState(cprev.getSuccessor(selector)) +
                         " and " + describeState(next));
                 try {

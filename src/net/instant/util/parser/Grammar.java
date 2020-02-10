@@ -62,18 +62,31 @@ public class Grammar implements GrammarView {
                                  getContent(), getFlags());
         }
         public String toUserString() {
+            String base;
             switch (getType()) {
                 case NONTERMINAL:
-                    return getContent();
+                    base = getContent();
+                    break;
                 case TERMINAL:
-                    return Formats.formatString(getContent());
+                    base = Formats.formatString(getContent());
+                    break;
                 case PATTERN_TERMINAL:
-                    return Formats.formatPattern(getPattern());
+                    base = Formats.formatPattern(getPattern());
+                    break;
                 case ANYTHING:
-                    return "*";
+                    base = "*";
+                    break;
                 default:
                     throw new AssertionError("Unrecognized symbol type?!");
             }
+            StringBuilder sb = new StringBuilder();
+            int flags = getFlags();
+            if ((flags & SYM_INLINE  ) != 0) sb.append('^');
+            if ((flags & SYM_DISCARD ) != 0) sb.append('~');
+            sb.append(base);
+            if ((flags & SYM_OPTIONAL) != 0) sb.append('?');
+            if ((flags & SYM_REPEAT  ) != 0) sb.append('+');
+            return sb.toString();
         }
 
         public boolean equals(Object other) {
