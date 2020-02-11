@@ -86,6 +86,9 @@ public class Grammar implements GrammarView {
             sb.append(base);
             if ((flags & SYM_OPTIONAL) != 0) sb.append('?');
             if ((flags & SYM_REPEAT  ) != 0) sb.append('+');
+            int additionalFlags = flags & ~SYM_ALL;
+            if (additionalFlags != 0)
+                sb.append('[').append(additionalFlags).append(']');
             return sb.toString();
         }
 
@@ -215,6 +218,9 @@ public class Grammar implements GrammarView {
      * SYM_OPTIONAL to permit any amount of repetitions (regular expression
      * x*). */
     public static final int SYM_REPEAT = 8;
+
+    public static final int SYM_ALL = SYM_INLINE | SYM_DISCARD |
+                                      SYM_OPTIONAL | SYM_REPEAT;
 
     private final NamedMap<NamedSet<Production>> productions;
 
