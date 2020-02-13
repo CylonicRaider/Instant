@@ -499,18 +499,7 @@ public class Lexer implements Closeable {
         if (st.ordinal() > matchersState.ordinal())
             matchersState = st;
     }
-
-    protected int pullInput() throws IOException {
-        char[] data = new char[BUFFER_SIZE];
-        int ret = input.read(data);
-        if (ret < 0) return ret;
-        inputBuffer.append(data, 0, ret);
-        setMatchersState(MatcherListState.NEED_RESET);
-        return ret;
-    }
-    protected int doMatch() {
-        if (state == null) return -1;
-        /* Prepare the matchers. */
+    private void updateMatchers() {
         List<TokenPattern> patterns = state.getPatterns();
         switch (matchersState) {
             case NEED_REBUILD:
@@ -536,17 +525,35 @@ public class Lexer implements Closeable {
                 break;
         }
         matchersState = MatcherListState.READY;
-        /* Apply them! */
-        int matchIndex = -1, matchSize = Integer.MIN_VALUE;
+    }
+
+    protected int pullInput() throws IOException {
+        char[] data = new char[BUFFER_SIZE];
+        int ret = input.read(data);
+        if (ret < 0) return ret;
+        inputBuffer.append(data, 0, ret);
+        setMatchersState(MatcherListState.NEED_RESET);
+        return ret;
+    }
+    protected int doMatch() {
+        if (state == null) return -1;
+        updateMatchers();
+        List<TokenPattern> patterns = state.getPatterns();
+        int matchIndex = -1;
+        int matchSize = Integer.MIN_VALUE;
+        int matchRank = Integer.MAX_VALUE;
         for (int i = 0; i < matchers.size(); i++) {
             Matcher m = matchers.get(i);
             boolean matched = m.lookingAt();
             if (m.hitEnd() && ! atEOF) return -1;
             if (! matched) continue;
             int thisMatchSize = m.end();
-            if (thisMatchSize > matchSize) {
+            int thisMatchRank = patterns.get(i).getType().ordinal();
+            if (thisMatchSize > matchSize ||
+                    thisMatchSize == matchSize && thisMatchRank < matchRank) {
                 matchIndex = i;
                 matchSize = thisMatchSize;
+                matchRank = thisMatchRank;
             }
         }
         return matchIndex;
