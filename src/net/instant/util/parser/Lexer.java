@@ -13,7 +13,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Callable;
-import java.util.regex.MatchResult;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import net.instant.util.Formats;
@@ -626,24 +625,6 @@ public class Lexer implements Closeable {
         outputBuffer = null;
     }
 
-    public static CompiledGrammar compile(LexerGrammar g)
-            throws InvalidGrammarException {
-        Compiler comp = new Compiler(g);
-        return new CompiledGrammar(comp.getGrammar(), comp.call());
-    }
-
-    public static int chooseMatchedGroup(MatchResult res) {
-        int maxIdx = -1, maxSize = -1;
-        for (int i = 1; i <= res.groupCount(); i++) {
-            if (res.start(i) == -1) continue;
-            int size = res.end(i) - res.start(i);
-            if (size <= maxSize) continue;
-            maxIdx = i;
-            maxSize = size;
-        }
-        return maxIdx;
-    }
-
     public static Grammar.Production terminalToken(String name,
                                                    String content) {
         return new Grammar.Production(name, Grammar.Symbol.terminal(content));
@@ -672,6 +653,12 @@ public class Lexer implements Closeable {
         return new Grammar.Production(name,
                                       Grammar.Symbol.nonterminal(token),
                                       Grammar.Symbol.nonterminal(next));
+    }
+
+    public static CompiledGrammar compile(LexerGrammar g)
+            throws InvalidGrammarException {
+        Compiler comp = new Compiler(g);
+        return new CompiledGrammar(comp.getGrammar(), comp.call());
     }
 
 }
