@@ -553,12 +553,17 @@ public class Lexer implements Closeable {
             matchersState = st;
     }
 
-    protected int pullInput() throws IOException {
+    protected int pullInput() throws LexingException {
         return pullInput(BUFFER_SIZE);
     }
-    protected int pullInput(int size) throws IOException {
+    protected int pullInput(int size) throws LexingException {
         char[] data = new char[size];
-        int ret = getInput().read(data);
+        int ret;
+        try {
+            ret = getInput().read(data);
+        } catch (IOException exc) {
+            throw new LexingException(getInputPosition(), exc);
+        }
         if (ret < 0) {
             setAtEOF(true);
             return ret;
@@ -617,7 +622,18 @@ public class Lexer implements Closeable {
         return ret;
     }
 
-    public Token peek() throws IOException, LexingException {
+    private LexingException unexpectedInput() {
+        LineColumnReader.Coordinates pos = getInputPosition();
+        // If there is any unexpected input, we can as well blame its first
+        // character (perhaps it is the *reason* the input is unexpected)?
+        String message = (getInputBuffer().length() == 0) ?
+            "Unexpected end of input" :
+            "Unexpected character " + Formats.formatCharacter(
+                Character.codePointAt(getInputBuffer(), 0));
+        return new LexingException(pos, message + " at " + pos);
+    }
+
+    public Token peek() throws LexingException {
         Token tok = getOutputBuffer();
         if (tok != null)
             return tok;
@@ -627,30 +643,18 @@ public class Lexer implements Closeable {
                 setOutputBuffer(tok);
                 return tok;
             } else if (isAtEOF()) {
-                if (getState() != null && ! getState().isAccepting()) {
-                    // If there is any unconsumed input, we can as well blame
-                    // its first character.
-                    String message = (getInputBuffer().length() == 0) ?
-                        "Unexpected end of input" :
-                        "Unexpected character " + Formats.formatCharacter(
-                            Character.codePointAt(getInputBuffer(), 0));
-                    LineColumnReader.Coordinates pos = getInputPosition();
-                    throw new LexingException(pos, message + " at " + pos);
-                } else if (getInputBuffer().length() == 0) {
-                    setState(null);
-                    return null;
-                } else {
-                    LineColumnReader.Coordinates pos = getInputPosition();
-                    throw new LexingException(pos, "Unconsumed input at " +
-                                              pos);
-                }
+                if (getState() != null && ! getState().isAccepting() ||
+                        getInputBuffer().length() != 0)
+                    throw unexpectedInput();
+                setState(null);
+                return null;
             } else {
                 pullInput();
             }
         }
     }
 
-    public Token read() throws IOException, LexingException {
+    public Token read() throws LexingException {
         Token ret = getOutputBuffer();
         if (ret == null) ret = peek();
         setOutputBuffer(null);
