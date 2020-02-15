@@ -454,18 +454,15 @@ public class Lexer implements Closeable {
 
     private static final int BUFFER_SIZE = 8192;
 
-    // I wonder if there is a more elegant way of constructing this.
-    private static final Pattern MATCH_NOTHING = Pattern.compile("[0&&1]");
-
     private final CompiledGrammar grammar;
     private final LineColumnReader input;
     private final StringBuilder inputBuffer;
     private final LineColumnReader.CoordinatesTracker inputPosition;
     private final List<Matcher> matchers;
     private State state;
-    private MatcherListState matchersState;
     private boolean atEOF;
     private Token outputBuffer;
+    private MatcherListState matchersState;
 
     public Lexer(CompiledGrammar grammar, LineColumnReader input) {
         this.grammar = grammar;
@@ -474,9 +471,9 @@ public class Lexer implements Closeable {
         this.inputPosition = new LineColumnReader.CoordinatesTracker();
         this.matchers = new ArrayList<Matcher>();
         this.state = grammar.getInitialState();
-        this.matchersState = MatcherListState.NEED_REBUILD;
         this.atEOF = false;
         this.outputBuffer = null;
+        this.matchersState = MatcherListState.NEED_REBUILD;
     }
 
     protected CompiledGrammar getGrammar() {
@@ -487,25 +484,26 @@ public class Lexer implements Closeable {
         return input;
     }
 
-    public LineColumnReader.Coordinates getPosition() {
-        return inputPosition;
-    }
-    protected LineColumnReader.Coordinates copyPosition() {
-        return new LineColumnReader.FixedCoordinates(inputPosition);
+    protected StringBuilder getInputBuffer() {
+        return inputBuffer;
     }
 
-    private void setMatchersState(MatcherListState st) {
-        if (st.ordinal() > matchersState.ordinal())
-            matchersState = st;
+    public LineColumnReader.Coordinates getInputPosition() {
+        return new LineColumnReader.FixedCoordinates(inputPosition);
     }
-    private void updateMatchers() {
-        List<TokenPattern> patterns = state.getPatterns();
+    protected LineColumnReader.CoordinatesTracker getRawPosition() {
+        return inputPosition;
+    }
+
+    protected List<Matcher> getMatchers() {
+        List<TokenPattern> patterns = getState().getPatterns();
+        StringBuilder buf = getInputBuffer();
         switch (matchersState) {
             case NEED_REBUILD:
                 int updateSize = Math.min(matchers.size(), patterns.size());
                 while (matchers.size() < patterns.size()) {
                     Matcher m = patterns.get(matchers.size()).getPattern()
-                        .matcher(inputBuffer);
+                        .matcher(buf);
                     m.useAnchoringBounds(false);
                     matchers.add(m);
                 }
@@ -519,32 +517,82 @@ public class Lexer implements Closeable {
                 break;
             case NEED_RESET:
                 for (Matcher m : matchers) {
-                    m.reset(inputBuffer);
+                    m.reset(buf);
                 }
                 break;
         }
         matchersState = MatcherListState.READY;
+        return matchers;
+    }
+
+    protected State getState() {
+        return state;
+    }
+    protected void setState(State s) {
+        if (s == state) return;
+        state = s;
+        setMatchersState(MatcherListState.NEED_REBUILD);
+    }
+
+    protected boolean isAtEOF() {
+        return atEOF;
+    }
+    protected void setAtEOF(boolean v) {
+        atEOF = v;
+    }
+
+    protected Token getOutputBuffer() {
+        return outputBuffer;
+    }
+    protected void setOutputBuffer(Token t) {
+        outputBuffer = t;
+    }
+
+    private void setMatchersState(MatcherListState st) {
+        if (st.ordinal() > matchersState.ordinal())
+            matchersState = st;
     }
 
     protected int pullInput() throws IOException {
-        char[] data = new char[BUFFER_SIZE];
-        int ret = input.read(data);
-        if (ret < 0) return ret;
-        inputBuffer.append(data, 0, ret);
+        return pullInput(BUFFER_SIZE);
+    }
+    protected int pullInput(int size) throws IOException {
+        char[] data = new char[size];
+        int ret = getInput().read(data);
+        if (ret < 0) {
+            setAtEOF(true);
+            return ret;
+        }
+        getInputBuffer().append(data, 0, ret);
         setMatchersState(MatcherListState.NEED_RESET);
         return ret;
     }
-    protected int doMatch() {
-        if (state == null) return -1;
-        updateMatchers();
-        List<TokenPattern> patterns = state.getPatterns();
+    protected Token consumeInput(int length, int index) {
+        String tokenContent = getInputBuffer().substring(0, length);
+        getInputBuffer().delete(0, length);
+        setMatchersState(MatcherListState.NEED_RESET);
+        Token ret = new Token(getInputPosition(),
+            getState().getPatterns().get(index).getName(), tokenContent);
+        getRawPosition().advance(tokenContent, 0, length);
+        return ret;
+    }
+    protected void advance(int index) {
+        State state = getState();
+        setState(state.getSuccessors().get(
+            state.getPatterns().get(index).getName()));
+    }
+
+    protected Token doMatch() {
+        if (getState() == null) return null;
+        List<TokenPattern> patterns = getState().getPatterns();
+        List<Matcher> matchers = getMatchers();
         int matchIndex = -1;
         int matchSize = Integer.MIN_VALUE;
         int matchRank = Integer.MAX_VALUE;
         for (int i = 0; i < matchers.size(); i++) {
             Matcher m = matchers.get(i);
             boolean matched = m.lookingAt();
-            if (m.hitEnd() && ! atEOF) return -1;
+            if (m.hitEnd() && ! isAtEOF()) return null;
             if (! matched) continue;
             int thisMatchSize = m.end();
             int thisMatchRank = patterns.get(i).getType().ordinal();
@@ -555,63 +603,49 @@ public class Lexer implements Closeable {
                 matchRank = thisMatchRank;
             }
         }
-        return matchIndex;
-    }
-    protected Token consumeInput(int length, int index) {
-        String tokenContent = inputBuffer.substring(0, length);
-        inputBuffer.delete(0, length);
-        setMatchersState(MatcherListState.NEED_RESET);
-        Token ret = new Token(copyPosition(),
-            state.getPatterns().get(index).getName(), tokenContent);
-        inputPosition.advance(tokenContent, 0, length);
+        if (matchIndex == -1) return null;
+        Token ret = consumeInput(matchers.get(matchIndex).end(), matchIndex);
+        advance(matchIndex);
         return ret;
-    }
-    protected void advance(int index) {
-        State oldState = state;
-        state = state.getSuccessors().get(
-            state.getPatterns().get(index).getName());
-        if (state != oldState)
-            setMatchersState(MatcherListState.NEED_REBUILD);
     }
 
     public Token peek() throws IOException, LexingException {
-        if (outputBuffer != null)
-            return outputBuffer;
+        Token tok = getOutputBuffer();
+        if (tok != null)
+            return tok;
         for (;;) {
-            int matchIndex = doMatch();
-            if (matchIndex != -1) {
-                outputBuffer = consumeInput(matchers.get(matchIndex).end(),
-                                            matchIndex);
-                advance(matchIndex);
-                return outputBuffer;
-            } else if (atEOF) {
-                if (state != null && ! state.isAccepting()) {
+            tok = doMatch();
+            if (tok != null) {
+                setOutputBuffer(tok);
+                return tok;
+            } else if (isAtEOF()) {
+                if (getState() != null && ! getState().isAccepting()) {
                     // If there is any unconsumed input, we can as well blame
                     // its first character.
-                    String message = (inputBuffer.length() == 0) ?
+                    String message = (getInputBuffer().length() == 0) ?
                         "Unexpected end of input" :
                         "Unexpected character " + Formats.formatCharacter(
-                            Character.codePointAt(inputBuffer, 0));
-                    LineColumnReader.Coordinates pos = copyPosition();
+                            Character.codePointAt(getInputBuffer(), 0));
+                    LineColumnReader.Coordinates pos = getInputPosition();
                     throw new LexingException(pos, message + " at " + pos);
-                } else if (inputBuffer.length() == 0) {
-                    state = null;
+                } else if (getInputBuffer().length() == 0) {
+                    setState(null);
                     return null;
                 } else {
-                    LineColumnReader.Coordinates pos = copyPosition();
+                    LineColumnReader.Coordinates pos = getInputPosition();
                     throw new LexingException(pos, "Unconsumed input at " +
                                               pos);
                 }
-            } else if (pullInput() == -1) {
-                atEOF = true;
+            } else {
+                pullInput();
             }
         }
     }
 
     public Token read() throws IOException, LexingException {
-        if (outputBuffer == null) peek();
-        Token ret = outputBuffer;
-        outputBuffer = null;
+        Token ret = getOutputBuffer();
+        if (ret == null) ret = peek();
+        setOutputBuffer(null);
         return ret;
     }
 
@@ -620,9 +654,9 @@ public class Lexer implements Closeable {
         inputBuffer.setLength(0);
         matchers.clear();
         state = null;
-        matchersState = MatcherListState.NEED_REBUILD;
         atEOF = true;
         outputBuffer = null;
+        matchersState = MatcherListState.NEED_REBUILD;
     }
 
     public static Grammar.Production terminalToken(String name,

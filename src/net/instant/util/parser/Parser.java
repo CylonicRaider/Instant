@@ -294,8 +294,7 @@ public class Parser {
         }
 
         public LineColumnReader.Coordinates getCurrentPosition() {
-            return new LineColumnReader.FixedCoordinates(
-                getSource().getPosition());
+            return getSource().getInputPosition();
         }
 
         public Lexer.Token getCurrentToken() throws ParsingException {
