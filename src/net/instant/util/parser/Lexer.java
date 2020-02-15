@@ -582,30 +582,38 @@ public class Lexer implements Closeable {
             state.getPatterns().get(index).getName()));
     }
 
-    protected Token doMatch() {
+    protected Token doMatch() throws LexingException {
         if (getState() == null) return null;
         List<TokenPattern> patterns = getState().getPatterns();
         List<Matcher> matchers = getMatchers();
-        int matchIndex = -1;
-        int matchSize = Integer.MIN_VALUE;
-        int matchRank = Integer.MAX_VALUE;
+        int bestIndex = -1;
+        int bestSize = Integer.MIN_VALUE;
+        int bestRank = Integer.MAX_VALUE;
         for (int i = 0; i < matchers.size(); i++) {
             Matcher m = matchers.get(i);
             boolean matched = m.lookingAt();
             if (m.hitEnd() && ! isAtEOF()) return null;
             if (! matched) continue;
-            int thisMatchSize = m.end();
-            int thisMatchRank = patterns.get(i).getType().ordinal();
-            if (thisMatchSize > matchSize ||
-                    thisMatchSize == matchSize && thisMatchRank < matchRank) {
-                matchIndex = i;
-                matchSize = thisMatchSize;
-                matchRank = thisMatchRank;
+            int thisSize = m.end();
+            int thisRank = patterns.get(i).getType().ordinal();
+            if (thisSize < bestSize ||
+                    (thisSize == bestSize && thisRank > bestRank)) {
+                continue;
+            } else if (thisSize == bestSize && thisRank == bestRank) {
+                throw new LexingException(getInputPosition(), "Ambiguous " +
+                    "classifications for prospective token " +
+                    Formats.formatString(m.group()) + " at " +
+                    getInputPosition() + ": " +
+                    patterns.get(bestIndex).getName() + " and " +
+                    patterns.get(i).getName());
             }
+            bestIndex = i;
+            bestSize = thisSize;
+            bestRank = thisRank;
         }
-        if (matchIndex == -1) return null;
-        Token ret = consumeInput(matchers.get(matchIndex).end(), matchIndex);
-        advance(matchIndex);
+        if (bestIndex == -1) return null;
+        Token ret = consumeInput(matchers.get(bestIndex).end(), bestIndex);
+        advance(bestIndex);
         return ret;
     }
 
