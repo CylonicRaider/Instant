@@ -34,16 +34,6 @@ public class NamedSet<E extends NamedValue> extends AbstractSet<E>
         }
     }
 
-    public boolean equals(Object other) {
-        return (other instanceof NamedValue &&
-                getName().equals(((NamedValue) other).getName()) &&
-                super.equals(other));
-    }
-
-    public int hashCode() {
-        return getName().hashCode() ^ super.hashCode();
-    }
-
     public String getName() {
         return name;
     }
