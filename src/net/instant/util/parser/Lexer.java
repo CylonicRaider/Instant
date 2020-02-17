@@ -52,6 +52,11 @@ public class Lexer implements Closeable {
                             syms.get(1).getType() != SymbolType.NONTERMINAL)
                         throw new InvalidGrammarException("LexerGrammar " +
                             "second production symbols must be nonterminals");
+                    for (Symbol s : syms) {
+                        if ((s.getFlags() & SYM_ALL) != 0)
+                            throw new InvalidGrammarException(
+                                "LexerGrammar symbols must have no flags");
+                    }
                 }
             }
         }
