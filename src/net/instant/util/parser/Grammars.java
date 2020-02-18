@@ -426,19 +426,21 @@ public final class Grammars {
     }
 
     private static Parser.ParserGrammar parseGrammarInner(Parser p)
-            throws Parser.ParsingException {
+            throws InvalidGrammarException, Parser.ParsingException {
         try {
-            return getParserMapper().map(p.parse());
+            Parser.ParserGrammar ret = getParserMapper().map(p.parse());
+            ret.validate();
+            return ret;
         } catch (MappingException exc) {
             throw new AssertionError("The meta-grammar is buggy?!", exc);
         }
     }
     public static Parser.ParserGrammar parseGrammar(Reader input)
-            throws Parser.ParsingException {
+            throws InvalidGrammarException, Parser.ParsingException {
         return parseGrammarInner(getMetaGrammar().makeParser(input));
     }
     public static Parser.ParserGrammar parseGrammar(LineColumnReader input)
-            throws Parser.ParsingException {
+            throws InvalidGrammarException, Parser.ParsingException {
         return parseGrammarInner(getMetaGrammar().makeParser(input));
     }
 

@@ -65,6 +65,7 @@ public class Parser {
         }
         public void validate() throws InvalidGrammarException {
             validate(START_SYMBOL.getContent());
+            if (reference != null) reference.validate();
         }
 
     }
