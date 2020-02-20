@@ -918,6 +918,7 @@ public class Parser {
                         BranchState newmid = createBranchState();
                         cprev.setSuccessor(null, newmid);
                         getStateInfo(newmid).setPredecessor(null, cprev);
+                        getStateInfo(mid).clearPredecessor();
                         addSuccessor(newmid, midSelector, mid, false);
                         addSuccessor(newmid, selector, next, false);
                         prev = newmid;
