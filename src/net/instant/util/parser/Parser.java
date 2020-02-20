@@ -645,12 +645,14 @@ public class Parser {
         protected class StateInfo {
 
             private final State state;
+            private final Set<State> intransitiveSuccessors;
             private String anchorName;
             private Grammar.Symbol predSelector;
             private State predecessor;
 
             public StateInfo(State state) {
                 this.state = state;
+                this.intransitiveSuccessors = new HashSet<State>();
                 this.anchorName = null;
                 this.predSelector = null;
                 this.predecessor = null;
@@ -658,6 +660,16 @@ public class Parser {
 
             public State getState() {
                 return state;
+            }
+
+            public Set<State> getIntransitiveSuccessors() {
+                return intransitiveSuccessors;
+            }
+            public boolean hasIntransitiveSuccessor(State other) {
+                return intransitiveSuccessors.contains(other);
+            }
+            public void addIntransitiveSuccessor(State other) {
+                intransitiveSuccessors.add(other);
             }
 
             public String getAnchorName() {
@@ -847,17 +859,19 @@ public class Parser {
         protected boolean selectorsEqual(Grammar.Symbol a, Grammar.Symbol b) {
             return (a == null) ? (b == null) : a.equals(b);
         }
-        protected State getSuccessor(State prev, Grammar.Symbol selector) {
+        protected State getSuccessor(State prev, Grammar.Symbol selector,
+                                     boolean intransitive) {
+            State ret;
             if (prev instanceof MultiSuccessorState) {
-                return ((MultiSuccessorState) prev).getSuccessor(selector);
+                ret = ((MultiSuccessorState) prev).getSuccessor(selector);
             } else if (prev instanceof SingleSuccessorState) {
                 SingleSuccessorState cprev = (SingleSuccessorState) prev;
                 State succ = cprev.getSuccessor();
                 if (cprev.getSelector() == null &&
                         succ instanceof MultiSuccessorState) {
-                    return getSuccessor(succ, selector);
+                    ret = getSuccessor(succ, selector, false);
                 } else if (selectorsEqual(selector, cprev.getSelector())) {
-                    return succ;
+                    ret = succ;
                 } else {
                     return null;
                 }
@@ -868,9 +882,14 @@ public class Parser {
                     "Cannot determine successor of state " +
                     describeState(prev));
             }
+            if (intransitive &&
+                    ! getStateInfo(prev).hasIntransitiveSuccessor(ret))
+                return null;
+            return ret;
         }
         protected void addSuccessor(State prev, Grammar.Symbol selector,
-                State next) throws InvalidGrammarException {
+                State next, boolean intransitive)
+                throws InvalidGrammarException {
             if (prev instanceof MultiSuccessorState) {
                 MultiSuccessorState cprev = (MultiSuccessorState) prev;
                 if (cprev.getSuccessor(selector) != null)
@@ -893,15 +912,14 @@ public class Parser {
                     if (mid == null) {
                         cprev.setSuccessor(selector, next);
                     } else if (mid instanceof MultiSuccessorState) {
-                        addSuccessor(mid, selector, next);
+                        addSuccessor(mid, selector, next, false);
                     } else {
                         Grammar.Symbol midSelector = cprev.getSelector();
                         BranchState newmid = createBranchState();
                         cprev.setSuccessor(null, newmid);
-                        getStateInfo(newmid).clearPredecessor();
                         getStateInfo(newmid).setPredecessor(null, cprev);
-                        addSuccessor(newmid, midSelector, mid);
-                        addSuccessor(newmid, selector, next);
+                        addSuccessor(newmid, midSelector, mid, false);
+                        addSuccessor(newmid, selector, next, false);
                         prev = newmid;
                     }
                 } catch (BadSuccessorException exc) {
@@ -924,6 +942,8 @@ public class Parser {
                     "state graph after " + describeState(prev));
             }
             getStateInfo(next).setPredecessor(selector, prev);
+            if (intransitive)
+                getStateInfo(prev).addIntransitiveSuccessor(next);
         }
 
         private Grammar.Symbol symbolWithFlags(Grammar.Symbol base,
@@ -970,57 +990,65 @@ public class Parser {
 
         protected void addProduction(Grammar.Production prod)
                 throws InvalidGrammarException {
+            /* Prepare data structures. */
             Set<Grammar.Symbol> selectors =
                 new LinkedHashSet<Grammar.Symbol>();
+            State lastPrev = getInitialState(prod.getName());
             IdentityLinkedSet<State> prevs = new IdentityLinkedSet<State>();
-            IdentityLinkedSet<State> nextPrevs =
-                new IdentityLinkedSet<State>();
-            prevs.add(getInitialState(prod.getName()));
+            prevs.add(lastPrev);
+            /* Iterate over the symbols! */
             List<Grammar.Symbol> syms = prod.getSymbols();
             int symCount = syms.size();
             for (int i = 0; i < symCount; i++) {
                 Grammar.Symbol sym = syms.get(i);
+                /* Create a state corresponding to the symbol; perform some
+                 * initial data wrangling. */
                 State next = compileSymbol(sym, prod.getName(), i, symCount,
                                            selectors);
                 boolean maybeEmpty = (selectors.contains(null) ||
                     (sym.getFlags() & Grammar.SYM_OPTIONAL) != 0);
                 selectors.remove(null);
-                for (State pr : prevs) {
-                    for (Grammar.Symbol sel : selectors) {
-                        State st = getSuccessor(pr, sel);
-                        // The mutual comparisons ensure that both next and st
-                        // can veto the "merge".
-                        if (next.matches(st) && st.matches(next) &&
-                                ! nextPrevs.contains(st))
-                            nextPrevs.addLast(st);
+                /* Check if we can substitute an already-existing state
+                 * instead. */
+                for (Grammar.Symbol sel : selectors) {
+                    State st = getSuccessor(lastPrev, sel, true);
+                    // The mutual comparisons ensure that both next and st
+                    // can veto the "merge".
+                    if (next.matches(st) && st.matches(next)) {
+                        next = st;
+                        break;
                     }
                 }
-                if (nextPrevs.isEmpty()) {
-                    nextPrevs.addFirst(next);
+                /* Handle SYM_REPEAT. */
+                if ((sym.getFlags() & Grammar.SYM_REPEAT) != 0)
+                    prevs.addLast(next);
+                /* Add the new state graph edges.
+                 * This will error out if there is any conflict. */
+                for (State pr : prevs) {
+                    boolean intransitive = (pr == lastPrev);
+                    for (Grammar.Symbol sel : selectors) {
+                        if (getSuccessor(pr, sel, false) != next)
+                            addSuccessor(pr, sel, next, intransitive);
+                    }
+                }
+                /* Prepare for the next iteration.
+                 * We move next to the front of prevs to ensure it is chosen
+                 * as the designated predecessor for the its successors'
+                 * StateInfo. */
+                if (maybeEmpty) {
+                    prevs.remove(next);
                 } else {
-                    next = nextPrevs.getFirst();
-                }
-                if ((sym.getFlags() & Grammar.SYM_REPEAT) != 0) {
-                    prevs.addAllLast(nextPrevs);
-                }
-                for (State pr : prevs) {
-                    for (Grammar.Symbol sel : selectors) {
-                        if (! nextPrevs.contains(getSuccessor(pr, sel)))
-                            addSuccessor(pr, sel, next);
-                    }
-                }
-                if (! maybeEmpty) {
                     prevs.clear();
                 }
-                prevs.removeAll(nextPrevs);
-                prevs.addAllFirst(nextPrevs);
+                prevs.addFirst(next);
                 selectors.clear();
-                nextPrevs.clear();
+                lastPrev = next;
             }
+            /* Link the end(s) to the end state. */
             State next = getFinalState(prod.getName());
             for (State pr : prevs) {
-                if (getSuccessor(pr, null) != next)
-                    addSuccessor(pr, null, next);
+                if (getSuccessor(pr, null, false) != next)
+                    addSuccessor(pr, null, next, true);
             }
         }
 
@@ -1041,7 +1069,7 @@ public class Parser {
             if (startState == null) {
                 addProductions(ParserGrammar.START_SYMBOL.getContent());
                 startState = createCallState(ParserGrammar.START_SYMBOL);
-                addSuccessor(startState, null, new EndState());
+                addSuccessor(startState, null, new EndState(), true);
             }
             return startState;
         }
