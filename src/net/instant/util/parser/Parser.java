@@ -918,9 +918,8 @@ public class Parser {
                 // are not allowed as successors at places where that matters,
                 // and we reject that with the proper exception type in the
                 // MultiSuccessorState case, it is the compiler's fault if
-                // it generates a state that may not have successors (i.e.,
-                // presently, a ReturnState) and then tries to put something
-                // after it.
+                // it generates a state that may not have successors (e.g. a
+                // ReturnState) and then tries to put something after it.
                 throw new IllegalArgumentException("Cannot splice into " +
                     "state graph after " + describeState(prev));
             }
