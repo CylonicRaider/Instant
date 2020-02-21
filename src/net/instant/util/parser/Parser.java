@@ -761,6 +761,9 @@ public class Parser {
         protected ReturnState createReturnState() {
             return new ReturnState();
         }
+        protected EndState createEndState() {
+            return new EndState();
+        }
         protected StateInfo createStateInfo(State state) {
             return new StateInfo(state);
         }
@@ -1070,7 +1073,7 @@ public class Parser {
             if (startState == null) {
                 addProductions(ParserGrammar.START_SYMBOL.getContent());
                 startState = createCallState(ParserGrammar.START_SYMBOL);
-                addSuccessor(startState, null, new EndState(), true);
+                addSuccessor(startState, null, createEndState(), true);
             }
             return startState;
         }
