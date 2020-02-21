@@ -958,8 +958,8 @@ public class Parser {
         }
 
         @SuppressWarnings("fallthrough")
-        protected State compileSymbol(Grammar.Symbol sym, String prodName,
-                int index, int count, Set<Grammar.Symbol> selectors)
+        protected State compileSymbol(Grammar.Symbol sym,
+                                      Set<Grammar.Symbol> selectors)
                 throws InvalidGrammarException {
             Grammar.Symbol cleanedSym = symbolWithFlags(sym,
                 sym.getFlags() & ~COMPILER_FLAGS);
@@ -970,15 +970,6 @@ public class Parser {
                                 sym.getContent())) {
                             selectors.add(symbolWithFlags(s,
                                 cleanedSym.getFlags()));
-                        }
-                        /* Tail recursion optimization */
-                        if (index == count - 1 &&
-                                sym.getContent().equals(prodName) &&
-                                (sym.getFlags() & (Grammar.SYM_INLINE |
-                                                   Grammar.SYM_DISCARD |
-                                                   Grammar.SYM_REPEAT)
-                                ) == Grammar.SYM_INLINE) {
-                            return getInitialState(prodName);
                         }
                         addProductions(sym.getContent());
                         return createCallState(cleanedSym);
@@ -1000,6 +991,7 @@ public class Parser {
             State lastPrev = getInitialState(prod.getName());
             IdentityLinkedSet<State> prevs = new IdentityLinkedSet<State>();
             prevs.add(lastPrev);
+            State tailJump = null;
             /* Iterate over the symbols! */
             List<Grammar.Symbol> syms = prod.getSymbols();
             int symCount = syms.size();
@@ -1007,8 +999,20 @@ public class Parser {
                 Grammar.Symbol sym = syms.get(i);
                 /* Create a state corresponding to the symbol; perform some
                  * initial data wrangling. */
-                State next = compileSymbol(sym, prod.getName(), i, symCount,
-                                           selectors);
+                State next = compileSymbol(sym, selectors);
+                if (i == symCount - 1 &&
+                        sym.getType() == Grammar.SymbolType.NONTERMINAL &&
+                        sym.getContent().equals(prod.getName()) &&
+                        (sym.getFlags() & (Grammar.SYM_INLINE |
+                                           Grammar.SYM_DISCARD |
+                                           Grammar.SYM_REPEAT)
+                        ) == Grammar.SYM_INLINE) {
+                    /* Tail recursion optimization. */
+                    next = createNullState();
+                    addSuccessor(next, null, getInitialState(prod.getName()),
+                                 true);
+                    tailJump = next;
+                }
                 boolean maybeEmpty = (selectors.contains(null) ||
                     (sym.getFlags() & Grammar.SYM_OPTIONAL) != 0);
                 selectors.remove(null);
@@ -1051,7 +1055,7 @@ public class Parser {
             /* Link the end(s) to the end state. */
             State next = getFinalState(prod.getName());
             for (State pr : prevs) {
-                if (getSuccessor(pr, null, false) != next)
+                if (pr != tailJump && getSuccessor(pr, null, false) != next)
                     addSuccessor(pr, null, next, true);
             }
         }
