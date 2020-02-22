@@ -229,7 +229,12 @@ public class Lexer implements Closeable {
             TokenPattern to = (TokenPattern) other;
             return getName().equals(to.getName()) &&
                    getType().equals(to.getType()) &&
-                   getPattern().equals(to.getPattern());
+                   patternsEqual(getPattern(), to.getPattern());
+        }
+
+        public int hashCode() {
+            return getName().hashCode() ^ getType().hashCode() ^
+                patternHashCode(getPattern());
         }
 
         public String getName() {
@@ -710,6 +715,20 @@ public class Lexer implements Closeable {
             throws InvalidGrammarException {
         Compiler comp = new Compiler(g);
         return new CompiledGrammar(comp.getGrammar(), comp.call());
+    }
+
+    public static boolean patternsEqual(Pattern a, Pattern b) {
+        // HACK: Assuming the Pattern API does not change in incompatible
+        //       ways...
+        if (a == null) return (b == null);
+        if (b == null) return (a == null);
+        return (a.pattern().equals(b.pattern()) &&
+                a.flags() == b.flags());
+    }
+
+    public static int patternHashCode(Pattern pat) {
+        if (pat == null) return 0;
+        return pat.pattern().hashCode() ^ pat.flags();
     }
 
 }
