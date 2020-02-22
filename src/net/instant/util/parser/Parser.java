@@ -920,8 +920,6 @@ public class Parser {
                         Grammar.Symbol midSelector = cprev.getSelector();
                         BranchState newmid = createBranchState();
                         cprev.setSuccessor(null, newmid);
-                        getStateInfo(newmid).setPredecessor(null, cprev);
-                        getStateInfo(mid).clearPredecessor();
                         addSuccessor(newmid, midSelector, mid, false);
                         addSuccessor(newmid, selector, next, false);
                         prev = newmid;
@@ -945,9 +943,10 @@ public class Parser {
                 throw new IllegalArgumentException("Cannot splice into " +
                     "state graph after " + describeState(prev));
             }
-            getStateInfo(next).setPredecessor(selector, prev);
-            if (intransitive)
+            if (intransitive) {
                 getStateInfo(prev).addIntransitiveSuccessor(next);
+                getStateInfo(next).setPredecessor(selector, prev);
+            }
         }
 
         private Grammar.Symbol symbolWithFlags(Grammar.Symbol base,
