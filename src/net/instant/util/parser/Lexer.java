@@ -3,12 +3,8 @@ package net.instant.util.parser;
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.Reader;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -253,9 +249,7 @@ public class Lexer implements Closeable {
 
     protected interface State extends NamedValue {
 
-        List<TokenPattern> getPatterns();
-
-        TokenPattern getPattern(int index);
+        Map<String, TokenPattern> getPatterns();
 
         Map<String, State> getSuccessors();
 
@@ -263,53 +257,16 @@ public class Lexer implements Closeable {
 
     }
 
-    protected static class FinalState implements State {
+    protected static class StandardState implements State {
 
         private final String name;
-        private final List<TokenPattern> patterns;
-        private final Map<String, State> successors;
-        private final boolean accepting;
-
-        public FinalState(String name, List<TokenPattern> patterns,
-                Map<String, State> successors, boolean accepting) {
-            this.name = name;
-            this.patterns = patterns;
-            this.successors = successors;
-            this.accepting = accepting;
-        }
-
-        public String getName() {
-            return name;
-        }
-
-        public List<TokenPattern> getPatterns() {
-            return patterns;
-        }
-
-        public TokenPattern getPattern(int index) {
-            return patterns.get(index);
-        }
-
-        public Map<String, State> getSuccessors() {
-            return successors;
-        }
-
-        public boolean isAccepting() {
-            return accepting;
-        }
-
-    }
-
-    protected static class StateBuilder implements State {
-
-        private final String name;
-        private final Set<TokenPattern> patternSet;
+        private final Map<String, TokenPattern> patterns;
         private final Map<String, State> successors;
         private boolean accepting;
 
-        public StateBuilder(String name) {
+        public StandardState(String name) {
             this.name = name;
-            this.patternSet = new LinkedHashSet<TokenPattern>();
+            this.patterns = new NamedMap<TokenPattern>();
             this.successors = new LinkedHashMap<String, State>();
             this.accepting = false;
         }
@@ -318,21 +275,8 @@ public class Lexer implements Closeable {
             return name;
         }
 
-        public List<TokenPattern> getPatterns() {
-            return Collections.unmodifiableList(
-                new ArrayList<TokenPattern>(patternSet));
-        }
-        public Set<TokenPattern> getPatternSet() {
-            return patternSet;
-        }
-
-        public TokenPattern getPattern(int index) {
-            int i = 0;
-            for (TokenPattern pat : patternSet) {
-                if (i++ == index) return pat;
-            }
-            throw new IndexOutOfBoundsException("No pattern at index " +
-                                                index);
+        public Map<String, TokenPattern> getPatterns() {
+            return patterns;
         }
 
         public Map<String, State> getSuccessors() {
@@ -351,12 +295,14 @@ public class Lexer implements Closeable {
     protected static class Compiler implements Callable<State> {
 
         private final LexerGrammar grammar;
-        private final Map<String, StateBuilder> states;
+        private final Map<String, TokenPattern> tokens;
+        private final Map<String, StandardState> states;
         private final Set<String> seenStates;
 
         public Compiler(LexerGrammar grammar) throws InvalidGrammarException {
             this.grammar = new LexerGrammar(grammar);
-            this.states = new NamedMap<StateBuilder>();
+            this.tokens = new NamedMap<TokenPattern>();
+            this.states = new NamedMap<StandardState>();
             this.seenStates = new HashSet<String>();
             this.grammar.validate();
         }
@@ -365,97 +311,91 @@ public class Lexer implements Closeable {
             return grammar;
         }
 
-        protected StateBuilder getStateBuilder(String name) {
-            StateBuilder ret = states.get(name);
+        protected StandardState getState(String name) {
+            if (name == null) return null;
+            StandardState ret = states.get(name);
             if (ret == null) {
-                ret = new StateBuilder(name);
+                ret = new StandardState(name);
                 states.put(name, ret);
             }
             return ret;
         }
 
-        protected void compileProduction(String state, String name,
-                Grammar.Production pr) throws InvalidGrammarException {
+        protected TokenPattern compileToken(String name)
+                throws InvalidGrammarException {
+            Set<Grammar.Production> prods = grammar.getProductions(name);
+            if (prods == null || prods.size() == 0)
+                throw new InvalidGrammarException(
+                    "Missing definition of token " + name);
+            if (prods.size() > 1)
+                throw new InvalidGrammarException(
+                    "Multiple productions for token " + name);
+            Grammar.Production pr = prods.iterator().next();
             if (pr.getSymbols().size() != 1)
-                throw new InvalidGrammarException("Lexer token " + name +
-                    " definitions must contain exactly one nonterminal " +
-                    "each");
+                throw new InvalidGrammarException("Token " +
+                    name + " definition must contain exactly one " +
+                    "nonterminal");
             Grammar.Symbol sym = pr.getSymbols().get(0);
             if (sym.getType() == Grammar.SymbolType.NONTERMINAL)
-                throw new InvalidGrammarException("Lexer token " + name +
+                throw new InvalidGrammarException("Token " + name +
                     " definition may not contain nonterminals");
-            getStateBuilder(state).getPatternSet().add(
-                new TokenPattern(name, sym.getType(), sym.getPattern()));
+            return new TokenPattern(name, sym.getType(), sym.getPattern());
         }
 
-        protected void compileTerminals(String state, String name,
-                String nextStateName) throws InvalidGrammarException {
-            getStateBuilder(state).getSuccessors().put(name,
-                (nextStateName == null) ?
-                    null :
-                    getStateBuilder(nextStateName));
-            for (Grammar.Production pr : grammar.getProductions(name)) {
-                compileProduction(state, name, pr);
+        protected TokenPattern getToken(String name)
+                throws InvalidGrammarException {
+            TokenPattern ret = tokens.get(name);
+            if (ret == null) {
+                ret = compileToken(name);
+                tokens.put(name, ret);
             }
+            return ret;
+        }
+
+        protected void compileStateTransition(String name, String token,
+                String nextName) throws InvalidGrammarException {
+            StandardState st = getState(name);
+            if (st.getSuccessors().containsKey(token))
+                throw new InvalidGrammarException(
+                    "Redundant transitions for state " + name +
+                    " with token " + token);
+            st.getPatterns().put(token, getToken(token));
+            st.getSuccessors().put(token, getState(nextName));
         }
 
         @SuppressWarnings("fallthrough")
-        protected StateBuilder compileState(String state)
+        protected StandardState compileState(String name)
                 throws InvalidGrammarException {
-            StateBuilder st = getStateBuilder(state);
-            if (seenStates.contains(state)) return st;
-            seenStates.add(state);
-            for (Grammar.Production pr : grammar.getProductions(state)) {
+            StandardState st = getState(name);
+            if (seenStates.contains(name)) return st;
+            seenStates.add(name);
+            for (Grammar.Production pr : grammar.getProductions(name)) {
                 List<Grammar.Symbol> syms = pr.getSymbols();
-                String nextStateName = null;
+                String nextName = null;
                 switch (syms.size()) {
                     case 0:
                         st.setAccepting(true);
                         break;
                     case 2:
                         // Index-1 symbols are validated to be nonterminals.
-                        nextStateName = syms.get(1).getContent();
-                        compileState(nextStateName);
+                        nextName = syms.get(1).getContent();
+                        compileState(nextName);
                     case 1:
                         Grammar.Symbol sym = syms.get(0);
                         if (sym.getType() != Grammar.SymbolType.NONTERMINAL)
                             throw new InvalidGrammarException("Lexer " +
                                 "grammar state productions may only " +
                                 "contain nonterminals");
-                        compileTerminals(state, syms.get(0).getContent(),
-                                         nextStateName);
+                        compileStateTransition(name,
+                            syms.get(0).getContent(), nextName);
                         break;
                 }
             }
             return st;
         }
 
-        protected State freeze(State base, Map<String, State> memo,
-                Map<String, Map<String, State>> successorMemo) {
-            if (base == null) return null;
-            State ret = memo.get(base.getName());
-            if (ret == null) {
-                Map<String, State> successors =
-                    new LinkedHashMap<String, State>();
-                ret = new FinalState(base.getName(), base.getPatterns(),
-                    Collections.unmodifiableMap(successors),
-                    base.isAccepting());
-                memo.put(ret.getName(), ret);
-                successorMemo.put(ret.getName(), successors);
-                for (Map.Entry<String, State> ent :
-                     base.getSuccessors().entrySet()) {
-                    successors.put(ent.getKey(), freeze(ent.getValue(), memo,
-                                                        successorMemo));
-                }
-            }
-            return ret;
-        }
-
         public State call() throws InvalidGrammarException {
-            return freeze(
-                compileState(LexerGrammar.START_SYMBOL.getContent()),
-                new HashMap<String, State>(),
-                new HashMap<String, Map<String, State>>());
+            return compileState(LexerGrammar.START_SYMBOL.getContent());
         }
 
     }
@@ -468,7 +408,7 @@ public class Lexer implements Closeable {
     private final LineColumnReader input;
     private final StringBuilder inputBuffer;
     private final LineColumnReader.CoordinatesTracker inputPosition;
-    private final List<Matcher> matchers;
+    private final Map<String, Matcher> matchers;
     private State state;
     private boolean atEOF;
     private Token outputBuffer;
@@ -479,7 +419,7 @@ public class Lexer implements Closeable {
         this.input = input;
         this.inputBuffer = new StringBuilder();
         this.inputPosition = new LineColumnReader.CoordinatesTracker();
-        this.matchers = new ArrayList<Matcher>();
+        this.matchers = new LinkedHashMap<String, Matcher>();
         this.state = grammar.getInitialState();
         this.atEOF = false;
         this.outputBuffer = null;
@@ -505,29 +445,26 @@ public class Lexer implements Closeable {
         return inputPosition;
     }
 
-    protected List<Matcher> getMatchers() {
-        List<TokenPattern> patterns = getState().getPatterns();
+    protected Map<String, Matcher> getMatchers() {
+        Map<String, TokenPattern> patterns = getState().getPatterns();
         StringBuilder buf = getInputBuffer();
         switch (matchersState) {
             case NEED_REBUILD:
-                int updateSize = Math.min(matchers.size(), patterns.size());
-                while (matchers.size() < patterns.size()) {
-                    Matcher m = patterns.get(matchers.size()).getPattern()
-                        .matcher(buf);
-                    m.useAnchoringBounds(false);
-                    matchers.add(m);
-                }
-                if (matchers.size() > patterns.size()) {
-                    matchers.subList(patterns.size(), matchers.size())
-                        .clear();
-                }
-                for (int i = 0; i < updateSize; i++) {
-                    matchers.get(i).usePattern(patterns.get(i).getPattern());
+                for (Map.Entry<String, TokenPattern> ent :
+                     patterns.entrySet()) {
+                    Matcher m = matchers.get(ent.getKey());
+                    if (m != null) {
+                        m.reset(buf);
+                    } else {
+                        m = ent.getValue().getPattern().matcher(buf);
+                        m.useAnchoringBounds(false);
+                        matchers.put(ent.getKey(), m);
+                    }
                 }
                 break;
             case NEED_RESET:
-                for (Matcher m : matchers) {
-                    m.reset(buf);
+                for (String name : patterns.keySet()) {
+                    matchers.get(name).reset(buf);
                 }
                 break;
         }
@@ -582,35 +519,32 @@ public class Lexer implements Closeable {
         setMatchersState(MatcherListState.NEED_RESET);
         return ret;
     }
-    protected Token consumeInput(int length, int index) {
+    protected Token consumeInput(int length, String name) {
         String tokenContent = getInputBuffer().substring(0, length);
         getInputBuffer().delete(0, length);
         setMatchersState(MatcherListState.NEED_RESET);
-        Token ret = new Token(getInputPosition(),
-            getState().getPatterns().get(index).getName(), tokenContent);
+        Token ret = new Token(getInputPosition(), name, tokenContent);
         getRawPosition().advance(tokenContent, 0, length);
         return ret;
     }
-    protected void advance(int index) {
-        State state = getState();
-        setState(state.getSuccessors().get(
-            state.getPatterns().get(index).getName()));
+    protected void advance(String name) {
+        setState(getState().getSuccessors().get(name));
     }
 
     protected Token doMatch() throws LexingException {
         if (getState() == null) return null;
-        List<TokenPattern> patterns = getState().getPatterns();
-        List<Matcher> matchers = getMatchers();
-        int bestIndex = -1;
+        Map<String, TokenPattern> patterns = getState().getPatterns();
+        Map<String, Matcher> matchers = getMatchers();
+        String bestName = null;
         int bestSize = Integer.MIN_VALUE;
         int bestRank = Integer.MAX_VALUE;
-        for (int i = 0; i < matchers.size(); i++) {
-            Matcher m = matchers.get(i);
+        for (String thisName : patterns.keySet()) {
+            Matcher m = matchers.get(thisName);
             boolean matched = m.lookingAt();
             if (m.hitEnd() && ! isAtEOF()) return null;
             if (! matched) continue;
             int thisSize = m.end();
-            int thisRank = patterns.get(i).getType().ordinal();
+            int thisRank = patterns.get(thisName).getType().ordinal();
             if (thisSize < bestSize ||
                     (thisSize == bestSize && thisRank > bestRank)) {
                 continue;
@@ -619,16 +553,15 @@ public class Lexer implements Closeable {
                     "classifications for prospective token " +
                     Formats.formatString(m.group()) + " at " +
                     getInputPosition() + ": " +
-                    patterns.get(bestIndex).getName() + " and " +
-                    patterns.get(i).getName());
+                    bestName + " and " + thisName);
             }
-            bestIndex = i;
+            bestName = thisName;
             bestSize = thisSize;
             bestRank = thisRank;
         }
-        if (bestIndex == -1) return null;
-        Token ret = consumeInput(matchers.get(bestIndex).end(), bestIndex);
-        advance(bestIndex);
+        if (bestName == null) return null;
+        Token ret = consumeInput(matchers.get(bestName).end(), bestName);
+        advance(bestName);
         return ret;
     }
 
