@@ -212,7 +212,7 @@ public class Parser {
 
     protected interface ExpectationSet {
 
-        Set<String> getExpectedTokens();
+        Set<Grammar.Symbol> getExpectedTokens();
 
     }
 
@@ -331,10 +331,17 @@ public class Parser {
         public String formatExpectations() {
             Set<String> accum = new LinkedHashSet<String>();
             for (ExpectationSet exp : getExpectations()) {
-                accum.addAll(exp.getExpectedTokens());
+                for (Grammar.Symbol sym : exp.getExpectedTokens()) {
+                    if (sym == null) {
+                        accum.add("end of input");
+                    } else if (sym.getType() == Grammar.SymbolType.ANYTHING) {
+                        return "anything";
+                    } else {
+                        accum.add(sym.toUserString());
+                    }
+                }
             }
             if (accum.isEmpty()) return "nothing";
-            if (accum.contains(null)) return "anything";
             if (accum.size() == 1) return accum.iterator().next();
             StringBuilder sb = new StringBuilder("any of ");
             boolean first = true;
@@ -519,8 +526,8 @@ public class Parser {
             return expected;
         }
 
-        public Set<String> getExpectedTokens() {
-            return Collections.singleton(expected.toUserString());
+        public Set<Grammar.Symbol> getExpectedTokens() {
+            return Collections.singleton(expected);
         }
 
         public String toUserString() {
@@ -587,9 +594,13 @@ public class Parser {
             }
         }
 
-        public Set<String> getExpectedTokens() {
-            Set<String> ret = new LinkedHashSet<String>(successors.keySet());
-            ret.remove(null);
+        public Set<Grammar.Symbol> getExpectedTokens() {
+            Set<Grammar.Symbol> ret = new LinkedHashSet<Grammar.Symbol>();
+            for (String key : successors.keySet()) {
+                if (key == null) continue;
+                ret.add(new Grammar.Symbol(Grammar.SymbolType.NONTERMINAL,
+                                           key, 0));
+            }
             return ret;
         }
 
@@ -619,8 +630,8 @@ public class Parser {
 
     protected static class EndState implements State, ExpectationSet {
 
-        public Set<String> getExpectedTokens() {
-            return Collections.singleton("end of input");
+        public Set<Grammar.Symbol> getExpectedTokens() {
+            return Collections.singleton(null);
         }
 
         public String toUserString() {
