@@ -245,6 +245,27 @@ public class Lexer implements Closeable {
             return pattern;
         }
 
+        public static TokenPattern create(String name,
+                                          Set<Grammar.Production> prods)
+                throws InvalidGrammarException {
+            if (prods.size() == 0)
+                throw new InvalidGrammarException(
+                    "Missing definition of token " + name);
+            if (prods.size() > 1)
+                throw new InvalidGrammarException(
+                    "Multiple productions for token " + name);
+            Grammar.Production pr = prods.iterator().next();
+            if (pr.getSymbols().size() != 1)
+                throw new InvalidGrammarException("Token " +
+                    name + " definition must contain exactly one " +
+                    "nonterminal");
+            Grammar.Symbol sym = pr.getSymbols().get(0);
+            if (sym.getType() == Grammar.SymbolType.NONTERMINAL)
+                throw new InvalidGrammarException("Token " + name +
+                    " definition may not contain nonterminals");
+            return new TokenPattern(name, sym.getType(), sym.getPattern());
+        }
+
     }
 
     protected interface State extends NamedValue {
@@ -323,23 +344,7 @@ public class Lexer implements Closeable {
 
         protected TokenPattern compileToken(String name)
                 throws InvalidGrammarException {
-            Set<Grammar.Production> prods = grammar.getProductions(name);
-            if (prods == null || prods.size() == 0)
-                throw new InvalidGrammarException(
-                    "Missing definition of token " + name);
-            if (prods.size() > 1)
-                throw new InvalidGrammarException(
-                    "Multiple productions for token " + name);
-            Grammar.Production pr = prods.iterator().next();
-            if (pr.getSymbols().size() != 1)
-                throw new InvalidGrammarException("Token " +
-                    name + " definition must contain exactly one " +
-                    "nonterminal");
-            Grammar.Symbol sym = pr.getSymbols().get(0);
-            if (sym.getType() == Grammar.SymbolType.NONTERMINAL)
-                throw new InvalidGrammarException("Token " + name +
-                    " definition may not contain nonterminals");
-            return new TokenPattern(name, sym.getType(), sym.getPattern());
+            return TokenPattern.create(name, grammar.getProductions(name));
         }
 
         protected TokenPattern getToken(String name)

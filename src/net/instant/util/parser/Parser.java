@@ -734,6 +734,7 @@ public class Parser {
 
         private final ParserGrammar grammar;
         private final Set<String> seenProductions;
+        private final Map<String, Lexer.TokenPattern> tokens;
         private final Map<String, State> initialStates;
         private final Map<String, State> finalStates;
         private final Map<String, Set<Grammar.Symbol>> initialSymbolCache;
@@ -744,6 +745,7 @@ public class Parser {
                 throws InvalidGrammarException {
             this.grammar = new ParserGrammar(grammar);
             this.seenProductions = new HashSet<String>();
+            this.tokens = new HashMap<String, Lexer.TokenPattern>();
             this.initialStates = new HashMap<String, State>();
             this.finalStates = new HashMap<String, State>();
             this.initialSymbolCache = new HashMap<String,
@@ -777,6 +779,26 @@ public class Parser {
         }
         protected StateInfo createStateInfo(State state) {
             return new StateInfo(state);
+        }
+
+        protected Lexer.TokenPattern compileToken(String name)
+                throws InvalidGrammarException {
+            Set<Grammar.Production> prods = grammar.getRawProductions(name);
+            Lexer.TokenPattern ret = Lexer.TokenPattern.create(name, prods);
+            Grammar.Symbol sym = prods.iterator().next().getSymbols().get(0);
+            if (sym.getFlags() != Grammar.SYM_INLINE)
+                throw new InvalidGrammarException("Invalid token " + name +
+                    " definition flags (must be exactly ^)");
+            return ret;
+        }
+        protected Lexer.TokenPattern getToken(String name)
+                throws InvalidGrammarException {
+            Lexer.TokenPattern ret = tokens.get(name);
+            if (ret == null) {
+                ret = compileToken(name);
+                tokens.put(name, ret);
+            }
+            return ret;
         }
 
         protected State getInitialState(String prodName) {
