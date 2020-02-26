@@ -784,21 +784,19 @@ public class Parser {
         protected Lexer.TokenPattern compileToken(String name)
                 throws InvalidGrammarException {
             Set<Grammar.Production> prods = grammar.getRawProductions(name);
+            if (prods.size() != 1) return null;
+            Grammar.Production prod = prods.iterator().next();
+            if (prod.getSymbols().size() != 1) return null;
+            Grammar.Symbol sym = prod.getSymbols().get(0);
+            if (sym.getFlags() != Grammar.SYM_INLINE) return null;
             Lexer.TokenPattern ret = Lexer.TokenPattern.create(name, prods);
-            Grammar.Symbol sym = prods.iterator().next().getSymbols().get(0);
-            if (sym.getFlags() != Grammar.SYM_INLINE)
-                throw new InvalidGrammarException("Invalid token " + name +
-                    " definition flags (must be exactly ^)");
             return ret;
         }
         protected Lexer.TokenPattern getToken(String name)
                 throws InvalidGrammarException {
-            Lexer.TokenPattern ret = tokens.get(name);
-            if (ret == null) {
-                ret = compileToken(name);
-                tokens.put(name, ret);
-            }
-            return ret;
+            if (! tokens.containsKey(name))
+                tokens.put(name, compileToken(name));
+            return tokens.get(name);
         }
 
         protected State getInitialState(String prodName) {
