@@ -246,7 +246,7 @@ public class Parser {
         }
 
         public ParseTreeImpl(Lexer.Token token) {
-            this.name = token.getProduction();
+            this.name = token.getName();
             this.token = token;
         }
         public ParseTreeImpl(String name) {
@@ -617,8 +617,7 @@ public class Parser {
         public void apply(Status status) throws ParsingException {
             status.addExpectation(this);
             Lexer.Token tok = status.getCurrentToken();
-            State succ = (tok == null) ? null :
-                successors.get(tok.getProduction());
+            State succ = (tok == null) ? null : successors.get(tok.getName());
             if (succ == null)
                 succ = successors.get(null);
             if (succ == null)
