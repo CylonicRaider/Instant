@@ -483,6 +483,7 @@ public class Lexer implements Closeable {
     protected void setState(State s) {
         if (s == state) return;
         state = s;
+        setOutputBuffer(null);
         setMatchersState(MatcherListState.NEED_REBUILD);
     }
 
@@ -524,16 +525,16 @@ public class Lexer implements Closeable {
         setMatchersState(MatcherListState.NEED_RESET);
         return ret;
     }
-    protected Token consumeInput(int length, String name) {
-        String tokenContent = getInputBuffer().substring(0, length);
-        getInputBuffer().delete(0, length);
-        setMatchersState(MatcherListState.NEED_RESET);
-        Token ret = new Token(name, getInputPosition(), tokenContent);
-        getRawPosition().advance(tokenContent, 0, length);
-        return ret;
+    protected Token createToken(int length, String name) {
+        return new Token(name, getInputPosition(),
+                         getInputBuffer().substring(0, length));
     }
-    protected void advance(String name) {
-        setState(getState().getSuccessors().get(name));
+    protected void advance(Token tok) {
+        String content = tok.getContent();
+        getInputBuffer().delete(0, content.length());
+        getRawPosition().advance(content, 0, content.length());
+        setState(getState().getSuccessors().get(tok.getName()));
+        setMatchersState(MatcherListState.NEED_RESET);
     }
 
     protected Token doMatch() throws LexingException {
@@ -565,9 +566,7 @@ public class Lexer implements Closeable {
             bestRank = thisRank;
         }
         if (bestName == null) return null;
-        Token ret = consumeInput(matchers.get(bestName).end(), bestName);
-        advance(bestName);
-        return ret;
+        return createToken(matchers.get(bestName).end(), bestName);
     }
 
     private LexingException unexpectedInput() {
@@ -605,6 +604,7 @@ public class Lexer implements Closeable {
     public Token read() throws LexingException {
         Token ret = getOutputBuffer();
         if (ret == null) ret = peek();
+        if (ret != null) advance(ret);
         setOutputBuffer(null);
         return ret;
     }
