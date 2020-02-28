@@ -276,6 +276,8 @@ public class Lexer implements Closeable {
 
         boolean isAccepting();
 
+        boolean isCompatibleWith(State other);
+
     }
 
     protected static class StandardState implements State {
@@ -309,6 +311,16 @@ public class Lexer implements Closeable {
         }
         public void setAccepting(boolean a) {
             accepting = a;
+        }
+
+        public boolean isCompatibleWith(State other) {
+            Map<String, TokenPattern> thisPatterns = getPatterns();
+            Map<String, TokenPattern> otherPatterns = other.getPatterns();
+            for (TokenPattern tp : thisPatterns.values()) {
+                TokenPattern op = otherPatterns.get(tp.getName());
+                if (op == null || ! tp.equals(op)) return false;
+            }
+            return true;
         }
 
     }
