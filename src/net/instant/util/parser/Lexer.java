@@ -549,7 +549,7 @@ public class Lexer implements Closeable {
         setMatchersState(MatcherListState.NEED_RESET);
     }
 
-    protected Token doMatch() throws LexingException {
+    protected Token doMatchBuffer() throws LexingException {
         if (getState() == null) return null;
         Map<String, TokenPattern> patterns = getState().getPatterns();
         Map<String, Matcher> matchers = getMatchers();
@@ -580,6 +580,21 @@ public class Lexer implements Closeable {
         if (bestName == null) return null;
         return createToken(matchers.get(bestName).end(), bestName);
     }
+    protected Token doMatch() throws LexingException {
+        for (;;) {
+            Token tok = doMatchBuffer();
+            if (tok != null) {
+                return tok;
+            } else if (isAtEOF()) {
+                if (getState() != null && ! getState().isAccepting() ||
+                        getInputBuffer().length() != 0)
+                    throw unexpectedInput();
+                return null;
+            } else {
+                pullInput();
+            }
+        }
+    }
 
     private LexingException unexpectedInput() {
         LineColumnReader.Coordinates pos = getInputPosition();
@@ -594,23 +609,14 @@ public class Lexer implements Closeable {
 
     public Token peek() throws LexingException {
         Token tok = getOutputBuffer();
-        if (tok != null)
-            return tok;
-        for (;;) {
-            tok = doMatch();
-            if (tok != null) {
-                setOutputBuffer(tok);
-                return tok;
-            } else if (isAtEOF()) {
-                if (getState() != null && ! getState().isAccepting() ||
-                        getInputBuffer().length() != 0)
-                    throw unexpectedInput();
-                setState(null);
-                return null;
-            } else {
-                pullInput();
-            }
+        if (tok != null) return tok;
+        tok = doMatch();
+        if (tok != null) {
+            setOutputBuffer(tok);
+        } else {
+            setState(null);
         }
+        return tok;
     }
 
     public Token read() throws LexingException {
