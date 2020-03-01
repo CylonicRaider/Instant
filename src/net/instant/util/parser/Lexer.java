@@ -97,6 +97,8 @@ public class Lexer implements Closeable {
 
     }
 
+    public enum MatchStatus { OK, NO_MATCH, EOI }
+
     public static class Token implements NamedValue {
 
         private final String name;
@@ -427,7 +429,7 @@ public class Lexer implements Closeable {
     private final LineColumnReader.CoordinatesTracker inputPosition;
     private final Map<String, Matcher> matchers;
     private State state;
-    private boolean atEOF;
+    private boolean atEOI;
     private Token outputBuffer;
     private MatcherListState matchersState;
 
@@ -438,7 +440,7 @@ public class Lexer implements Closeable {
         this.inputPosition = new LineColumnReader.CoordinatesTracker();
         this.matchers = new LinkedHashMap<String, Matcher>();
         this.state = grammar.getInitialState();
-        this.atEOF = false;
+        this.atEOI = false;
         this.outputBuffer = null;
         this.matchersState = MatcherListState.NEED_REBUILD;
     }
@@ -499,11 +501,11 @@ public class Lexer implements Closeable {
         setMatchersState(MatcherListState.NEED_REBUILD);
     }
 
-    protected boolean isAtEOF() {
-        return atEOF;
+    protected boolean isAtEOI() {
+        return atEOI;
     }
-    protected void setAtEOF(boolean v) {
-        atEOF = v;
+    protected void setAtEOI(boolean v) {
+        atEOI = v;
     }
 
     protected Token getOutputBuffer() {
@@ -530,7 +532,7 @@ public class Lexer implements Closeable {
             throw new LexingException(getInputPosition(), exc);
         }
         if (ret < 0) {
-            setAtEOF(true);
+            setAtEOI(true);
             return ret;
         }
         getInputBuffer().append(data, 0, ret);
@@ -549,8 +551,8 @@ public class Lexer implements Closeable {
         setMatchersState(MatcherListState.NEED_RESET);
     }
 
-    protected Token doMatchBuffer() throws LexingException {
-        if (getState() == null) return null;
+    protected MatchStatus doMatchBuffer() throws LexingException {
+        if (getState() == null) return MatchStatus.NO_MATCH;
         Map<String, TokenPattern> patterns = getState().getPatterns();
         Map<String, Matcher> matchers = getMatchers();
         String bestName = null;
@@ -559,7 +561,7 @@ public class Lexer implements Closeable {
         for (String thisName : patterns.keySet()) {
             Matcher m = matchers.get(thisName);
             boolean matched = m.lookingAt();
-            if (m.hitEnd() && ! isAtEOF()) return null;
+            if (m.hitEnd() && ! isAtEOI()) return MatchStatus.EOI;
             if (! matched) continue;
             int thisSize = m.end();
             int thisRank = patterns.get(thisName).getType().ordinal();
@@ -577,22 +579,25 @@ public class Lexer implements Closeable {
             bestSize = thisSize;
             bestRank = thisRank;
         }
-        if (bestName == null) return null;
-        return createToken(matchers.get(bestName).end(), bestName);
+        if (bestName == null) return MatchStatus.NO_MATCH;
+        setOutputBuffer(createToken(matchers.get(bestName).end(), bestName));
+        return MatchStatus.OK;
     }
-    protected Token doMatch() throws LexingException {
+    protected MatchStatus doMatch() throws LexingException {
         for (;;) {
-            Token tok = doMatchBuffer();
-            if (tok != null) {
-                return tok;
-            } else if (isAtEOF()) {
-                if (getState() != null && ! getState().isAccepting() ||
-                        getInputBuffer().length() != 0)
-                    throw unexpectedInput();
-                return null;
-            } else {
-                pullInput();
+            switch (doMatchBuffer()) {
+                case OK:
+                    return MatchStatus.OK;
+                case NO_MATCH:
+                    if (isAtEOI() && getInputBuffer().length() == 0 &&
+                            (getState() == null || getState().isAccepting()))
+                        return MatchStatus.EOI;
+                    return MatchStatus.NO_MATCH;
+                case EOI:
+                    pullInput();
+                    break;
             }
+
         }
     }
 
@@ -610,13 +615,8 @@ public class Lexer implements Closeable {
     public Token peek() throws LexingException {
         Token tok = getOutputBuffer();
         if (tok != null) return tok;
-        tok = doMatch();
-        if (tok != null) {
-            setOutputBuffer(tok);
-        } else {
-            setState(null);
-        }
-        return tok;
+        if (doMatch() == MatchStatus.NO_MATCH) throw unexpectedInput();
+        return getOutputBuffer();
     }
 
     public Token read() throws LexingException {
@@ -632,7 +632,7 @@ public class Lexer implements Closeable {
         inputBuffer.setLength(0);
         matchers.clear();
         state = null;
-        atEOF = true;
+        atEOI = true;
         outputBuffer = null;
         matchersState = MatcherListState.NEED_REBUILD;
     }
