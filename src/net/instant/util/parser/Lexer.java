@@ -430,7 +430,7 @@ public class Lexer implements Closeable {
     private final Map<String, Matcher> matchers;
     private State state;
     private boolean atEOI;
-    private Token outputBuffer;
+    private Token token;
     private MatcherListState matchersState;
 
     public Lexer(CompiledGrammar grammar, LineColumnReader input) {
@@ -441,7 +441,7 @@ public class Lexer implements Closeable {
         this.matchers = new LinkedHashMap<String, Matcher>();
         this.state = grammar.getInitialState();
         this.atEOI = false;
-        this.outputBuffer = null;
+        this.token = null;
         this.matchersState = MatcherListState.NEED_REBUILD;
     }
 
@@ -497,7 +497,7 @@ public class Lexer implements Closeable {
     protected void setState(State s) {
         if (s == state) return;
         state = s;
-        setOutputBuffer(null);
+        setToken(null);
         setMatchersState(MatcherListState.NEED_REBUILD);
     }
 
@@ -508,11 +508,11 @@ public class Lexer implements Closeable {
         atEOI = v;
     }
 
-    protected Token getOutputBuffer() {
-        return outputBuffer;
+    public Token getToken() {
+        return token;
     }
-    protected void setOutputBuffer(Token t) {
-        outputBuffer = t;
+    public void setToken(Token t) {
+        token = t;
     }
 
     private void setMatchersState(MatcherListState st) {
@@ -580,7 +580,7 @@ public class Lexer implements Closeable {
             bestRank = thisRank;
         }
         if (bestName == null) return MatchStatus.NO_MATCH;
-        setOutputBuffer(createToken(matchers.get(bestName).end(), bestName));
+        setToken(createToken(matchers.get(bestName).end(), bestName));
         return MatchStatus.OK;
     }
     protected MatchStatus doMatch() throws LexingException {
@@ -601,7 +601,7 @@ public class Lexer implements Closeable {
         }
     }
 
-    private LexingException unexpectedInput() {
+    protected LexingException unexpectedInput() {
         LineColumnReader.Coordinates pos = getInputPosition();
         // If there is any unexpected input, we can as well blame its first
         // character (perhaps it is the *reason* the input is unexpected)?
@@ -612,19 +612,27 @@ public class Lexer implements Closeable {
         return new LexingException(pos, message + " at " + pos);
     }
 
-    public Token peek() throws LexingException {
-        Token tok = getOutputBuffer();
-        if (tok != null) return tok;
-        if (doMatch() == MatchStatus.NO_MATCH) throw unexpectedInput();
-        return getOutputBuffer();
+    public MatchStatus peek() throws LexingException {
+        Token tok = getToken();
+        if (tok != null) return MatchStatus.OK;
+        MatchStatus st = doMatch();
+        if (st == MatchStatus.EOI) setState(null);
+        return st;
     }
 
-    public Token read() throws LexingException {
-        Token ret = getOutputBuffer();
-        if (ret == null) ret = peek();
-        if (ret != null) advance(ret);
-        setOutputBuffer(null);
-        return ret;
+    public Token next() throws LexingException {
+        MatchStatus st = peek();
+        switch (st) {
+            case NO_MATCH:
+                throw unexpectedInput();
+            case EOI:
+                throw new LexingException(getInputPosition(),
+                                          "No more input to advance past");
+        }
+        Token tok = getToken();
+        if (tok != null) advance(tok);
+        setToken(null);
+        return tok;
     }
 
     public void close() throws IOException {
@@ -633,7 +641,7 @@ public class Lexer implements Closeable {
         matchers.clear();
         state = null;
         atEOI = true;
-        outputBuffer = null;
+        token = null;
         matchersState = MatcherListState.NEED_REBUILD;
     }
 

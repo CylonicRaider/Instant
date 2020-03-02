@@ -300,7 +300,9 @@ public class Parser {
 
         public Lexer.Token getCurrentToken() throws ParsingException {
             try {
-                return getSource().peek();
+                if (getSource().peek() != Lexer.MatchStatus.OK)
+                    throw getSource().unexpectedInput();
+                return getSource().getToken();
             } catch (Lexer.LexingException exc) {
                 throw new ParsingException(exc.getPosition(), exc);
             }
@@ -308,7 +310,7 @@ public class Parser {
 
         public void nextToken() throws ParsingException {
             try {
-                getSource().read();
+                getSource().next();
             } catch (Lexer.LexingException exc) {
                 throw new ParsingException(exc.getPosition(), exc);
             }
