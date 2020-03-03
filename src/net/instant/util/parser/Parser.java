@@ -300,9 +300,14 @@ public class Parser {
 
         public Lexer.Token getCurrentToken() throws ParsingException {
             try {
-                if (getSource().peek() != Lexer.MatchStatus.OK)
-                    throw getSource().unexpectedInput();
-                return getSource().getToken();
+                switch (getSource().peek()) {
+                    case OK:
+                        return getSource().getToken();
+                    case EOI:
+                        return null;
+                    default:
+                        throw getSource().unexpectedInput();
+                }
             } catch (Lexer.LexingException exc) {
                 throw new ParsingException(exc.getPosition(), exc);
             }
