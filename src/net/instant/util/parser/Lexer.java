@@ -3,6 +3,7 @@ package net.instant.util.parser;
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.Reader;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -287,12 +288,14 @@ public class Lexer implements Closeable {
         private final String name;
         private final Map<String, TokenPattern> patterns;
         private final Map<String, State> successors;
+        private final Map<State, Boolean> compatibles;
         private boolean accepting;
 
         public StandardState(String name) {
             this.name = name;
             this.patterns = new NamedMap<TokenPattern>();
             this.successors = new LinkedHashMap<String, State>();
+            this.compatibles = new HashMap<State, Boolean>();
             this.accepting = false;
         }
 
@@ -316,13 +319,21 @@ public class Lexer implements Closeable {
         }
 
         public boolean isCompatibleWith(State other) {
-            Map<String, TokenPattern> thisPatterns = getPatterns();
-            Map<String, TokenPattern> otherPatterns = other.getPatterns();
-            for (TokenPattern tp : thisPatterns.values()) {
-                TokenPattern op = otherPatterns.get(tp.getName());
-                if (op == null || ! tp.equals(op)) return false;
+            Boolean ret = compatibles.get(other);
+            if (ret == null) {
+                Map<String, TokenPattern> thisPatterns = getPatterns();
+                Map<String, TokenPattern> otherPatterns = other.getPatterns();
+                ret = true;
+                for (TokenPattern tp : thisPatterns.values()) {
+                    TokenPattern op = otherPatterns.get(tp.getName());
+                    if (op == null || ! tp.equals(op)) {
+                        ret = false;
+                        break;
+                    }
+                }
+                compatibles.put(other, ret);
             }
-            return true;
+            return ret;
         }
 
     }
