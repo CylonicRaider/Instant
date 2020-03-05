@@ -214,6 +214,10 @@ public class Parser {
 
         Set<Grammar.Symbol> getExpectedTokens();
 
+        Lexer.State getLexerState();
+
+        void setLexerState(Lexer.State st);
+
     }
 
     protected static class BadSuccessorException extends Exception {
@@ -519,6 +523,7 @@ public class Parser {
             implements ExpectationSet {
 
         private final Grammar.Symbol expected;
+        private Lexer.State lexerState;
 
         public LiteralState(Grammar.Symbol expected) {
             this.expected = expected;
@@ -531,6 +536,14 @@ public class Parser {
 
         public Grammar.Symbol getExpected() {
             return expected;
+        }
+
+        public Lexer.State getLexerState() {
+            return lexerState;
+        }
+
+        public void setLexerState(Lexer.State state) {
+            lexerState = state;
         }
 
         public Set<Grammar.Symbol> getExpectedTokens() {
@@ -566,6 +579,7 @@ public class Parser {
                                                   ExpectationSet {
 
         private final Map<String, State> successors;
+        private Lexer.State lexerState;
 
         public BranchState(Map<String, State> successors) {
             this.successors = successors;
@@ -599,6 +613,14 @@ public class Parser {
             } else {
                 successors.put(selector.getContent(), succ);
             }
+        }
+
+        public Lexer.State getLexerState() {
+            return lexerState;
+        }
+
+        public void setLexerState(Lexer.State state) {
+            lexerState = state;
         }
 
         public Set<Grammar.Symbol> getExpectedTokens() {
@@ -635,6 +657,16 @@ public class Parser {
     }
 
     protected static class EndState implements State, ExpectationSet {
+
+        private Lexer.State lexerState;
+
+        public Lexer.State getLexerState() {
+            return lexerState;
+        }
+
+        public void setLexerState(Lexer.State state) {
+            lexerState = state;
+        }
 
         public Set<Grammar.Symbol> getExpectedTokens() {
             return Collections.singleton(null);
