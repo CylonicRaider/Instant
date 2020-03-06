@@ -3,6 +3,7 @@ package net.instant.util.parser;
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.Reader;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -291,12 +292,18 @@ public class Lexer implements Closeable {
         private final Map<State, Boolean> compatibles;
         private boolean accepting;
 
-        public StandardState(String name) {
+        public StandardState(String name,
+                             Map<String, TokenPattern> patterns,
+                             boolean accepting) {
             this.name = name;
-            this.patterns = new NamedMap<TokenPattern>();
+            this.patterns = new NamedMap<TokenPattern>(
+                new LinkedHashMap<String, TokenPattern>(patterns));
             this.successors = new LinkedHashMap<String, State>();
             this.compatibles = new HashMap<State, Boolean>();
-            this.accepting = false;
+            this.accepting = accepting;
+        }
+        public StandardState(String name) {
+            this(name, Collections.<String, TokenPattern>emptyMap(), false);
         }
 
         public String getName() {

@@ -184,6 +184,8 @@ public class Parser {
 
         String toUserString();
 
+        Collection<State> getAllSuccessors();
+
         boolean matches(State other);
 
         void apply(Status status) throws ParsingException;
@@ -441,6 +443,11 @@ public class Parser {
             return String.format("%s@%h", getClass().getSimpleName(), this);
         }
 
+        public Collection<State> getAllSuccessors() {
+            return (successor == null) ? Collections.<State>emptySet() :
+                                         Collections.singleton(successor);
+        }
+
         public boolean matches(State other) {
             // As its name suggests, NullState has no distinctive features
             // (this may, however, be different for subclasses).
@@ -488,6 +495,12 @@ public class Parser {
                 getCallState().toUserString());
         }
 
+        public Collection<State> getAllSuccessors() {
+            Set<State> ret = new HashSet<>(super.getAllSuccessors());
+            if (callState != null) ret.add(callState);
+            return ret;
+        }
+
         public boolean matches(State other) {
             if (! (other instanceof CallState) || ! super.matches(other))
                 return false;
@@ -507,6 +520,10 @@ public class Parser {
 
         public String toUserString() {
             return String.format("%s@%h", getClass().getSimpleName(), this);
+        }
+
+        public Collection<State> getAllSuccessors() {
+            return Collections.emptySet();
         }
 
         public boolean matches(State other) {
@@ -592,6 +609,10 @@ public class Parser {
             return successors;
         }
 
+        public Collection<State> getAllSuccessors() {
+            return successors.values();
+        }
+
         public State getSuccessor(Grammar.Symbol selector) {
             if (selector == null ||
                     selector.getType() == Grammar.SymbolType.ANYTHING) {
@@ -674,6 +695,10 @@ public class Parser {
 
         public String toUserString() {
             return String.format("%s@%h", getClass().getSimpleName(), this);
+        }
+
+        public Collection<State> getAllSuccessors() {
+            return Collections.emptySet();
         }
 
         public boolean matches(State other) {
@@ -773,6 +798,7 @@ public class Parser {
         private final ParserGrammar grammar;
         private final Set<String> seenProductions;
         private final Map<String, Lexer.TokenPattern> tokens;
+        private final Map<Set<Grammar.Symbol>, Lexer.State> lexerStates;
         private final Map<String, State> initialStates;
         private final Map<String, State> finalStates;
         private final Map<String, Set<Grammar.Symbol>> initialSymbolCache;
@@ -784,6 +810,8 @@ public class Parser {
             this.grammar = new ParserGrammar(grammar);
             this.seenProductions = new HashSet<String>();
             this.tokens = new HashMap<String, Lexer.TokenPattern>();
+            this.lexerStates = new HashMap<Set<Grammar.Symbol>,
+                                           Lexer.State>();
             this.initialStates = new HashMap<String, State>();
             this.finalStates = new HashMap<String, State>();
             this.initialSymbolCache = new HashMap<String,
@@ -797,6 +825,10 @@ public class Parser {
             return grammar;
         }
 
+        protected Lexer.State createLexerState(
+                Map<String, Lexer.TokenPattern> tokens) {
+            return new Lexer.StandardState(null, tokens, true);
+        }
         protected NullState createNullState() {
             return new NullState();
         }
@@ -822,11 +854,16 @@ public class Parser {
         protected Lexer.TokenPattern compileToken(String name)
                 throws InvalidGrammarException {
             Set<Grammar.Production> prods = grammar.getRawProductions(name);
+            boolean check = true;
+            if (prods == null) {
+                prods = grammar.getReference().getRawProductions(name);
+                check = false;
+            }
             if (prods.size() != 1) return null;
             Grammar.Production prod = prods.iterator().next();
             if (prod.getSymbols().size() != 1) return null;
             Grammar.Symbol sym = prod.getSymbols().get(0);
-            if (sym.getFlags() != Grammar.SYM_INLINE) return null;
+            if (check && sym.getFlags() != Grammar.SYM_INLINE) return null;
             Lexer.TokenPattern ret = Lexer.TokenPattern.create(name, prods);
             return ret;
         }
@@ -835,6 +872,36 @@ public class Parser {
             if (! tokens.containsKey(name))
                 tokens.put(name, compileToken(name));
             return tokens.get(name);
+        }
+
+        protected Lexer.State getLexerState(Set<Grammar.Symbol> syms) {
+            Lexer.State ret = lexerStates.get(syms);
+            if (ret == null) {
+                Map<String, Lexer.TokenPattern> tokens =
+                    new LinkedHashMap<String, Lexer.TokenPattern>();
+                for (Grammar.Symbol s : syms) {
+                    if (s == null)
+                        continue;
+                    if (s.getType() != Grammar.SymbolType.NONTERMINAL)
+                        throw new IllegalArgumentException(
+                            "Token definition set contains a raw terminal");
+                    Lexer.TokenPattern tok = null;
+                    Throwable error = null;
+                    try {
+                        tok = getToken(s.getContent());
+                    } catch (InvalidGrammarException exc) {
+                        error = exc;
+                    }
+                    if (tok == null)
+                        throw new IllegalStateException(
+                            "Unrecognized token " + s.getContent() + "?!",
+                            error);
+                    tokens.put(tok.getName(), tok);
+                }
+                ret = createLexerState(tokens);
+                lexerStates.put(new HashSet<Grammar.Symbol>(syms), ret);
+            }
+            return ret;
         }
 
         protected State getInitialState(String prodName) {
@@ -930,6 +997,9 @@ public class Parser {
 
         protected boolean selectorsEqual(Grammar.Symbol a, Grammar.Symbol b) {
             return (a == null) ? (b == null) : a.equals(b);
+        }
+        protected Collection<State> getAllSuccessors(State prev) {
+            return prev.getAllSuccessors();
         }
         protected State getSuccessor(State prev, Grammar.Symbol selector,
                                      boolean intransitive) {
@@ -1150,8 +1220,22 @@ public class Parser {
             return startState;
         }
 
+        protected void makeLexerStates(State st, Set<State> seen) {
+            if (seen.contains(st)) return;
+            seen.add(st);
+            if (st instanceof ExpectationSet) {
+                ExpectationSet est = (ExpectationSet) st;
+                est.setLexerState(getLexerState(est.getExpectedTokens()));
+            }
+            for (State s : getAllSuccessors(st)) {
+                makeLexerStates(s, seen);
+            }
+        }
+
         public State call() throws InvalidGrammarException {
-            return getStartState();
+            State ret = getStartState();
+            makeLexerStates(ret, new HashSet<State>());
+            return ret;
         }
 
     }
