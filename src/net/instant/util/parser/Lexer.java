@@ -282,6 +282,8 @@ public class Lexer implements Closeable {
 
         boolean isCompatibleWith(State other);
 
+        boolean contains(Token tok);
+
     }
 
     protected static class StandardState implements State {
@@ -341,6 +343,10 @@ public class Lexer implements Closeable {
                 compatibles.put(other, ret);
             }
             return ret;
+        }
+
+        public boolean contains(Token tok) {
+            return getPatterns().containsKey(tok.getName());
         }
 
     }
@@ -514,8 +520,11 @@ public class Lexer implements Closeable {
     }
     protected void setState(State s) {
         if (s == state) return;
+        State os = state;
         state = s;
-        setToken(null);
+        Token tok = getToken();
+        if (tok != null && ! (s.isCompatibleWith(os) && s.contains(tok)))
+            setToken(null);
         setMatchersState(MatcherListState.NEED_REBUILD);
     }
 
