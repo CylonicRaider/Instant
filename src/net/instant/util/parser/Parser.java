@@ -301,18 +301,18 @@ public class Parser {
         }
 
         public LineColumnReader.Coordinates getCurrentPosition() {
-            return getSource().getInputPosition();
+            return getLexer().getInputPosition();
         }
 
         public Lexer.Token getCurrentToken() throws ParsingException {
             try {
-                switch (getSource().peek()) {
+                switch (getLexer().peek()) {
                     case OK:
-                        return getSource().getToken();
+                        return getLexer().getToken();
                     case EOI:
                         return null;
                     default:
-                        throw getSource().unexpectedInput();
+                        throw getLexer().unexpectedInput();
                 }
             } catch (Lexer.LexingException exc) {
                 throw new ParsingException(exc.getPosition(), exc);
@@ -321,7 +321,7 @@ public class Parser {
 
         public void nextToken() throws ParsingException {
             try {
-                getSource().next();
+                getLexer().next();
             } catch (Lexer.LexingException exc) {
                 throw new ParsingException(exc.getPosition(), exc);
             }
@@ -1246,7 +1246,7 @@ public class Parser {
                                              Grammar.SYM_REPEAT;
 
     private final CompiledGrammar grammar;
-    private final Lexer source;
+    private final Lexer lexer;
     private final boolean keepAll;
     private final List<ExpectationSet> expectations;
     private final List<ParseTreeImpl> treeStack;
@@ -1255,9 +1255,9 @@ public class Parser {
     private State state;
     private ParseTree result;
 
-    public Parser(CompiledGrammar grammar, Lexer source, boolean keepAll) {
+    public Parser(CompiledGrammar grammar, Lexer lexer, boolean keepAll) {
         this.grammar = grammar;
-        this.source = source;
+        this.lexer = lexer;
         this.keepAll = keepAll;
         this.expectations = new ArrayList<ExpectationSet>();
         this.treeStack = new ArrayList<ParseTreeImpl>();
@@ -1271,8 +1271,8 @@ public class Parser {
         return grammar;
     }
 
-    protected Lexer getSource() {
-        return source;
+    protected Lexer getLexer() {
+        return lexer;
     }
 
     public boolean isKeepingAll() {
@@ -1315,7 +1315,7 @@ public class Parser {
             st.apply(getStatus());
         }
         try {
-            source.close();
+            lexer.close();
         } catch (IOException exc) {
             throw new ParsingException(null,
                 "Exception while closing lexer: " + exc, exc);
