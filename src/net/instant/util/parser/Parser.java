@@ -158,7 +158,9 @@ public class Parser {
 
         LineColumnReader.Coordinates getCurrentPosition();
 
-        Lexer.Token getCurrentToken() throws ParsingException;
+        Lexer.MatchStatus getCurrentTokenStatus() throws ParsingException;
+
+        Lexer.Token getCurrentToken(boolean required) throws ParsingException;
 
         void nextToken() throws ParsingException;
 
@@ -296,6 +298,11 @@ public class Parser {
 
     protected class StatusImpl implements Status {
 
+        private ParsingException wrap(Lexer.LexingException exc) {
+            return new ParsingException(exc.getPosition(), exc.getMessage(),
+                                        exc);
+        }
+
         public boolean isKeepingAll() {
             return Parser.this.isKeepingAll();
         }
@@ -304,18 +311,28 @@ public class Parser {
             return getLexer().getInputPosition();
         }
 
-        public Lexer.Token getCurrentToken() throws ParsingException {
+        public Lexer.MatchStatus getCurrentTokenStatus()
+                throws ParsingException {
             try {
-                switch (getLexer().peek()) {
-                    case OK:
-                        return getLexer().getToken();
-                    case EOI:
-                        return null;
-                    default:
-                        throw getLexer().unexpectedInput();
+                return getLexer().peek();
+            } catch (Lexer.LexingException exc) {
+                throw wrap(exc);
+            }
+        }
+
+        public Lexer.Token getCurrentToken(boolean required)
+                throws ParsingException {
+            try {
+                Lexer.MatchStatus st = getLexer().peek();
+                if (st == Lexer.MatchStatus.OK) {
+                    return getLexer().getToken();
+                } else if (! required || st == Lexer.MatchStatus.EOI) {
+                    return null;
+                } else {
+                    throw getLexer().unexpectedInput();
                 }
             } catch (Lexer.LexingException exc) {
-                throw new ParsingException(exc.getPosition(), exc);
+                throw wrap(exc);
             }
         }
 
@@ -323,7 +340,7 @@ public class Parser {
             try {
                 getLexer().next();
             } catch (Lexer.LexingException exc) {
-                throw new ParsingException(exc.getPosition(), exc);
+                throw wrap(exc);
             }
             getExpectations().clear();
         }
@@ -406,11 +423,12 @@ public class Parser {
         public ParsingException unexpectedToken() {
             Lexer.Token tok;
             try {
-                tok = getCurrentToken();
+                tok = getCurrentToken(true);
             } catch (ParsingException exc) {
-                // Err... This *looks* like the caller's fault.
-                throw new IllegalStateException("Complaining about an " +
-                    "unexpected token without looking at it?!", exc);
+                // Good enough. The exception could, in particular, be an
+                // "unexpected character" error, which we definitely want to
+                // propagate.
+                return exc;
             }
             return parsingException("Unexpected " +
                 ((tok != null) ?
@@ -580,7 +598,7 @@ public class Parser {
 
         public void apply(Status status) throws ParsingException {
             status.addExpectation(this);
-            Lexer.Token tok = status.getCurrentToken();
+            Lexer.Token tok = status.getCurrentToken(true);
             if (tok == null || ! tok.matches(expected))
                 throw status.unexpectedToken();
             if ((expected.getFlags() & Grammar.SYM_DISCARD) == 0 ||
@@ -666,7 +684,7 @@ public class Parser {
 
         public void apply(Status status) throws ParsingException {
             status.addExpectation(this);
-            Lexer.Token tok = status.getCurrentToken();
+            Lexer.Token tok = status.getCurrentToken(false);
             State succ = (tok == null) ? null : successors.get(tok.getName());
             if (succ == null)
                 succ = successors.get(null);
@@ -707,8 +725,8 @@ public class Parser {
 
         public void apply(Status status) throws ParsingException {
             status.addExpectation(this);
-            Lexer.Token tok = status.getCurrentToken();
-            if (tok != null) throw status.unexpectedToken();
+            if (status.getCurrentTokenStatus() != Lexer.MatchStatus.EOI)
+                throw status.unexpectedToken();
             status.setState(null);
         }
 
