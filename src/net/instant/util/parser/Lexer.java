@@ -454,6 +454,7 @@ public class Lexer implements Closeable {
     private final Map<String, Matcher> matchers;
     private State state;
     private boolean atEOI;
+    private MatchStatus matchStatus;
     private Token token;
     private MatcherListState matchersState;
 
@@ -465,6 +466,7 @@ public class Lexer implements Closeable {
         this.matchers = new LinkedHashMap<String, Matcher>();
         this.state = grammar.getInitialState();
         this.atEOI = false;
+        this.matchStatus = null;
         this.token = null;
         this.matchersState = MatcherListState.NEED_REBUILD;
     }
@@ -523,8 +525,10 @@ public class Lexer implements Closeable {
         State os = state;
         state = s;
         Token tok = getToken();
-        if (tok != null && ! (s.isCompatibleWith(os) && s.contains(tok)))
+        if (tok != null && ! (s.isCompatibleWith(os) && s.contains(tok))) {
+            setMatchStatus(null);
             setToken(null);
+        }
         setMatchersState(MatcherListState.NEED_REBUILD);
     }
 
@@ -533,6 +537,13 @@ public class Lexer implements Closeable {
     }
     protected void setAtEOI(boolean v) {
         atEOI = v;
+    }
+
+    protected MatchStatus getMatchStatus() {
+        return matchStatus;
+    }
+    protected void setMatchStatus(MatchStatus st) {
+        matchStatus = st;
     }
 
     public Token getToken() {
@@ -639,25 +650,36 @@ public class Lexer implements Closeable {
         return new LexingException(pos, message + " at " + pos);
     }
 
+    @SuppressWarnings("fallthrough")
     public MatchStatus peek() throws LexingException {
-        Token tok = getToken();
-        if (tok != null) return MatchStatus.OK;
-        MatchStatus st = doMatch();
-        if (st == MatchStatus.EOI) setState(null);
+        MatchStatus st = getMatchStatus();
+        if (st != null) return st;
+        st = doMatch();
+        setMatchStatus(st);
+        switch (st) {
+            case EOI:
+                setState(null);
+            case NO_MATCH:
+                setToken(null);
+                break;
+        }
         return st;
     }
 
     public Token next() throws LexingException {
         MatchStatus st = peek();
+        Token tok = getToken();
         switch (st) {
+            case OK:
+                advance(tok);
+                break;
             case NO_MATCH:
                 throw unexpectedInput();
             case EOI:
                 throw new LexingException(getInputPosition(),
                                           "No more input to advance past");
         }
-        Token tok = getToken();
-        if (tok != null) advance(tok);
+        setMatchStatus(null);
         setToken(null);
         return tok;
     }
@@ -668,8 +690,9 @@ public class Lexer implements Closeable {
         matchers.clear();
         state = null;
         atEOI = true;
+        matchStatus = null;
         token = null;
-        matchersState = MatcherListState.NEED_REBUILD;
+        matchersState = null;
     }
 
     public static Grammar.Production terminalToken(String name,
