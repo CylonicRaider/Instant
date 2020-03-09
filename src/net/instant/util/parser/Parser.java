@@ -356,6 +356,7 @@ public class Parser {
 
         public void setExpectation(ExpectationSet exp) {
             getExpectations().add(exp);
+            getLexer().setState(exp.getLexerState());
         }
 
         public String formatExpectations() {
