@@ -166,7 +166,7 @@ public class Parser {
 
         void storeToken(Lexer.Token tok);
 
-        void addExpectation(ExpectationSet exp);
+        void setExpectation(ExpectationSet exp);
 
         String formatExpectations();
 
@@ -354,7 +354,7 @@ public class Parser {
             top.addChild(new ParseTreeImpl(tok));
         }
 
-        public void addExpectation(ExpectationSet exp) {
+        public void setExpectation(ExpectationSet exp) {
             getExpectations().add(exp);
         }
 
@@ -597,7 +597,7 @@ public class Parser {
         }
 
         public void apply(Status status) throws ParsingException {
-            status.addExpectation(this);
+            status.setExpectation(this);
             Lexer.Token tok = status.getCurrentToken(true);
             if (tok == null || ! tok.matches(expected))
                 throw status.unexpectedToken();
@@ -683,7 +683,7 @@ public class Parser {
         }
 
         public void apply(Status status) throws ParsingException {
-            status.addExpectation(this);
+            status.setExpectation(this);
             Lexer.Token tok = status.getCurrentToken(false);
             State succ = (tok == null) ? null : successors.get(tok.getName());
             if (succ == null)
@@ -724,7 +724,7 @@ public class Parser {
         }
 
         public void apply(Status status) throws ParsingException {
-            status.addExpectation(this);
+            status.setExpectation(this);
             if (status.getCurrentTokenStatus() != Lexer.MatchStatus.EOI)
                 throw status.unexpectedToken();
             status.setState(null);
