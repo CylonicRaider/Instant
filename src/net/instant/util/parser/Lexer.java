@@ -524,8 +524,11 @@ public class Lexer implements Closeable {
         if (s == state) return;
         State os = state;
         state = s;
+        MatchStatus ms = getMatchStatus();
         Token tok = getToken();
-        if (tok != null && ! (s.isCompatibleWith(os) && s.contains(tok))) {
+        if (ms != null && (s == null || os == null ||
+                           (ms == MatchStatus.OK && ! s.contains(tok)) ||
+                           ! s.isCompatibleWith(os))) {
             setMatchStatus(null);
             setToken(null);
         }
