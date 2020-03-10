@@ -973,7 +973,7 @@ public class Parser {
                     boolean symbolMaybeEmpty = ((s.getFlags() &
                         Grammar.SYM_OPTIONAL) != 0);
                     String c = s.getContent();
-                    if (grammar.hasProductions(c)) {
+                    if (getToken(c) == null) {
                         Set<Grammar.Symbol> localSymbols =
                             findInitialSymbols(c, seen);
                         ret.addAll(localSymbols);
@@ -1122,13 +1122,13 @@ public class Parser {
                 sym.getFlags() & ~COMPILER_FLAGS);
             switch (sym.getType()) {
                 case NONTERMINAL:
-                    if (grammar.hasProductions(sym.getContent())) {
-                        for (Grammar.Symbol s : findInitialSymbols(
-                                sym.getContent())) {
+                    String c = sym.getContent();
+                    if (getToken(c) == null) {
+                        for (Grammar.Symbol s : findInitialSymbols(c)) {
                             selectors.add(symbolWithFlags(s,
                                 cleanedSym.getFlags()));
                         }
-                        addProductions(sym.getContent());
+                        addProductions(c);
                         return createCallState(cleanedSym);
                     }
                 case TERMINAL: case PATTERN_TERMINAL: case ANYTHING:
