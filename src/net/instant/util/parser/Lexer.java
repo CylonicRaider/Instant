@@ -50,10 +50,11 @@ public class Lexer implements Closeable {
                             syms.get(1).getType() != SymbolType.NONTERMINAL)
                         throw new InvalidGrammarException("LexerGrammar " +
                             "second production symbols must be nonterminals");
+                    int allowedFlags = (size == 1) ? SYM_INLINE : 0;
                     for (Symbol s : syms) {
-                        if ((s.getFlags() & SYM_ALL) != 0)
+                        if ((s.getFlags() & ~allowedFlags & SYM_ALL) != 0)
                             throw new InvalidGrammarException(
-                                "LexerGrammar symbols must have no flags");
+                                "LexerGrammar symbols should have no flags");
                     }
                 }
             }
@@ -700,18 +701,22 @@ public class Lexer implements Closeable {
 
     public static Grammar.Production terminalToken(String name,
                                                    String content) {
-        return new Grammar.Production(name, Grammar.Symbol.terminal(content));
+        return new Grammar.Production(name, Grammar.Symbol.terminal(content,
+            Grammar.SYM_INLINE));
     }
     public static Grammar.Production patternToken(String name,
                                                   Pattern content) {
-        return new Grammar.Production(name, Grammar.Symbol.pattern(content));
+        return new Grammar.Production(name, Grammar.Symbol.pattern(content,
+            Grammar.SYM_INLINE));
     }
     public static Grammar.Production patternToken(String name,
                                                   String content) {
-        return new Grammar.Production(name, Grammar.Symbol.pattern(content));
+        return new Grammar.Production(name, Grammar.Symbol.pattern(content,
+            Grammar.SYM_INLINE));
     }
     public static Grammar.Production anythingToken(String name) {
-        return new Grammar.Production(name, Grammar.Symbol.anything());
+        return new Grammar.Production(name, Grammar.Symbol.anything(
+            Grammar.SYM_INLINE));
     }
 
     public static Grammar.Production state(String name) {
