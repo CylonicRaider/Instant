@@ -2,20 +2,15 @@ package net.instant.util.parser;
 
 import java.io.Reader;
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.regex.Pattern;
 import net.instant.util.Formats;
 import net.instant.util.LineColumnReader;
-import net.instant.util.NamedValue;
 
 public final class Grammars {
 
     private static class MetaGrammar extends Parser.ParserGrammar {
 
-        private static final String ILS =
-            Lexer.LexerGrammar.START_SYMBOL.getContent();
         private static final String IPS = START_SYMBOL.getContent();
 
         public static final MetaGrammar INSTANCE;
@@ -32,13 +27,9 @@ public final class Grammars {
 
         public MetaGrammar() {
             super(
-                /* Lexer grammar (dummy) */
-                new Grammar(prod("$tokens")),
                 /* Tokens */
                 Lexer.patternToken("EndOfLine", "\r?\n|\r"),
                 Lexer.patternToken("Space", "[ \t\u000b\f]+"),
-                Lexer.terminalToken("BracketOpen", "["),
-                Lexer.terminalToken("BracketClose", "]"),
                 Lexer.terminalToken("Equals", "="),
                 Lexer.terminalToken("Bar", "|"),
                 Lexer.terminalToken("Quote", "\""),
@@ -105,23 +96,14 @@ public final class Grammars {
                      nt("Equals", SYM_DISCARD), nt("LBS", SYM_DISCARD),
                      nt("ProductionContent"),
                      nt("EOLX", SYM_DISCARD)),
-                /* File sections */
-                prod("SectionHeader",
-                     nt("BracketOpen", SYM_DISCARD), nt("S", SYM_DISCARD),
-                     nt("Identifier"), nt("S", SYM_DISCARD),
-                     nt("BracketClose", SYM_DISCARD),
-                     nt("SEOLX", SYM_DISCARD)),
-                prod("SectionContentLine", nt("SEOLX", SYM_DISCARD)),
-                prod("SectionContentLine", nt("Production")),
-                prod("SectionContent",
-                     nt("SectionContentLine", SYM_INLINE | SYM_OPTIONAL |
-                                              SYM_REPEAT)),
-                prod("Section", nt("SectionHeader"), nt("SectionContent")),
+                /* File contents */
+                prod("FileContentLine", nt("SEOLX", SYM_DISCARD)),
+                prod("FileContentLine", nt("Production")),
+                prod("FileContent",
+                     nt("FileContentLine", SYM_INLINE | SYM_OPTIONAL |
+                                           SYM_REPEAT)),
                 /* Overall file structure */
-                prod("SectionList"),
-                prod("SectionList", nt("Section"),
-                     nt("SectionList", SYM_INLINE | SYM_OPTIONAL)),
-                prod("File", nt("SectionContent"), nt("SectionList")),
+                prod("File", nt("FileContent")),
                 prod(IPS, nt("File"))
             );
         }
@@ -140,26 +122,6 @@ public final class Grammars {
     }
 
     private static class MapperHolder {
-
-        public static class NamedGrammar implements NamedValue {
-
-            private final String name;
-            private final Grammar grammar;
-
-            public NamedGrammar(String name, Grammar grammar) {
-                this.name = name;
-                this.grammar = grammar;
-            }
-
-            public String getName() {
-                return name;
-            }
-
-            public Grammar getGrammar() {
-                return grammar;
-            }
-
-        }
 
         public static final UnionMapper<String> STRING_ELEMENT =
             new UnionMapper<String>();
@@ -253,68 +215,17 @@ public final class Grammars {
                 }
             };
 
-        public static final Mapper<String> SECTION_HEADER =
-            RecordMapper.wrap(LeafMapper.string());
+        public static final Mapper<Grammar> FILE = RecordMapper.wrap(GRAMMAR);
 
-        public static final Mapper<NamedGrammar> SECTION =
-            new RecordMapper<NamedGrammar>() {
-
-                private final Mapper<String> NAME = add(SECTION_HEADER);
-                private final Mapper<Grammar> CONTENT = add(GRAMMAR);
-
-                protected NamedGrammar mapInner(Result res) {
-                    return new NamedGrammar(res.get(NAME), res.get(CONTENT));
-                }
-
-            };
-
-        public static final Mapper<Map<String, Grammar>> FILE =
-            new RecordMapper<Map<String, Grammar>>() {
-
-                private final Mapper<Grammar> HEADER = add(GRAMMAR);
-                private final Mapper<List<NamedGrammar>> BODY =
-                    add(CompositeMapper.aggregate(SECTION));
-
-                protected Map<String, Grammar> mapInner(Result res) {
-                    Map<String, Grammar> ret =
-                        new LinkedHashMap<String, Grammar>();
-                    Grammar header = res.get(HEADER);
-                    if (! header.isEmpty())
-                        ret.put(null, header);
-                    for (NamedGrammar ng : res.get(BODY)) {
-                        ret.put(ng.getName(), ng.getGrammar());
-                    }
-                    return ret;
-                }
-
-            };
-
-        public static final Mapper<Map<String, Grammar>> FILE_WRAPPER =
+        public static final Mapper<Grammar> FILE_WRAPPER =
             RecordMapper.wrap(FILE);
 
         public static final Mapper<Parser.ParserGrammar> PARSER =
-            new RecordMapper.WrapperMapper<Map<String, Grammar>,
+            new RecordMapper.WrapperMapper<Grammar,
                                            Parser.ParserGrammar>(FILE) {
-                protected Parser.ParserGrammar process(
-                        Map<String, Grammar> value) throws MappingException {
-                    Grammar lexer = value.get("tokens");
-                    Grammar parser = value.get("grammar");
-                    for (String k : value.keySet()) {
-                        if ("tokens".equals(k) || "grammar".equals(k))
-                            continue;
-                        if (k == null)
-                            throw new MappingException("Parser grammar " +
-                                "files should not contain headers");
-                        throw new MappingException(
-                            "Unrecognized grammar file section " + k);
-                    }
-                    if (lexer == null)
-                        throw new MappingException(
-                            "Missing token definition in grammar file");
-                    if (parser == null)
-                        throw new MappingException(
-                            "Missing grammar definition in grammar file");
-                    return new Parser.ParserGrammar(lexer, parser);
+                protected Parser.ParserGrammar process(Grammar value)
+                        throws MappingException {
+                    return new Parser.ParserGrammar(value);
                 }
             };
 
@@ -387,7 +298,7 @@ public final class Grammars {
     public static Mapper<Grammar> getGrammarContentMapper() {
         return MapperHolder.GRAMMAR;
     }
-    public static Mapper<Map<String, Grammar>> getGrammarFileMapper() {
+    public static Mapper<Grammar> getGrammarFileMapper() {
         return MapperHolder.FILE_WRAPPER;
     }
     public static Mapper<Parser.ParserGrammar> getParserMapper() {

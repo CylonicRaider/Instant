@@ -92,7 +92,7 @@ public class Lexer implements Closeable {
         }
 
         public Lexer makeLexer(LineColumnReader input) {
-            return new Lexer(this, input);
+            return new Lexer(input);
         }
         public Lexer makeLexer(Reader input) {
             return makeLexer(new LineColumnReader(input));
@@ -448,7 +448,6 @@ public class Lexer implements Closeable {
 
     private static final int BUFFER_SIZE = 8192;
 
-    private final CompiledGrammar grammar;
     private final LineColumnReader input;
     private final StringBuilder inputBuffer;
     private final LineColumnReader.CoordinatesTracker inputPosition;
@@ -459,21 +458,16 @@ public class Lexer implements Closeable {
     private Token token;
     private MatcherListState matchersState;
 
-    public Lexer(CompiledGrammar grammar, LineColumnReader input) {
-        this.grammar = grammar;
+    public Lexer(LineColumnReader input) {
         this.input = input;
         this.inputBuffer = new StringBuilder();
         this.inputPosition = new LineColumnReader.CoordinatesTracker();
         this.matchers = new LinkedHashMap<String, Matcher>();
-        this.state = grammar.getInitialState();
+        this.state = null;
         this.atEOI = false;
         this.matchStatus = null;
         this.token = null;
         this.matchersState = MatcherListState.NEED_REBUILD;
-    }
-
-    protected CompiledGrammar getGrammar() {
-        return grammar;
     }
 
     protected Reader getInput() {

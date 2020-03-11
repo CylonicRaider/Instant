@@ -26,65 +26,34 @@ public class Parser {
         public static final Symbol START_SYMBOL =
             Symbol.nonterminal("$start", 0);
 
-        private Lexer.LexerGrammar reference;
-
         public ParserGrammar() {
             super();
-        }
-        public ParserGrammar(ParserGrammar copyFrom) {
-            super(copyFrom);
-            reference = new Lexer.LexerGrammar(copyFrom.getReference());
         }
         public ParserGrammar(GrammarView copyFrom) {
             super(copyFrom);
         }
-        public ParserGrammar(GrammarView lexerGrammar, GrammarView copyFrom) {
-            super(copyFrom);
-            reference = new Lexer.LexerGrammar(lexerGrammar);
-        }
-        public ParserGrammar(GrammarView lexerGrammar,
-                             Production... productions) {
+        public ParserGrammar(Production... productions) {
             super(productions);
-            reference = new Lexer.LexerGrammar(lexerGrammar);
         }
 
-        protected String toStringDetail() {
-            return "reference=" + reference;
+        public Grammar getReference() {
+            return null;
         }
 
-        public Lexer.LexerGrammar getReference() {
-            return reference;
-        }
-        public void setReference(Lexer.LexerGrammar ref) {
-            reference = ref;
-        }
-
-        protected boolean checkProductions(String name) {
-            return (super.checkProductions(name) ||
-                (reference != null && reference.checkProductions(name)));
-        }
         public void validate() throws InvalidGrammarException {
             validate(START_SYMBOL.getContent());
-            if (reference != null) reference.validate();
         }
 
     }
 
     public static class CompiledGrammar implements GrammarView {
 
-        private final Lexer.CompiledGrammar lexerGrammar;
         private final ParserGrammar source;
         private final State initialState;
 
-        protected CompiledGrammar(Lexer.CompiledGrammar lexerGrammar,
-                                  ParserGrammar source, State initialState) {
-            this.lexerGrammar = lexerGrammar;
+        protected CompiledGrammar(ParserGrammar source, State initialState) {
             this.source = source;
             this.initialState = initialState;
-        }
-
-        protected Lexer.CompiledGrammar getLexerGrammar() {
-            return lexerGrammar;
         }
 
         protected ParserGrammar getSource() {
@@ -103,8 +72,12 @@ public class Parser {
             return source.getProductions(name);
         }
 
+        protected Lexer makeLexer(LineColumnReader input) {
+            return new Lexer(input);
+        }
+
         public Parser makeParser(LineColumnReader input, boolean keepAll) {
-            return new Parser(this, lexerGrammar.makeLexer(input), keepAll);
+            return new Parser(this, makeLexer(input), keepAll);
         }
         public Parser makeParser(Reader input, boolean keepAll) {
             return makeParser(new LineColumnReader(input), keepAll);
@@ -1350,9 +1323,7 @@ public class Parser {
     public static CompiledGrammar compile(ParserGrammar g)
             throws InvalidGrammarException {
         Compiler comp = new Compiler(g);
-        ParserGrammar gc = comp.getGrammar();
-        return new CompiledGrammar(Lexer.compile(gc.getReference()),
-                                   gc, comp.call());
+        return new CompiledGrammar(comp.getGrammar(), comp.call());
     }
 
 }
