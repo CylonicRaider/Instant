@@ -14,6 +14,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Callable;
+import java.util.regex.Pattern;
 import net.instant.util.IdentityLinkedSet;
 import net.instant.util.LineColumnReader;
 import net.instant.util.NamedSet;
@@ -32,16 +33,35 @@ public class Parser {
         public ParserGrammar(GrammarView copyFrom) {
             super(copyFrom);
         }
+        public ParserGrammar(List<Production> productions) {
+            super(productions);
+        }
         public ParserGrammar(Production... productions) {
             super(productions);
         }
 
-        public Grammar getReference() {
-            return null;
-        }
-
         public void validate() throws InvalidGrammarException {
             validate(START_SYMBOL.getContent());
+        }
+
+        public static Grammar.Production terminalToken(String name,
+                                                       String content) {
+            return new Grammar.Production(name,
+                Grammar.Symbol.terminal(content, Grammar.SYM_INLINE));
+        }
+        public static Grammar.Production patternToken(String name,
+                                                      Pattern content) {
+            return new Grammar.Production(name,
+                Grammar.Symbol.pattern(content, Grammar.SYM_INLINE));
+        }
+        public static Grammar.Production patternToken(String name,
+                                                      String content) {
+            return new Grammar.Production(name,
+                Grammar.Symbol.pattern(content, Grammar.SYM_INLINE));
+        }
+        public static Grammar.Production anythingToken(String name) {
+            return new Grammar.Production(name,
+                Grammar.Symbol.anything(Grammar.SYM_INLINE));
         }
 
     }
@@ -846,16 +866,11 @@ public class Parser {
         protected Lexer.TokenPattern compileToken(String name)
                 throws InvalidGrammarException {
             Set<Grammar.Production> prods = grammar.getRawProductions(name);
-            boolean check = true;
-            if (prods == null) {
-                prods = grammar.getReference().getRawProductions(name);
-                check = false;
-            }
             if (prods.size() != 1) return null;
             Grammar.Production prod = prods.iterator().next();
             if (prod.getSymbols().size() != 1) return null;
             Grammar.Symbol sym = prod.getSymbols().get(0);
-            if (check && sym.getFlags() != Grammar.SYM_INLINE) return null;
+            if (sym.getFlags() != Grammar.SYM_INLINE) return null;
             Lexer.TokenPattern ret = Lexer.TokenPattern.create(name, prods);
             return ret;
         }

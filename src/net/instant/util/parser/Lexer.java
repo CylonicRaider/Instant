@@ -518,26 +518,6 @@ public class Lexer implements Closeable {
         matchersState = null;
     }
 
-    public static Grammar.Production terminalToken(String name,
-                                                   String content) {
-        return new Grammar.Production(name, Grammar.Symbol.terminal(content,
-            Grammar.SYM_INLINE));
-    }
-    public static Grammar.Production patternToken(String name,
-                                                  Pattern content) {
-        return new Grammar.Production(name, Grammar.Symbol.pattern(content,
-            Grammar.SYM_INLINE));
-    }
-    public static Grammar.Production patternToken(String name,
-                                                  String content) {
-        return new Grammar.Production(name, Grammar.Symbol.pattern(content,
-            Grammar.SYM_INLINE));
-    }
-    public static Grammar.Production anythingToken(String name) {
-        return new Grammar.Production(name, Grammar.Symbol.anything(
-            Grammar.SYM_INLINE));
-    }
-
     public static boolean patternsEqual(Pattern a, Pattern b) {
         // HACK: Assuming the Pattern API does not change in incompatible
         //       ways...
