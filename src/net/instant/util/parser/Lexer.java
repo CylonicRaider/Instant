@@ -5,100 +5,17 @@ import java.io.IOException;
 import java.io.Reader;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.Callable;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import net.instant.util.Formats;
 import net.instant.util.LineColumnReader;
 import net.instant.util.NamedMap;
-import net.instant.util.NamedSet;
 import net.instant.util.NamedValue;
 
 public class Lexer implements Closeable {
-
-    public static class LexerGrammar extends Grammar {
-
-        public static final Symbol START_SYMBOL =
-            Symbol.nonterminal("$tokens", 0);
-
-        public LexerGrammar() {
-            super();
-        }
-        public LexerGrammar(GrammarView copyFrom) {
-            super(copyFrom);
-        }
-        public LexerGrammar(Production... productions) {
-            super(productions);
-        }
-
-        protected void validate(String startSymbol)
-                throws InvalidGrammarException {
-            super.validate(startSymbol);
-            for (NamedSet<Production> ps : getRawProductions().values()) {
-                for (Production pr : ps) {
-                    List<Symbol> syms = pr.getSymbols();
-                    int size = syms.size();
-                    if (size > 2)
-                        throw new InvalidGrammarException("Too many " +
-                            "symbols in LexerGrammar production");
-                    if (size > 1 &&
-                            syms.get(1).getType() != SymbolType.NONTERMINAL)
-                        throw new InvalidGrammarException("LexerGrammar " +
-                            "second production symbols must be nonterminals");
-                    int allowedFlags = (size == 1) ? SYM_INLINE : 0;
-                    for (Symbol s : syms) {
-                        if ((s.getFlags() & ~allowedFlags & SYM_ALL) != 0)
-                            throw new InvalidGrammarException(
-                                "LexerGrammar symbols should have no flags");
-                    }
-                }
-            }
-        }
-        public void validate() throws InvalidGrammarException {
-            validate(START_SYMBOL.getContent());
-        }
-
-    }
-
-    public static class CompiledGrammar implements GrammarView {
-
-        private final LexerGrammar source;
-        private final State initialState;
-
-        protected CompiledGrammar(LexerGrammar source, State initialState) {
-            this.source = source;
-            this.initialState = initialState;
-        }
-
-        protected GrammarView getSource() {
-            return source;
-        }
-
-        protected State getInitialState() {
-            return initialState;
-        }
-
-        public Set<String> getProductionNames() {
-            return source.getProductionNames();
-        }
-
-        public Set<Grammar.Production> getProductions(String name) {
-            return source.getProductions(name);
-        }
-
-        public Lexer makeLexer(LineColumnReader input) {
-            return new Lexer(input);
-        }
-        public Lexer makeLexer(Reader input) {
-            return makeLexer(new LineColumnReader(input));
-        }
-
-    }
 
     public enum MatchStatus { OK, NO_MATCH, EOI }
 
@@ -348,98 +265,6 @@ public class Lexer implements Closeable {
 
         public boolean contains(Token tok) {
             return getPatterns().containsKey(tok.getName());
-        }
-
-    }
-
-    protected static class Compiler implements Callable<State> {
-
-        private final LexerGrammar grammar;
-        private final Map<String, TokenPattern> tokens;
-        private final Map<String, StandardState> states;
-        private final Set<String> seenStates;
-
-        public Compiler(LexerGrammar grammar) throws InvalidGrammarException {
-            this.grammar = new LexerGrammar(grammar);
-            this.tokens = new NamedMap<TokenPattern>();
-            this.states = new NamedMap<StandardState>();
-            this.seenStates = new HashSet<String>();
-            this.grammar.validate();
-        }
-
-        protected LexerGrammar getGrammar() {
-            return grammar;
-        }
-
-        protected StandardState getState(String name) {
-            if (name == null) return null;
-            StandardState ret = states.get(name);
-            if (ret == null) {
-                ret = new StandardState(name);
-                states.put(name, ret);
-            }
-            return ret;
-        }
-
-        protected TokenPattern compileToken(String name)
-                throws InvalidGrammarException {
-            return TokenPattern.create(name, grammar.getProductions(name));
-        }
-
-        protected TokenPattern getToken(String name)
-                throws InvalidGrammarException {
-            TokenPattern ret = tokens.get(name);
-            if (ret == null) {
-                ret = compileToken(name);
-                tokens.put(name, ret);
-            }
-            return ret;
-        }
-
-        protected void compileStateTransition(String name, String token,
-                String nextName) throws InvalidGrammarException {
-            StandardState st = getState(name);
-            if (st.getSuccessors().containsKey(token))
-                throw new InvalidGrammarException(
-                    "Redundant transitions for state " + name +
-                    " with token " + token);
-            st.getPatterns().put(token, getToken(token));
-            st.getSuccessors().put(token, getState(nextName));
-        }
-
-        @SuppressWarnings("fallthrough")
-        protected StandardState compileState(String name)
-                throws InvalidGrammarException {
-            StandardState st = getState(name);
-            if (seenStates.contains(name)) return st;
-            seenStates.add(name);
-            for (Grammar.Production pr : grammar.getProductions(name)) {
-                List<Grammar.Symbol> syms = pr.getSymbols();
-                String nextName = null;
-                switch (syms.size()) {
-                    case 0:
-                        st.setAccepting(true);
-                        break;
-                    case 2:
-                        // Index-1 symbols are validated to be nonterminals.
-                        nextName = syms.get(1).getContent();
-                        compileState(nextName);
-                    case 1:
-                        Grammar.Symbol sym = syms.get(0);
-                        if (sym.getType() != Grammar.SymbolType.NONTERMINAL)
-                            throw new InvalidGrammarException("Lexer " +
-                                "grammar state productions may only " +
-                                "contain nonterminals");
-                        compileStateTransition(name,
-                            syms.get(0).getContent(), nextName);
-                        break;
-                }
-            }
-            return st;
-        }
-
-        public State call() throws InvalidGrammarException {
-            return compileState(LexerGrammar.START_SYMBOL.getContent());
         }
 
     }
@@ -711,26 +536,6 @@ public class Lexer implements Closeable {
     public static Grammar.Production anythingToken(String name) {
         return new Grammar.Production(name, Grammar.Symbol.anything(
             Grammar.SYM_INLINE));
-    }
-
-    public static Grammar.Production state(String name) {
-        return new Grammar.Production(name);
-    }
-    public static Grammar.Production state(String name, String token) {
-        return new Grammar.Production(name,
-                                      Grammar.Symbol.nonterminal(token));
-    }
-    public static Grammar.Production state(String name, String token,
-                                           String next) {
-        return new Grammar.Production(name,
-                                      Grammar.Symbol.nonterminal(token),
-                                      Grammar.Symbol.nonterminal(next));
-    }
-
-    public static CompiledGrammar compile(LexerGrammar g)
-            throws InvalidGrammarException {
-        Compiler comp = new Compiler(g);
-        return new CompiledGrammar(comp.getGrammar(), comp.call());
     }
 
     public static boolean patternsEqual(Pattern a, Pattern b) {
