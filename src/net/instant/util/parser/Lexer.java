@@ -190,11 +190,9 @@ public class Lexer implements Closeable {
 
     }
 
-    protected interface State extends NamedValue {
+    protected interface State {
 
         Map<String, TokenPattern> getPatterns();
-
-        Map<String, State> getSuccessors();
 
         boolean isAccepting();
 
@@ -206,36 +204,23 @@ public class Lexer implements Closeable {
 
     protected static class StandardState implements State {
 
-        private final String name;
         private final Map<String, TokenPattern> patterns;
-        private final Map<String, State> successors;
         private final Map<State, Boolean> compatibles;
         private boolean accepting;
 
-        public StandardState(String name,
-                             Map<String, TokenPattern> patterns,
+        public StandardState(Map<String, TokenPattern> patterns,
                              boolean accepting) {
-            this.name = name;
             this.patterns = new NamedMap<TokenPattern>(
                 new LinkedHashMap<String, TokenPattern>(patterns));
-            this.successors = new LinkedHashMap<String, State>();
             this.compatibles = new HashMap<State, Boolean>();
             this.accepting = accepting;
         }
-        public StandardState(String name) {
-            this(name, Collections.<String, TokenPattern>emptyMap(), false);
-        }
-
-        public String getName() {
-            return name;
+        public StandardState() {
+            this(Collections.<String, TokenPattern>emptyMap(), false);
         }
 
         public Map<String, TokenPattern> getPatterns() {
             return patterns;
-        }
-
-        public Map<String, State> getSuccessors() {
-            return successors;
         }
 
         public boolean isAccepting() {
@@ -408,7 +393,6 @@ public class Lexer implements Closeable {
         String content = tok.getContent();
         getInputBuffer().delete(0, content.length());
         getRawPosition().advance(content, 0, content.length());
-        setState(getState().getSuccessors().get(tok.getName()));
         setMatchersState(MatcherListState.NEED_RESET);
     }
 

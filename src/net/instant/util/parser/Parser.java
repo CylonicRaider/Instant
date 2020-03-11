@@ -839,7 +839,7 @@ public class Parser {
 
         protected Lexer.State createLexerState(
                 Map<String, Lexer.TokenPattern> tokens) {
-            return new Lexer.StandardState(null, tokens, true);
+            return new Lexer.StandardState(tokens, true);
         }
         protected NullState createNullState() {
             return new NullState();
