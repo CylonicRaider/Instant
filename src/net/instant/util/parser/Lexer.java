@@ -17,6 +17,87 @@ import net.instant.util.NamedValue;
 
 public class Lexer implements Closeable {
 
+    public static class TokenPattern implements NamedValue {
+
+        private final String name;
+        private final Grammar.SymbolType type;
+        private final Pattern pattern;
+
+        public TokenPattern(String name, Grammar.SymbolType type,
+                            Pattern pattern) {
+            if (name == null)
+                throw new NullPointerException(
+                    "TokenPattern name may not be null");
+            if (type == null)
+                throw new NullPointerException(
+                    "TokenPattern type may not be null");
+            if (pattern == null)
+                throw new NullPointerException(
+                    "TokenPattern pattern may not be null");
+            this.name = name;
+            this.type = type;
+            this.pattern = pattern;
+        }
+
+        public String toString() {
+            return String.format("%s@%h[name=%s,type=%s,pattern=%s]",
+                                 getClass().getName(), this, getName(),
+                                 getType(), getPattern());
+        }
+
+        public boolean equals(Object other) {
+            if (! (other instanceof TokenPattern)) return false;
+            TokenPattern to = (TokenPattern) other;
+            return getName().equals(to.getName()) &&
+                   getType().equals(to.getType()) &&
+                   patternsEqual(getPattern(), to.getPattern());
+        }
+
+        public int hashCode() {
+            return getName().hashCode() ^ getType().hashCode() ^
+                patternHashCode(getPattern());
+        }
+
+        public String getName() {
+            return name;
+        }
+
+        public Grammar.SymbolType getType() {
+            return type;
+        }
+
+        public Pattern getPattern() {
+            return pattern;
+        }
+
+        protected Token createToken(LineColumnReader.Coordinates position,
+                                    String content) {
+            return new Token(getName(), position, content);
+        }
+
+        public static TokenPattern create(String name,
+                                          Set<Grammar.Production> prods)
+                throws InvalidGrammarException {
+            if (prods.size() == 0)
+                throw new InvalidGrammarException(
+                    "Missing definition of token " + name);
+            if (prods.size() > 1)
+                throw new InvalidGrammarException(
+                    "Multiple productions for token " + name);
+            Grammar.Production pr = prods.iterator().next();
+            if (pr.getSymbols().size() != 1)
+                throw new InvalidGrammarException("Token " +
+                    name + " definition must contain exactly one " +
+                    "nonterminal");
+            Grammar.Symbol sym = pr.getSymbols().get(0);
+            if (sym.getType() == Grammar.SymbolType.NONTERMINAL)
+                throw new InvalidGrammarException("Token " + name +
+                    " definition may not contain nonterminals");
+            return new TokenPattern(name, sym.getType(), sym.getPattern());
+        }
+
+    }
+
     public enum MatchStatus { OK, NO_MATCH, EOI }
 
     public static class Token implements NamedValue {
@@ -84,6 +165,10 @@ public class Lexer implements Closeable {
                 return sym.getPattern().matcher(getContent()).matches();
             }
         }
+        public boolean matches(TokenPattern pat) {
+            return (equalOrNull(getName(), pat.getName()) &&
+                    pat.getPattern().matcher(getContent()).matches());
+        }
 
         private static boolean equalOrNull(String a, String b) {
             return (a == null) ? (b == null) : a.equals(b);
@@ -110,82 +195,6 @@ public class Lexer implements Closeable {
         public LexingException(LineColumnReader.Coordinates pos,
                                String message, Throwable cause) {
             super(pos, message, cause);
-        }
-
-    }
-
-    protected static class TokenPattern implements NamedValue {
-
-        private final String name;
-        private final Grammar.SymbolType type;
-        private final Pattern pattern;
-
-        public TokenPattern(String name, Grammar.SymbolType type,
-                            Pattern pattern) {
-            if (name == null)
-                throw new NullPointerException(
-                    "TokenPattern name may not be null");
-            if (type == null)
-                throw new NullPointerException(
-                    "TokenPattern type may not be null");
-            if (pattern == null)
-                throw new NullPointerException(
-                    "TokenPattern pattern may not be null");
-            this.name = name;
-            this.type = type;
-            this.pattern = pattern;
-        }
-
-        public String toString() {
-            return String.format("%s@%h[name=%s,type=%s,pattern=%s]",
-                                 getClass().getName(), this, getName(),
-                                 getType(), getPattern());
-        }
-
-        public boolean equals(Object other) {
-            if (! (other instanceof TokenPattern)) return false;
-            TokenPattern to = (TokenPattern) other;
-            return getName().equals(to.getName()) &&
-                   getType().equals(to.getType()) &&
-                   patternsEqual(getPattern(), to.getPattern());
-        }
-
-        public int hashCode() {
-            return getName().hashCode() ^ getType().hashCode() ^
-                patternHashCode(getPattern());
-        }
-
-        public String getName() {
-            return name;
-        }
-
-        public Grammar.SymbolType getType() {
-            return type;
-        }
-
-        public Pattern getPattern() {
-            return pattern;
-        }
-
-        public static TokenPattern create(String name,
-                                          Set<Grammar.Production> prods)
-                throws InvalidGrammarException {
-            if (prods.size() == 0)
-                throw new InvalidGrammarException(
-                    "Missing definition of token " + name);
-            if (prods.size() > 1)
-                throw new InvalidGrammarException(
-                    "Multiple productions for token " + name);
-            Grammar.Production pr = prods.iterator().next();
-            if (pr.getSymbols().size() != 1)
-                throw new InvalidGrammarException("Token " +
-                    name + " definition must contain exactly one " +
-                    "nonterminal");
-            Grammar.Symbol sym = pr.getSymbols().get(0);
-            if (sym.getType() == Grammar.SymbolType.NONTERMINAL)
-                throw new InvalidGrammarException("Token " + name +
-                    " definition may not contain nonterminals");
-            return new TokenPattern(name, sym.getType(), sym.getPattern());
         }
 
     }
@@ -386,8 +395,8 @@ public class Lexer implements Closeable {
         return ret;
     }
     protected Token createToken(int length, String name) {
-        return new Token(name, getInputPosition(),
-                         getInputBuffer().substring(0, length));
+        return getState().getPatterns().get(name).createToken(
+            getInputPosition(), getInputBuffer().substring(0, length));
     }
     protected void advance(Token tok) {
         String content = tok.getContent();
