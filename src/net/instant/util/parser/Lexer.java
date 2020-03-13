@@ -242,16 +242,8 @@ public class Lexer implements Closeable {
         public boolean isCompatibleWith(State other) {
             Boolean ret = compatibles.get(other);
             if (ret == null) {
-                Map<String, TokenPattern> thisPatterns = getPatterns();
-                Map<String, TokenPattern> otherPatterns = other.getPatterns();
-                ret = true;
-                for (TokenPattern tp : thisPatterns.values()) {
-                    TokenPattern op = otherPatterns.get(tp.getName());
-                    if (op == null || ! tp.equals(op)) {
-                        ret = false;
-                        break;
-                    }
-                }
+                ret = other.getPatterns().keySet().containsAll(
+                    getPatterns().keySet());
                 compatibles.put(other, ret);
             }
             return ret;
