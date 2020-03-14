@@ -911,6 +911,18 @@ public class Parser {
             return ret;
         }
 
+        protected StateInfo getStateInfo(State state) {
+            StateInfo ret = info.get(state);
+            if (ret == null) {
+                ret = createStateInfo(state);
+                info.put(state, ret);
+            }
+            return ret;
+        }
+        protected String describeState(State state) {
+            return getStateInfo(state).describe();
+        }
+
         protected State getInitialState(String prodName) {
             State ret = initialStates.get(prodName);
             if (ret == null) {
@@ -988,18 +1000,6 @@ public class Parser {
         protected Set<Grammar.Symbol> findInitialSymbols(String prodName)
                 throws InvalidGrammarException {
             return findInitialSymbols(prodName, new LinkedHashSet<String>());
-        }
-
-        protected StateInfo getStateInfo(State state) {
-            StateInfo ret = info.get(state);
-            if (ret == null) {
-                ret = createStateInfo(state);
-                info.put(state, ret);
-            }
-            return ret;
-        }
-        protected String describeState(State state) {
-            return getStateInfo(state).describe();
         }
 
         protected boolean selectorsEqual(Grammar.Symbol a, Grammar.Symbol b) {
