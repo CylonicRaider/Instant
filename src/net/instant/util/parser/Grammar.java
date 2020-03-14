@@ -16,13 +16,10 @@ import net.instant.util.NamedValue;
 public class Grammar implements GrammarView {
 
     public enum SymbolType {
-        NONTERMINAL, TERMINAL, PATTERN_TERMINAL, ANYTHING
+        NONTERMINAL, TERMINAL, PATTERN_TERMINAL
     }
 
     public static class Symbol {
-
-        private static final Pattern ANYTHING_PATTERN =
-            Pattern.compile("(?s:.*)");
 
         private final SymbolType type;
         private final String content;
@@ -48,9 +45,6 @@ public class Grammar implements GrammarView {
                 case PATTERN_TERMINAL:
                     this.pattern = Pattern.compile(content);
                     break;
-                case ANYTHING:
-                    this.pattern = ANYTHING_PATTERN;
-                    break;
                 default:
                     throw new AssertionError("This should not happen?!");
             }
@@ -72,9 +66,6 @@ public class Grammar implements GrammarView {
                     break;
                 case PATTERN_TERMINAL:
                     base = Formats.formatPattern(getPattern());
-                    break;
-                case ANYTHING:
-                    base = "*";
                     break;
                 default:
                     throw new AssertionError("Unrecognized symbol type?!");
@@ -134,9 +125,6 @@ public class Grammar implements GrammarView {
         public static Symbol pattern(String content, int flags) {
             return pattern(Pattern.compile(content), flags);
         }
-        public static Symbol anything(int flags) {
-            return new Symbol(SymbolType.ANYTHING, "", flags);
-        }
 
         public static Symbol nonterminal(String content) {
             return nonterminal(content, 0);
@@ -149,9 +137,6 @@ public class Grammar implements GrammarView {
         }
         public static Symbol pattern(String content) {
             return pattern(content, 0);
-        }
-        public static Symbol anything() {
-            return anything(0);
         }
 
     }

@@ -59,10 +59,6 @@ public class Parser {
             return new Grammar.Production(name,
                 Grammar.Symbol.pattern(content, Grammar.SYM_INLINE));
         }
-        public static Grammar.Production anythingToken(String name) {
-            return new Grammar.Production(name,
-                Grammar.Symbol.anything(Grammar.SYM_INLINE));
-        }
 
     }
 
@@ -358,8 +354,6 @@ public class Parser {
                 for (Grammar.Symbol sym : exp.getExpectedTokens()) {
                     if (sym == null) {
                         accum.add("end of input");
-                    } else if (sym.getType() == Grammar.SymbolType.ANYTHING) {
-                        return "anything";
                     } else {
                         accum.add(sym.toUserString());
                     }
@@ -626,8 +620,7 @@ public class Parser {
         }
 
         public State getSuccessor(Grammar.Symbol selector) {
-            if (selector == null ||
-                    selector.getType() == Grammar.SymbolType.ANYTHING) {
+            if (selector == null) {
                 return successors.get(null);
             } else if (selector.getType() != Grammar.SymbolType.NONTERMINAL) {
                 return null;
@@ -637,8 +630,7 @@ public class Parser {
         }
         public void setSuccessor(Grammar.Symbol selector, State succ)
                 throws BadSuccessorException {
-            if (selector == null ||
-                    selector.getType() == Grammar.SymbolType.ANYTHING) {
+            if (selector == null) {
                 successors.put(null, succ);
             } else if (selector.getType() != Grammar.SymbolType.NONTERMINAL) {
                 throw new BadSuccessorException(
@@ -1121,7 +1113,7 @@ public class Parser {
                         addProductions(c);
                         return createCallState(cleanedSym);
                     }
-                case TERMINAL: case PATTERN_TERMINAL: case ANYTHING:
+                case TERMINAL: case PATTERN_TERMINAL:
                     selectors.add(cleanedSym);
                     return createLiteralState(cleanedSym);
                 default:

@@ -34,7 +34,6 @@ public final class Grammars {
                 terminalToken("Bar", "|"),
                 terminalToken("Quote", "\""),
                 terminalToken("Slash", "/"),
-                terminalToken("Asterisk", "*"),
                 terminalToken("Percent", "%"),
                 patternToken("StartComment", "[#;]"),
                 terminalToken("Caret", "^"),
@@ -75,8 +74,6 @@ public final class Grammars {
                      nt("SymbolTrailer", SYM_INLINE)),
                 prod("Symbol", nt("Slash", SYM_DISCARD),
                      nt("Regex"), nt("Slash", SYM_DISCARD),
-                     nt("SymbolTrailer", SYM_INLINE)),
-                prod("Symbol", nt("Asterisk"),
                      nt("SymbolTrailer", SYM_INLINE)),
                 prod("Symbol", nt("Caret"), nt("Symbol", SYM_INLINE)),
                 prod("Symbol", nt("Tilde"), nt("Symbol", SYM_INLINE)),
@@ -283,8 +280,6 @@ public final class Grammars {
                         return Grammar.Symbol.pattern(REGEX.map(pt));
                     }
                 });
-            SYMBOL_CONTENT.add("Asterisk",
-                LeafMapper.constant(Grammar.Symbol.anything()));
         }
 
     }
