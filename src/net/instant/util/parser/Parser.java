@@ -881,7 +881,8 @@ public class Parser {
             return tokens.get(name);
         }
 
-        protected Lexer.State getLexerState(Set<Grammar.Symbol> syms) {
+        protected Lexer.State getLexerState(Set<Grammar.Symbol> syms)
+                throws InvalidGrammarException {
             Lexer.State ret = lexerStates.get(syms);
             if (ret == null) {
                 Map<String, Lexer.TokenPattern> tokens =
@@ -890,8 +891,9 @@ public class Parser {
                     if (s == null)
                         continue;
                     if (s.getType() != Grammar.SymbolType.NONTERMINAL)
-                        throw new IllegalArgumentException(
-                            "Token definition set contains a raw terminal");
+                        throw new InvalidGrammarException(
+                            "Token definition set contains a raw terminal " +
+                            s.toUserString());
                     Lexer.TokenPattern tok = null;
                     Throwable error = null;
                     try {
@@ -1142,9 +1144,9 @@ public class Parser {
             int symCount = syms.size();
             for (int i = 0; i < symCount; i++) {
                 Grammar.Symbol sym = syms.get(i);
-                /* Create a state corresponding to the symbol; perform some
-                 * initial data wrangling. */
+                /* Create a state corresponding to the symbol. */
                 State next = compileSymbol(sym, selectors);
+                /* Tail recursion optimization. */
                 if (i == symCount - 1 &&
                         sym.getType() == Grammar.SymbolType.NONTERMINAL &&
                         sym.getContent().equals(prod.getName()) &&
@@ -1152,12 +1154,23 @@ public class Parser {
                                            Grammar.SYM_DISCARD |
                                            Grammar.SYM_REPEAT)
                         ) == Grammar.SYM_INLINE) {
-                    /* Tail recursion optimization. */
                     next = createNullState();
                     addSuccessor(next, null, getInitialState(prod.getName()),
                                  true);
                     tailJump = next;
                 }
+                /* Special case: The production is a token definition.
+                 * This could happen if the start symbol itself is a token
+                 * definition. */
+                if (getToken(prod.getName()) != null) {
+                    Grammar.Symbol ref = new Grammar.Symbol(
+                        Grammar.SymbolType.NONTERMINAL, prod.getName(), 0);
+                    next = createLiteralState(ref);
+                    selectors.clear();
+                    selectors.add(ref);
+                }
+                /* Determine preliminarily whether this symbol could be
+                 * skipped. */
                 boolean maybeEmpty = (selectors.contains(null) ||
                     (sym.getFlags() & Grammar.SYM_OPTIONAL) != 0);
                 selectors.remove(null);
@@ -1227,7 +1240,8 @@ public class Parser {
             return startState;
         }
 
-        protected void makeLexerStates(State st, Set<State> seen) {
+        protected void makeLexerStates(State st, Set<State> seen)
+                throws InvalidGrammarException {
             if (seen.contains(st)) return;
             seen.add(st);
             if (st instanceof ExpectationSet) {
