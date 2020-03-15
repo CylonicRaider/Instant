@@ -92,7 +92,7 @@ public class Parser {
 
     public interface ParseTree extends NamedValue {
 
-        Lexer.Token getToken();
+        Token getToken();
 
         String getContent();
 
@@ -132,11 +132,11 @@ public class Parser {
 
         Lexer.MatchStatus getCurrentTokenStatus() throws ParsingException;
 
-        Lexer.Token getCurrentToken(boolean required) throws ParsingException;
+        Token getCurrentToken(boolean required) throws ParsingException;
 
         void nextToken() throws ParsingException;
 
-        void storeToken(Lexer.Token tok);
+        void storeToken(Token tok);
 
         void setExpectation(ExpectationSet exp);
 
@@ -216,7 +216,7 @@ public class Parser {
     protected static class ParseTreeImpl implements ParseTree {
 
         private final String name;
-        private final Lexer.Token token;
+        private final Token token;
         private final List<ParseTree> children;
         private final List<ParseTree> childrenView;
 
@@ -225,7 +225,7 @@ public class Parser {
             childrenView = Collections.unmodifiableList(children);
         }
 
-        public ParseTreeImpl(Lexer.Token token) {
+        public ParseTreeImpl(Token token) {
             this.name = token.getName();
             this.token = token;
         }
@@ -238,7 +238,7 @@ public class Parser {
             return name;
         }
 
-        public Lexer.Token getToken() {
+        public Token getToken() {
             return token;
         }
 
@@ -292,7 +292,7 @@ public class Parser {
             }
         }
 
-        public Lexer.Token getCurrentToken(boolean required)
+        public Token getCurrentToken(boolean required)
                 throws ParsingException {
             try {
                 Lexer.MatchStatus st = getLexer().peek();
@@ -317,7 +317,7 @@ public class Parser {
             getExpectations().clear();
         }
 
-        public void storeToken(Lexer.Token tok) {
+        public void storeToken(Token tok) {
             List<ParseTreeImpl> stack = getTreeStack();
             if (stack.size() == 0)
                 throw new IllegalStateException(
@@ -392,7 +392,7 @@ public class Parser {
         }
 
         public ParsingException unexpectedToken() {
-            Lexer.Token tok;
+            Token tok;
             try {
                 tok = getCurrentToken(true);
             } catch (ParsingException exc) {
@@ -403,7 +403,7 @@ public class Parser {
             }
             return parsingException("Unexpected " +
                 ((tok != null) ?
-                    "token " + tok.toUserString() :
+                    "token " + tok :
                     "end of input at " + getCurrentPosition()) +
                 ", expected " + formatExpectations());
         }
@@ -569,7 +569,7 @@ public class Parser {
 
         public void apply(Status status) throws ParsingException {
             status.setExpectation(this);
-            Lexer.Token tok = status.getCurrentToken(true);
+            Token tok = status.getCurrentToken(true);
             if (tok == null || ! tok.matches(expected))
                 throw status.unexpectedToken();
             if ((expected.getFlags() & Symbol.SYM_DISCARD) == 0 ||
@@ -653,7 +653,7 @@ public class Parser {
 
         public void apply(Status status) throws ParsingException {
             status.setExpectation(this);
-            Lexer.Token tok = status.getCurrentToken(false);
+            Token tok = status.getCurrentToken(false);
             State succ = (tok == null) ? null : successors.get(tok.getName());
             if (succ == null)
                 succ = successors.get(null);
@@ -784,7 +784,7 @@ public class Parser {
 
         private final ParserGrammar grammar;
         private final Set<String> seenProductions;
-        private final Map<String, Lexer.TokenPattern> tokens;
+        private final Map<String, TokenPattern> tokens;
         private final Map<Set<Symbol>, Lexer.State> lexerStates;
         private final Map<String, State> initialStates;
         private final Map<String, State> finalStates;
@@ -796,7 +796,7 @@ public class Parser {
                 throws InvalidGrammarException {
             this.grammar = new ParserGrammar(grammar);
             this.seenProductions = new HashSet<String>();
-            this.tokens = new HashMap<String, Lexer.TokenPattern>();
+            this.tokens = new HashMap<String, TokenPattern>();
             this.lexerStates = new HashMap<Set<Symbol>,
                                            Lexer.State>();
             this.initialStates = new HashMap<String, State>();
@@ -812,7 +812,7 @@ public class Parser {
         }
 
         protected Lexer.State createLexerState(
-                Map<String, Lexer.TokenPattern> tokens) {
+                Map<String, TokenPattern> tokens) {
             return new Lexer.StandardState(tokens, true);
         }
         protected NullState createNullState() {
@@ -837,7 +837,7 @@ public class Parser {
             return new StateInfo(state);
         }
 
-        protected Lexer.TokenPattern compileToken(String name)
+        protected TokenPattern compileToken(String name)
                 throws InvalidGrammarException {
             Set<Production> prods = grammar.getRawProductions(name);
             if (prods.size() != 1) return null;
@@ -845,10 +845,10 @@ public class Parser {
             if (prod.getSymbols().size() != 1) return null;
             Symbol sym = prod.getSymbols().get(0);
             if (sym.getFlags() != Symbol.SYM_INLINE) return null;
-            Lexer.TokenPattern ret = Lexer.TokenPattern.create(name, prods);
+            TokenPattern ret = TokenPattern.create(name, prods);
             return ret;
         }
-        protected Lexer.TokenPattern getToken(String name)
+        protected TokenPattern getToken(String name)
                 throws InvalidGrammarException {
             if (! tokens.containsKey(name))
                 tokens.put(name, compileToken(name));
@@ -859,8 +859,8 @@ public class Parser {
                 throws InvalidGrammarException {
             Lexer.State ret = lexerStates.get(syms);
             if (ret == null) {
-                Map<String, Lexer.TokenPattern> tokens =
-                    new LinkedHashMap<String, Lexer.TokenPattern>();
+                Map<String, TokenPattern> tokens =
+                    new LinkedHashMap<String, TokenPattern>();
                 for (Symbol s : syms) {
                     if (s == null)
                         continue;
@@ -868,7 +868,7 @@ public class Parser {
                         throw new InvalidGrammarException("Token " +
                             "definition set contains a raw terminal " + s);
                     String cnt = ((Nonterminal) s).getReference();
-                    Lexer.TokenPattern tok = null;
+                    TokenPattern tok = null;
                     Throwable error = null;
                     try {
                         tok = getToken(cnt);
