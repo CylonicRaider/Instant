@@ -162,7 +162,7 @@ public final class Grammars {
 
         public static final Mapper<String> STRING =
             new CompositeMapper<String, String>(STRING_ELEMENT) {
-                protected String mapInner(Parser.ParseTree pt,
+                protected String mapInner(ParseTree pt,
                                           List<String> children) {
                     StringBuilder sb = new StringBuilder();
                     for (String s : children) sb.append(s);
@@ -172,7 +172,7 @@ public final class Grammars {
 
         public static final Mapper<Pattern> REGEX =
             new CompositeMapper<String, Pattern>(REGEX_ELEMENT) {
-                protected Pattern mapInner(Parser.ParseTree pt,
+                protected Pattern mapInner(ParseTree pt,
                                            List<String> children) {
                     StringBuilder sb = new StringBuilder();
                     for (String s : children) sb.append(s);
@@ -187,10 +187,10 @@ public final class Grammars {
             new UnionMapper<Symbol>();
 
         public static final Mapper<Symbol> SYMBOL = new Mapper<Symbol>() {
-            public Symbol map(Parser.ParseTree pt) throws MappingException {
+            public Symbol map(ParseTree pt) throws MappingException {
                 Symbol base = null;
                 int flags = 0;
-                for (Parser.ParseTree child : pt.getChildren()) {
+                for (ParseTree child : pt.getChildren()) {
                     if (SYMBOL_FLAG.canMap(child)) {
                         flags |= SYMBOL_FLAG.map(child);
                         continue;
@@ -231,7 +231,7 @@ public final class Grammars {
 
         public static final Mapper<Grammar> GRAMMAR = new CompositeMapper<
                     List<Production>, Grammar>(PRODUCTIONS) {
-                protected Grammar mapInner(Parser.ParseTree pt,
+                protected Grammar mapInner(ParseTree pt,
                         List<List<Production>> children) {
                     List<Production> productions =
                         new ArrayList<Production>();
@@ -259,7 +259,7 @@ public final class Grammars {
         static {
             STRING_ELEMENT.add("StringContent", LeafMapper.string());
             STRING_ELEMENT.add("Escape", new LeafMapper<String>() {
-                protected String mapInner(Parser.ParseTree pt)
+                protected String mapInner(ParseTree pt)
                         throws MappingException {
                     try {
                         return Formats.parseEscapeSequence(pt.getContent(),
@@ -272,7 +272,7 @@ public final class Grammars {
 
             REGEX_ELEMENT.add("RegexContent", LeafMapper.string());
             REGEX_ELEMENT.add("Escape", new LeafMapper<String>() {
-                protected String mapInner(Parser.ParseTree pt)
+                protected String mapInner(ParseTree pt)
                         throws MappingException {
                     String content = pt.getContent();
                     String parsed = Formats.tryParseEscapeSequence(content,
@@ -292,20 +292,20 @@ public final class Grammars {
 
             SYMBOL_CONTENT.add("Identifier",
                 new LeafMapper<Symbol>() {
-                    protected Symbol mapInner(Parser.ParseTree pt) {
+                    protected Symbol mapInner(ParseTree pt) {
                         return new Nonterminal(pt.getContent(), 0);
                     }
                 });
             SYMBOL_CONTENT.add("String",
                 new Mapper<Symbol>() {
-                    public Symbol map(Parser.ParseTree pt)
+                    public Symbol map(ParseTree pt)
                             throws MappingException {
                         return new FixedTerminal(STRING.map(pt), 0);
                     }
                 });
             SYMBOL_CONTENT.add("Regex",
                 new Mapper<Symbol>() {
-                    public Symbol map(Parser.ParseTree pt)
+                    public Symbol map(ParseTree pt)
                             throws MappingException {
                         return new Terminal(REGEX.map(pt), 0);
                     }

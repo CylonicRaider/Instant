@@ -72,11 +72,11 @@ public abstract class RecordMapper<T> implements Mapper<T> {
         return m;
     }
 
-    private <T> void mapAndPut(Mapper<T> mapper, Parser.ParseTree pt,
+    private <T> void mapAndPut(Mapper<T> mapper, ParseTree pt,
                                Result drain) throws MappingException {
         drain.put(mapper, mapper.map(pt));
     }
-    public T map(Parser.ParseTree pt) throws MappingException {
+    public T map(ParseTree pt) throws MappingException {
         if (pt.childCount() != mappers.size())
             throw new MappingException(
                 "Incorrect child amount in parse tree");
