@@ -9,7 +9,6 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import net.instant.util.Formats;
 import net.instant.util.LineColumnReader;
 import net.instant.util.NamedMap;
@@ -20,54 +19,45 @@ public class Lexer implements Closeable {
     public static class TokenPattern implements NamedValue {
 
         private final String name;
-        private final Grammar.SymbolType type;
-        private final Pattern pattern;
+        private final Terminal symbol;
 
-        public TokenPattern(String name, Grammar.SymbolType type,
-                            Pattern pattern) {
+        public TokenPattern(String name, Terminal symbol) {
             if (name == null)
                 throw new NullPointerException(
                     "TokenPattern name may not be null");
-            if (type == null)
+            if (symbol == null)
                 throw new NullPointerException(
-                    "TokenPattern type may not be null");
-            if (pattern == null)
-                throw new NullPointerException(
-                    "TokenPattern pattern may not be null");
+                    "TokenPattern symbol may not be null");
             this.name = name;
-            this.type = type;
-            this.pattern = pattern;
+            this.symbol = symbol;
         }
 
         public String toString() {
-            return String.format("%s@%h[name=%s,type=%s,pattern=%s]",
-                                 getClass().getName(), this, getName(),
-                                 getType(), getPattern());
+            return String.format("%s@%h[name=%s,symbol=%s]",
+                getClass().getName(), this, getName(), getSymbol());
         }
 
         public boolean equals(Object other) {
             if (! (other instanceof TokenPattern)) return false;
             TokenPattern to = (TokenPattern) other;
-            return getName().equals(to.getName()) &&
-                   getType().equals(to.getType()) &&
-                   patternsEqual(getPattern(), to.getPattern());
+            return (getName().equals(to.getName()) &&
+                    getSymbol().equals(to.getSymbol()));
         }
 
         public int hashCode() {
-            return getName().hashCode() ^ getType().hashCode() ^
-                patternHashCode(getPattern());
+            return getName().hashCode() ^ getSymbol().hashCode();
         }
 
         public String getName() {
             return name;
         }
 
-        public Grammar.SymbolType getType() {
-            return type;
+        public Terminal getSymbol() {
+            return symbol;
         }
 
-        public Pattern getPattern() {
-            return pattern;
+        public Matcher matcher(CharSequence input) {
+            return getSymbol().getPattern().matcher(input);
         }
 
         protected Token createToken(LineColumnReader.Coordinates position,
@@ -76,7 +66,7 @@ public class Lexer implements Closeable {
         }
 
         public static TokenPattern create(String name,
-                                          Set<Grammar.Production> prods)
+                                          Set<Production> prods)
                 throws InvalidGrammarException {
             if (prods.size() == 0)
                 throw new InvalidGrammarException(
@@ -84,16 +74,17 @@ public class Lexer implements Closeable {
             if (prods.size() > 1)
                 throw new InvalidGrammarException(
                     "Multiple productions for token " + name);
-            Grammar.Production pr = prods.iterator().next();
+            Production pr = prods.iterator().next();
             if (pr.getSymbols().size() != 1)
                 throw new InvalidGrammarException("Token " +
                     name + " definition must contain exactly one " +
                     "nonterminal");
-            Grammar.Symbol sym = pr.getSymbols().get(0);
-            if (sym.getType() == Grammar.SymbolType.NONTERMINAL)
+            Symbol sym = pr.getSymbols().get(0);
+            if (! (sym instanceof Terminal))
                 throw new InvalidGrammarException("Token " + name +
-                    " definition may not contain nonterminals");
-            return new TokenPattern(name, sym.getType(), sym.getPattern());
+                    " definition may only contain terminals, got " + sym +
+                    "instead");
+            return new TokenPattern(name, (Terminal) sym);
         }
 
     }
@@ -158,16 +149,20 @@ public class Lexer implements Closeable {
             return content;
         }
 
-        public boolean matches(Grammar.Symbol sym) {
-            if (sym.getType() == Grammar.SymbolType.NONTERMINAL) {
-                return sym.getContent().equals(getName());
+        public boolean matches(Symbol sym) {
+            if (sym instanceof Nonterminal) {
+                return ((Nonterminal) sym).getReference().equals(getName());
+            } else if (sym instanceof Terminal) {
+                return ((Terminal) sym).getPattern().matcher(getContent())
+                    .matches();
             } else {
-                return sym.getPattern().matcher(getContent()).matches();
+                throw new IllegalArgumentException("Unrecognized symbol " +
+                    sym);
             }
         }
         public boolean matches(TokenPattern pat) {
             return (equalOrNull(getName(), pat.getName()) &&
-                    pat.getPattern().matcher(getContent()).matches());
+                    pat.matcher(getContent()).matches());
         }
 
         private static boolean equalOrNull(String a, String b) {
@@ -307,7 +302,8 @@ public class Lexer implements Closeable {
                     if (m != null) {
                         m.reset(buf);
                     } else {
-                        m = ent.getValue().getPattern().matcher(buf);
+                        m = ent.getValue().getSymbol().getPattern()
+                            .matcher(buf);
                         m.useAnchoringBounds(false);
                         matchers.put(ent.getKey(), m);
                     }
@@ -410,9 +406,9 @@ public class Lexer implements Closeable {
             if (m.hitEnd() && ! isAtEOI()) return MatchStatus.EOI;
             if (! matched) continue;
             int thisSize = m.end();
-            int thisRank = patterns.get(thisName).getType().ordinal();
+            int thisRank = patterns.get(thisName).getSymbol().getMatchRank();
             if (thisSize < bestSize ||
-                    (thisSize == bestSize && thisRank > bestRank)) {
+                    (thisSize == bestSize && thisRank < bestRank)) {
                 continue;
             } else if (thisSize == bestSize && thisRank == bestRank) {
                 throw new LexingException(getInputPosition(), "Ambiguous " +
@@ -501,20 +497,6 @@ public class Lexer implements Closeable {
         matchStatus = null;
         token = null;
         matchersState = null;
-    }
-
-    public static boolean patternsEqual(Pattern a, Pattern b) {
-        // HACK: Assuming the Pattern API does not change in incompatible
-        //       ways...
-        if (a == null) return (b == null);
-        if (b == null) return (a == null);
-        return (a.pattern().equals(b.pattern()) &&
-                a.flags() == b.flags());
-    }
-
-    public static int patternHashCode(Pattern pat) {
-        if (pat == null) return 0;
-        return pat.pattern().hashCode() ^ pat.flags();
     }
 
 }

@@ -11,8 +11,6 @@ public final class Grammars {
 
     private static class MetaGrammar extends Parser.ParserGrammar {
 
-        private static final String IPS = START_SYMBOL.getContent();
-
         public static final MetaGrammar INSTANCE;
         public static final Parser.CompiledGrammar COMPILED_INSTANCE;
 
@@ -28,88 +26,124 @@ public final class Grammars {
         public MetaGrammar() {
             super(
                 /* Tokens */
-                patternToken("EndOfLine", "\r?\n|\r"),
-                patternToken("Space", "[ \t\u000b\f]+"),
-                terminalToken("Equals", "="),
-                terminalToken("Bar", "|"),
-                terminalToken("Quote", "\""),
-                terminalToken("Slash", "/"),
-                terminalToken("Percent", "%"),
-                patternToken("StartComment", "[#;]"),
-                terminalToken("Caret", "^"),
-                terminalToken("Tilde", "~"),
-                terminalToken("Question", "?"),
-                terminalToken("Plus", "+"),
-                patternToken("Identifier",
+                pattern("EndOfLine", "\r?\n|\r"),
+                pattern("Space", "[ \t\u000b\f]+"),
+                terminal("Equals", "="),
+                terminal("Bar", "|"),
+                terminal("Quote", "\""),
+                terminal("Slash", "/"),
+                terminal("Percent", "%"),
+                pattern("StartComment", "[#;]"),
+                terminal("Caret", "^"),
+                terminal("Tilde", "~"),
+                terminal("Question", "?"),
+                terminal("Plus", "+"),
+                pattern("Identifier",
                     "[a-zA-Z$](?:[a-zA-Z0-9_-]*[a-zA-Z0-9])?"),
-                patternToken("StringContent", "[^\"\\\\]+"),
-                patternToken("RegexContent", "[^/\\\\]+"),
-                patternToken("CommentContent", "[^\r\n]+"),
-                patternToken("Escape", Formats.ESCAPE_SEQUENCE),
+                pattern("StringContent", "[^\"\\\\]+"),
+                pattern("RegexContent", "[^/\\\\]+"),
+                pattern("CommentContent", "[^\r\n]+"),
+                pattern("Escape", Formats.ESCAPE_SEQUENCE),
                 /* Whitespace and comments */
-                prod("S", nt("Space", SYM_OPTIONAL)),
+                prod("S", nt("Space", Symbol.SYM_OPTIONAL)),
                 prod("Comment", nt("StartComment"), nt("CommentContent"),
                      nt("EndOfLine")),
                 prod("EOLX", nt("EndOfLine")),
                 prod("EOLX", nt("Comment")),
                 prod("SEOLX", nt("S"), nt("EOLX")),
                 prod("LBS", nt("S")),
-                prod("LBS", nt("S"), nt("EOLX"), nt("LBS", SYM_INLINE)),
+                prod("LBS", nt("S"), nt("EOLX"),
+                     nt("LBS", Symbol.SYM_INLINE)),
                 /* Symbol definitions */
                 prod("SymbolTrailer"),
-                prod("SymbolTrailer", nt("Question"),
-                     nt("SymbolTrailer", SYM_INLINE)),
-                prod("SymbolTrailer", nt("Plus"),
-                    nt("SymbolTrailer", SYM_INLINE)),
+                prod("SymbolTrailer",
+                     nt("Question"),
+                     nt("SymbolTrailer", Symbol.SYM_INLINE)),
+                prod("SymbolTrailer",
+                     nt("Plus"),
+                     nt("SymbolTrailer", Symbol.SYM_INLINE)),
                 prod("String"),
-                prod("String", nt("StringContent"), nt("String", SYM_INLINE)),
-                prod("String", nt("Escape"), nt("String", SYM_INLINE)),
+                prod("String",
+                     nt("StringContent"),
+                     nt("String", Symbol.SYM_INLINE)),
+                prod("String",
+                     nt("Escape"),
+                     nt("String", Symbol.SYM_INLINE)),
                 prod("Regex"),
-                prod("Regex", nt("RegexContent"), nt("Regex", SYM_INLINE)),
-                prod("Regex", nt("Escape"), nt("Regex", SYM_INLINE)),
-                prod("Symbol", nt("Identifier"),
-                     nt("SymbolTrailer", SYM_INLINE)),
-                prod("Symbol", nt("Quote", SYM_DISCARD),
-                     nt("String"), nt("Quote", SYM_DISCARD),
-                     nt("SymbolTrailer", SYM_INLINE)),
-                prod("Symbol", nt("Slash", SYM_DISCARD),
-                     nt("Regex"), nt("Slash", SYM_DISCARD),
-                     nt("SymbolTrailer", SYM_INLINE)),
-                prod("Symbol", nt("Caret"), nt("Symbol", SYM_INLINE)),
-                prod("Symbol", nt("Tilde"), nt("Symbol", SYM_INLINE)),
+                prod("Regex",
+                     nt("RegexContent"),
+                     nt("Regex", Symbol.SYM_INLINE)),
+                prod("Regex",
+                     nt("Escape"),
+                     nt("Regex", Symbol.SYM_INLINE)),
+                prod("Symbol",
+                     nt("Identifier"),
+                     nt("SymbolTrailer", Symbol.SYM_INLINE)),
+                prod("Symbol",
+                     nt("Quote", Symbol.SYM_DISCARD),
+                     nt("String"),
+                     nt("Quote", Symbol.SYM_DISCARD),
+                     nt("SymbolTrailer", Symbol.SYM_INLINE)),
+                prod("Symbol",
+                     nt("Slash", Symbol.SYM_DISCARD),
+                     nt("Regex"),
+                     nt("Slash", Symbol.SYM_DISCARD),
+                     nt("SymbolTrailer", Symbol.SYM_INLINE)),
+                prod("Symbol", nt("Caret"), nt("Symbol", Symbol.SYM_INLINE)),
+                prod("Symbol", nt("Tilde"), nt("Symbol", Symbol.SYM_INLINE)),
                 /* Production definitions */
                 prod("AlternativeList"),
-                prod("AlternativeList", nt("Symbol"), nt("S", SYM_DISCARD),
-                     nt("AlternativeList", SYM_INLINE)),
-                prod("Alternative", nt("Percent", SYM_DISCARD),
-                     nt("S", SYM_DISCARD)),
-                prod("Alternative", nt("Symbol"), nt("S", SYM_DISCARD),
-                     nt("AlternativeList", SYM_INLINE)),
+                prod("AlternativeList",
+                     nt("Symbol"),
+                     nt("S", Symbol.SYM_DISCARD),
+                     nt("AlternativeList", Symbol.SYM_INLINE)),
+                prod("Alternative",
+                     nt("Percent", Symbol.SYM_DISCARD),
+                     nt("S", Symbol.SYM_DISCARD)),
+                prod("Alternative",
+                     nt("Symbol"),
+                     nt("S", Symbol.SYM_DISCARD),
+                     nt("AlternativeList", Symbol.SYM_INLINE)),
                 prod("ProductionContent", nt("Alternative")),
-                prod("ProductionContent", nt("Alternative"),
-                     nt("Bar", SYM_DISCARD), nt("LBS", SYM_DISCARD),
-                     nt("ProductionContent", SYM_INLINE)),
-                prod("Production", nt("Identifier"), nt("LBS", SYM_DISCARD),
-                     nt("Equals", SYM_DISCARD), nt("LBS", SYM_DISCARD),
+                prod("ProductionContent",
+                     nt("Alternative"),
+                     nt("Bar", Symbol.SYM_DISCARD),
+                     nt("LBS", Symbol.SYM_DISCARD),
+                     nt("ProductionContent", Symbol.SYM_INLINE)),
+                prod("Production", nt("Identifier"),
+                     nt("LBS", Symbol.SYM_DISCARD),
+                     nt("Equals", Symbol.SYM_DISCARD),
+                     nt("LBS", Symbol.SYM_DISCARD),
                      nt("ProductionContent"),
-                     nt("EOLX", SYM_DISCARD)),
+                     nt("EOLX", Symbol.SYM_DISCARD)),
                 /* File contents */
-                prod("FileContentLine", nt("SEOLX", SYM_DISCARD)),
+                prod("FileContentLine", nt("SEOLX", Symbol.SYM_DISCARD)),
                 prod("FileContentLine", nt("Production")),
                 prod("FileContent",
-                     nt("FileContentLine", SYM_INLINE | SYM_OPTIONAL |
-                                           SYM_REPEAT)),
+                     nt("FileContentLine", Symbol.SYM_INLINE |
+                                           Symbol.SYM_OPTIONAL |
+                                           Symbol.SYM_REPEAT)),
                 /* Overall file structure */
                 prod("File", nt("FileContent")),
-                prod(IPS, nt("File"))
+                prod(START_SYMBOL.getReference(), nt("File"))
             );
         }
 
-        private static Symbol nt(String name) {
-            return Symbol.nonterminal(name);
+        private static Production terminal(String name, String content) {
+            return prod(name, new FixedTerminal(content, Symbol.SYM_INLINE));
         }
-        private static Symbol nt(String name, int flags) {
-            return Symbol.nonterminal(name, flags);
+        private static Production pattern(String name, Pattern content) {
+            return prod(name, new Terminal(content, Symbol.SYM_INLINE));
+        }
+        private static Production pattern(String name, String content) {
+            return pattern(name, Pattern.compile(content));
+        }
+
+        private static Symbol nt(String reference) {
+            return new Nonterminal(reference, 0);
+        }
+        private static Symbol nt(String reference, int flags) {
+            return new Nonterminal(reference, flags);
         }
 
         private static Production prod(String name, Symbol... symbols) {
@@ -149,50 +183,46 @@ public final class Grammars {
         public static final UnionMapper<Integer> SYMBOL_FLAG =
             new UnionMapper<Integer>();
 
-        public static final UnionMapper<Grammar.Symbol> SYMBOL_CONTENT =
-            new UnionMapper<Grammar.Symbol>();
+        public static final UnionMapper<Symbol> SYMBOL_CONTENT =
+            new UnionMapper<Symbol>();
 
-        public static final Mapper<Grammar.Symbol> SYMBOL =
-            new Mapper<Grammar.Symbol>() {
-                public Grammar.Symbol map(Parser.ParseTree pt)
-                        throws MappingException {
-                    Grammar.Symbol base = null;
-                    int flags = 0;
-                    for (Parser.ParseTree child : pt.getChildren()) {
-                        if (SYMBOL_FLAG.canMap(child)) {
-                            flags |= SYMBOL_FLAG.map(child);
-                            continue;
-                        }
-                        if (base != null)
-                            throw new MappingException(
-                                "Incorrect redundant symbol content");
-                        base = SYMBOL_CONTENT.map(child);
+        public static final Mapper<Symbol> SYMBOL = new Mapper<Symbol>() {
+            public Symbol map(Parser.ParseTree pt) throws MappingException {
+                Symbol base = null;
+                int flags = 0;
+                for (Parser.ParseTree child : pt.getChildren()) {
+                    if (SYMBOL_FLAG.canMap(child)) {
+                        flags |= SYMBOL_FLAG.map(child);
+                        continue;
                     }
-                    if (flags == 0) return base;
-                    return new Grammar.Symbol(base.getType(),
-                                              base.getContent(), flags);
+                    if (base != null)
+                        throw new MappingException(
+                            "Incorrect redundant symbol content");
+                    base = SYMBOL_CONTENT.map(child);
                 }
-            };
+                return base.withFlags(flags);
+            }
+        };
 
         public static final Mapper<String> PRODUCTION_NAME =
             LeafMapper.string();
 
-        public static final Mapper<List<Grammar.Symbol>> ALTERNATIVE =
+        public static final Mapper<List<Symbol>> ALTERNATIVE =
             CompositeMapper.aggregate(SYMBOL);
 
-        public static final Mapper<List<Grammar.Production>> PRODUCTIONS =
-            new RecordMapper<List<Grammar.Production>>() {
+        public static final Mapper<List<Production>> PRODUCTIONS =
+            new RecordMapper<List<Production>>() {
 
                 private final Mapper<String> NAME = add(PRODUCTION_NAME);
-                private final Mapper<List<List<Grammar.Symbol>>> CONTENT =
+                private final Mapper<List<List<Symbol>>> CONTENT =
                     add(CompositeMapper.aggregate(ALTERNATIVE));
 
-                protected List<Grammar.Production> mapInner(Result res) {
-                    List<Grammar.Production> ret =
-                        new ArrayList<Grammar.Production>();
+                protected List<Production> mapInner(Result res) {
+                    List<Production> ret =
+                        new ArrayList<Production>();
                     String name = res.get(NAME);
-                    for (List<Grammar.Symbol> syms : res.get(CONTENT)) {
-                        ret.add(new Grammar.Production(name, syms));
+                    for (List<Symbol> syms : res.get(CONTENT)) {
+                        ret.add(new Production(name, syms));
                     }
                     return ret;
                 }
@@ -200,12 +230,12 @@ public final class Grammars {
             };
 
         public static final Mapper<Grammar> GRAMMAR = new CompositeMapper<
-                    List<Grammar.Production>, Grammar>(PRODUCTIONS) {
+                    List<Production>, Grammar>(PRODUCTIONS) {
                 protected Grammar mapInner(Parser.ParseTree pt,
-                        List<List<Grammar.Production>> children) {
-                    List<Grammar.Production> productions =
-                        new ArrayList<Grammar.Production>();
-                    for (List<Grammar.Production> ps : children) {
+                        List<List<Production>> children) {
+                    List<Production> productions =
+                        new ArrayList<Production>();
+                    for (List<Production> ps : children) {
                         productions.addAll(ps);
                     }
                     return new Grammar(productions);
@@ -252,32 +282,32 @@ public final class Grammars {
             });
 
             SYMBOL_FLAG.add("Caret",
-                            LeafMapper.constant(Grammar.SYM_INLINE));
+                            LeafMapper.constant(Symbol.SYM_INLINE));
             SYMBOL_FLAG.add("Tilde",
-                            LeafMapper.constant(Grammar.SYM_DISCARD));
+                            LeafMapper.constant(Symbol.SYM_DISCARD));
             SYMBOL_FLAG.add("Question",
-                            LeafMapper.constant(Grammar.SYM_OPTIONAL));
+                            LeafMapper.constant(Symbol.SYM_OPTIONAL));
             SYMBOL_FLAG.add("Plus",
-                            LeafMapper.constant(Grammar.SYM_REPEAT));
+                            LeafMapper.constant(Symbol.SYM_REPEAT));
 
             SYMBOL_CONTENT.add("Identifier",
-                new LeafMapper<Grammar.Symbol>() {
-                    protected Grammar.Symbol mapInner(Parser.ParseTree pt) {
-                        return Grammar.Symbol.nonterminal(pt.getContent());
+                new LeafMapper<Symbol>() {
+                    protected Symbol mapInner(Parser.ParseTree pt) {
+                        return new Nonterminal(pt.getContent(), 0);
                     }
                 });
             SYMBOL_CONTENT.add("String",
-                new Mapper<Grammar.Symbol>() {
-                    public Grammar.Symbol map(Parser.ParseTree pt)
+                new Mapper<Symbol>() {
+                    public Symbol map(Parser.ParseTree pt)
                             throws MappingException {
-                        return Grammar.Symbol.terminal(STRING.map(pt));
+                        return new FixedTerminal(STRING.map(pt), 0);
                     }
                 });
             SYMBOL_CONTENT.add("Regex",
-                new Mapper<Grammar.Symbol>() {
-                    public Grammar.Symbol map(Parser.ParseTree pt)
+                new Mapper<Symbol>() {
+                    public Symbol map(Parser.ParseTree pt)
                             throws MappingException {
-                        return Grammar.Symbol.pattern(REGEX.map(pt));
+                        return new Terminal(REGEX.map(pt), 0);
                     }
                 });
         }
@@ -317,6 +347,19 @@ public final class Grammars {
     public static Parser.ParserGrammar parseGrammar(LineColumnReader input)
             throws InvalidGrammarException, Parser.ParsingException {
         return parseGrammarInner(getMetaGrammar().makeParser(input));
+    }
+
+    public static String formatWithSymbolFlags(String base, int flags) {
+        StringBuilder sb = new StringBuilder();
+        if ((flags & Symbol.SYM_INLINE  ) != 0) sb.append('^');
+        if ((flags & Symbol.SYM_DISCARD ) != 0) sb.append('~');
+        sb.append(base);
+        if ((flags & Symbol.SYM_OPTIONAL) != 0) sb.append('?');
+        if ((flags & Symbol.SYM_REPEAT  ) != 0) sb.append('+');
+        flags &= ~Symbol.SYM_ALL;
+        if (flags != 0)
+            sb.append("[0x").append(Integer.toHexString(flags)).append("]");
+        return sb.toString();
     }
 
 }

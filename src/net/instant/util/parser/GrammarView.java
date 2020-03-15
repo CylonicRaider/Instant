@@ -6,6 +6,6 @@ public interface GrammarView {
 
     Set<String> getProductionNames();
 
-    Set<Grammar.Production> getProductions(String name);
+    Set<Production> getProductions(String name);
 
 }
