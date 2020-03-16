@@ -798,7 +798,7 @@ public class Parser {
 
         protected Lexer.State createLexerState(
                 Map<String, TokenPattern> tokens) {
-            return new Lexer.StandardState(tokens, true);
+            return new Lexer.StandardState(tokens);
         }
         protected NullState createNullState() {
             return new NullState();

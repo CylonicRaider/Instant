@@ -40,8 +40,6 @@ public class Lexer implements Closeable {
 
         Map<String, TokenPattern> getPatterns();
 
-        boolean isAccepting();
-
         boolean isCompatibleWith(State other);
 
         boolean contains(Token tok);
@@ -52,28 +50,18 @@ public class Lexer implements Closeable {
 
         private final Map<String, TokenPattern> patterns;
         private final Map<State, Boolean> compatibles;
-        private boolean accepting;
 
-        public StandardState(Map<String, TokenPattern> patterns,
-                             boolean accepting) {
+        public StandardState(Map<String, TokenPattern> patterns) {
             this.patterns = new NamedMap<TokenPattern>(
                 new LinkedHashMap<String, TokenPattern>(patterns));
             this.compatibles = new HashMap<State, Boolean>();
-            this.accepting = accepting;
         }
         public StandardState() {
-            this(Collections.<String, TokenPattern>emptyMap(), false);
+            this(Collections.<String, TokenPattern>emptyMap());
         }
 
         public Map<String, TokenPattern> getPatterns() {
             return patterns;
-        }
-
-        public boolean isAccepting() {
-            return accepting;
-        }
-        public void setAccepting(boolean a) {
-            accepting = a;
         }
 
         public boolean isCompatibleWith(State other) {
@@ -273,8 +261,7 @@ public class Lexer implements Closeable {
                 case OK:
                     return MatchStatus.OK;
                 case NO_MATCH:
-                    if (isAtEOI() && getInputBuffer().length() == 0 &&
-                            (getState() == null || getState().isAccepting()))
+                    if (isAtEOI() && getInputBuffer().length() == 0)
                         return MatchStatus.EOI;
                     return MatchStatus.NO_MATCH;
                 case EOI:
