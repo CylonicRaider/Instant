@@ -175,9 +175,9 @@ public class Parser {
 
         Set<Symbol> getExpectedTokens();
 
-        Lexer.State getLexerState();
+        TokenSource.Selection getSelection();
 
-        void setLexerState(Lexer.State st);
+        void setLexerState(TokenSource.Selection st);
 
     }
 
@@ -255,7 +255,7 @@ public class Parser {
 
     protected class StatusImpl implements Status {
 
-        private ParsingException wrap(Lexer.LexingException exc) {
+        private ParsingException wrap(TokenSource.MatchingException exc) {
             return new ParsingException(exc.getPosition(), exc.getMessage(),
                                         exc);
         }
@@ -265,14 +265,14 @@ public class Parser {
         }
 
         public LineColumnReader.Coordinates getCurrentPosition() {
-            return getLexer().getInputPosition();
+            return getTokenSource().getCurrentPosition();
         }
 
         public Lexer.MatchStatus getCurrentTokenStatus()
                 throws ParsingException {
             try {
-                return getLexer().peek();
-            } catch (Lexer.LexingException exc) {
+                return getTokenSource().peek(false);
+            } catch (TokenSource.MatchingException exc) {
                 throw wrap(exc);
             }
         }
@@ -280,23 +280,21 @@ public class Parser {
         public Token getCurrentToken(boolean required)
                 throws ParsingException {
             try {
-                Lexer.MatchStatus st = getLexer().peek();
+                Lexer.MatchStatus st = getTokenSource().peek(required);
                 if (st == Lexer.MatchStatus.OK) {
-                    return getLexer().getToken();
-                } else if (! required || st == Lexer.MatchStatus.EOI) {
-                    return null;
+                    return getTokenSource().getCurrentToken();
                 } else {
-                    throw getLexer().unexpectedInput();
+                    return null;
                 }
-            } catch (Lexer.LexingException exc) {
+            } catch (TokenSource.MatchingException exc) {
                 throw wrap(exc);
             }
         }
 
         public void nextToken() throws ParsingException {
             try {
-                getLexer().next();
-            } catch (Lexer.LexingException exc) {
+                getTokenSource().next();
+            } catch (TokenSource.MatchingException exc) {
                 throw wrap(exc);
             }
             getExpectations().clear();
@@ -313,7 +311,7 @@ public class Parser {
 
         public void setExpectation(ExpectationSet exp) {
             getExpectations().add(exp);
-            getLexer().setState(exp.getLexerState());
+            getTokenSource().setSelection(exp.getSelection());
         }
 
         public String formatExpectations() {
@@ -514,7 +512,7 @@ public class Parser {
             implements ExpectationSet {
 
         private final Symbol expected;
-        private Lexer.State lexerState;
+        private TokenSource.Selection lexerState;
 
         public LiteralState(Symbol expected) {
             this.expected = expected;
@@ -529,11 +527,11 @@ public class Parser {
             return expected;
         }
 
-        public Lexer.State getLexerState() {
+        public TokenSource.Selection getSelection() {
             return lexerState;
         }
 
-        public void setLexerState(Lexer.State state) {
+        public void setLexerState(TokenSource.Selection state) {
             lexerState = state;
         }
 
@@ -570,7 +568,7 @@ public class Parser {
                                                   ExpectationSet {
 
         private final Map<String, State> successors;
-        private Lexer.State lexerState;
+        private TokenSource.Selection lexerState;
 
         public BranchState(Map<String, State> successors) {
             this.successors = successors;
@@ -609,11 +607,11 @@ public class Parser {
             }
         }
 
-        public Lexer.State getLexerState() {
+        public TokenSource.Selection getSelection() {
             return lexerState;
         }
 
-        public void setLexerState(Lexer.State state) {
+        public void setLexerState(TokenSource.Selection state) {
             lexerState = state;
         }
 
@@ -651,13 +649,13 @@ public class Parser {
 
     protected static class EndState implements State, ExpectationSet {
 
-        private Lexer.State lexerState;
+        private TokenSource.Selection lexerState;
 
-        public Lexer.State getLexerState() {
+        public TokenSource.Selection getSelection() {
             return lexerState;
         }
 
-        public void setLexerState(Lexer.State state) {
+        public void setLexerState(TokenSource.Selection state) {
             lexerState = state;
         }
 
@@ -770,7 +768,7 @@ public class Parser {
         private final ParserGrammar grammar;
         private final Set<String> seenProductions;
         private final Map<String, TokenPattern> tokens;
-        private final Map<Set<Symbol>, Lexer.State> lexerStates;
+        private final Map<Set<Symbol>, TokenSource.Selection> lexerStates;
         private final Map<String, State> initialStates;
         private final Map<String, State> finalStates;
         private final Map<String, Set<Symbol>> initialSymbolCache;
@@ -783,7 +781,7 @@ public class Parser {
             this.seenProductions = new HashSet<String>();
             this.tokens = new HashMap<String, TokenPattern>();
             this.lexerStates = new HashMap<Set<Symbol>,
-                                           Lexer.State>();
+                                           TokenSource.Selection>();
             this.initialStates = new HashMap<String, State>();
             this.finalStates = new HashMap<String, State>();
             this.initialSymbolCache = new HashMap<String, Set<Symbol>>();
@@ -796,7 +794,7 @@ public class Parser {
             return grammar;
         }
 
-        protected Lexer.State createLexerState(
+        protected TokenSource.Selection createLexerState(
                 Map<String, TokenPattern> tokens) {
             return new Lexer.StandardState(tokens);
         }
@@ -840,9 +838,9 @@ public class Parser {
             return tokens.get(name);
         }
 
-        protected Lexer.State getLexerState(Set<Symbol> syms)
+        protected TokenSource.Selection getSelection(Set<Symbol> syms)
                 throws InvalidGrammarException {
-            Lexer.State ret = lexerStates.get(syms);
+            TokenSource.Selection ret = lexerStates.get(syms);
             if (ret == null) {
                 Map<String, TokenPattern> tokens =
                     new LinkedHashMap<String, TokenPattern>();
@@ -1194,7 +1192,7 @@ public class Parser {
             seen.add(st);
             if (st instanceof ExpectationSet) {
                 ExpectationSet est = (ExpectationSet) st;
-                est.setLexerState(getLexerState(est.getExpectedTokens()));
+                est.setLexerState(getSelection(est.getExpectedTokens()));
             }
             for (State s : getAllSuccessors(st)) {
                 makeLexerStates(s, seen);
@@ -1215,7 +1213,7 @@ public class Parser {
                                              Symbol.SYM_REPEAT;
 
     private final CompiledGrammar grammar;
-    private final Lexer lexer;
+    private final TokenSource source;
     private final boolean keepAll;
     private final List<ExpectationSet> expectations;
     private final List<ParseTreeImpl> treeStack;
@@ -1224,9 +1222,9 @@ public class Parser {
     private State state;
     private ParseTree result;
 
-    public Parser(CompiledGrammar grammar, Lexer lexer, boolean keepAll) {
+    public Parser(CompiledGrammar grammar, TokenSource source, boolean keepAll) {
         this.grammar = grammar;
-        this.lexer = lexer;
+        this.source = source;
         this.keepAll = keepAll;
         this.expectations = new ArrayList<ExpectationSet>();
         this.treeStack = new ArrayList<ParseTreeImpl>();
@@ -1240,8 +1238,8 @@ public class Parser {
         return grammar;
     }
 
-    protected Lexer getLexer() {
-        return lexer;
+    protected TokenSource getTokenSource() {
+        return source;
     }
 
     public boolean isKeepingAll() {
@@ -1284,10 +1282,10 @@ public class Parser {
             st.apply(getStatus());
         }
         try {
-            lexer.close();
+            source.close();
         } catch (IOException exc) {
             throw new ParsingException(null,
-                "Exception while closing lexer: " + exc, exc);
+                "Exception while closing token source: " + exc, exc);
         }
         if (getStateStack().size() != 0 || getTreeStack().size() != 1 ||
                 getTreeStack().get(0).childCount() != 1)
