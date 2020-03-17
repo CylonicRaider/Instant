@@ -1222,7 +1222,8 @@ public class Parser {
     private State state;
     private ParseTree result;
 
-    public Parser(CompiledGrammar grammar, TokenSource source, boolean keepAll) {
+    public Parser(CompiledGrammar grammar, TokenSource source,
+                  boolean keepAll) {
         this.grammar = grammar;
         this.source = source;
         this.keepAll = keepAll;
