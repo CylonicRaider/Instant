@@ -342,11 +342,13 @@ public final class Grammars {
     }
     public static Parser.ParserGrammar parseGrammar(Reader input)
             throws InvalidGrammarException, Parser.ParsingException {
-        return parseGrammarInner(getMetaGrammar().makeParser(input));
+        return parseGrammarInner(getMetaGrammar().makeParser(
+            getMetaGrammar().makeLexer(input)));
     }
     public static Parser.ParserGrammar parseGrammar(LineColumnReader input)
             throws InvalidGrammarException, Parser.ParsingException {
-        return parseGrammarInner(getMetaGrammar().makeParser(input));
+        return parseGrammarInner(getMetaGrammar().makeParser(
+            getMetaGrammar().makeLexer(input)));
     }
 
     public static String formatWithSymbolFlags(String base, int flags) {

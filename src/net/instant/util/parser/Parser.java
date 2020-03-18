@@ -70,21 +70,18 @@ public class Parser {
             return source.getProductions(name);
         }
 
-        protected Lexer makeLexer(LineColumnReader input) {
+        public Lexer makeLexer(LineColumnReader input) {
             return new Lexer(input);
         }
+        public Lexer makeLexer(Reader input) {
+            return makeLexer(new LineColumnReader(input));
+        }
 
-        public Parser makeParser(LineColumnReader input, boolean keepAll) {
-            return new Parser(this, makeLexer(input), keepAll);
+        public Parser makeParser(TokenSource source, boolean keepAll) {
+            return new Parser(this, source, keepAll);
         }
-        public Parser makeParser(Reader input, boolean keepAll) {
-            return makeParser(new LineColumnReader(input), keepAll);
-        }
-        public Parser makeParser(LineColumnReader input) {
-            return makeParser(input, false);
-        }
-        public Parser makeParser(Reader input) {
-            return makeParser(new LineColumnReader(input), false);
+        public Parser makeParser(TokenSource source) {
+            return makeParser(source, false);
         }
 
     }
