@@ -170,6 +170,8 @@ public final class Formats {
     private static final String[] ESCAPES;
     private static final String[] REV_ESCAPES;
 
+    private static final Map<Integer, Character> REGEX_FLAGS;
+
     static {
         HTTP_FORMAT = new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss z",
                                            Locale.ROOT);
@@ -190,6 +192,15 @@ public final class Formats {
             if (ESCAPES[i] == null) continue;
             REV_ESCAPES[ESCAPES[i].charAt(2)] = Character.toString(i);
         }
+
+        REGEX_FLAGS = new LinkedHashMap<Integer, Character>();
+        REGEX_FLAGS.put(Pattern.CASE_INSENSITIVE, 'i');
+        REGEX_FLAGS.put(Pattern.UNIX_LINES, 'd');
+        REGEX_FLAGS.put(Pattern.MULTILINE, 'm');
+        REGEX_FLAGS.put(Pattern.DOTALL, 's');
+        REGEX_FLAGS.put(Pattern.UNICODE_CASE, 'u');
+        REGEX_FLAGS.put(Pattern.COMMENTS, 'x');
+        REGEX_FLAGS.put(Pattern.UNICODE_CHARACTER_CLASS, 'U');
     }
 
     // Prevent construction.
@@ -464,7 +475,18 @@ public final class Formats {
             m.appendReplacement(res, replacement);
         }
         m.appendTail(res);
-        return res.append('/').toString();
+        res.append('/');
+        int flags = pat.flags();
+        for (Map.Entry<Integer, Character> ent : REGEX_FLAGS.entrySet()) {
+            int f = ent.getKey();
+            if ((flags & f) == 0) continue;
+            flags &= f;
+            res.append(ent.getValue());
+        }
+        if (flags != 0) {
+            res.append('0').append(Long.toOctalString(flags & 0xFFFFFFFFL));
+        }
+        return res.toString();
     }
 
 }
