@@ -467,7 +467,8 @@ public final class Formats {
                 // other things, and in order to stay compatible to the
                 // parser's meta-grammar).
                 replacement = "\\\\/";
-            } else if (found < ESCAPES.length && ESCAPES[found] != null) {
+            } else if (found < ESCAPES.length && ESCAPES[found] != null &&
+                       found != '\b' && found != '\13') {
                 replacement = ESCAPES[found];
             } else {
                 replacement = String.format("\\\\u%04X", (int) found);
