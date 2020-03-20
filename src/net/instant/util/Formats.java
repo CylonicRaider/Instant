@@ -194,12 +194,12 @@ public final class Formats {
         }
 
         REGEX_FLAGS = new LinkedHashMap<Integer, Character>();
-        REGEX_FLAGS.put(Pattern.CASE_INSENSITIVE, 'i');
-        REGEX_FLAGS.put(Pattern.UNIX_LINES, 'd');
-        REGEX_FLAGS.put(Pattern.MULTILINE, 'm');
-        REGEX_FLAGS.put(Pattern.DOTALL, 's');
-        REGEX_FLAGS.put(Pattern.UNICODE_CASE, 'u');
-        REGEX_FLAGS.put(Pattern.COMMENTS, 'x');
+        REGEX_FLAGS.put(Pattern.CASE_INSENSITIVE,        'i');
+        REGEX_FLAGS.put(Pattern.UNIX_LINES,              'd');
+        REGEX_FLAGS.put(Pattern.MULTILINE,               'm');
+        REGEX_FLAGS.put(Pattern.DOTALL,                  's');
+        REGEX_FLAGS.put(Pattern.UNICODE_CASE,            'u');
+        REGEX_FLAGS.put(Pattern.COMMENTS,                'x');
         REGEX_FLAGS.put(Pattern.UNICODE_CHARACTER_CLASS, 'U');
     }
 
