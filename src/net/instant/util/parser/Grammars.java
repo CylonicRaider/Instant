@@ -276,7 +276,7 @@ public final class Grammars {
                         throws MappingException {
                     String content = pt.getContent();
                     String parsed = Formats.tryParseEscapeSequence(content,
-                                                                   "av", "/");
+                        "abtnvfr", "");
                     return (parsed != null) ? parsed : content;
                 }
             });
