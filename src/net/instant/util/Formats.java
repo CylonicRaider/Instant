@@ -164,11 +164,19 @@ public final class Formats {
     public static final Pattern ESCAPE_SEQUENCE = Pattern.compile(
         NARROW_ESCAPE_SEQUENCE.pattern() + "|\\\\[^0-7xuU]");
 
-    public static final Pattern PATTERN_ESCAPE = Pattern.compile(
-        "[\0-\37\177-\237/]");
+    private static final Pattern PATTERN_INTERESTING = Pattern.compile(
+        "\\\\.|[\0-\37/\\[\\]\177-\237]");
+
+    // formatPattern() (pattern parsing) states.
+    private static final int FPS_NORMAL      = 0;
+    private static final int FPS_CLASS       = 1;
+    private static final int FPS_QUOTE       = 2;
+    private static final int FPS_ENTER_QUOTE = 3;
+    private static final int FPS_SKIP        = 4;
 
     private static final String[] ESCAPES;
     private static final String[] REV_ESCAPES;
+    private static final boolean[] REGEX_ESCAPE;
 
     private static final Map<Integer, Character> REGEX_FLAGS;
 
@@ -188,10 +196,15 @@ public final class Formats {
         ESCAPES['\r' ] = "\\\\r";
 
         REV_ESCAPES = new String[128];
+        REGEX_ESCAPE = new boolean[ESCAPES.length];
         for (char i = 0; i < ESCAPES.length; i++) {
             if (ESCAPES[i] == null) continue;
             REV_ESCAPES[ESCAPES[i].charAt(2)] = Character.toString(i);
+            REGEX_ESCAPE[i] = true;
         }
+        // \b and \v do not map to single characters inside patterns.
+        REGEX_ESCAPE['\b' ] = false;
+        REGEX_ESCAPE['\13'] = false;
 
         REGEX_FLAGS = new LinkedHashMap<Integer, Character>();
         REGEX_FLAGS.put(Pattern.CASE_INSENSITIVE,        'i');
@@ -455,25 +468,81 @@ public final class Formats {
         return res.toString();
     }
 
+    private static String escapeSpecialPattern(char ch) {
+        if (ch >= ' ' && ch <= '~') {
+            return "\\" + ch;
+        } else if (ch < REGEX_ESCAPE.length && REGEX_ESCAPE[ch]) {
+            return ESCAPES[ch];
+        } else {
+            return String.format("\\u%04X", (int) ch);
+        }
+    }
+    @SuppressWarnings("fallthrough")
     public static String formatPattern(Pattern pat) {
         StringBuffer res = new StringBuffer("/");
-        Matcher m = PATTERN_ESCAPE.matcher(pat.pattern());
+        // We need to (partially) re-parse the pattern in order to avoid
+        // introducing backslashes into \Q-\E groups.
+        Matcher m = PATTERN_INTERESTING.matcher(pat.pattern());
+        int state = FPS_NORMAL, dp = 0, lastIndex = -1;
         while (m.find()) {
-            char found = m.group().charAt(0);
-            String replacement;
-            if (found == '/') {
-                // We escape all slashes regardless of whether they are nested
-                // inside parentheses or not (since we already are escaping
-                // other things, and in order to stay compatible to the
-                // parser's meta-grammar).
-                replacement = "\\\\/";
-            } else if (found < ESCAPES.length && ESCAPES[found] != null &&
-                       found != '\b' && found != '\13') {
-                replacement = ESCAPES[found];
-            } else {
-                replacement = String.format("\\\\u%04X", (int) found);
+            String replacement = m.group();
+            if (state == FPS_ENTER_QUOTE) {
+                if (m.start() == lastIndex && replacement.equals("\\E")) {
+                    state = FPS_SKIP;
+                } else {
+                    res.append("\\Q");
+                    state = FPS_QUOTE;
+                }
             }
-            m.appendReplacement(res, replacement);
+            // The actual replacement will be appended directly, avoiding
+            // the need to escape backslashes and dollar signs.
+            m.appendReplacement(res, "");
+            char found = replacement.charAt(0);
+            switch (found) {
+                case '[':
+                    // Character classes must be recognized as they have a
+                    // different set of meta-characters (crucially not
+                    // including \Q), and can be recursively nested.
+                    if (state == FPS_NORMAL) state = FPS_CLASS;
+                    if (state == FPS_CLASS) dp++;
+                    break;
+                case ']':
+                    if (state == FPS_CLASS && --dp == 0) state = FPS_NORMAL;
+                    break;
+                case '\\':
+                    found = replacement.charAt(1);
+                    if (found == 'Q') {
+                        if (state == FPS_NORMAL) {
+                            state = FPS_ENTER_QUOTE;
+                            replacement = "";
+                        }
+                        break;
+                    } else if (found == 'E') {
+                        if (state == FPS_QUOTE) {
+                            state = FPS_NORMAL;
+                        } else if (state == FPS_SKIP) {
+                            state = FPS_NORMAL;
+                            replacement = "";
+                        }
+                        break;
+                    }
+                default:
+                    // In order to allow the resulting string to be recognized
+                    // without (as is done by the parser module's
+                    // meta-grammar) writing another partial parser for Java's
+                    // regular expression language, and to avoid control
+                    // characters in the output, we escape control characters
+                    // (and slashes) by exiting a \Q-\E group if necessary and
+                    // substituting an escape sequence with a backslash.
+                    replacement = escapeSpecialPattern(found);
+                    if (state == FPS_QUOTE) {
+                        res.append("\\E");
+                        state = FPS_ENTER_QUOTE;
+                    }
+                    break;
+            }
+            res.append(replacement);
+            lastIndex = m.end();
         }
         m.appendTail(res);
         res.append('/');
