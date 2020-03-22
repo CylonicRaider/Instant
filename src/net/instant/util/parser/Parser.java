@@ -772,7 +772,7 @@ public class Parser {
         private final Map<State, StateInfo> info;
         private State startState;
 
-        public Compiler(ParserGrammar grammar)
+        public Compiler(GrammarView grammar)
                 throws InvalidGrammarException {
             this.grammar = new ParserGrammar(grammar);
             this.seenProductions = new HashSet<String>();
@@ -1293,7 +1293,7 @@ public class Parser {
         return result;
     }
 
-    public static CompiledGrammar compile(ParserGrammar g)
+    public static CompiledGrammar compile(GrammarView g)
             throws InvalidGrammarException {
         Compiler comp = new Compiler(g);
         return new CompiledGrammar(comp.getGrammar(), comp.call());
