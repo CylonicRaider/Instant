@@ -6,6 +6,7 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.regex.Pattern;
 import net.instant.util.NamedMap;
 import net.instant.util.NamedSet;
 
@@ -57,6 +58,23 @@ public class Grammar implements GrammarView {
     }
     protected String toStringDetail() {
         return "";
+    }
+
+    public Nonterminal createNonterminal(String reference, int flags) {
+        return new Nonterminal(reference, flags);
+    }
+    public Terminal createTerminal(Pattern pattern, int flags) {
+        return new Terminal(pattern, flags);
+    }
+    public FixedTerminal createTerminal(String content, int flags) {
+        return new FixedTerminal(content, flags);
+    }
+
+    public Production createProduction(String name, List<Symbol> symbols) {
+        return new Production(name, symbols);
+    }
+    public Production createProduction(String name, Symbol... symbols) {
+        return new Production(name, symbols);
     }
 
     // Immutable GrammarView interface.
