@@ -9,7 +9,7 @@ import net.instant.util.LineColumnReader;
 
 public final class Grammars {
 
-    private static class MetaGrammar extends Parser.ParserGrammar {
+    private static class MetaGrammar extends Grammar {
 
         public static final MetaGrammar INSTANCE;
         public static final Parser.CompiledGrammar COMPILED_INSTANCE;
@@ -247,15 +247,6 @@ public final class Grammars {
         public static final Mapper<Grammar> FILE_WRAPPER =
             RecordMapper.wrap(FILE);
 
-        public static final Mapper<Parser.ParserGrammar> PARSER =
-            new RecordMapper.WrapperMapper<Grammar,
-                                           Parser.ParserGrammar>(FILE) {
-                protected Parser.ParserGrammar process(Grammar value)
-                        throws MappingException {
-                    return new Parser.ParserGrammar(value);
-                }
-            };
-
         static {
             STRING_ELEMENT.add("StringContent", LeafMapper.string());
             STRING_ELEMENT.add("Escape", new LeafMapper<String>() {
@@ -326,26 +317,23 @@ public final class Grammars {
     public static Mapper<Grammar> getGrammarFileMapper() {
         return MapperHolder.FILE_WRAPPER;
     }
-    public static Mapper<Parser.ParserGrammar> getParserMapper() {
-        return MapperHolder.PARSER;
-    }
 
-    private static Parser.ParserGrammar parseGrammarInner(Parser p)
+    private static Grammar parseGrammarInner(Parser p)
             throws InvalidGrammarException, Parser.ParsingException {
         try {
-            Parser.ParserGrammar ret = getParserMapper().map(p.parse());
+            Grammar ret = getGrammarFileMapper().map(p.parse());
             ret.validate();
             return ret;
         } catch (MappingException exc) {
             throw new AssertionError("The meta-grammar is buggy?!", exc);
         }
     }
-    public static Parser.ParserGrammar parseGrammar(Reader input)
+    public static Grammar parseGrammar(Reader input)
             throws InvalidGrammarException, Parser.ParsingException {
         return parseGrammarInner(getMetaGrammar().makeParser(
             getMetaGrammar().makeLexer(input)));
     }
-    public static Parser.ParserGrammar parseGrammar(LineColumnReader input)
+    public static Grammar parseGrammar(LineColumnReader input)
             throws InvalidGrammarException, Parser.ParsingException {
         return parseGrammarInner(getMetaGrammar().makeParser(
             getMetaGrammar().makeLexer(input)));

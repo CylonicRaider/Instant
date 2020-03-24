@@ -16,7 +16,7 @@ public class ParserFactory {
 
     public Parser.CompiledGrammar compile(GrammarView base)
             throws InvalidGrammarException {
-        return Parser.compile(new Parser.ParserGrammar(base));
+        return Parser.compile(new Grammar(base));
     }
 
     public Lexer createTokenSource(Reader input) {

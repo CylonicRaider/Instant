@@ -20,46 +20,26 @@ import net.instant.util.NamedSet;
 
 public class Parser {
 
-    public static class ParserGrammar extends Grammar {
-
-        public static final Nonterminal START_SYMBOL =
-            new Nonterminal("$start", 0);
-
-        public ParserGrammar() {
-            super();
-        }
-        public ParserGrammar(GrammarView copyFrom) {
-            super(copyFrom);
-        }
-        public ParserGrammar(List<Production> productions) {
-            super(productions);
-        }
-        public ParserGrammar(Production... productions) {
-            super(productions);
-        }
-
-        public void validate() throws InvalidGrammarException {
-            validate(START_SYMBOL.getReference());
-        }
-
-    }
-
     public static class CompiledGrammar implements GrammarView {
 
-        private final ParserGrammar source;
+        private final Grammar source;
         private final State initialState;
 
-        protected CompiledGrammar(ParserGrammar source, State initialState) {
+        protected CompiledGrammar(Grammar source, State initialState) {
             this.source = source;
             this.initialState = initialState;
         }
 
-        protected ParserGrammar getSource() {
+        protected Grammar getSource() {
             return source;
         }
 
         protected State getInitialState() {
             return initialState;
+        }
+
+        public Nonterminal getStartSymbol() {
+            return source.getStartSymbol();
         }
 
         public Set<String> getProductionNames() {
@@ -762,7 +742,7 @@ public class Parser {
 
         }
 
-        private final ParserGrammar grammar;
+        private final Grammar grammar;
         private final Set<String> seenProductions;
         private final Map<String, TokenPattern> tokens;
         private final Map<Set<Symbol>, TokenSource.Selection> lexerStates;
@@ -774,7 +754,7 @@ public class Parser {
 
         public Compiler(GrammarView grammar)
                 throws InvalidGrammarException {
-            this.grammar = new ParserGrammar(grammar);
+            this.grammar = new Grammar(grammar);
             this.seenProductions = new HashSet<String>();
             this.tokens = new HashMap<String, TokenPattern>();
             this.lexerStates = new HashMap<Set<Symbol>,
@@ -787,7 +767,7 @@ public class Parser {
             this.grammar.validate();
         }
 
-        public ParserGrammar getGrammar() {
+        public Grammar getGrammar() {
             return grammar;
         }
 
@@ -1176,8 +1156,8 @@ public class Parser {
 
         protected State getStartState() throws InvalidGrammarException {
             if (startState == null) {
-                addProductions(ParserGrammar.START_SYMBOL.getReference());
-                startState = createCallState(ParserGrammar.START_SYMBOL);
+                addProductions(Grammar.START_SYMBOL.getReference());
+                startState = createCallState(Grammar.START_SYMBOL);
                 addSuccessor(startState, null, createEndState(), true);
             }
             return startState;

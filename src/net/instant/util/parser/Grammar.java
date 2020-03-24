@@ -12,6 +12,9 @@ import net.instant.util.NamedSet;
 
 public class Grammar implements GrammarView {
 
+    public static final Nonterminal START_SYMBOL =
+        new Nonterminal("$start", 0);
+
     private final NamedMap<NamedSet<Production>> productions;
 
     public Grammar() {
@@ -78,6 +81,10 @@ public class Grammar implements GrammarView {
     }
 
     // Immutable GrammarView interface.
+    public Nonterminal getStartSymbol() {
+        return START_SYMBOL;
+    }
+
     public Set<String> getProductionNames() {
         return Collections.unmodifiableSet(productions.keySet());
     }
@@ -142,6 +149,8 @@ public class Grammar implements GrammarView {
             }
         }
     }
-    public void validate() throws InvalidGrammarException {}
+    public void validate() throws InvalidGrammarException {
+        validate(START_SYMBOL.getReference());
+    }
 
 }
