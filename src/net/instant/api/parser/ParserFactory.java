@@ -32,4 +32,24 @@ public interface ParserFactory {
      */
     TokenSource createTokenSource(Reader input);
 
+    /**
+     * Retrieve the grammar used by parseGrammar().
+     */
+    CompiledGrammar getMetaGrammar();
+
+    /**
+     * Retrieve the parse-tree-to-object mapper used by parseGrammar().
+     */
+    Mapper<Grammar> getGrammarMapper();
+
+    /**
+     * Parse a grammar definition from the given Reader and convert it to a
+     * Grammar instance.
+     * This is a convenience method combining the effects of
+     * createTokenSource(), the grammar-parsing grammar from getMetaGrammar(),
+     * and the Mapper returned by getGrammarMapper() (or doing something
+     * equivalent).
+     */
+    Grammar parseGrammar(Reader input) throws ParsingException;
+
 }
