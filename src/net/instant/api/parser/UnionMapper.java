@@ -39,6 +39,16 @@ public class UnionMapper<T> implements Mapper<T> {
     }
 
     /**
+     * Test whether the given parse tree can be processed by this UnionMapper.
+     * If this method returns false for a given tree, then map() will fail on
+     * it (changes of the internal data structure notwithstanding); the
+     * converse need not be true.
+     */
+    public boolean canMap(Parser.ParseTree tree) {
+        return getChildren().containsKey(tree.getName());
+    }
+
+    /**
      * Map the given parse tree to an object or throw an exception.
      * This locates the child whose key is the name of the given parse tree
      * and delegates to the child's map() method. If there is no matching
