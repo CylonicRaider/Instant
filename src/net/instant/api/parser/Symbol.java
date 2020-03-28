@@ -46,6 +46,14 @@ public interface Symbol {
     int getFlags();
 
     /**
+     * Return how strongly this Symbol should be preferred when producing
+     * tokens.
+     * Symbols with greater match ranks should be preferred. Typically, this
+     * returns a class-specific constant that may be overridden by subclasses.
+     */
+    int getMatchRank();
+
+    /**
      * Return a copy of this Symbol modified to have the given flags.
      */
     Symbol withFlags(int newFlags);

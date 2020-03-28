@@ -44,9 +44,7 @@ public interface TokenSource extends Closeable {
 
     /**
      * Interface representing the definition of a class of tokens.
-     * This combines a name (from NamedValue) with a category (an
-     * implementation-defined class implementing TerminalSymbol that may
-     * influence disambiguation among possible tokens) and a regular
+     * This combines a name (from NamedValue) with a match rank and a regular
      * expression defining possible token contents (from TerminalSymbol);
      * the flags of the symbol are presently unused.
      */
@@ -64,7 +62,7 @@ public interface TokenSource extends Closeable {
      * The token definitions must have distinct names; this constraint and
      * the isCompatibleWith() and contains() methods attempt to optimize for
      * the common case of narrowing down a selection to a subset thereof while
-     * retaining the current match status.
+     * retaining the current stored match result.
      */
     interface Selection {
 
