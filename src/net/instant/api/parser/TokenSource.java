@@ -53,7 +53,7 @@ public interface TokenSource extends Closeable {
         /**
          * The Symbol defining the token category and contents.
          */
-        TerminalSymbol getSymbol();
+        Grammar.TerminalSymbol getSymbol();
 
     }
 
