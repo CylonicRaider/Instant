@@ -5,7 +5,7 @@ import net.instant.util.NamedValue;
 
 public interface ParseTree extends NamedValue {
 
-    Token getToken();
+    Lexer.Token getToken();
 
     String getContent();
 

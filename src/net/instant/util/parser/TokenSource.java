@@ -8,11 +8,11 @@ public interface TokenSource extends Closeable {
 
     interface Selection {
 
-        Map<String, TokenPattern> getPatterns();
+        Map<String, Lexer.TokenPattern> getPatterns();
 
         boolean isCompatibleWith(Selection other);
 
-        boolean contains(Token tok);
+        boolean contains(Lexer.Token tok);
 
     }
 
@@ -42,10 +42,10 @@ public interface TokenSource extends Closeable {
 
     LineColumnReader.Coordinates getCurrentPosition();
 
-    Token getCurrentToken();
+    Lexer.Token getCurrentToken();
 
     MatchStatus peek(boolean required) throws MatchingException;
 
-    Token next() throws MatchingException;
+    Lexer.Token next() throws MatchingException;
 
 }
