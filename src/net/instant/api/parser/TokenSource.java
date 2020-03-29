@@ -55,6 +55,14 @@ public interface TokenSource extends Closeable {
          */
         Grammar.TerminalSymbol getSymbol();
 
+        /**
+         * Create a Token deriving from this TokenPattern.
+         * The token's parameters are taken from this TokenPattern (for the
+         * name) and from this method's parameters (for the location and the
+         * content).
+         */
+        Token createToken(TextLocation location, String content);
+
     }
 
     /**
