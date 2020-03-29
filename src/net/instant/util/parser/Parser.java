@@ -17,6 +17,7 @@ import java.util.concurrent.Callable;
 import net.instant.util.IdentityLinkedSet;
 import net.instant.util.LineColumnReader;
 import net.instant.util.NamedSet;
+import net.instant.util.NamedValue;
 
 public class Parser {
 
@@ -63,6 +64,20 @@ public class Parser {
         public Parser makeParser(TokenSource source) {
             return makeParser(source, false);
         }
+
+    }
+
+    public interface ParseTree extends NamedValue {
+
+        Lexer.Token getToken();
+
+        String getContent();
+
+        List<ParseTree> getChildren();
+
+        int childCount();
+
+        ParseTree childAt(int index);
 
     }
 

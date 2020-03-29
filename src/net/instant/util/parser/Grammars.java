@@ -162,7 +162,7 @@ public final class Grammars {
 
         public static final Mapper<String> STRING =
             new CompositeMapper<String, String>(STRING_ELEMENT) {
-                protected String mapInner(ParseTree pt,
+                protected String mapInner(Parser.ParseTree pt,
                                           List<String> children) {
                     StringBuilder sb = new StringBuilder();
                     for (String s : children) sb.append(s);
@@ -172,7 +172,7 @@ public final class Grammars {
 
         public static final Mapper<Pattern> REGEX =
             new CompositeMapper<String, Pattern>(REGEX_ELEMENT) {
-                protected Pattern mapInner(ParseTree pt,
+                protected Pattern mapInner(Parser.ParseTree pt,
                                            List<String> children) {
                     StringBuilder sb = new StringBuilder();
                     for (String s : children) sb.append(s);
@@ -188,11 +188,11 @@ public final class Grammars {
 
         public static final Mapper<Grammar.Symbol> SYMBOL =
             new Mapper<Grammar.Symbol>() {
-                public Grammar.Symbol map(ParseTree pt)
+                public Grammar.Symbol map(Parser.ParseTree pt)
                         throws MappingException {
                     Grammar.Symbol base = null;
                     int flags = 0;
-                    for (ParseTree child : pt.getChildren()) {
+                    for (Parser.ParseTree child : pt.getChildren()) {
                         if (SYMBOL_FLAG.canMap(child)) {
                             flags |= SYMBOL_FLAG.map(child);
                             continue;
@@ -233,7 +233,7 @@ public final class Grammars {
 
         public static final Mapper<Grammar> GRAMMAR = new CompositeMapper<
                     List<Grammar.Production>, Grammar>(PRODUCTIONS) {
-                protected Grammar mapInner(ParseTree pt,
+                protected Grammar mapInner(Parser.ParseTree pt,
                         List<List<Grammar.Production>> children) {
                     List<Grammar.Production> productions =
                         new ArrayList<Grammar.Production>();
@@ -252,7 +252,7 @@ public final class Grammars {
         static {
             STRING_ELEMENT.add("StringContent", LeafMapper.string());
             STRING_ELEMENT.add("Escape", new LeafMapper<String>() {
-                protected String mapInner(ParseTree pt)
+                protected String mapInner(Parser.ParseTree pt)
                         throws MappingException {
                     try {
                         return Formats.parseEscapeSequence(pt.getContent(),
@@ -265,7 +265,7 @@ public final class Grammars {
 
             REGEX_ELEMENT.add("RegexContent", LeafMapper.string());
             REGEX_ELEMENT.add("Escape", new LeafMapper<String>() {
-                protected String mapInner(ParseTree pt)
+                protected String mapInner(Parser.ParseTree pt)
                         throws MappingException {
                     String content = pt.getContent();
                     String parsed = Formats.tryParseEscapeSequence(content,
@@ -285,20 +285,20 @@ public final class Grammars {
 
             SYMBOL_CONTENT.add("Identifier",
                 new LeafMapper<Grammar.Symbol>() {
-                    protected Grammar.Symbol mapInner(ParseTree pt) {
+                    protected Grammar.Symbol mapInner(Parser.ParseTree pt) {
                         return new Grammar.Nonterminal(pt.getContent(), 0);
                     }
                 });
             SYMBOL_CONTENT.add("String",
                 new Mapper<Grammar.Symbol>() {
-                    public Grammar.Symbol map(ParseTree pt)
+                    public Grammar.Symbol map(Parser.ParseTree pt)
                             throws MappingException {
                         return new Grammar.FixedTerminal(STRING.map(pt), 0);
                     }
                 });
             SYMBOL_CONTENT.add("Regex",
                 new Mapper<Grammar.Symbol>() {
-                    public Grammar.Symbol map(ParseTree pt)
+                    public Grammar.Symbol map(Parser.ParseTree pt)
                             throws MappingException {
                         return new Grammar.Terminal(REGEX.map(pt), 0);
                     }

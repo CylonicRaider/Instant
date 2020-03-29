@@ -22,14 +22,14 @@ public abstract class CompositeMapper<C, T>
         childMapper = cm;
     }
 
-    protected C mapChild(ParseTree pt) throws MappingException {
+    protected C mapChild(Parser.ParseTree pt) throws MappingException {
         return childMapper.map(pt);
     }
 
     public static <C, T> CompositeMapper<C, T> of(
             final NodeMapper<C, T> reduce, Mapper<C> map) {
         return new CompositeMapper<C, T>(map) {
-            protected T mapInner(ParseTree pt, List<C> children)
+            protected T mapInner(Parser.ParseTree pt, List<C> children)
                     throws MappingException {
                 return reduce.map(pt, children);
             }
@@ -39,7 +39,7 @@ public abstract class CompositeMapper<C, T>
     public static <T> CompositeMapper<T, List<T>> aggregate(Mapper<T> nested,
             final boolean makeImmutable) {
         return new CompositeMapper<T, List<T>>(nested) {
-            protected List<T> mapInner(ParseTree pt,
+            protected List<T> mapInner(Parser.ParseTree pt,
                                        List<T> children) {
                 if (makeImmutable)
                     children = Collections.unmodifiableList(children);
@@ -54,14 +54,14 @@ public abstract class CompositeMapper<C, T>
 
     public static <T> CompositeMapper<T, T> passthrough(Mapper<T> nested) {
         return new CompositeMapper<T, T>(nested) {
-            public T map(ParseTree pt) throws MappingException {
+            public T map(Parser.ParseTree pt) throws MappingException {
                 if (pt.childCount() != 1)
                     throw new MappingException("Expected one subtree, got " +
                         pt.childCount());
                 return super.map(pt);
             }
 
-            protected T mapInner(ParseTree pt, List<T> children) {
+            protected T mapInner(Parser.ParseTree pt, List<T> children) {
                 return children.get(0);
             }
         };
