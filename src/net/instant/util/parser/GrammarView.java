@@ -4,10 +4,10 @@ import java.util.Set;
 
 public interface GrammarView {
 
-    Nonterminal getStartSymbol();
+    Grammar.Nonterminal getStartSymbol();
 
     Set<String> getProductionNames();
 
-    Set<Production> getProductions(String name);
+    Set<Grammar.Production> getProductions(String name);
 
 }

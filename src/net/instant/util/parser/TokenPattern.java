@@ -8,9 +8,9 @@ import net.instant.util.NamedValue;
 public class TokenPattern implements NamedValue {
 
     private final String name;
-    private final Terminal symbol;
+    private final Grammar.Terminal symbol;
 
-    public TokenPattern(String name, Terminal symbol) {
+    public TokenPattern(String name, Grammar.Terminal symbol) {
         if (name == null)
             throw new NullPointerException(
                 "TokenPattern name may not be null");
@@ -41,7 +41,7 @@ public class TokenPattern implements NamedValue {
         return name;
     }
 
-    public Terminal getSymbol() {
+    public Grammar.Terminal getSymbol() {
         return symbol;
     }
 
@@ -54,25 +54,25 @@ public class TokenPattern implements NamedValue {
         return new Token(getName(), position, content);
     }
 
-    public static TokenPattern create(String name, Set<Production> prods)
-            throws InvalidGrammarException {
+    public static TokenPattern create(String name,
+            Set<Grammar.Production> prods) throws InvalidGrammarException {
         if (prods.size() == 0)
             throw new InvalidGrammarException(
                 "Missing definition of token " + name);
         if (prods.size() > 1)
             throw new InvalidGrammarException(
                 "Multiple productions for token " + name);
-        Production pr = prods.iterator().next();
+        Grammar.Production pr = prods.iterator().next();
         if (pr.getSymbols().size() != 1)
             throw new InvalidGrammarException("Token " +
                 name + " definition must contain exactly one " +
                 "nonterminal, got " + pr.getSymbols().size() + " instead");
-        Symbol sym = pr.getSymbols().get(0);
-        if (! (sym instanceof Terminal))
+        Grammar.Symbol sym = pr.getSymbols().get(0);
+        if (! (sym instanceof Grammar.Terminal))
             throw new InvalidGrammarException("Token " + name +
                 " definition may only contain terminals, got " + sym +
                 " instead");
-        return new TokenPattern(name, (Terminal) sym);
+        return new TokenPattern(name, (Grammar.Terminal) sym);
     }
 
 }

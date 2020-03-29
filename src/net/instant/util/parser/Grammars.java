@@ -183,46 +183,48 @@ public final class Grammars {
         public static final UnionMapper<Integer> SYMBOL_FLAG =
             new UnionMapper<Integer>();
 
-        public static final UnionMapper<Symbol> SYMBOL_CONTENT =
-            new UnionMapper<Symbol>();
+        public static final UnionMapper<Grammar.Symbol> SYMBOL_CONTENT =
+            new UnionMapper<Grammar.Symbol>();
 
-        public static final Mapper<Symbol> SYMBOL = new Mapper<Symbol>() {
-            public Symbol map(ParseTree pt) throws MappingException {
-                Symbol base = null;
-                int flags = 0;
-                for (ParseTree child : pt.getChildren()) {
-                    if (SYMBOL_FLAG.canMap(child)) {
-                        flags |= SYMBOL_FLAG.map(child);
-                        continue;
+        public static final Mapper<Grammar.Symbol> SYMBOL =
+            new Mapper<Grammar.Symbol>() {
+                public Grammar.Symbol map(ParseTree pt)
+                        throws MappingException {
+                    Grammar.Symbol base = null;
+                    int flags = 0;
+                    for (ParseTree child : pt.getChildren()) {
+                        if (SYMBOL_FLAG.canMap(child)) {
+                            flags |= SYMBOL_FLAG.map(child);
+                            continue;
+                        }
+                        if (base != null)
+                            throw new MappingException(
+                                "Incorrect redundant symbol content");
+                        base = SYMBOL_CONTENT.map(child);
                     }
-                    if (base != null)
-                        throw new MappingException(
-                            "Incorrect redundant symbol content");
-                    base = SYMBOL_CONTENT.map(child);
+                    return base.withFlags(flags);
                 }
-                return base.withFlags(flags);
-            }
-        };
+            };
 
         public static final Mapper<String> PRODUCTION_NAME =
             LeafMapper.string();
 
-        public static final Mapper<List<Symbol>> ALTERNATIVE =
+        public static final Mapper<List<Grammar.Symbol>> ALTERNATIVE =
             CompositeMapper.aggregate(SYMBOL);
 
-        public static final Mapper<List<Production>> PRODUCTIONS =
-            new RecordMapper<List<Production>>() {
+        public static final Mapper<List<Grammar.Production>> PRODUCTIONS =
+            new RecordMapper<List<Grammar.Production>>() {
 
                 private final Mapper<String> NAME = add(PRODUCTION_NAME);
-                private final Mapper<List<List<Symbol>>> CONTENT =
+                private final Mapper<List<List<Grammar.Symbol>>> CONTENT =
                     add(CompositeMapper.aggregate(ALTERNATIVE));
 
-                protected List<Production> mapInner(Result res) {
-                    List<Production> ret =
-                        new ArrayList<Production>();
+                protected List<Grammar.Production> mapInner(Result res) {
+                    List<Grammar.Production> ret =
+                        new ArrayList<Grammar.Production>();
                     String name = res.get(NAME);
-                    for (List<Symbol> syms : res.get(CONTENT)) {
-                        ret.add(new Production(name, syms));
+                    for (List<Grammar.Symbol> syms : res.get(CONTENT)) {
+                        ret.add(new Grammar.Production(name, syms));
                     }
                     return ret;
                 }
@@ -230,12 +232,12 @@ public final class Grammars {
             };
 
         public static final Mapper<Grammar> GRAMMAR = new CompositeMapper<
-                    List<Production>, Grammar>(PRODUCTIONS) {
+                    List<Grammar.Production>, Grammar>(PRODUCTIONS) {
                 protected Grammar mapInner(ParseTree pt,
-                        List<List<Production>> children) {
-                    List<Production> productions =
-                        new ArrayList<Production>();
-                    for (List<Production> ps : children) {
+                        List<List<Grammar.Production>> children) {
+                    List<Grammar.Production> productions =
+                        new ArrayList<Grammar.Production>();
+                    for (List<Grammar.Production> ps : children) {
                         productions.addAll(ps);
                     }
                     return new Grammar(productions);
@@ -273,32 +275,32 @@ public final class Grammars {
             });
 
             SYMBOL_FLAG.add("Caret",
-                            LeafMapper.constant(Symbol.SYM_INLINE));
+                            LeafMapper.constant(Grammar.Symbol.SYM_INLINE));
             SYMBOL_FLAG.add("Tilde",
-                            LeafMapper.constant(Symbol.SYM_DISCARD));
+                            LeafMapper.constant(Grammar.Symbol.SYM_DISCARD));
             SYMBOL_FLAG.add("Question",
-                            LeafMapper.constant(Symbol.SYM_OPTIONAL));
+                            LeafMapper.constant(Grammar.Symbol.SYM_OPTIONAL));
             SYMBOL_FLAG.add("Plus",
-                            LeafMapper.constant(Symbol.SYM_REPEAT));
+                            LeafMapper.constant(Grammar.Symbol.SYM_REPEAT));
 
             SYMBOL_CONTENT.add("Identifier",
-                new LeafMapper<Symbol>() {
-                    protected Symbol mapInner(ParseTree pt) {
-                        return new Nonterminal(pt.getContent(), 0);
+                new LeafMapper<Grammar.Symbol>() {
+                    protected Grammar.Symbol mapInner(ParseTree pt) {
+                        return new Grammar.Nonterminal(pt.getContent(), 0);
                     }
                 });
             SYMBOL_CONTENT.add("String",
-                new Mapper<Symbol>() {
-                    public Symbol map(ParseTree pt)
+                new Mapper<Grammar.Symbol>() {
+                    public Grammar.Symbol map(ParseTree pt)
                             throws MappingException {
-                        return new FixedTerminal(STRING.map(pt), 0);
+                        return new Grammar.FixedTerminal(STRING.map(pt), 0);
                     }
                 });
             SYMBOL_CONTENT.add("Regex",
-                new Mapper<Symbol>() {
-                    public Symbol map(ParseTree pt)
+                new Mapper<Grammar.Symbol>() {
+                    public Grammar.Symbol map(ParseTree pt)
                             throws MappingException {
-                        return new Terminal(REGEX.map(pt), 0);
+                        return new Grammar.Terminal(REGEX.map(pt), 0);
                     }
                 });
         }
@@ -341,12 +343,12 @@ public final class Grammars {
 
     public static String formatWithSymbolFlags(String base, int flags) {
         StringBuilder sb = new StringBuilder();
-        if ((flags & Symbol.SYM_INLINE  ) != 0) sb.append('^');
-        if ((flags & Symbol.SYM_DISCARD ) != 0) sb.append('~');
+        if ((flags & Grammar.Symbol.SYM_INLINE  ) != 0) sb.append('^');
+        if ((flags & Grammar.Symbol.SYM_DISCARD ) != 0) sb.append('~');
         sb.append(base);
-        if ((flags & Symbol.SYM_OPTIONAL) != 0) sb.append('?');
-        if ((flags & Symbol.SYM_REPEAT  ) != 0) sb.append('+');
-        flags &= ~Symbol.SYM_ALL;
+        if ((flags & Grammar.Symbol.SYM_OPTIONAL) != 0) sb.append('?');
+        if ((flags & Grammar.Symbol.SYM_REPEAT  ) != 0) sb.append('+');
+        flags &= ~Grammar.Symbol.SYM_ALL;
         if (flags != 0)
             sb.append("[0x").append(Integer.toHexString(flags)).append("]");
         return sb.toString();

@@ -38,7 +38,7 @@ public class Parser {
             return initialState;
         }
 
-        public Nonterminal getStartSymbol() {
+        public Grammar.Nonterminal getStartSymbol() {
             return source.getStartSymbol();
         }
 
@@ -46,7 +46,7 @@ public class Parser {
             return source.getProductionNames();
         }
 
-        public Set<Production> getProductions(String name) {
+        public Set<Grammar.Production> getProductions(String name) {
             return source.getProductions(name);
         }
 
@@ -130,27 +130,27 @@ public class Parser {
 
     protected interface SingleSuccessorState extends State {
 
-        Symbol getSelector();
+        Grammar.Symbol getSelector();
 
         State getSuccessor();
 
-        void setSuccessor(Symbol selector, State succ)
+        void setSuccessor(Grammar.Symbol selector, State succ)
             throws BadSuccessorException;
 
     }
 
     protected interface MultiSuccessorState extends State {
 
-        State getSuccessor(Symbol selector);
+        State getSuccessor(Grammar.Symbol selector);
 
-        void setSuccessor(Symbol selector, State succ)
+        void setSuccessor(Grammar.Symbol selector, State succ)
             throws BadSuccessorException;
 
     }
 
     protected interface ExpectationSet {
 
-        Set<Symbol> getExpectedTokens();
+        Set<Grammar.Symbol> getExpectedTokens();
 
         TokenSource.Selection getSelection();
 
@@ -294,7 +294,7 @@ public class Parser {
         public String formatExpectations() {
             Set<String> accum = new LinkedHashSet<String>();
             for (ExpectationSet exp : getExpectations()) {
-                for (Symbol sym : exp.getExpectedTokens()) {
+                for (Grammar.Symbol sym : exp.getExpectedTokens()) {
                     if (sym == null) {
                         accum.add("end of input");
                     } else {
@@ -324,9 +324,9 @@ public class Parser {
         public void pushState(State st, String treeNodeName, int flags) {
             List<ParseTreeImpl> treeStack = getTreeStack();
             ParseTreeImpl top = treeStack.get(treeStack.size() - 1);
-            if ((flags & Symbol.SYM_DISCARD) != 0) {
+            if ((flags & Grammar.Symbol.SYM_DISCARD) != 0) {
                 treeStack.add(new ParseTreeImpl(treeNodeName));
-            } else if ((flags & Symbol.SYM_INLINE) != 0) {
+            } else if ((flags & Grammar.Symbol.SYM_INLINE) != 0) {
                 treeStack.add(top);
             } else {
                 ParseTreeImpl next = new ParseTreeImpl(treeNodeName);
@@ -372,10 +372,10 @@ public class Parser {
 
     protected static class NullState implements SingleSuccessorState {
 
-        private Symbol selector;
+        private Grammar.Symbol selector;
         private State successor;
 
-        public Symbol getSelector() {
+        public Grammar.Symbol getSelector() {
             return selector;
         }
 
@@ -383,7 +383,7 @@ public class Parser {
             return successor;
         }
 
-        public void setSuccessor(Symbol sel, State st) {
+        public void setSuccessor(Grammar.Symbol sel, State st) {
             selector = sel;
             successor = st;
         }
@@ -411,14 +411,14 @@ public class Parser {
 
     protected static class CallState extends NullState {
 
-        private final Nonterminal sym;
+        private final Grammar.Nonterminal sym;
         private State callState;
 
-        public CallState(Nonterminal sym, State callState) {
+        public CallState(Grammar.Nonterminal sym, State callState) {
             this.sym = sym;
             this.callState = callState;
         }
-        public CallState(Nonterminal sym) {
+        public CallState(Grammar.Nonterminal sym) {
             this(sym, null);
         }
 
@@ -427,7 +427,7 @@ public class Parser {
                 getClass().getName(), this, getSymbol(), getCallState());
         }
 
-        public Nonterminal getSymbol() {
+        public Grammar.Nonterminal getSymbol() {
             return sym;
         }
 
@@ -458,7 +458,7 @@ public class Parser {
 
         public void apply(Status status) {
             int flags = sym.getFlags();
-            if (status.isKeepingAll()) flags &= ~Symbol.SYM_DISCARD;
+            if (status.isKeepingAll()) flags &= ~Grammar.Symbol.SYM_DISCARD;
             status.pushState(getSuccessor(), sym.getReference(), flags);
             status.setState(callState);
         }
@@ -488,10 +488,10 @@ public class Parser {
     protected static class LiteralState extends NullState
             implements ExpectationSet {
 
-        private final Symbol expected;
+        private final Grammar.Symbol expected;
         private TokenSource.Selection lexerState;
 
-        public LiteralState(Symbol expected) {
+        public LiteralState(Grammar.Symbol expected) {
             this.expected = expected;
         }
 
@@ -500,7 +500,7 @@ public class Parser {
                                  this, getExpected());
         }
 
-        public Symbol getExpected() {
+        public Grammar.Symbol getExpected() {
             return expected;
         }
 
@@ -512,7 +512,7 @@ public class Parser {
             lexerState = state;
         }
 
-        public Set<Symbol> getExpectedTokens() {
+        public Set<Grammar.Symbol> getExpectedTokens() {
             return Collections.singleton(expected);
         }
 
@@ -532,7 +532,7 @@ public class Parser {
             Token tok = status.getCurrentToken(true);
             if (tok == null || ! tok.matches(expected))
                 throw status.unexpectedToken();
-            if ((expected.getFlags() & Symbol.SYM_DISCARD) == 0 ||
+            if ((expected.getFlags() & Grammar.Symbol.SYM_DISCARD) == 0 ||
                     status.isKeepingAll())
                 status.storeToken(tok);
             status.nextToken();
@@ -562,25 +562,26 @@ public class Parser {
             return successors.values();
         }
 
-        public State getSuccessor(Symbol selector) {
+        public State getSuccessor(Grammar.Symbol selector) {
             if (selector == null) {
                 return successors.get(null);
-            } else if (! (selector instanceof Nonterminal)) {
+            } else if (! (selector instanceof Grammar.Nonterminal)) {
                 return null;
             } else {
                 return successors.get(
-                    ((Nonterminal) selector).getReference());
+                    ((Grammar.Nonterminal) selector).getReference());
             }
         }
-        public void setSuccessor(Symbol selector, State succ)
+        public void setSuccessor(Grammar.Symbol selector, State succ)
                 throws BadSuccessorException {
             if (selector == null) {
                 successors.put(null, succ);
-            } else if (! (selector instanceof Nonterminal)) {
+            } else if (! (selector instanceof Grammar.Nonterminal)) {
                 throw new BadSuccessorException(
                     "Cannot branch on terminal Grammar symbols");
             } else {
-                successors.put(((Nonterminal) selector).getReference(), succ);
+                successors.put(
+                    ((Grammar.Nonterminal) selector).getReference(), succ);
             }
         }
 
@@ -592,11 +593,11 @@ public class Parser {
             lexerState = state;
         }
 
-        public Set<Symbol> getExpectedTokens() {
-            Set<Symbol> ret = new LinkedHashSet<Symbol>();
+        public Set<Grammar.Symbol> getExpectedTokens() {
+            Set<Grammar.Symbol> ret = new LinkedHashSet<Grammar.Symbol>();
             for (String key : successors.keySet()) {
                 if (key == null) continue;
-                ret.add(new Nonterminal(key, 0));
+                ret.add(new Grammar.Nonterminal(key, 0));
             }
             return ret;
         }
@@ -636,7 +637,7 @@ public class Parser {
             lexerState = state;
         }
 
-        public Set<Symbol> getExpectedTokens() {
+        public Set<Grammar.Symbol> getExpectedTokens() {
             return Collections.singleton(null);
         }
 
@@ -668,7 +669,7 @@ public class Parser {
             private final State state;
             private final Set<State> intransitiveSuccessors;
             private String anchorName;
-            private Symbol predSelector;
+            private Grammar.Symbol predSelector;
             private State predecessor;
 
             public StateInfo(State state) {
@@ -700,13 +701,13 @@ public class Parser {
                 anchorName = name;
             }
 
-            public Symbol getPredecessorSelector() {
+            public Grammar.Symbol getPredecessorSelector() {
                 return predSelector;
             }
             public State getPredecessor() {
                 return predecessor;
             }
-            public void setPredecessor(Symbol selector, State pred) {
+            public void setPredecessor(Grammar.Symbol selector, State pred) {
                 if (predecessor != null || anchorName != null) return;
                 predSelector = selector;
                 predecessor = pred;
@@ -728,7 +729,7 @@ public class Parser {
                 if (predInfo == null) return null;
                 String predPath = predInfo.getPath();
                 if (predPath == null) return null;
-                Symbol sel = getPredecessorSelector();
+                Grammar.Symbol sel = getPredecessorSelector();
                 return predPath + " -> " + ((sel == null) ? "(default)" :
                   sel.toString());
             }
@@ -745,10 +746,11 @@ public class Parser {
         private final Grammar grammar;
         private final Set<String> seenProductions;
         private final Map<String, TokenPattern> tokens;
-        private final Map<Set<Symbol>, TokenSource.Selection> lexerStates;
+        private final Map<Set<Grammar.Symbol>,
+                          TokenSource.Selection> lexerStates;
         private final Map<String, State> initialStates;
         private final Map<String, State> finalStates;
-        private final Map<String, Set<Symbol>> initialSymbolCache;
+        private final Map<String, Set<Grammar.Symbol>> initialSymbolCache;
         private final Map<State, StateInfo> info;
         private State startState;
 
@@ -757,11 +759,12 @@ public class Parser {
             this.grammar = new Grammar(grammar);
             this.seenProductions = new HashSet<String>();
             this.tokens = new HashMap<String, TokenPattern>();
-            this.lexerStates = new HashMap<Set<Symbol>,
+            this.lexerStates = new HashMap<Set<Grammar.Symbol>,
                                            TokenSource.Selection>();
             this.initialStates = new HashMap<String, State>();
             this.finalStates = new HashMap<String, State>();
-            this.initialSymbolCache = new HashMap<String, Set<Symbol>>();
+            this.initialSymbolCache = new HashMap<String,
+                                                  Set<Grammar.Symbol>>();
             this.info = new IdentityHashMap<State, StateInfo>();
             this.startState = null;
             this.grammar.validate();
@@ -778,10 +781,10 @@ public class Parser {
         protected NullState createNullState() {
             return new NullState();
         }
-        protected CallState createCallState(Nonterminal sym) {
+        protected CallState createCallState(Grammar.Nonterminal sym) {
             return new CallState(sym, getInitialState(sym.getReference()));
         }
-        protected LiteralState createLiteralState(Symbol sym) {
+        protected LiteralState createLiteralState(Grammar.Symbol sym) {
             return new LiteralState(sym);
         }
         protected BranchState createBranchState() {
@@ -799,12 +802,12 @@ public class Parser {
 
         protected TokenPattern compileToken(String name)
                 throws InvalidGrammarException {
-            Set<Production> prods = grammar.getRawProductions(name);
+            Set<Grammar.Production> prods = grammar.getRawProductions(name);
             if (prods.size() != 1) return null;
-            Production prod = prods.iterator().next();
+            Grammar.Production prod = prods.iterator().next();
             if (prod.getSymbols().size() != 1) return null;
-            Symbol sym = prod.getSymbols().get(0);
-            if (sym.getFlags() != Symbol.SYM_INLINE) return null;
+            Grammar.Symbol sym = prod.getSymbols().get(0);
+            if (sym.getFlags() != Grammar.Symbol.SYM_INLINE) return null;
             TokenPattern ret = TokenPattern.create(name, prods);
             return ret;
         }
@@ -815,19 +818,19 @@ public class Parser {
             return tokens.get(name);
         }
 
-        protected TokenSource.Selection getSelection(Set<Symbol> syms)
+        protected TokenSource.Selection getSelection(Set<Grammar.Symbol> syms)
                 throws InvalidGrammarException {
             TokenSource.Selection ret = lexerStates.get(syms);
             if (ret == null) {
                 Map<String, TokenPattern> tokens =
                     new LinkedHashMap<String, TokenPattern>();
-                for (Symbol s : syms) {
+                for (Grammar.Symbol s : syms) {
                     if (s == null)
                         continue;
-                    if (! (s instanceof Nonterminal))
+                    if (! (s instanceof Grammar.Nonterminal))
                         throw new InvalidGrammarException("Token " +
                             "definition set contains a raw terminal " + s);
-                    String cnt = ((Nonterminal) s).getReference();
+                    String cnt = ((Grammar.Nonterminal) s).getReference();
                     TokenPattern tok = null;
                     Throwable error = null;
                     try {
@@ -841,7 +844,7 @@ public class Parser {
                     tokens.put(tok.getName(), tok);
                 }
                 ret = createLexerState(tokens);
-                lexerStates.put(new HashSet<Symbol>(syms), ret);
+                lexerStates.put(new HashSet<Grammar.Symbol>(syms), ret);
             }
             return ret;
         }
@@ -885,9 +888,9 @@ public class Parser {
             sb.append(lastProd);
             return sb.toString();
         }
-        protected Set<Symbol> findInitialSymbols(String prodName,
+        protected Set<Grammar.Symbol> findInitialSymbols(String prodName,
                 Set<String> seen) throws InvalidGrammarException {
-            Set<Symbol> ret = initialSymbolCache.get(prodName);
+            Set<Grammar.Symbol> ret = initialSymbolCache.get(prodName);
             if (ret != null)
                 return ret;
             if (seen.contains(prodName))
@@ -895,21 +898,21 @@ public class Parser {
                     "Grammar is left-recursive (cyclical productions " +
                     formatCyclicalProductions(seen, prodName) + ")");
             seen.add(prodName);
-            ret = new LinkedHashSet<Symbol>();
+            ret = new LinkedHashSet<Grammar.Symbol>();
             boolean maybeEmpty = false;
-            for (Production p : grammar.getRawProductions(prodName)) {
+            for (Grammar.Production p : grammar.getRawProductions(prodName)) {
                 boolean productionMaybeEmpty = true;
-                for (Symbol s : p.getSymbols()) {
-                    if (! (s instanceof Nonterminal))
+                for (Grammar.Symbol s : p.getSymbols()) {
+                    if (! (s instanceof Grammar.Nonterminal))
                         throw new InvalidGrammarException(
                             "Start-significant symbol " + s +
                             " of production " + prodName +
                             " alternative is a raw terminal");
                     boolean symbolMaybeEmpty = ((s.getFlags() &
-                        Symbol.SYM_OPTIONAL) != 0);
-                    String c = ((Nonterminal) s).getReference();
+                        Grammar.Symbol.SYM_OPTIONAL) != 0);
+                    String c = ((Grammar.Nonterminal) s).getReference();
                     if (getToken(c) == null) {
-                        Set<Symbol> localSymbols =
+                        Set<Grammar.Symbol> localSymbols =
                             findInitialSymbols(c, seen);
                         ret.addAll(localSymbols);
                         symbolMaybeEmpty |= localSymbols.contains(null);
@@ -932,18 +935,18 @@ public class Parser {
             initialSymbolCache.put(prodName, ret);
             return ret;
         }
-        protected Set<Symbol> findInitialSymbols(String prodName)
+        protected Set<Grammar.Symbol> findInitialSymbols(String prodName)
                 throws InvalidGrammarException {
             return findInitialSymbols(prodName, new LinkedHashSet<String>());
         }
 
-        protected boolean selectorsEqual(Symbol a, Symbol b) {
+        protected boolean selectorsEqual(Grammar.Symbol a, Grammar.Symbol b) {
             return (a == null) ? (b == null) : a.equals(b);
         }
         protected Collection<State> getAllSuccessors(State prev) {
             return prev.getAllSuccessors();
         }
-        protected State getSuccessor(State prev, Symbol selector,
+        protected State getSuccessor(State prev, Grammar.Symbol selector,
                                      boolean intransitive) {
             State ret;
             if (prev instanceof MultiSuccessorState) {
@@ -971,7 +974,7 @@ public class Parser {
                 return null;
             return ret;
         }
-        protected void addSuccessor(State prev, Symbol selector,
+        protected void addSuccessor(State prev, Grammar.Symbol selector,
                 State next, boolean intransitive)
                 throws InvalidGrammarException {
             if (prev instanceof MultiSuccessorState) {
@@ -998,7 +1001,7 @@ public class Parser {
                     } else if (mid instanceof MultiSuccessorState) {
                         addSuccessor(mid, selector, next, false);
                     } else {
-                        Symbol midSelector = cprev.getSelector();
+                        Grammar.Symbol midSelector = cprev.getSelector();
                         BranchState newmid = createBranchState();
                         cprev.setSuccessor(null, newmid);
                         addSuccessor(newmid, midSelector, mid, false);
@@ -1030,54 +1033,57 @@ public class Parser {
             }
         }
 
-        private Symbol symbolWithFlags(Symbol base, int newFlags) {
+        private Grammar.Symbol symbolWithFlags(Grammar.Symbol base,
+                                               int newFlags) {
             return (base == null) ? base : base.withFlags(newFlags);
         }
 
         @SuppressWarnings("fallthrough")
-        protected State compileSymbol(Symbol sym, Set<Symbol> selectors)
+        protected State compileSymbol(Grammar.Symbol sym,
+                                      Set<Grammar.Symbol> selectors)
                 throws InvalidGrammarException {
-            Symbol cleanedSym = symbolWithFlags(sym,
+            Grammar.Symbol cleanedSym = symbolWithFlags(sym,
                 sym.getFlags() & ~COMPILER_FLAGS);
-            if (sym instanceof Nonterminal) {
-                String cnt = ((Nonterminal) sym).getReference();
+            if (sym instanceof Grammar.Nonterminal) {
+                String cnt = ((Grammar.Nonterminal) sym).getReference();
                 if (getToken(cnt) == null) {
-                    for (Symbol s : findInitialSymbols(cnt)) {
+                    for (Grammar.Symbol s : findInitialSymbols(cnt)) {
                         selectors.add(symbolWithFlags(s,
                             cleanedSym.getFlags()));
                     }
                     addProductions(cnt);
-                    return createCallState((Nonterminal) cleanedSym);
+                    return createCallState((Grammar.Nonterminal) cleanedSym);
                 }
             }
             selectors.add(cleanedSym);
             return createLiteralState(cleanedSym);
         }
 
-        protected void addProduction(Production prod)
+        protected void addProduction(Grammar.Production prod)
                 throws InvalidGrammarException {
             /* Prepare data structures. */
-            Set<Symbol> selectors = new LinkedHashSet<Symbol>();
+            Set<Grammar.Symbol> selectors =
+                new LinkedHashSet<Grammar.Symbol>();
             State lastPrev = getInitialState(prod.getName());
             IdentityLinkedSet<State> prevs = new IdentityLinkedSet<State>();
             prevs.add(lastPrev);
             State tailJump = null;
             /* Iterate over the symbols! */
-            List<Symbol> syms = prod.getSymbols();
+            List<Grammar.Symbol> syms = prod.getSymbols();
             int symCount = syms.size();
             for (int i = 0; i < symCount; i++) {
-                Symbol sym = syms.get(i);
+                Grammar.Symbol sym = syms.get(i);
                 /* Create a state corresponding to the symbol. */
                 State next = compileSymbol(sym, selectors);
                 /* Tail recursion optimization. */
                 if (i == symCount - 1 &&
-                        sym instanceof Nonterminal &&
-                        ((Nonterminal) sym).getReference().equals(
+                        sym instanceof Grammar.Nonterminal &&
+                        ((Grammar.Nonterminal) sym).getReference().equals(
                             prod.getName()) &&
-                        (sym.getFlags() & (Symbol.SYM_INLINE |
-                                           Symbol.SYM_DISCARD |
-                                           Symbol.SYM_REPEAT)
-                        ) == Symbol.SYM_INLINE) {
+                        (sym.getFlags() & (Grammar.Symbol.SYM_INLINE |
+                                           Grammar.Symbol.SYM_DISCARD |
+                                           Grammar.Symbol.SYM_REPEAT)
+                        ) == Grammar.Symbol.SYM_INLINE) {
                     next = createNullState();
                     addSuccessor(next, null, getInitialState(prod.getName()),
                                  true);
@@ -1087,7 +1093,8 @@ public class Parser {
                  * This could happen if the start symbol itself is a token
                  * definition. */
                 if (getToken(prod.getName()) != null) {
-                    Symbol ref = new Nonterminal(prod.getName(), 0);
+                    Grammar.Symbol ref = new Grammar.Nonterminal(
+                        prod.getName(), 0);
                     next = createLiteralState(ref);
                     selectors.clear();
                     selectors.add(ref);
@@ -1095,11 +1102,11 @@ public class Parser {
                 /* Determine preliminarily whether this symbol could be
                  * skipped. */
                 boolean maybeEmpty = (selectors.contains(null) ||
-                    (sym.getFlags() & Symbol.SYM_OPTIONAL) != 0);
+                    (sym.getFlags() & Grammar.Symbol.SYM_OPTIONAL) != 0);
                 selectors.remove(null);
                 /* Check if we can substitute an already-existing state
                  * instead. */
-                for (Symbol sel : selectors) {
+                for (Grammar.Symbol sel : selectors) {
                     State st = getSuccessor(lastPrev, sel, true);
                     // The mutual comparisons ensure that both next and st
                     // can veto the "merge".
@@ -1109,13 +1116,13 @@ public class Parser {
                     }
                 }
                 /* Handle SYM_REPEAT. */
-                if ((sym.getFlags() & Symbol.SYM_REPEAT) != 0)
+                if ((sym.getFlags() & Grammar.Symbol.SYM_REPEAT) != 0)
                     prevs.addLast(next);
                 /* Add the new state graph edges.
                  * This will error out if there is any conflict. */
                 for (State pr : prevs) {
                     boolean intransitive = (pr == lastPrev);
-                    for (Symbol sel : selectors) {
+                    for (Grammar.Symbol sel : selectors) {
                         if (getSuccessor(pr, sel, false) != next)
                             addSuccessor(pr, sel, next, intransitive);
                     }
@@ -1141,11 +1148,11 @@ public class Parser {
             }
         }
 
-        protected void addProductions(NamedSet<Production> prods)
+        protected void addProductions(NamedSet<Grammar.Production> prods)
                 throws InvalidGrammarException {
             if (seenProductions.contains(prods.getName())) return;
             seenProductions.add(prods.getName());
-            for (Production p : prods) {
+            for (Grammar.Production p : prods) {
                 addProduction(p);
             }
         }
@@ -1186,8 +1193,8 @@ public class Parser {
 
     /* Symbol flags that are handled by the parser compiler and thus need not
      * be considered for certain equivalence tests. */
-    public static final int COMPILER_FLAGS = Symbol.SYM_OPTIONAL |
-                                             Symbol.SYM_REPEAT;
+    public static final int COMPILER_FLAGS = Grammar.Symbol.SYM_OPTIONAL |
+                                             Grammar.Symbol.SYM_REPEAT;
 
     private final CompiledGrammar grammar;
     private final TokenSource source;

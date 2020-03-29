@@ -56,11 +56,12 @@ public class Token implements NamedValue {
         return content;
     }
 
-    public boolean matches(Symbol sym) {
-        if (sym instanceof Nonterminal) {
-            return ((Nonterminal) sym).getReference().equals(getName());
-        } else if (sym instanceof Terminal) {
-            return ((Terminal) sym).getPattern().matcher(getContent())
+    public boolean matches(Grammar.Symbol sym) {
+        if (sym instanceof Grammar.Nonterminal) {
+            return ((Grammar.Nonterminal) sym).getReference()
+                .equals(getName());
+        } else if (sym instanceof Grammar.Terminal) {
+            return ((Grammar.Terminal) sym).getPattern().matcher(getContent())
                 .matches();
         } else {
             throw new IllegalArgumentException("Unrecognized symbol " +
