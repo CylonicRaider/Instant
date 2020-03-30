@@ -14,11 +14,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Callable;
+import net.instant.api.NamedValue;
 import net.instant.api.parser.TextLocation;
 import net.instant.util.IdentityLinkedSet;
 import net.instant.util.LineColumnReader;
 import net.instant.util.NamedSet;
-import net.instant.util.NamedValue;
 
 public class Parser {
 

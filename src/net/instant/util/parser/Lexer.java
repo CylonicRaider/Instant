@@ -8,11 +8,11 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.regex.Matcher;
+import net.instant.api.NamedValue;
 import net.instant.api.parser.TextLocation;
 import net.instant.util.Formats;
 import net.instant.util.LineColumnReader;
 import net.instant.util.NamedMap;
-import net.instant.util.NamedValue;
 
 public class Lexer implements TokenSource {
 

@@ -8,10 +8,10 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.regex.Pattern;
+import net.instant.api.NamedValue;
 import net.instant.util.Formats;
 import net.instant.util.NamedMap;
 import net.instant.util.NamedSet;
-import net.instant.util.NamedValue;
 
 public class Grammar implements GrammarView {
 

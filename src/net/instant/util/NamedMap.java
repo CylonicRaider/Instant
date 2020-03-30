@@ -7,6 +7,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
+import net.instant.api.NamedValue;
 
 public class NamedMap<V extends NamedValue> extends AbstractMap<String, V> {
 
