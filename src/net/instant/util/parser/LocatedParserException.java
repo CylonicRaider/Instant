@@ -1,32 +1,30 @@
 package net.instant.util.parser;
 
-import net.instant.util.LineColumnReader;
+import net.instant.api.parser.TextLocation;
 
 public class LocatedParserException extends ParserException {
 
-    private final LineColumnReader.Coordinates position;
+    private final TextLocation position;
 
-    public LocatedParserException(LineColumnReader.Coordinates pos) {
+    public LocatedParserException(TextLocation pos) {
         super();
         position = pos;
     }
-    public LocatedParserException(LineColumnReader.Coordinates pos,
-                                  String message) {
+    public LocatedParserException(TextLocation pos, String message) {
         super(message);
         position = pos;
     }
-    public LocatedParserException(LineColumnReader.Coordinates pos,
-                                  Throwable cause) {
+    public LocatedParserException(TextLocation pos, Throwable cause) {
         super(cause);
         position = pos;
     }
-    public LocatedParserException(LineColumnReader.Coordinates pos,
-                                  String message, Throwable cause) {
+    public LocatedParserException(TextLocation pos, String message,
+                                  Throwable cause) {
         super(message, cause);
         position = pos;
     }
 
-    public LineColumnReader.Coordinates getPosition() {
+    public TextLocation getPosition() {
         return position;
     }
 

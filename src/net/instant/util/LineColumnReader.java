@@ -3,33 +3,24 @@ package net.instant.util;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.Reader;
+import net.instant.api.parser.TextLocation;
 
 /* FIXME: Add support for non-BMP characters and for fullwidth ones,
  *        and avoid damaging the mark in readLine(). */
 public class LineColumnReader extends BufferedReader {
 
-    public interface Coordinates {
-
-        long getLine();
-
-        long getColumn();
-
-        long getCharacterIndex();
-
-    }
-
-    public static class FixedCoordinates implements Coordinates {
+    public static class FixedLocation implements TextLocation {
 
         private final long line;
         private final long column;
         private final long characterIndex;
 
-        public FixedCoordinates(long line, long column, long characterIndex) {
+        public FixedLocation(long line, long column, long characterIndex) {
             this.line = line;
             this.column = column;
             this.characterIndex = characterIndex;
         }
-        public FixedCoordinates(Coordinates other) {
+        public FixedLocation(TextLocation other) {
             this(other.getLine(), other.getColumn(),
                  other.getCharacterIndex());
         }
@@ -40,8 +31,8 @@ public class LineColumnReader extends BufferedReader {
         }
 
         public boolean equals(Object other) {
-            if (! (other instanceof Coordinates)) return false;
-            Coordinates co = (Coordinates) other;
+            if (! (other instanceof TextLocation)) return false;
+            TextLocation co = (TextLocation) other;
             return (line == co.getLine() &&
                     column == co.getColumn() &&
                     characterIndex == co.getCharacterIndex());
@@ -66,7 +57,7 @@ public class LineColumnReader extends BufferedReader {
 
     }
 
-    public static class CoordinatesTracker implements Coordinates {
+    public static class LocationTracker implements TextLocation {
 
         public static final int DEFAULT_TAB_SIZE = 8;
 
@@ -76,29 +67,27 @@ public class LineColumnReader extends BufferedReader {
         private boolean inNL;
         private int tabSize;
 
-        public CoordinatesTracker(long line, long column,
-                                  long characterIndex, boolean inNL,
-                                  int tabSize) {
+        public LocationTracker(long line, long column, long characterIndex,
+                               boolean inNL, int tabSize) {
             this.line = line;
             this.column = column;
             this.characterIndex = characterIndex;
             this.inNL = inNL;
             this.tabSize = tabSize;
         }
-        public CoordinatesTracker(long line, long column,
-                                  long characterIndex) {
+        public LocationTracker(long line, long column, long characterIndex) {
             this(line, column, characterIndex, false, DEFAULT_TAB_SIZE);
         }
-        public CoordinatesTracker(Coordinates other) {
+        public LocationTracker(TextLocation other) {
             this(other.getLine(), other.getColumn(),
                  other.getCharacterIndex());
         }
-        public CoordinatesTracker(CoordinatesTracker other) {
+        public LocationTracker(LocationTracker other) {
             this(other.getLine(), other.getColumn(),
                  other.getCharacterIndex(), other.isInNL(),
                  other.getTabSize());
         }
-        public CoordinatesTracker() {
+        public LocationTracker() {
             this(1, 1, 0);
         }
 
@@ -143,13 +132,13 @@ public class LineColumnReader extends BufferedReader {
             tabSize = ts;
         }
 
-        public void set(Coordinates other) {
+        public void set(TextLocation other) {
             setLine(other.getLine());
             setColumn(other.getColumn());
             setCharacterIndex(other.getCharacterIndex());
             setInNL(false);
         }
-        public void set(CoordinatesTracker other) {
+        public void set(LocationTracker other) {
             setLine(other.getLine());
             setColumn(other.getColumn());
             setCharacterIndex(other.getCharacterIndex());
@@ -193,12 +182,12 @@ public class LineColumnReader extends BufferedReader {
 
     private static final int SKIP_BUFSIZE = 32768;
 
-    private final CoordinatesTracker coords;
-    private final CoordinatesTracker markCoords;
+    private final LocationTracker coords;
+    private final LocationTracker markCoords;
 
     {
-        coords = new CoordinatesTracker();
-        markCoords = new CoordinatesTracker();
+        coords = new LocationTracker();
+        markCoords = new LocationTracker();
     }
 
     public LineColumnReader(Reader in) {
@@ -208,10 +197,10 @@ public class LineColumnReader extends BufferedReader {
         super(in, bufSize);
     }
 
-    public Coordinates getCoordinates() {
+    public TextLocation getCoordinates() {
         return coords;
     }
-    public void getCoordinates(CoordinatesTracker recipient) {
+    public void getCoordinates(LocationTracker recipient) {
         synchronized (lock) {
             recipient.set(coords);
         }

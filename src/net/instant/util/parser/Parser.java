@@ -14,6 +14,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Callable;
+import net.instant.api.parser.TextLocation;
 import net.instant.util.IdentityLinkedSet;
 import net.instant.util.LineColumnReader;
 import net.instant.util.NamedSet;
@@ -83,19 +84,17 @@ public class Parser {
 
     public static class ParsingException extends LocatedParserException {
 
-        public ParsingException(LineColumnReader.Coordinates pos) {
+        public ParsingException(TextLocation pos) {
             super(pos);
         }
-        public ParsingException(LineColumnReader.Coordinates pos,
-                                String message) {
+        public ParsingException(TextLocation pos, String message) {
             super(pos, message);
         }
-        public ParsingException(LineColumnReader.Coordinates pos,
-                                Throwable cause) {
+        public ParsingException(TextLocation pos, Throwable cause) {
             super(pos, cause);
         }
-        public ParsingException(LineColumnReader.Coordinates pos,
-                                String message, Throwable cause) {
+        public ParsingException(TextLocation pos, String message,
+                                Throwable cause) {
             super(pos, message, cause);
         }
 
@@ -105,7 +104,7 @@ public class Parser {
 
         boolean isKeepingAll();
 
-        LineColumnReader.Coordinates getCurrentPosition();
+        TextLocation getCurrentPosition();
 
         Lexer.MatchStatus getCurrentTokenStatus() throws ParsingException;
 
@@ -256,7 +255,7 @@ public class Parser {
             return Parser.this.isKeepingAll();
         }
 
-        public LineColumnReader.Coordinates getCurrentPosition() {
+        public TextLocation getCurrentPosition() {
             return getTokenSource().getCurrentPosition();
         }
 

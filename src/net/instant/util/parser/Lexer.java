@@ -8,6 +8,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.regex.Matcher;
+import net.instant.api.parser.TextLocation;
 import net.instant.util.Formats;
 import net.instant.util.LineColumnReader;
 import net.instant.util.NamedMap;
@@ -18,10 +19,10 @@ public class Lexer implements TokenSource {
     public static class Token implements NamedValue {
 
         private final String name;
-        private final LineColumnReader.Coordinates position;
+        private final TextLocation position;
         private final String content;
 
-        public Token(String name, LineColumnReader.Coordinates position,
+        public Token(String name, TextLocation position,
                      String content) {
             if (position == null)
                 throw new NullPointerException(
@@ -59,7 +60,7 @@ public class Lexer implements TokenSource {
             return name;
         }
 
-        public LineColumnReader.Coordinates getPosition() {
+        public TextLocation getPosition() {
             return position;
         }
 
@@ -137,8 +138,7 @@ public class Lexer implements TokenSource {
             return getSymbol().getPattern().matcher(input);
         }
 
-        public Token createToken(LineColumnReader.Coordinates position,
-                                 String content) {
+        public Token createToken(TextLocation position, String content) {
             return new Token(getName(), position, content);
         }
 
@@ -207,7 +207,7 @@ public class Lexer implements TokenSource {
 
     private final LineColumnReader input;
     private final StringBuilder inputBuffer;
-    private final LineColumnReader.CoordinatesTracker inputPosition;
+    private final LineColumnReader.LocationTracker inputPosition;
     private final Map<String, Matcher> matchers;
     private Selection state;
     private boolean atEOI;
@@ -218,7 +218,7 @@ public class Lexer implements TokenSource {
     public Lexer(LineColumnReader input) {
         this.input = input;
         this.inputBuffer = new StringBuilder();
-        this.inputPosition = new LineColumnReader.CoordinatesTracker();
+        this.inputPosition = new LineColumnReader.LocationTracker();
         this.matchers = new LinkedHashMap<String, Matcher>();
         this.state = null;
         this.atEOI = false;
@@ -235,13 +235,13 @@ public class Lexer implements TokenSource {
         return inputBuffer;
     }
 
-    public LineColumnReader.Coordinates getCurrentPosition() {
+    public TextLocation getCurrentPosition() {
         return getInputPosition();
     }
-    public LineColumnReader.Coordinates getInputPosition() {
-        return new LineColumnReader.FixedCoordinates(inputPosition);
+    public TextLocation getInputPosition() {
+        return new LineColumnReader.FixedLocation(inputPosition);
     }
-    protected LineColumnReader.CoordinatesTracker getRawPosition() {
+    protected LineColumnReader.LocationTracker getRawPosition() {
         return inputPosition;
     }
 
@@ -397,7 +397,7 @@ public class Lexer implements TokenSource {
     }
 
     protected MatchingException unexpectedInput() {
-        LineColumnReader.Coordinates pos = getInputPosition();
+        TextLocation pos = getInputPosition();
         // If there is any unexpected input, we can as well blame its first
         // character (perhaps it is the *reason* the input is unexpected)?
         String message = (getInputBuffer().length() == 0) ?
@@ -440,7 +440,7 @@ public class Lexer implements TokenSource {
                 throw unexpectedInput();
             case EOI:
                 throw new MatchingException(getInputPosition(),
-                                          "No more input to advance past");
+                                            "No more input to advance past");
         }
         setMatchStatus(null);
         setCurrentToken(null);

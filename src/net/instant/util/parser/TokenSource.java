@@ -2,7 +2,7 @@ package net.instant.util.parser;
 
 import java.io.Closeable;
 import java.util.Map;
-import net.instant.util.LineColumnReader;
+import net.instant.api.parser.TextLocation;
 
 public interface TokenSource extends Closeable {
 
@@ -20,19 +20,17 @@ public interface TokenSource extends Closeable {
 
     class MatchingException extends LocatedParserException {
 
-        public MatchingException(LineColumnReader.Coordinates pos) {
+        public MatchingException(TextLocation pos) {
             super(pos);
         }
-        public MatchingException(LineColumnReader.Coordinates pos,
-                                String message) {
+        public MatchingException(TextLocation pos, String message) {
             super(pos, message);
         }
-        public MatchingException(LineColumnReader.Coordinates pos,
-                                Throwable cause) {
+        public MatchingException(TextLocation pos, Throwable cause) {
             super(pos, cause);
         }
-        public MatchingException(LineColumnReader.Coordinates pos,
-                                String message, Throwable cause) {
+        public MatchingException(TextLocation pos, String message,
+                                 Throwable cause) {
             super(pos, message, cause);
         }
 
@@ -40,7 +38,7 @@ public interface TokenSource extends Closeable {
 
     void setSelection(Selection sel);
 
-    LineColumnReader.Coordinates getCurrentPosition();
+    TextLocation getCurrentPosition();
 
     Lexer.Token getCurrentToken();
 
