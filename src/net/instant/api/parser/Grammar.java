@@ -47,8 +47,8 @@ public interface Grammar extends GrammarView {
         /**
          * Permit repetitions of this symbol (regular expression x+).
          * Multiple matches generate adjacent parse subtrees. Combine with
-         * SYM_OPTIONAL to permit any amount of repetitions (regular expression
-         * x*).
+         * SYM_OPTIONAL to permit any amount of repetitions (regular
+         * expression x*).
          */
         int SYM_REPEAT = 8;
 
@@ -65,8 +65,9 @@ public interface Grammar extends GrammarView {
         /**
          * Return how strongly this Symbol should be preferred when producing
          * tokens.
-         * Symbols with greater match ranks should be preferred. Typically, this
-         * returns a class-specific constant that may be overridden by subclasses.
+         * Symbols with greater match ranks should be preferred. Typically,
+         * this returns a class-specific constant that may be overridden by
+         * subclasses.
          */
         int getMatchRank();
 

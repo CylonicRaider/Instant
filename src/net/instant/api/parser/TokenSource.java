@@ -40,6 +40,14 @@ public interface TokenSource extends Closeable {
          */
         String getContent();
 
+        /**
+         * Test whether this token matches the given symbol.
+         * If sym is a nonterminal, the token's name must match the symbol's
+         * reference; if sym is a terminal, the token's content must match
+         * the symbol's pattern.
+         */
+        boolean matches(Grammar.Symbol sym);
+
     }
 
     /**

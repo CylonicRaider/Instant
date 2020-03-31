@@ -9,6 +9,11 @@ import java.util.Set;
 public interface GrammarView {
 
     /**
+     * The start symbol of the GrammarView.
+     */
+    Grammar.NonterminalSymbol getStartSymbol();
+
+    /**
      * The names of all productions in this GrammarView.
      */
     Set<String> getProductionNames();
@@ -17,6 +22,6 @@ public interface GrammarView {
      * The productions of this GrammarView with the given name, or null (or
      * an empty set) if none.
      */
-    Set<Production> getProductions(String name);
+    Set<Grammar.Production> getProductions(String name);
 
 }
