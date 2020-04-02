@@ -1,5 +1,9 @@
 package net.instant.util.parser;
 
+import net.instant.api.parser.Mapper;
+import net.instant.api.parser.MappingException;
+import net.instant.api.parser.Parser;
+
 public abstract class LeafMapper<T> implements Mapper<T> {
 
     private static LeafMapper<String> NAME = new LeafMapper<String>() {
@@ -10,12 +14,12 @@ public abstract class LeafMapper<T> implements Mapper<T> {
 
     private static LeafMapper<String> STRING = new LeafMapper<String>() {
         protected String mapInner(Parser.ParseTree pt) {
-            return pt.getContent();
+            return pt.getToken().getContent();
         }
     };
 
     public T map(Parser.ParseTree pt) throws MappingException {
-        if (pt.childCount() > 0 || pt.getToken() == null)
+        if (pt.getChildren().size() > 0 || pt.getToken() == null)
             throw new MappingException(
                 "Expected leaf node, got non-leaf node");
         return mapInner(pt);

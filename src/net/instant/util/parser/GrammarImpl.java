@@ -8,37 +8,14 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.regex.Pattern;
-import net.instant.api.NamedValue;
+import net.instant.api.parser.Grammar;
+import net.instant.api.parser.GrammarView;
+import net.instant.api.parser.InvalidGrammarException;
 import net.instant.util.Formats;
 import net.instant.util.NamedMap;
 import net.instant.util.NamedSet;
 
-public class Grammar implements GrammarView {
-
-    public interface Symbol {
-
-        /* Do not generate an own parsing tree node for this symbol. */
-        int SYM_INLINE = 1;
-        /* Discard any parsing tree nodes stemming from this symbol (may be
-         * overridden on a per-parser basis). */
-        int SYM_DISCARD = 2;
-        /* Optionally skip this symbol (regular expression x?).
-         * If the symbol is not matched, no parse tree is generated for it. */
-        int SYM_OPTIONAL = 4;
-        /* Permit repetitions of this symbol (regular expression x+).
-         * Multiple matches generate adjacent parse subtrees. Combine with
-         * SYM_OPTIONAL to permit any amount of repetitions (regular
-         * expression x*). */
-        int SYM_REPEAT = 8;
-
-        /* All known flags combined. */
-        int SYM_ALL = SYM_INLINE | SYM_DISCARD | SYM_OPTIONAL | SYM_REPEAT;
-
-        int getFlags();
-
-        Symbol withFlags(int newFlags);
-
-    }
+public class GrammarImpl implements Grammar {
 
     public static abstract class AbstractSymbol implements Symbol {
 
@@ -75,7 +52,8 @@ public class Grammar implements GrammarView {
 
     }
 
-    public static class Nonterminal extends AbstractSymbol {
+    public static class Nonterminal extends AbstractSymbol
+            implements NonterminalSymbol {
 
         private final String reference;
 
@@ -104,6 +82,10 @@ public class Grammar implements GrammarView {
             return reference;
         }
 
+        public int getMatchRank() {
+            return 0;
+        }
+
         public Nonterminal withFlags(int newFlags) {
             if (newFlags == getFlags()) return this;
             return new Nonterminal(getReference(), newFlags);
@@ -111,7 +93,8 @@ public class Grammar implements GrammarView {
 
     }
 
-    public static class Terminal extends AbstractSymbol {
+    public static class Terminal extends AbstractSymbol
+            implements TerminalSymbol {
 
         private final Pattern pattern;
 
@@ -206,7 +189,7 @@ public class Grammar implements GrammarView {
 
     }
 
-    public static class Production implements NamedValue {
+    public static class ProductionImpl implements Production {
 
         public static final Pattern NAME_PATTERN = Pattern.compile(
             "[a-zA-Z$_-][A-Za-z0-9$_-]*");
@@ -214,7 +197,7 @@ public class Grammar implements GrammarView {
         private final String name;
         private final List<Symbol> symbols;
 
-        public Production(String name, List<Symbol> symbols) {
+        public ProductionImpl(String name, List<Symbol> symbols) {
             if (name == null)
                 throw new NullPointerException(
                     "Production name may not be null");
@@ -225,7 +208,7 @@ public class Grammar implements GrammarView {
             this.symbols = Collections.unmodifiableList(
                 new ArrayList<Symbol>(symbols));
         }
-        public Production(String name, Symbol... symbols) {
+        public ProductionImpl(String name, Symbol... symbols) {
             this(name, Arrays.asList(symbols));
         }
 
@@ -260,11 +243,11 @@ public class Grammar implements GrammarView {
 
     private final NamedMap<NamedSet<Production>> productions;
 
-    public Grammar() {
+    public GrammarImpl() {
         productions = new NamedMap<NamedSet<Production>>(
             new LinkedHashMap<String, NamedSet<Production>>());
     }
-    public Grammar(GrammarView other) {
+    public GrammarImpl(GrammarView other) {
         this();
         for (String name : other.getProductionNames()) {
             for (Production prod : other.getProductions(name)) {
@@ -272,11 +255,11 @@ public class Grammar implements GrammarView {
             }
         }
     }
-    public Grammar(List<Production> productions) {
+    public GrammarImpl(List<Production> productions) {
         this();
         for (Production p : productions) addProduction(p);
     }
-    public Grammar(Production... productions) {
+    public GrammarImpl(Production... productions) {
         this(Arrays.asList(productions));
     }
 
@@ -316,11 +299,12 @@ public class Grammar implements GrammarView {
         return new FixedTerminal(content, flags);
     }
 
-    public Production createProduction(String name, List<Symbol> symbols) {
-        return new Production(name, symbols);
+    public ProductionImpl createProduction(String name,
+                                           List<Symbol> symbols) {
+        return new ProductionImpl(name, symbols);
     }
-    public Production createProduction(String name, Symbol... symbols) {
-        return new Production(name, symbols);
+    public ProductionImpl createProduction(String name, Symbol... symbols) {
+        return new ProductionImpl(name, symbols);
     }
 
     // Immutable GrammarView interface.
@@ -378,7 +362,7 @@ public class Grammar implements GrammarView {
         if (! checkProductions(startSymbol))
             throw new InvalidGrammarException("Missing start symbol");
         for (NamedSet<Production> ps : productions.values()) {
-            if (! Production.NAME_PATTERN.matcher(ps.getName()).matches())
+            if (! ProductionImpl.NAME_PATTERN.matcher(ps.getName()).matches())
                 throw new InvalidGrammarException("Invalid production name " +
                     ps.getName());
             for (Production p : ps) {

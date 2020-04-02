@@ -8,30 +8,33 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.regex.Matcher;
-import net.instant.api.NamedValue;
+import net.instant.api.parser.Grammar;
+import net.instant.api.parser.InvalidGrammarException;
+import net.instant.api.parser.MatchingException;
 import net.instant.api.parser.TextLocation;
+import net.instant.api.parser.TokenSource;
 import net.instant.util.Formats;
 import net.instant.util.LineColumnReader;
 import net.instant.util.NamedMap;
 
 public class Lexer implements TokenSource {
 
-    public static class Token implements NamedValue {
+    public static class TokenImpl implements Token {
 
         private final String name;
-        private final TextLocation position;
+        private final TextLocation location;
         private final String content;
 
-        public Token(String name, TextLocation position,
-                     String content) {
-            if (position == null)
+        public TokenImpl(String name, TextLocation location,
+                         String content) {
+            if (location == null)
                 throw new NullPointerException(
                     "Token coordinates may not be null");
             if (content == null)
                 throw new NullPointerException(
                     "Token content may not be null");
             this.name = name;
-            this.position = position;
+            this.location = location;
             this.content = content;
         }
 
@@ -40,19 +43,19 @@ public class Lexer implements TokenSource {
             return String.format("%s%s at %s",
                 Formats.formatString(getContent()),
                 ((name == null) ? "" : " (" + name + ")"),
-                getPosition());
+                getLocation());
         }
 
         public boolean equals(Object other) {
             if (! (other instanceof Token)) return false;
             Token to = (Token) other;
-            return (getPosition().equals(to.getPosition()) &&
+            return (getLocation().equals(to.getLocation()) &&
                     equalOrNull(getName(), to.getName()) &&
                     getContent().equals(to.getContent()));
         }
 
         public int hashCode() {
-            return hashCodeOrNull(getName()) ^ getPosition().hashCode() ^
+            return hashCodeOrNull(getName()) ^ getLocation().hashCode() ^
                 getContent().hashCode();
         }
 
@@ -60,8 +63,8 @@ public class Lexer implements TokenSource {
             return name;
         }
 
-        public TextLocation getPosition() {
-            return position;
+        public TextLocation getLocation() {
+            return location;
         }
 
         public String getContent() {
@@ -69,20 +72,20 @@ public class Lexer implements TokenSource {
         }
 
         public boolean matches(Grammar.Symbol sym) {
-            if (sym instanceof Grammar.Nonterminal) {
-                return ((Grammar.Nonterminal) sym).getReference()
-                    .equals(getName());
-            } else if (sym instanceof Grammar.Terminal) {
-                return ((Grammar.Terminal) sym).getPattern()
-                    .matcher(getContent()).matches();
-            } else {
-                throw new IllegalArgumentException("Unrecognized symbol " +
-                    sym);
-            }
+            if ((sym instanceof Grammar.NonterminalSymbol) &&
+                    ! ((Grammar.NonterminalSymbol) sym).getReference()
+                        .equals(getName()))
+                return false;
+            if ((sym instanceof Grammar.TerminalSymbol) &&
+                    ! ((Grammar.TerminalSymbol) sym).getPattern()
+                        .matcher(getContent()).matches())
+                return false;
+            return true;
         }
         public boolean matches(TokenPattern pat) {
             return (equalOrNull(getName(), pat.getName()) &&
-                    pat.matcher(getContent()).matches());
+                    pat.getSymbol().getPattern().matcher(getContent())
+                        .matches());
         }
 
         private static boolean equalOrNull(String a, String b) {
@@ -94,12 +97,12 @@ public class Lexer implements TokenSource {
 
     }
 
-    public static class TokenPattern implements NamedValue {
+    public static class TokenPatternImpl implements TokenPattern {
 
         private final String name;
-        private final Grammar.Terminal symbol;
+        private final Grammar.TerminalSymbol symbol;
 
-        public TokenPattern(String name, Grammar.Terminal symbol) {
+        public TokenPatternImpl(String name, Grammar.TerminalSymbol symbol) {
             if (name == null)
                 throw new NullPointerException(
                     "TokenPattern name may not be null");
@@ -130,19 +133,15 @@ public class Lexer implements TokenSource {
             return name;
         }
 
-        public Grammar.Terminal getSymbol() {
+        public Grammar.TerminalSymbol getSymbol() {
             return symbol;
         }
 
-        public Matcher matcher(CharSequence input) {
-            return getSymbol().getPattern().matcher(input);
+        public Token createToken(TextLocation location, String content) {
+            return new TokenImpl(getName(), location, content);
         }
 
-        public Token createToken(TextLocation position, String content) {
-            return new Token(getName(), position, content);
-        }
-
-        public static TokenPattern create(String name,
+        public static TokenPatternImpl create(String name,
                 Set<Grammar.Production> prods)
                 throws InvalidGrammarException {
             if (prods.size() == 0)
@@ -156,13 +155,13 @@ public class Lexer implements TokenSource {
                 throw new InvalidGrammarException("Token " +
                     name + " definition must contain exactly one " +
                     "nonterminal, got " + pr.getSymbols().size() +
-                    " instead");
+                    " symbols instead");
             Grammar.Symbol sym = pr.getSymbols().get(0);
-            if (! (sym instanceof Grammar.Terminal))
+            if (! (sym instanceof Grammar.TerminalSymbol))
                 throw new InvalidGrammarException("Token " + name +
                     " definition may only contain terminals, got " + sym +
                     " instead");
-            return new TokenPattern(name, (Grammar.Terminal) sym);
+            return new TokenPatternImpl(name, (Grammar.TerminalSymbol) sym);
         }
 
     }
@@ -235,7 +234,7 @@ public class Lexer implements TokenSource {
         return inputBuffer;
     }
 
-    public TextLocation getCurrentPosition() {
+    public TextLocation getCurrentLocation() {
         return getInputPosition();
     }
     public TextLocation getInputPosition() {

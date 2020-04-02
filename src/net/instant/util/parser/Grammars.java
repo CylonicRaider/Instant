@@ -1,23 +1,32 @@
 package net.instant.util.parser;
 
+import java.io.IOException;
 import java.io.Reader;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Pattern;
+import net.instant.api.parser.CompiledGrammar;
+import net.instant.api.parser.Grammar;
+import net.instant.api.parser.InvalidGrammarException;
+import net.instant.api.parser.Mapper;
+import net.instant.api.parser.MappingException;
+import net.instant.api.parser.Parser;
+import net.instant.api.parser.ParsingException;
+import net.instant.api.parser.UnionMapper;
 import net.instant.util.Formats;
 import net.instant.util.LineColumnReader;
 
 public final class Grammars {
 
-    private static class MetaGrammar extends Grammar {
+    private static class MetaGrammar extends GrammarImpl {
 
         public static final MetaGrammar INSTANCE;
-        public static final Parser.CompiledGrammar COMPILED_INSTANCE;
+        public static final CompiledGrammar COMPILED_INSTANCE;
 
         static {
             INSTANCE = new MetaGrammar();
             try {
-                COMPILED_INSTANCE = Parser.compile(INSTANCE);
+                COMPILED_INSTANCE = ParserImpl.compile(INSTANCE);
             } catch (InvalidGrammarException exc) {
                 throw new RuntimeException(exc);
             }
@@ -147,7 +156,7 @@ public final class Grammars {
         }
 
         private static Production prod(String name, Symbol... symbols) {
-            return new Production(name, symbols);
+            return new ProductionImpl(name, symbols);
         }
 
     }
@@ -224,7 +233,7 @@ public final class Grammars {
                         new ArrayList<Grammar.Production>();
                     String name = res.get(NAME);
                     for (List<Grammar.Symbol> syms : res.get(CONTENT)) {
-                        ret.add(new Grammar.Production(name, syms));
+                        ret.add(new GrammarImpl.ProductionImpl(name, syms));
                     }
                     return ret;
                 }
@@ -234,13 +243,20 @@ public final class Grammars {
         public static final Mapper<Grammar> GRAMMAR = new CompositeMapper<
                     List<Grammar.Production>, Grammar>(PRODUCTIONS) {
                 protected Grammar mapInner(Parser.ParseTree pt,
-                        List<List<Grammar.Production>> children) {
+                        List<List<Grammar.Production>> children)
+                        throws MappingException {
                     List<Grammar.Production> productions =
                         new ArrayList<Grammar.Production>();
                     for (List<Grammar.Production> ps : children) {
                         productions.addAll(ps);
                     }
-                    return new Grammar(productions);
+                    GrammarImpl ret = new GrammarImpl(productions);
+                    try {
+                        ret.validate();
+                    } catch (InvalidGrammarException exc) {
+                        throw new MappingException(exc);
+                    }
+                    return ret;
                 }
             };
 
@@ -255,8 +271,8 @@ public final class Grammars {
                 protected String mapInner(Parser.ParseTree pt)
                         throws MappingException {
                     try {
-                        return Formats.parseEscapeSequence(pt.getContent(),
-                                                           null, "\\\"");
+                        return Formats.parseEscapeSequence(
+                            pt.getToken().getContent(), null, "\\\"");
                     } catch (IllegalArgumentException exc) {
                         throw new MappingException(exc.getMessage(), exc);
                     }
@@ -267,7 +283,7 @@ public final class Grammars {
             REGEX_ELEMENT.add("Escape", new LeafMapper<String>() {
                 protected String mapInner(Parser.ParseTree pt)
                         throws MappingException {
-                    String content = pt.getContent();
+                    String content = pt.getToken().getContent();
                     String parsed = Formats.tryParseEscapeSequence(content,
                         "abtnvfr", "");
                     return (parsed != null) ? parsed : content;
@@ -286,21 +302,23 @@ public final class Grammars {
             SYMBOL_CONTENT.add("Identifier",
                 new LeafMapper<Grammar.Symbol>() {
                     protected Grammar.Symbol mapInner(Parser.ParseTree pt) {
-                        return new Grammar.Nonterminal(pt.getContent(), 0);
+                        return new GrammarImpl.Nonterminal(
+                            pt.getToken().getContent(), 0);
                     }
                 });
             SYMBOL_CONTENT.add("String",
                 new Mapper<Grammar.Symbol>() {
                     public Grammar.Symbol map(Parser.ParseTree pt)
                             throws MappingException {
-                        return new Grammar.FixedTerminal(STRING.map(pt), 0);
+                        return new GrammarImpl.FixedTerminal(STRING.map(pt),
+                                                             0);
                     }
                 });
             SYMBOL_CONTENT.add("Regex",
                 new Mapper<Grammar.Symbol>() {
                     public Grammar.Symbol map(Parser.ParseTree pt)
                             throws MappingException {
-                        return new Grammar.Terminal(REGEX.map(pt), 0);
+                        return new GrammarImpl.Terminal(REGEX.map(pt), 0);
                     }
                 });
         }
@@ -309,7 +327,7 @@ public final class Grammars {
 
     private Grammars() {}
 
-    public static Parser.CompiledGrammar getMetaGrammar() {
+    public static CompiledGrammar getMetaGrammar() {
         return MetaGrammar.COMPILED_INSTANCE;
     }
 
@@ -321,24 +339,30 @@ public final class Grammars {
     }
 
     private static Grammar parseGrammarInner(Parser p)
-            throws InvalidGrammarException, Parser.ParsingException {
+            throws ParsingException {
         try {
-            Grammar ret = getGrammarFileMapper().map(p.parse());
-            ret.validate();
-            return ret;
+            return getGrammarFileMapper().map(p.parse());
         } catch (MappingException exc) {
-            throw new AssertionError("The meta-grammar is buggy?!", exc);
+            throw new ParsingException(null, exc);
+        } finally {
+            try {
+                p.close();
+            } catch (IOException exc) {
+                throw new ParsingException(
+                    p.getTokenSource().getCurrentLocation(),
+                    "Exception while closing parser: " + exc.getMessage(),
+                    exc);
+            }
         }
     }
-    public static Grammar parseGrammar(Reader input)
-            throws InvalidGrammarException, Parser.ParsingException {
-        return parseGrammarInner(getMetaGrammar().makeParser(
-            getMetaGrammar().makeLexer(input)));
-    }
     public static Grammar parseGrammar(LineColumnReader input)
-            throws InvalidGrammarException, Parser.ParsingException {
-        return parseGrammarInner(getMetaGrammar().makeParser(
-            getMetaGrammar().makeLexer(input)));
+            throws ParsingException {
+        return parseGrammarInner(getMetaGrammar().createParser(
+            new Lexer(input), false));
+    }
+    public static Grammar parseGrammar(Reader input)
+            throws ParsingException {
+        return parseGrammar(new LineColumnReader(input));
     }
 
     public static String formatWithSymbolFlags(String base, int flags) {

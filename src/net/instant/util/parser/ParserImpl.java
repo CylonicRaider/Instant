@@ -1,7 +1,6 @@
 package net.instant.util.parser;
 
 import java.io.IOException;
-import java.io.Reader;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -14,20 +13,26 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Callable;
-import net.instant.api.NamedValue;
+import net.instant.api.parser.CompiledGrammar;
+import net.instant.api.parser.Grammar;
+import net.instant.api.parser.GrammarView;
+import net.instant.api.parser.InvalidGrammarException;
+import net.instant.api.parser.MatchingException;
+import net.instant.api.parser.Parser;
+import net.instant.api.parser.ParsingException;
 import net.instant.api.parser.TextLocation;
+import net.instant.api.parser.TokenSource;
 import net.instant.util.IdentityLinkedSet;
-import net.instant.util.LineColumnReader;
 import net.instant.util.NamedSet;
 
-public class Parser {
+public class ParserImpl implements Parser {
 
-    public static class CompiledGrammar implements GrammarView {
+    public static class CompiledGrammarImpl implements CompiledGrammar {
 
         private final Grammar source;
         private final State initialState;
 
-        protected CompiledGrammar(Grammar source, State initialState) {
+        protected CompiledGrammarImpl(Grammar source, State initialState) {
             this.source = source;
             this.initialState = initialState;
         }
@@ -40,7 +45,7 @@ public class Parser {
             return initialState;
         }
 
-        public Grammar.Nonterminal getStartSymbol() {
+        public Grammar.NonterminalSymbol getStartSymbol() {
             return source.getStartSymbol();
         }
 
@@ -52,50 +57,8 @@ public class Parser {
             return source.getProductions(name);
         }
 
-        public Lexer makeLexer(LineColumnReader input) {
-            return new Lexer(input);
-        }
-        public Lexer makeLexer(Reader input) {
-            return makeLexer(new LineColumnReader(input));
-        }
-
-        public Parser makeParser(TokenSource source, boolean keepAll) {
-            return new Parser(this, source, keepAll);
-        }
-        public Parser makeParser(TokenSource source) {
-            return makeParser(source, false);
-        }
-
-    }
-
-    public interface ParseTree extends NamedValue {
-
-        Lexer.Token getToken();
-
-        String getContent();
-
-        List<ParseTree> getChildren();
-
-        int childCount();
-
-        ParseTree childAt(int index);
-
-    }
-
-    public static class ParsingException extends LocatedParserException {
-
-        public ParsingException(TextLocation pos) {
-            super(pos);
-        }
-        public ParsingException(TextLocation pos, String message) {
-            super(pos, message);
-        }
-        public ParsingException(TextLocation pos, Throwable cause) {
-            super(pos, cause);
-        }
-        public ParsingException(TextLocation pos, String message,
-                                Throwable cause) {
-            super(pos, message, cause);
+        public Parser createParser(TokenSource source, boolean keepAll) {
+            return new ParserImpl(this, source, keepAll);
         }
 
     }
@@ -104,7 +67,7 @@ public class Parser {
 
         boolean isKeepingAll();
 
-        TextLocation getCurrentPosition();
+        TextLocation getCurrentLocation();
 
         Lexer.MatchStatus getCurrentTokenStatus() throws ParsingException;
 
@@ -246,24 +209,24 @@ public class Parser {
 
     protected class StatusImpl implements Status {
 
-        private ParsingException wrap(TokenSource.MatchingException exc) {
-            return new ParsingException(exc.getPosition(), exc.getMessage(),
+        private ParsingException wrap(MatchingException exc) {
+            return new ParsingException(exc.getLocation(), exc.getMessage(),
                                         exc);
         }
 
         public boolean isKeepingAll() {
-            return Parser.this.isKeepingAll();
+            return ParserImpl.this.isKeepingAll();
         }
 
-        public TextLocation getCurrentPosition() {
-            return getTokenSource().getCurrentPosition();
+        public TextLocation getCurrentLocation() {
+            return getTokenSource().getCurrentLocation();
         }
 
         public Lexer.MatchStatus getCurrentTokenStatus()
                 throws ParsingException {
             try {
                 return getTokenSource().peek(false);
-            } catch (TokenSource.MatchingException exc) {
+            } catch (MatchingException exc) {
                 throw wrap(exc);
             }
         }
@@ -277,7 +240,7 @@ public class Parser {
                 } else {
                     return null;
                 }
-            } catch (TokenSource.MatchingException exc) {
+            } catch (MatchingException exc) {
                 throw wrap(exc);
             }
         }
@@ -285,7 +248,7 @@ public class Parser {
         public void nextToken() throws ParsingException {
             try {
                 getTokenSource().next();
-            } catch (TokenSource.MatchingException exc) {
+            } catch (MatchingException exc) {
                 throw wrap(exc);
             }
             getExpectations().clear();
@@ -332,7 +295,7 @@ public class Parser {
         }
 
         public void setState(State next) {
-            Parser.this.setState(next);
+            ParserImpl.this.setState(next);
         }
 
         public void pushState(State st, String treeNodeName, int flags) {
@@ -362,7 +325,7 @@ public class Parser {
         }
 
         public ParsingException parsingException(String message) {
-            return new ParsingException(getCurrentPosition(), message);
+            return new ParsingException(getCurrentLocation(), message);
         }
 
         public ParsingException unexpectedToken() {
@@ -378,7 +341,7 @@ public class Parser {
             return parsingException("Unexpected " +
                 ((tok != null) ?
                     "token " + tok :
-                    "end of input at " + getCurrentPosition()) +
+                    "end of input at " + getCurrentLocation()) +
                 ", expected " + formatExpectations());
         }
 
@@ -425,14 +388,14 @@ public class Parser {
 
     protected static class CallState extends NullState {
 
-        private final Grammar.Nonterminal sym;
+        private final Grammar.NonterminalSymbol sym;
         private State callState;
 
-        public CallState(Grammar.Nonterminal sym, State callState) {
+        public CallState(Grammar.NonterminalSymbol sym, State callState) {
             this.sym = sym;
             this.callState = callState;
         }
-        public CallState(Grammar.Nonterminal sym) {
+        public CallState(Grammar.NonterminalSymbol sym) {
             this(sym, null);
         }
 
@@ -441,7 +404,7 @@ public class Parser {
                 getClass().getName(), this, getSymbol(), getCallState());
         }
 
-        public Grammar.Nonterminal getSymbol() {
+        public Grammar.NonterminalSymbol getSymbol() {
             return sym;
         }
 
@@ -527,7 +490,7 @@ public class Parser {
         }
 
         public Set<Grammar.Symbol> getExpectedTokens() {
-            return Collections.singleton(expected);
+            return Collections.<Grammar.Symbol>singleton(expected);
         }
 
         public String toUserString() {
@@ -579,23 +542,24 @@ public class Parser {
         public State getSuccessor(Grammar.Symbol selector) {
             if (selector == null) {
                 return successors.get(null);
-            } else if (! (selector instanceof Grammar.Nonterminal)) {
+            } else if (! (selector instanceof Grammar.NonterminalSymbol)) {
                 return null;
             } else {
                 return successors.get(
-                    ((Grammar.Nonterminal) selector).getReference());
+                    ((Grammar.NonterminalSymbol) selector).getReference());
             }
         }
         public void setSuccessor(Grammar.Symbol selector, State succ)
                 throws BadSuccessorException {
             if (selector == null) {
                 successors.put(null, succ);
-            } else if (! (selector instanceof Grammar.Nonterminal)) {
+            } else if (! (selector instanceof Grammar.NonterminalSymbol)) {
                 throw new BadSuccessorException(
                     "Cannot branch on terminal Grammar symbols");
             } else {
                 successors.put(
-                    ((Grammar.Nonterminal) selector).getReference(), succ);
+                    ((Grammar.NonterminalSymbol) selector).getReference(),
+                    succ);
             }
         }
 
@@ -611,7 +575,7 @@ public class Parser {
             Set<Grammar.Symbol> ret = new LinkedHashSet<Grammar.Symbol>();
             for (String key : successors.keySet()) {
                 if (key == null) continue;
-                ret.add(new Grammar.Nonterminal(key, 0));
+                ret.add(new GrammarImpl.Nonterminal(key, 0));
             }
             return ret;
         }
@@ -757,7 +721,7 @@ public class Parser {
 
         }
 
-        private final Grammar grammar;
+        private final GrammarImpl grammar;
         private final Set<String> seenProductions;
         private final Map<String, Lexer.TokenPattern> tokens;
         private final Map<Set<Grammar.Symbol>,
@@ -770,7 +734,7 @@ public class Parser {
 
         public Compiler(GrammarView grammar)
                 throws InvalidGrammarException {
-            this.grammar = new Grammar(grammar);
+            this.grammar = new GrammarImpl(grammar);
             this.seenProductions = new HashSet<String>();
             this.tokens = new HashMap<String, Lexer.TokenPattern>();
             this.lexerStates = new HashMap<Set<Grammar.Symbol>,
@@ -795,7 +759,7 @@ public class Parser {
         protected NullState createNullState() {
             return new NullState();
         }
-        protected CallState createCallState(Grammar.Nonterminal sym) {
+        protected CallState createCallState(Grammar.NonterminalSymbol sym) {
             return new CallState(sym, getInitialState(sym.getReference()));
         }
         protected LiteralState createLiteralState(Grammar.Symbol sym) {
@@ -822,8 +786,7 @@ public class Parser {
             if (prod.getSymbols().size() != 1) return null;
             Grammar.Symbol sym = prod.getSymbols().get(0);
             if (sym.getFlags() != Grammar.Symbol.SYM_INLINE) return null;
-            Lexer.TokenPattern ret = Lexer.TokenPattern.create(name, prods);
-            return ret;
+            return Lexer.TokenPatternImpl.create(name, prods);
         }
         protected Lexer.TokenPattern getToken(String name)
                 throws InvalidGrammarException {
@@ -841,10 +804,11 @@ public class Parser {
                 for (Grammar.Symbol s : syms) {
                     if (s == null)
                         continue;
-                    if (! (s instanceof Grammar.Nonterminal))
+                    if (! (s instanceof Grammar.NonterminalSymbol))
                         throw new InvalidGrammarException("Token " +
                             "definition set contains a raw terminal " + s);
-                    String cnt = ((Grammar.Nonterminal) s).getReference();
+                    String cnt = ((Grammar.NonterminalSymbol) s)
+                        .getReference();
                     Lexer.TokenPattern tok = null;
                     Throwable error = null;
                     try {
@@ -917,14 +881,14 @@ public class Parser {
             for (Grammar.Production p : grammar.getRawProductions(prodName)) {
                 boolean productionMaybeEmpty = true;
                 for (Grammar.Symbol s : p.getSymbols()) {
-                    if (! (s instanceof Grammar.Nonterminal))
+                    if (! (s instanceof Grammar.NonterminalSymbol))
                         throw new InvalidGrammarException(
                             "Start-significant symbol " + s +
                             " of production " + prodName +
                             " alternative is a raw terminal");
                     boolean symbolMaybeEmpty = ((s.getFlags() &
                         Grammar.Symbol.SYM_OPTIONAL) != 0);
-                    String c = ((Grammar.Nonterminal) s).getReference();
+                    String c = ((Grammar.NonterminalSymbol) s).getReference();
                     if (getToken(c) == null) {
                         Set<Grammar.Symbol> localSymbols =
                             findInitialSymbols(c, seen);
@@ -1058,15 +1022,16 @@ public class Parser {
                 throws InvalidGrammarException {
             Grammar.Symbol cleanedSym = symbolWithFlags(sym,
                 sym.getFlags() & ~COMPILER_FLAGS);
-            if (sym instanceof Grammar.Nonterminal) {
-                String cnt = ((Grammar.Nonterminal) sym).getReference();
+            if (sym instanceof Grammar.NonterminalSymbol) {
+                String cnt = ((Grammar.NonterminalSymbol) sym).getReference();
                 if (getToken(cnt) == null) {
                     for (Grammar.Symbol s : findInitialSymbols(cnt)) {
                         selectors.add(symbolWithFlags(s,
                             cleanedSym.getFlags()));
                     }
                     addProductions(cnt);
-                    return createCallState((Grammar.Nonterminal) cleanedSym);
+                    return createCallState(
+                        (Grammar.NonterminalSymbol) cleanedSym);
                 }
             }
             selectors.add(cleanedSym);
@@ -1091,9 +1056,9 @@ public class Parser {
                 State next = compileSymbol(sym, selectors);
                 /* Tail recursion optimization. */
                 if (i == symCount - 1 &&
-                        sym instanceof Grammar.Nonterminal &&
-                        ((Grammar.Nonterminal) sym).getReference().equals(
-                            prod.getName()) &&
+                        sym instanceof Grammar.NonterminalSymbol &&
+                        ((Grammar.NonterminalSymbol) sym).getReference()
+                            .equals(prod.getName()) &&
                         (sym.getFlags() & (Grammar.Symbol.SYM_INLINE |
                                            Grammar.Symbol.SYM_DISCARD |
                                            Grammar.Symbol.SYM_REPEAT)
@@ -1107,7 +1072,7 @@ public class Parser {
                  * This could happen if the start symbol itself is a token
                  * definition. */
                 if (getToken(prod.getName()) != null) {
-                    Grammar.Symbol ref = new Grammar.Nonterminal(
+                    Grammar.Symbol ref = new GrammarImpl.Nonterminal(
                         prod.getName(), 0);
                     next = createLiteralState(ref);
                     selectors.clear();
@@ -1177,8 +1142,10 @@ public class Parser {
 
         protected State getStartState() throws InvalidGrammarException {
             if (startState == null) {
-                addProductions(Grammar.START_SYMBOL.getReference());
-                startState = createCallState(Grammar.START_SYMBOL);
+                Grammar.NonterminalSymbol startSymbol =
+                    grammar.getStartSymbol();
+                addProductions(startSymbol.getReference());
+                startState = createCallState(startSymbol);
                 addSuccessor(startState, null, createEndState(), true);
             }
             return startState;
@@ -1220,8 +1187,8 @@ public class Parser {
     private State state;
     private ParseTree result;
 
-    public Parser(CompiledGrammar grammar, TokenSource source,
-                  boolean keepAll) {
+    public ParserImpl(CompiledGrammarImpl grammar, TokenSource source,
+                      boolean keepAll) {
         this.grammar = grammar;
         this.source = source;
         this.keepAll = keepAll;
@@ -1237,7 +1204,7 @@ public class Parser {
         return grammar;
     }
 
-    protected TokenSource getTokenSource() {
+    public TokenSource getTokenSource() {
         return source;
     }
 
@@ -1280,12 +1247,6 @@ public class Parser {
             if (st == null) break;
             st.apply(getStatus());
         }
-        try {
-            source.close();
-        } catch (IOException exc) {
-            throw new ParsingException(null,
-                "Exception while closing token source: " + exc, exc);
-        }
         if (getStateStack().size() != 0 || getTreeStack().size() != 1 ||
                 getTreeStack().get(0).childCount() != 1)
             throw new IllegalStateException(
@@ -1294,10 +1255,14 @@ public class Parser {
         return result;
     }
 
+    public void close() throws IOException {
+        source.close();
+    }
+
     public static CompiledGrammar compile(GrammarView g)
             throws InvalidGrammarException {
         Compiler comp = new Compiler(g);
-        return new CompiledGrammar(comp.getGrammar(), comp.call());
+        return new CompiledGrammarImpl(comp.getGrammar(), comp.call());
     }
 
 }

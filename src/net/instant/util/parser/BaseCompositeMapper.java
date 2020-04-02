@@ -2,6 +2,9 @@ package net.instant.util.parser;
 
 import java.util.ArrayList;
 import java.util.List;
+import net.instant.api.parser.Mapper;
+import net.instant.api.parser.MappingException;
+import net.instant.api.parser.Parser;
 
 public abstract class BaseCompositeMapper<C, T> implements Mapper<T> {
 
@@ -12,8 +15,9 @@ public abstract class BaseCompositeMapper<C, T> implements Mapper<T> {
     }
 
     public T map(Parser.ParseTree pt) throws MappingException {
-        List<C> children = new ArrayList<C>(pt.childCount());
-        for (Parser.ParseTree t : pt.getChildren()) {
+        List<Parser.ParseTree> childTrees = pt.getChildren();
+        List<C> children = new ArrayList<C>(childTrees.size());
+        for (Parser.ParseTree t : childTrees) {
             children.add(mapChild(t));
         }
         return mapInner(pt, children);

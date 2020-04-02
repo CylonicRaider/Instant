@@ -5,6 +5,9 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import net.instant.api.parser.Mapper;
+import net.instant.api.parser.MappingException;
+import net.instant.api.parser.Parser;
 
 public abstract class RecordMapper<T> implements Mapper<T> {
 
@@ -77,12 +80,13 @@ public abstract class RecordMapper<T> implements Mapper<T> {
         drain.put(mapper, mapper.map(pt));
     }
     public T map(Parser.ParseTree pt) throws MappingException {
-        if (pt.childCount() != mappers.size())
+        List<Parser.ParseTree> children = pt.getChildren();
+        if (children.size() != mappers.size())
             throw new MappingException(
                 "Incorrect child amount in parse tree");
         Result res = new Result();
         for (int i = 0; i < mappers.size(); i++) {
-            mapAndPut(mappers.get(i), pt.childAt(i), res);
+            mapAndPut(mappers.get(i), children.get(i), res);
         }
         return mapInner(res);
     }

@@ -2,6 +2,9 @@ package net.instant.util.parser;
 
 import java.util.Collections;
 import java.util.List;
+import net.instant.api.parser.Mapper;
+import net.instant.api.parser.MappingException;
+import net.instant.api.parser.Parser;
 
 public abstract class CompositeMapper<C, T>
         extends BaseCompositeMapper<C, T> {
@@ -55,9 +58,9 @@ public abstract class CompositeMapper<C, T>
     public static <T> CompositeMapper<T, T> passthrough(Mapper<T> nested) {
         return new CompositeMapper<T, T>(nested) {
             public T map(Parser.ParseTree pt) throws MappingException {
-                if (pt.childCount() != 1)
+                if (pt.getChildren().size() != 1)
                     throw new MappingException("Expected one subtree, got " +
-                        pt.childCount());
+                        pt.getChildren().size());
                 return super.map(pt);
             }
 
