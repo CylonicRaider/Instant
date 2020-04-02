@@ -9,9 +9,12 @@ import net.instant.api.parser.CompiledGrammar;
 import net.instant.api.parser.Grammar;
 import net.instant.api.parser.InvalidGrammarException;
 import net.instant.api.parser.Mapper;
+import net.instant.api.parser.Mappers;
 import net.instant.api.parser.MappingException;
 import net.instant.api.parser.Parser;
 import net.instant.api.parser.ParsingException;
+import net.instant.api.parser.RecordMapper;
+import net.instant.api.parser.TransformMapper;
 import net.instant.api.parser.UnionMapper;
 import net.instant.util.Formats;
 import net.instant.util.LineColumnReader;
@@ -170,21 +173,21 @@ public final class Grammars {
             new UnionMapper<String>();
 
         public static final Mapper<String> STRING =
-            new CompositeMapper<String, String>(STRING_ELEMENT) {
-                protected String mapInner(Parser.ParseTree pt,
-                                          List<String> children) {
+            new RecordMapper<String>() {
+                protected String mapInner(Provider p)
+                        throws MappingException {
                     StringBuilder sb = new StringBuilder();
-                    for (String s : children) sb.append(s);
+                    while (p.hasNext()) sb.append(p.mapNext(STRING_ELEMENT));
                     return sb.toString();
                 }
             };
 
         public static final Mapper<Pattern> REGEX =
-            new CompositeMapper<String, Pattern>(REGEX_ELEMENT) {
-                protected Pattern mapInner(Parser.ParseTree pt,
-                                           List<String> children) {
+            new RecordMapper<Pattern>() {
+                protected Pattern mapInner(Provider p)
+                        throws MappingException {
                     StringBuilder sb = new StringBuilder();
-                    for (String s : children) sb.append(s);
+                    while (p.hasNext()) sb.append(p.mapNext(REGEX_ELEMENT));
                     return Pattern.compile(sb.toString());
                 }
             };
@@ -196,12 +199,12 @@ public final class Grammars {
             new UnionMapper<Grammar.Symbol>();
 
         public static final Mapper<Grammar.Symbol> SYMBOL =
-            new Mapper<Grammar.Symbol>() {
-                public Grammar.Symbol map(Parser.ParseTree pt)
+            new RecordMapper<Grammar.Symbol>() {
+                protected Grammar.Symbol mapInner(Provider p)
                         throws MappingException {
                     Grammar.Symbol base = null;
                     int flags = 0;
-                    for (Parser.ParseTree child : pt.getChildren()) {
+                    for (Parser.ParseTree child : p) {
                         if (SYMBOL_FLAG.canMap(child)) {
                             flags |= SYMBOL_FLAG.map(child);
                             continue;
@@ -216,41 +219,35 @@ public final class Grammars {
             };
 
         public static final Mapper<String> PRODUCTION_NAME =
-            LeafMapper.string();
+            Mappers.content();
 
         public static final Mapper<List<Grammar.Symbol>> ALTERNATIVE =
-            CompositeMapper.aggregate(SYMBOL);
+            Mappers.aggregate(SYMBOL);
+
+        public static final Mapper<List<List<Grammar.Symbol>>> ALTERNATIVES =
+            Mappers.aggregate(ALTERNATIVE);
 
         public static final Mapper<List<Grammar.Production>> PRODUCTIONS =
             new RecordMapper<List<Grammar.Production>>() {
-
-                private final Mapper<String> NAME = add(PRODUCTION_NAME);
-                private final Mapper<List<List<Grammar.Symbol>>> CONTENT =
-                    add(CompositeMapper.aggregate(ALTERNATIVE));
-
-                protected List<Grammar.Production> mapInner(Result res) {
+                protected List<Grammar.Production> mapInner(Provider p)
+                        throws MappingException {
+                    String name = p.mapNext(PRODUCTION_NAME);
                     List<Grammar.Production> ret =
                         new ArrayList<Grammar.Production>();
-                    String name = res.get(NAME);
-                    for (List<Grammar.Symbol> syms : res.get(CONTENT)) {
+                    for (List<Grammar.Symbol> syms :
+                         p.mapNext(ALTERNATIVES)) {
                         ret.add(new GrammarImpl.ProductionImpl(name, syms));
                     }
                     return ret;
                 }
-
             };
 
-        public static final Mapper<Grammar> GRAMMAR = new CompositeMapper<
-                    List<Grammar.Production>, Grammar>(PRODUCTIONS) {
-                protected Grammar mapInner(Parser.ParseTree pt,
-                        List<List<Grammar.Production>> children)
+        public static final Mapper<Grammar> GRAMMAR =
+            new TransformMapper<List<Grammar.Production>, Grammar>(
+                    Mappers.join(PRODUCTIONS)) {
+                protected Grammar transform(List<Grammar.Production> prods)
                         throws MappingException {
-                    List<Grammar.Production> productions =
-                        new ArrayList<Grammar.Production>();
-                    for (List<Grammar.Production> ps : children) {
-                        productions.addAll(ps);
-                    }
-                    GrammarImpl ret = new GrammarImpl(productions);
+                    GrammarImpl ret = new GrammarImpl(prods);
                     try {
                         ret.validate();
                     } catch (InvalidGrammarException exc) {
@@ -260,67 +257,64 @@ public final class Grammars {
                 }
             };
 
-        public static final Mapper<Grammar> FILE = RecordMapper.wrap(GRAMMAR);
+        public static final Mapper<Grammar> FILE = Mappers.unwrap(GRAMMAR);
 
         public static final Mapper<Grammar> FILE_WRAPPER =
-            RecordMapper.wrap(FILE);
+            Mappers.unwrap(FILE);
 
         static {
-            STRING_ELEMENT.add("StringContent", LeafMapper.string());
-            STRING_ELEMENT.add("Escape", new LeafMapper<String>() {
-                protected String mapInner(Parser.ParseTree pt)
+            STRING_ELEMENT.add("StringContent", Mappers.content());
+            STRING_ELEMENT.add("Escape", new TransformMapper<String,
+                    String>(Mappers.content()) {
+                protected String transform(String content)
                         throws MappingException {
                     try {
-                        return Formats.parseEscapeSequence(
-                            pt.getToken().getContent(), null, "\\\"");
+                        return Formats.parseEscapeSequence(content, null,
+                                                           "\\\"");
                     } catch (IllegalArgumentException exc) {
                         throw new MappingException(exc.getMessage(), exc);
                     }
                 }
             });
 
-            REGEX_ELEMENT.add("RegexContent", LeafMapper.string());
-            REGEX_ELEMENT.add("Escape", new LeafMapper<String>() {
-                protected String mapInner(Parser.ParseTree pt)
+            REGEX_ELEMENT.add("RegexContent", Mappers.content());
+            REGEX_ELEMENT.add("Escape", new TransformMapper<String,
+                    String>(Mappers.content()) {
+                protected String transform(String content)
                         throws MappingException {
-                    String content = pt.getToken().getContent();
-                    String parsed = Formats.tryParseEscapeSequence(content,
-                        "abtnvfr", "");
+                    String parsed = Formats.tryParseEscapeSequence(
+                        content, "abtnvfr", "");
                     return (parsed != null) ? parsed : content;
                 }
             });
 
             SYMBOL_FLAG.add("Caret",
-                            LeafMapper.constant(Grammar.Symbol.SYM_INLINE));
+                            Mappers.constant(Grammar.Symbol.SYM_INLINE));
             SYMBOL_FLAG.add("Tilde",
-                            LeafMapper.constant(Grammar.Symbol.SYM_DISCARD));
+                            Mappers.constant(Grammar.Symbol.SYM_DISCARD));
             SYMBOL_FLAG.add("Question",
-                            LeafMapper.constant(Grammar.Symbol.SYM_OPTIONAL));
+                            Mappers.constant(Grammar.Symbol.SYM_OPTIONAL));
             SYMBOL_FLAG.add("Plus",
-                            LeafMapper.constant(Grammar.Symbol.SYM_REPEAT));
+                            Mappers.constant(Grammar.Symbol.SYM_REPEAT));
 
-            SYMBOL_CONTENT.add("Identifier",
-                new LeafMapper<Grammar.Symbol>() {
-                    protected Grammar.Symbol mapInner(Parser.ParseTree pt) {
-                        return new GrammarImpl.Nonterminal(
-                            pt.getToken().getContent(), 0);
-                    }
-                });
-            SYMBOL_CONTENT.add("String",
-                new Mapper<Grammar.Symbol>() {
-                    public Grammar.Symbol map(Parser.ParseTree pt)
-                            throws MappingException {
-                        return new GrammarImpl.FixedTerminal(STRING.map(pt),
-                                                             0);
-                    }
-                });
-            SYMBOL_CONTENT.add("Regex",
-                new Mapper<Grammar.Symbol>() {
-                    public Grammar.Symbol map(Parser.ParseTree pt)
-                            throws MappingException {
-                        return new GrammarImpl.Terminal(REGEX.map(pt), 0);
-                    }
-                });
+            SYMBOL_CONTENT.add("Identifier", new TransformMapper<String,
+                    Grammar.Symbol>(Mappers.content()) {
+                protected Grammar.Symbol transform(String content) {
+                    return new GrammarImpl.Nonterminal(content, 0);
+                }
+            });
+            SYMBOL_CONTENT.add("String", new TransformMapper<String,
+                    Grammar.Symbol>(STRING) {
+                protected Grammar.Symbol transform(String value) {
+                    return new GrammarImpl.FixedTerminal(value, 0);
+                }
+            });
+            SYMBOL_CONTENT.add("Regex", new TransformMapper<Pattern,
+                    Grammar.Symbol>(REGEX) {
+                protected Grammar.Symbol transform(Pattern pattern) {
+                    return new GrammarImpl.Terminal(pattern, 0);
+                }
+            });
         }
 
     }
