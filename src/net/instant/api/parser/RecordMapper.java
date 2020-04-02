@@ -117,6 +117,6 @@ public abstract class RecordMapper<T> implements Mapper<T> {
     /**
      * Primary method for subclasses.
      */
-    protected abstract T mapInner(Provider p);
+    protected abstract T mapInner(Provider p) throws MappingException;
 
 }
