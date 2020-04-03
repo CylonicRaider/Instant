@@ -97,6 +97,19 @@ public class LineColumnReader extends BufferedReader {
                 getColumn(), getCharacterIndex(), isInNL(), getTabSize());
         }
 
+        public boolean equals(Object other) {
+            if (! (other instanceof TextLocation)) return false;
+            TextLocation co = (TextLocation) other;
+            return (line == co.getLine() &&
+                    column == co.getColumn() &&
+                    characterIndex == co.getCharacterIndex());
+        }
+
+        public int hashCode() {
+            return (int) (line ^ line >>> 31 ^ column ^ column >>> 31 ^
+                characterIndex ^ characterIndex >>> 31);
+        }
+
         public long getLine() {
             return line;
         }
