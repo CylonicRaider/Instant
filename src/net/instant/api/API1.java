@@ -4,6 +4,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.regex.Pattern;
+import net.instant.api.parser.ParserFactory;
 
 /**
  * Instant Programmers' Backend Interface revision 1.
@@ -149,12 +150,12 @@ public interface API1 {
     void addConsoleObject(String name, Object obj);
 
     /**
-     * Invoke the default plugin initializer.
-     * A plugin may wish to both use the declarative features and execute own
-     * code upon initialization.
-     * Returns the object returned by the default handler.
+     * Obtain an entry point into the parser API.
+     * The parser API dynamically generates parsers from grammars provided at
+     * runtime and provides a framework for mapping the parse trees they
+     * produce into Java objects.
      */
-    Object handleDefault(PluginData data);
+    ParserFactory getParserFactory();
 
     /**
      * Obtain a configuration value.
@@ -167,6 +168,14 @@ public interface API1 {
      * checked; additional sources may be salvaged in the future.
      */
     String getConfiguration(String name);
+
+    /**
+     * Invoke the default plugin initializer.
+     * A plugin may wish to both use the declarative features and execute own
+     * code upon initialization.
+     * Returns the object returned by the default handler.
+     */
+    Object handleDefault(PluginData data);
 
     /**
      * Get the object returned by a plugin's intializer method.

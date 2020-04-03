@@ -28,6 +28,7 @@ import net.instant.api.MessageHook;
 import net.instant.api.PluginData;
 import net.instant.api.RequestHook;
 import net.instant.api.RoomGroup;
+import net.instant.api.parser.ParserFactory;
 import net.instant.console.BackendConsoleManager;
 import net.instant.console.security.PasswordHashAuthenticator;
 import net.instant.hooks.APIWebSocketHook;
@@ -54,6 +55,7 @@ import net.instant.util.fileprod.Producer;
 import net.instant.util.fileprod.ProducerJob;
 import net.instant.util.fileprod.QueryStrippingProducer;
 import net.instant.util.fileprod.StringProducer;
+import net.instant.util.parser.ParserFactoryImpl;
 import net.instant.util.stringmatch.DefaultStringMatcher;
 import net.instant.ws.InstantWebSocketServer;
 
@@ -463,12 +465,16 @@ public class InstantRunner implements API1 {
         makeConsole().getDefaultVariables().put(name, obj);
     }
 
-    public Object handleDefault(PluginData data) {
-        return DefaultPlugin.initInstantPlugin1(this, data);
+    public ParserFactory getParserFactory() {
+        return ParserFactoryImpl.INSTANCE;
     }
 
     public String getConfiguration(String name) {
         return makeConfig().get(name);
+    }
+
+    public Object handleDefault(PluginData data) {
+        return DefaultPlugin.initInstantPlugin1(this, data);
     }
 
     public Object getPluginData(String name) throws IllegalArgumentException,
