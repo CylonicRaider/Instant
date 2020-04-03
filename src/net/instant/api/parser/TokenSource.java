@@ -27,6 +27,9 @@ public interface TokenSource extends Closeable {
     /**
      * A token is a piece of text associated with a location inside the
      * input stream and a name.
+     * Classes implementing this interface should provide implementations of
+     * equals() (and hashCode()) such that two tokens are equal if-and-only-if
+     * their names, locations, and contents are, respectively, equal.
      */
     interface Token extends NamedValue {
 
@@ -55,6 +58,9 @@ public interface TokenSource extends Closeable {
      * This combines a name (from NamedValue) with a match rank and a regular
      * expression defining possible token contents (from TerminalSymbol);
      * the flags of the symbol are presently unused.
+     * Classes implementing this interface should provide implementations of
+     * equals() (and hashCode()) such that two token patterns are equal
+     * if-and-only-if their names and their symbols are, respectively, equal.
      */
     interface TokenPattern extends NamedValue {
 

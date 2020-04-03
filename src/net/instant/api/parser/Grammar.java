@@ -24,6 +24,12 @@ public interface Grammar extends GrammarView {
      * some regular expression, or a NonterminalSymbol, which matches the
      * languages matched by productions with a corresponding name; see the
      * aforementioned interfaces for more details.
+     * Clases implementing Symbol should implement the equals() (and
+     * hashCode()) methods such that symbols created by passing equal
+     * arguments to createNonterminal() and createTerminal() are equal, and
+     * symbols created by passing unequal arguments to the factory methods
+     * are not equal. Pattern-s are considered equal if their pattern strings
+     * and flags are equal.
      */
     public interface Symbol {
 
@@ -117,6 +123,9 @@ public interface Grammar extends GrammarView {
      * respective order); e.g., if the symbols A, B, and C match the strings
      * "Hello", " ", and "World", then a production containing (only) A, B,
      * and C matches the string "Hello World".
+     * Classes implementing Production should implement equals() (and
+     * hashCode()) such that two productions are equal if-and-only-if their
+     * names and their symbol lists are equal.
      */
     public interface Production extends NamedValue {
 
