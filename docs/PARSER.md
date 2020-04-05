@@ -50,6 +50,9 @@ and *after* vertical bar characters, splitting the production definition onto
 multiple "physical" lines. A line break after the last alternative is
 mandatory (an end-of-file is *not* permissible).
 
+Multiple productions with the same name are equivalent to one production whose
+alternatives are those of the both productions combined.
+
 A production matches *any* of the strings matched by any of its alternatives,
 which, in turn, match the *concatenations* of the strings matched by their
 symbols. For example, the production `foo = "A" "B" "C" | "X" "Y" "Z"` matches
@@ -114,6 +117,11 @@ flags. The following flags are defined:
 If both *Inline* and *Discard* are specified for a symbol, the latter "wins"
 (the inlined contents are discarded, or there is nothing to inline).
 
+If both a fixed terminal and a pattern terminal are applicable to a particular
+portion of the input, the fixed terminal "wins"; for example, keywords defined
+via fixed terminals would outcompete identifiers defined via pattern
+terminals.
+
 ### Token definitions
 
 Certain (rather restricted) productions define classes of *tokens*, each of
@@ -173,4 +181,27 @@ The following grammar matches simple arithmetical expressions:
 
 ## Implementation limitations
 
-— *to be continued* —
+While the format documented above allows describing arbitrary context-free
+grammars, Instant's parser implementation does not accept all of them; in
+fact, most of the above examples are invalid for it. The following limitations
+apply:
+
+- **Terminals and tokens**: Instant does not allow using "raw" terminal
+  symbols outside of token definitions. This limitation is not significant,
+  as all raw terminals can be replaced with equivalent token definitions.
+
+- **Grammar structure**: Instant accepts LL(1) (in terms of tokens) grammars,
+  with the extension that duplicate symbols are permitted within same-named
+  prodution alternatives, as long as all duplicates have the same flags. Other
+  grammars are rejected as invalid.
+
+- **Regular expressions**: Due to the streaming nature of the token generator,
+  backreferences inside pattern terminals will not work (unless they match the
+  empty string, as regular expressions are matched against the beginning of an
+  internal buffer).
+
+- **Ambiguous tokens**: In order to produce the next token, the parser matches
+  all possibly applicable token definitions concurrently against the input
+  stream; when two token definitions are equally applicable, a runtime error
+  is signaled. The parser compiler does not diagnose this at compile time as
+  doing so would be prohibitively costly.
