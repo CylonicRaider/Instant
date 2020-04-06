@@ -8,10 +8,9 @@ public class RunnableAction extends Action implements Runnable {
         this.task = task;
     }
     protected RunnableAction() {
-        this(null);
+        this.task = this;
     }
 
-    /* If the return value is null, this instance itself is the task. */
     public Runnable getTask() {
         return task;
     }
@@ -23,7 +22,11 @@ public class RunnableAction extends Action implements Runnable {
     }
 
     public void run() {
-        getTask().run();
+        Runnable task = getTask();
+        if (task == this)
+            throw new IllegalStateException("Using RunnableAction without " +
+                "specifying Runnable or overriding run()");
+        task.run();
     }
 
 }
