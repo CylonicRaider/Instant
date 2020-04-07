@@ -93,18 +93,18 @@ public class Main implements Runnable {
     protected ParseResult parseArguments(ArgumentParser p) {
         p.addStandardOptions();
         Option<String> host = p.add(Option.of(String.class, "host", 'h',
-            "Host to bind to.").defaultsTo("*").withPlaceholder("<ADDR>"));
-        host.withComment("\"*\" = all interfaces");
+            "Host to bind to.").defaultsTo("*").withPlaceholder("<ADDR>")
+            .withComment("\"*\" = all interfaces"));
         Argument<Integer> port = p.add(Argument.of(Integer.class, "port",
             "Port to bind to.").defaultsTo(8080));
         Option<File> webroot = p.add(Option.of(File.class, "webroot", 'r',
             "Path containing static directories.").defaultsTo(new File(".")));
         Option<File> httpLog = p.add(Option.of(File.class, "http-log", null,
-            "Log file for HTTP requests.").defaultsTo(new File("-")));
-        httpLog.withComment("\"-\" = standard error");
+            "Log file for HTTP requests.").defaultsTo(new File("-"))
+            .withComment("\"-\" = standard error"));
         Option<File> debugLog = p.add(Option.of(File.class, "debug-log", null,
-            "Log file for debugging.").defaultsTo(new File("-")));
-        debugLog.withComment("\"-\" = standard error");
+            "Log file for debugging.").defaultsTo(new File("-"))
+            .withComment("\"-\" = standard error"));
         Option<String> logLevel = p.add(Option.of(String.class, "log-level",
             'L', "Logging level.").defaultsTo("INFO"));
         Option<List<File>> plugPath = p.add(Option.ofList(File.class,

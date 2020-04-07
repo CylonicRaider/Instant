@@ -22,8 +22,16 @@ public class Argument<T> extends StandardProcessor
         this(null, null, converter, committer);
     }
 
-    public Argument<T> setup() {
-        getCommitter().setKey(this);
+    public Argument<T> required() {
+        super.required();
+        return this;
+    }
+    public Argument<T> optional() {
+        super.optional();
+        return this;
+    }
+    public Argument<T> withComment(String comment) {
+        super.withComment(comment);
         return this;
     }
 
@@ -60,6 +68,11 @@ public class Argument<T> extends StandardProcessor
     }
     public Argument<T> defaultsTo(T v) {
         setDefault(v);
+        return this;
+    }
+
+    public Argument<T> setup() {
+        getCommitter().setKey(this);
         return this;
     }
 

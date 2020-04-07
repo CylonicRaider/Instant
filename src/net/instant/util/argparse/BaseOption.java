@@ -15,6 +15,19 @@ public class BaseOption<X extends Processor> extends StandardProcessor {
         this(name, shortName, help, null);
     }
 
+    public BaseOption<X> required() {
+        super.required();
+        return this;
+    }
+    public BaseOption<X> optional() {
+        super.optional();
+        return this;
+    }
+    public BaseOption<X> withComment(String comment) {
+        super.withComment(comment);
+        return this;
+    }
+
     public Character getShortName() {
         return shortName;
     }

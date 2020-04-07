@@ -16,9 +16,20 @@ public class Option<T> extends BaseOption<Argument<T>>
         this(name, shortName, help, null);
     }
 
-    public Option<T> setup() {
-        getChild().setRequired(true);
-        getChild().getCommitter().setKey(this);
+    public Option<T> required() {
+        super.required();
+        return this;
+    }
+    public Option<T> optional() {
+        super.optional();
+        return this;
+    }
+    public Option<T> withComment(String comment) {
+        super.withComment(comment);
+        return this;
+    }
+    public Option<T> withChild(Argument<T> c) {
+        super.withChild(c);
         return this;
     }
 
@@ -35,6 +46,12 @@ public class Option<T> extends BaseOption<Argument<T>>
 
     public Option<T> withPlaceholder(String placeholder) {
         getChild().withPlaceholder(placeholder);
+        return this;
+    }
+
+    public Option<T> setup() {
+        getChild().setRequired(true);
+        getChild().getCommitter().setKey(this);
         return this;
     }
 

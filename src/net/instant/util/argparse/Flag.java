@@ -10,13 +10,30 @@ public class Flag extends BaseOption<ConstantStoreAction<Boolean>>
                                                new Committer<Boolean>()));
     }
 
-    public Flag setup() {
-        getChild().getCommitter().setKey(this);
+    public Flag required() {
+        super.required();
+        return this;
+    }
+    public Flag optional() {
+        super.optional();
+        return this;
+    }
+    public Flag withComment(String comment) {
+        super.withComment(comment);
+        return this;
+    }
+    public Flag withChild(ConstantStoreAction<Boolean> c) {
+        super.withChild(c);
         return this;
     }
 
     public boolean getValue() {
         return getChild().getValue();
+    }
+
+    public Flag setup() {
+        getChild().getCommitter().setKey(this);
+        return this;
     }
 
     public Flag inverse(String name, Character shortName) {
