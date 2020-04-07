@@ -8,13 +8,13 @@ import java.util.logging.Logger;
 
 public abstract class ProducerJob implements Runnable {
 
-    private static final Logger LOGGER = Logger.getLogger("ProducerJob");
-
     public interface Callback {
 
         void fileProduced(String name, FileCell f);
 
     }
+
+    private static final Logger LOGGER = Logger.getLogger("ProducerJob");
 
     private final String name;
     private final List<Callback> callbacks;
