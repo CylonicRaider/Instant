@@ -501,15 +501,10 @@ this.Instant = function() {
             /* Nothing to do */
             break;
           case 'joined': /* New user joined (might be ourself) */
-            Instant.userList._onmessage(msg);
-            Instant.logs.pull._onmessage(msg);
-            break;
           case 'left': /* User left */
+          case 'who': /* Active connection enumeration */
             Instant.userList._onmessage(msg);
             Instant.logs.pull._onmessage(msg);
-            break;
-          case 'who': /* Active connection enumeration */
-            /* Nothing to do */
             break;
           case 'unicast': /* Someone sent a message directly to us */
           case 'broadcast': /* Someone sent a message to everyone */
@@ -583,7 +578,7 @@ this.Instant = function() {
                 Instant.logs.pull._onmessage(msg);
                 break;
               case 'log-inquiry': /* Are we done pulling logs? */
-              case 'log-done': /* We are done pulling logs? */
+              case 'log-done': /* We are done pulling logs! */
                 /* Both for log scraper interaction; not for the JS client */
                 break;
               case 'privmsg': /* Incoming private message */
@@ -912,12 +907,12 @@ this.Instant = function() {
       },
       /* Add the given UID-UUID pair to the registry */
       addUUID: function(uid, uuid) {
-        uuids[uid] = uuid;
+        if (uuid) uuids[uid] = uuid;
       },
       /* Add the given pairs to the UUID cache */
       mergeUUID: function(mapping) {
         for (var k in mapping) {
-          if (! mapping.hasOwnProperty(k)) continue;
+          if (! mapping.hasOwnProperty(k) || ! mapping[k]) continue;
           uuids[k] = mapping[k];
         }
       },
@@ -1108,6 +1103,15 @@ this.Instant = function() {
                 lastUpdate = Date.now();
               }
               return;
+            } else if (msg.type == 'who') {
+              /* We got a user listing */
+              var uuids = {};
+              for (var key in msg.data) {
+                if (! msg.data.hasOwnProperty(key)) continue;
+                uuids[key] = msg.data[key].uuid;
+              }
+              Instant.logs.mergeUUID(uuids);
+              return;
             } else if (msg.type != 'unicast' && msg.type != 'broadcast') {
               /* Not interesting */
               return;
@@ -1152,7 +1156,9 @@ this.Instant = function() {
                   /* Actually merge logs */
                   var added = Instant.logs.merge(data.data, true);
                   /* Merge UUID-s */
-                  Instant.logs.mergeUUID(data.uuids);
+                  if (data.uuids) {
+                    Instant.logs.mergeUUID(data.uuids);
+                  }
                   /* Future compatibility */
                   if (data.users) {
                     var uuids = {};
@@ -1196,7 +1202,7 @@ this.Instant = function() {
                 Instant._fireListeners('logs.new', {message: msg,
                   data: data});
                 break;
-              case 'delete':
+              case 'delete': /* Someone wants to remove a message */
                 /* Nuh! */
                 break;
               default:
@@ -4311,7 +4317,7 @@ this.Instant = function() {
       /* Show information about the given user */
       showInfo: function(uid) {
         var node = nicks[uid];
-        var uuid = node.getAttribute('data-uuid');
+        var uuid = Instant.logs.getUUID(uid);
         var lastActive = +node.getAttribute('data-last-active');
         var popup = Instant.popups.addNew({title: 'User information',
           content: $makeFrag(
