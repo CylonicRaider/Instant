@@ -523,11 +523,16 @@ class Scribe(instabot.Bot):
     def handle_identity(self, content, rawmsg):
         self._send_ping()
         instabot.Bot.handle_identity(self, content, rawmsg)
+        self.send_seq({'type': 'who'})
         self.send_broadcast({'type': 'who'})
         self._execute(self._push_logs)
         if not self.dont_pull:
             self._logs_begin()
         self.scheduler.set_forever(False)
+    def handle_who(self, content, rawmsg):
+        instabot.Bot.handle_who(self, content, rawmsg)
+        data = content['data']
+        self._execute(self._process_who, data=data)
     def handle_joined(self, content, rawmsg):
         instabot.Bot.handle_joined(self, content, rawmsg)
         data = content['data']
@@ -627,6 +632,9 @@ class Scribe(instabot.Bot):
         return self.send_unicast(peer, data, verbose=False)
     def _execute(self, func, *args, **kwds):
         self.scheduler.add_now(lambda: func(*args, **kwds))
+    def _process_who(self, data):
+        for uid, info in data.items():
+            self._process_nick(uid, uuid=info['uuid'])
     def _process_joined(self, uid, uuid=None):
         self._process_nick(uid, uuid=uuid)
         if self._selecting_candidate:
