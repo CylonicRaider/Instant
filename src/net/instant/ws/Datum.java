@@ -23,6 +23,7 @@ public class Datum implements ClientConnection, ResponseBuilder {
     private ClientHandshake request;
     private ServerHandshakeBuilder response;
     private WebSocket ws;
+    private InetSocketAddress address;
     private String rfc1413Ident;
     private String authIdent;
     private long timestamp;
@@ -53,7 +54,7 @@ public class Datum implements ClientConnection, ResponseBuilder {
     }
 
     public InetSocketAddress getAddress() {
-        return ws.getRemoteSocketAddress();
+        return address;
     }
 
     public String getRFC1413Identity() {
@@ -219,6 +220,9 @@ public class Datum implements ClientConnection, ResponseBuilder {
         ws = conn;
         request = handshake;
         reqType = DraftWrapper.getRequestType(draft);
+        address = (conn instanceof InstantWebSocketImpl) ?
+            ((InstantWebSocketImpl) conn).getCachedRemoteAddress() :
+            conn.getRemoteSocketAddress();
         cookies = parent.getCookieHandler().extractCookies(handshake);
         String fwd = handshake.getFieldValue("X-Forwarded-For");
         if (! fwd.isEmpty())

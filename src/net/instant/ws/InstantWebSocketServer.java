@@ -76,6 +76,7 @@ public class InstantWebSocketServer extends WebSocketServer
         identifier = new IdentityCookieManager(api);
         gc = new ConnectionGC(api);
         httpLog = System.err;
+        setWebSocketFactory(new InstantWebSocketServerFactory());
         setReuseAddr(! Util.isTrue(api.getConfiguration(K_NO_REUSEADDR)));
         for (Draft d : getDraft()) {
             if (d instanceof DraftWrapper)
