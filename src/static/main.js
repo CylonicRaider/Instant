@@ -85,6 +85,21 @@ function $onload(cb, late, defer) {
   }
 }
 
+function $watchMediaQuery(query, cb) {
+  if (! window.matchMedia) return;
+  var queryObj = window.matchMedia(query);
+  cb(queryObj.matches);
+  var listener = function(evt) {
+    cb(evt.matches);
+  };
+  queryObj.addListener(listener);
+  return {query: queryObj, listener: listener, cb: cb, matches: function() {
+    return queryObj.matches;
+  }, cancel: function() {
+    queryObj.removeListener(listener);
+  }};
+}
+
 /* Create a DOM element */
 function $makeNode(tag, className, attrs, children) {
   /* Allow omitting parameters */
@@ -5440,10 +5455,14 @@ this.Instant = function() {
       }()
     };
   }();
-  /* Special effects */
+  /* More-or-less special effects */
   Instant.animation = function() {
     /* The main message box */
     var messageBox = null;
+    /* The current theme */
+    var theme = null, effectiveTheme = null;
+    /* A media query watch tracking the user's dark theme preference */
+    var darkThemeQuery = null;
     return {
       /* Initialize the submodule */
       init: function(msgNode) {
@@ -5459,6 +5478,11 @@ this.Instant = function() {
             Instant.animation.offscreen.checkVisible();
           });
         });
+        /* Manage the user's dark theme preference */
+        darkThemeQuery = $watchMediaQuery('(prefers-color-scheme: dark)',
+          function(dark) {
+            Instant.animation.setTheme(theme);
+          });
       },
       /* Flash something */
       flash: function(node) {
@@ -5477,6 +5501,42 @@ this.Instant = function() {
       unflash: function(node) {
         if (node.classList.contains('flash'))
           node.classList.add('flash-done');
+      },
+      /* Apply the given UI theme */
+      setTheme: function(newTheme) {
+        var effectiveNewTheme = newTheme;
+        if (effectiveNewTheme == 'auto')
+          effectiveNewTheme = (darkThemeQuery.matches()) ? 'dark' : 'bright';
+        if (newTheme == theme && effectiveNewTheme == effectiveTheme)
+          return;
+        theme = newTheme;
+        effectiveTheme = effectiveNewTheme;
+        var classList = document.body.classList;
+        var themeColor = null;
+        if (effectiveTheme == 'bright') {
+          classList.remove('dark');
+          classList.remove('very-dark');
+          themeColor = 'white';
+        } else if (effectiveTheme == 'dark') {
+          classList.add('dark');
+          classList.remove('very-dark');
+          themeColor = 'black';
+        } else if (effectiveTheme == 'verydark') {
+          classList.add('dark');
+          classList.add('very-dark');
+          themeColor = 'black';
+        } else {
+          console.warn('Unknown theme:', theme);
+        }
+        if (themeColor) {
+          var colorDefiner = $sel('meta[name="theme-color"]');
+          if (colorDefiner == null) {
+            colorDefiner = document.createElement('meta');
+            colorDefiner.name = 'theme-color';
+            document.head.appendChild(colorDefiner);
+          }
+          colorDefiner.content = themeColor;
+        }
       },
       /* Navigate the input to the given message */
       goToMessage: function(msg) {
@@ -5998,8 +6058,10 @@ this.Instant = function() {
             ['h2', ['Settings']],
             ['div', 'settings-theme', [
               ['h3', ['Theme:']],
+              radio('theme', 'auto', 'Automatic', 'Either Bright or Dark ' +
+                'depending on system-wide preference', {checked: true}),
               radio('theme', 'bright', 'Bright', 'Black-on-white theme ' +
-                'for well-lit environments', {checked: true}),
+                'for well-lit environments'),
               radio('theme', 'dark', 'Dark', 'Gray-on-black theme for ' +
                 'those who like it'),
               radio('theme', 'verydark', 'Very dark', 'Dimmed version of ' +
@@ -6067,31 +6129,7 @@ this.Instant = function() {
       apply: function(event) {
         var cnt = $cls('settings-content', wrapperNode);
         var theme = cnt.elements['theme'].value;
-        var themeColor;
-        if (theme == 'bright') {
-          document.body.classList.remove('dark');
-          document.body.classList.remove('very-dark');
-          themeColor = 'white';
-        } else if (theme == 'dark') {
-          document.body.classList.add('dark');
-          document.body.classList.remove('very-dark');
-          themeColor = 'black';
-        } else if (theme == 'verydark') {
-          document.body.classList.add('dark');
-          document.body.classList.add('very-dark');
-          themeColor = 'black';
-        } else {
-          console.warn('Unknown theme:', theme);
-        }
-        if (themeColor) {
-          var colorDefiner = $sel('meta[name="theme-color"]');
-          if (colorDefiner == null) {
-            colorDefiner = document.createElement('meta');
-            colorDefiner.name = 'theme-color';
-            document.head.appendChild(colorDefiner);
-          }
-          colorDefiner.content = themeColor;
-        }
+        Instant.animation.setTheme(theme);
         var level = cnt.elements['notifies'].value;
         Instant.notifications.level = level;
         if (level != 'none') Instant.notifications.desktop.request();
