@@ -1442,9 +1442,10 @@ this.Instant = function() {
                 replies.contains(range.endContainer))
               continue;
             /* Check if part of the selection is outside the content */
-            var content = $cls('content', msgs);
-            if (! content.contains(range.startContainer) ||
-                ! content.contains(range.endContainer))
+            var nickWrapper = $cls('nick-wrapper', msgs),
+                content = $cls('content', msgs);
+            if (! nickWrapper.contains(range.commonAncestorContainer) &&
+                ! content.contains(range.commonAncestorContainer))
               singleMessage = false;
           } else {
             singleMessage = false;
