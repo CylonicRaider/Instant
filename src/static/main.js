@@ -6067,17 +6067,30 @@ this.Instant = function() {
       apply: function(event) {
         var cnt = $cls('settings-content', wrapperNode);
         var theme = cnt.elements['theme'].value;
+        var themeColor;
         if (theme == 'bright') {
           document.body.classList.remove('dark');
           document.body.classList.remove('very-dark');
+          themeColor = 'white';
         } else if (theme == 'dark') {
           document.body.classList.add('dark');
           document.body.classList.remove('very-dark');
+          themeColor = 'black';
         } else if (theme == 'verydark') {
           document.body.classList.add('dark');
           document.body.classList.add('very-dark');
+          themeColor = 'black';
         } else {
           console.warn('Unknown theme:', theme);
+        }
+        if (themeColor) {
+          var colorDefiner = $sel('meta[name="theme-color"]');
+          if (colorDefiner == null) {
+            colorDefiner = document.createElement('meta');
+            colorDefiner.name = 'theme-color';
+            document.head.appendChild(colorDefiner);
+          }
+          colorDefiner.content = themeColor;
         }
         var level = cnt.elements['notifies'].value;
         Instant.notifications.level = level;
