@@ -3775,11 +3775,15 @@ this.Instant = function() {
         if (! wrapper) return;
         /* Make measurements accurate */
         wrapper.style.minWidth = '';
-        /* HACK to check for the presence of (explicit) scrollbars */
-        if (wrapper.clientWidth != wrapper.offsetWidth) {
+        /* HACK to check for the presence of (explicit) scrollbars
+         * Yes, that property naming is awful and historical. */
+        var outerRect = wrapper.getBoundingClientRect();
+        var outerWidth = outerRect.right - outerRect.left;
+        var innerWidth = wrapper.clientWidth;
+        if (innerWidth != outerWidth) {
           wrapper.classList.add('overflow');
-          wrapper.style.minWidth = wrapper.offsetWidth +
-            (wrapper.offsetWidth - wrapper.clientWidth) + 'px';
+          wrapper.style.minWidth = outerWidth + (outerWidth - innerWidth) +
+            'px';
         } else {
           wrapper.classList.remove('overflow');
         }
