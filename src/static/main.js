@@ -3563,6 +3563,8 @@ this.Instant = function() {
   Instant.pane = function() {
     /* The distance to keep nodes away from the screen edges */
     var OUTER_DIST = 50;
+    /* Whether scrollTop values are integers */
+    var scrollTopInteger = null;
     return {
       /* Get the message-box containing this DOM node */
       getBox: function(node) {
@@ -3667,10 +3669,27 @@ this.Instant = function() {
         if (dist === null || dist === undefined) dist = OUTER_DIST;
         var nodeRect = node.getBoundingClientRect();
         var paneRect = pane.getBoundingClientRect();
+        var expected;
         if (nodeRect.top < paneRect.top + dist) {
-          pane.scrollTop -= paneRect.top + dist - nodeRect.top;
+          expected = pane.scrollTop - paneRect.top - dist + nodeRect.top;
         } else if (nodeRect.bottom > paneRect.bottom - dist) {
-          pane.scrollTop -= paneRect.bottom - dist - nodeRect.bottom;
+          expected = pane.scrollTop - paneRect.bottom + dist +
+                     nodeRect.bottom;
+        } else {
+          return;
+        }
+        if (scrollTopInteger) {
+          expected = Math.round(expected);
+        }
+        pane.scrollTop = expected;
+        if (! scrollTopInteger) {
+          var got = pane.scrollTop;
+          if (got != expected)
+            pane.scrollTop = Math.round(expected);
+          // HACK: There should probably be some way to transition back to
+          //       non-integer-only mode.
+          if (expected != Math.floor(expected) && got == Math.floor(got))
+            scrollTopInteger = true;
         }
       },
       /* Instant main pane utilities */
