@@ -5585,39 +5585,71 @@ this.Instant = function() {
       },
       /* Greeting pane */
       greeter: function() {
-        /* The actual node */
+        /* The DOM node */
         var node = null;
-        /* Whether the node is visible */
-        var visible = true;
-        /* Whether a particular state should be applied to the node */
-        var pending = true;
-        /* The timeout to hide it entirely */
+        /* The actual visibility */
+        var visible = null;
+        /* Status flags
+         * The greeter is visible as long as any value in here is true. */
+        var status = {initial: true};
+        /* The timeout to hide the node entirely */
         var hideTimeout = null;
         return {
           /* Initialize submodule */
           init: function(greeterNode) {
             node = greeterNode;
-            if (pending) {
-              Instant.animation.greeter.show();
-            } else {
-              Instant.animation.greeter.hide();
-            }
-            pending = null;
+            Instant.animation.greeter._update();
           },
-          /* Show greeter */
-          show: function() {
-            pending = true;
-            if (! node || visible) return;
+          /* Add a reason for the greeter to be shown */
+          show: function(key) {
+            status[key] = true;
+            Instant.animation.greeter._update(true);
+          },
+          /* Remove a reason for the greeter to be shown
+           * If key is the Boolean true, clears all reasons and hides the
+           * greeter quickly. */
+          hide: function(key) {
+            if (key == true) {
+              for (var key in status) {
+                if (! status.hasOwnProperty(key)) continue;
+                status[key] = false;
+              }
+              Instant.animation.greeter._update(false, true);
+            } else {
+              status[key] = false;
+              Instant.animation.greeter._update();
+            }
+          },
+          /* Update the greeter's show/hide status */
+          _update: function(force, fast) {
+            if (! node) return;
+            var shouldShow = force;
+            if (shouldShow == null) {
+              shouldShow = false;
+              for (var key in status) {
+                if (! status.hasOwnProperty(key) || ! status[key]) continue;
+                shouldShow = true;
+                break;
+              }
+            }
+            if (shouldShow == visible) {
+              /* NOP */
+            } else if (shouldShow) {
+              Instant.animation.greeter._show();
+            } else {
+              Instant.animation.greeter._hide(fast);
+            }
+          },
+          /* Actually show greeter */
+          _show: function() {
             if (hideTimeout != null) clearTimeout(hideTimeout);
             node.style.display = '';
             node.style.opacity = '';
             visible = true;
             Instant._fireListeners('greeter.visibility', {visible: true});
           },
-          /* Hide greeter */
-          hide: function(fast) {
-            pending = false;
-            if (! node || ! visible) return;
+          /* Actually hide greeter */
+          _hide: function(fast) {
             if (hideTimeout != null) clearTimeout(hideTimeout);
             node.style.opacity = '0';
             if (fast) {
@@ -5656,27 +5688,30 @@ this.Instant = function() {
           /* Show the spinner, setting the given status variable */
           show: function(key) {
             status[key] = true;
-            Instant.animation.spinner._update();
+            Instant.animation.spinner._update(true);
           },
           /* Possibly hide the spinner, but at least mark this task as
-           * done */
+           * done, and also maybe-hide the greeter */
           hide: function(key) {
             status[key] = false;
             Instant.animation.spinner._update();
-            Instant.animation.greeter.hide();
+            Instant.animation.greeter.hide('initial');
           },
           /* Get the status value for the given key */
           get: function(key) {
             return status[key];
           },
           /* Update the node to accord to the status */
-          _update: function() {
+          _update: function(forceShow) {
             if (! node) return;
             /* Scan for true values */
-            var visible = false;
-            for (var key in status) {
-              if (! status.hasOwnProperty(key)) continue;
-              if (status[key]) {
+            var visible;
+            if (forceShow) {
+              visible = true;
+            } else {
+              visible = false;
+              for (var key in status) {
+                if (! status.hasOwnProperty(key) || ! status[key]) continue;
                 visible = true;
                 break;
               }
@@ -7828,14 +7863,18 @@ function init() {
   var isIE = /*@cc_on!@*/0;
   if (isIE) Instant.message.addReply({id: 'loading-1-ie', nick: 'Doom',
     text: '/me awaits IE users...'}, m);
+  Instant.animation.greeter.show('loading');
   $onload(function() {
     /* Show main element
      * Deferred to avoid partial FOUC-s. */
     main.classList.add('ready');
     /* Hide greeter */
+    Instant.animation.greeter.hide('loading');
     if (! Instant.roomName) {
-      /* Nothing is going to hide it, so we have to. */
-      Instant.animation.greeter.hide();
+      /* The spinner is not going to be hidden (because no log loading is
+       * going on, and the spinner is hence not shown at all), so we remove
+       * this reason manually. */
+      Instant.animation.greeter.hide('initial');
     }
   }, true, true);
   /* Focus input bar if Escape pressed and not focused */
