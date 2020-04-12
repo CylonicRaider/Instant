@@ -55,7 +55,6 @@ body {
   transition: background 0.5s, color 0.5s,
               opacity 1s, box-shadow 0.1s;
 }
-
 #load-wrapper hr {
   margin: 10px 0;
   border: 1px solid black;
@@ -64,10 +63,12 @@ body {
 #load-wrapper .content-box {
   text-align: left;
 }
-
+#load-wrapper #loading-messages, #load-wrapper #splash-messages,
+#load-wrapper .wait, #load-wrapper .note {
+  margin-top: 10px;
+}
 #load-wrapper .wait {
   font-weight: bold;
-  margin: 10px 0;
 }
 
 #load-wrapper #load-wrapper-close {
@@ -92,18 +93,18 @@ body {
 #load-wrapper.busy .load-wrapper-inner {
   box-shadow: 0 0 30px #808080;
 }
-#load-wrapper.busy #loading-message {
+#load-wrapper.busy #loading-messages {
   display: none;
 }
 
 .note {
-  display: table-row;
+  display: table;
 }
 .note > strong, .note > span {
   display: table-cell;
 }
 .note > :not(:last-child) {
-  padding-right: 1ch;
+  padding-right: 0.35em;
 }
 
 .indent {

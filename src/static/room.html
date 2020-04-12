@@ -29,17 +29,18 @@
         </div>
         <hr/>
         <div class="content-box">
-          <div id="loading-message">
+          <div id="loading-messages">
             <p class="wait">Loading...</p>
             <!--[if IE]>
-              <p class="wait">Doom <em>awaits IE users...</em></p>
+              <p class="note"><strong>Doom</strong> <span>awaits IE
+                users...</span></p>
             <![endif]-->
+            <noscript>
+              <div class="note"><strong>NOTE:</strong>
+                <span>You've got JS disabled, right?</span>
+              </div>
+            </noscript>
           </div>
-          <noscript>
-            <div class="note"><strong>NOTE:</strong>
-              <span>You've got JS disabled, right?</span>
-            </div>
-          </noscript>
           <div id="splash-messages" class="message-box notimes"></div>
         </div>
       </div>
