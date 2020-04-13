@@ -6172,7 +6172,7 @@ this.Instant = function() {
         /* Prepare width adjustment */
         window.addEventListener('resize', Instant.settings.updateWidth);
         Instant.settings.updateWidth();
-        return buttonNode;
+        return $makeFrag(buttonNode, ['span', 'settings-placeholder']);
       },
       /* Outlined final part of initialization */
       load: function() {

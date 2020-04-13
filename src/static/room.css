@@ -398,6 +398,7 @@ body {
   flex-shrink: 0;
 }
 .sidebar-top-line {
+  position: relative;
   line-height: 1.2;
   padding: 5px 3px;
 }
@@ -498,6 +499,11 @@ a.room-name .staging {
 .settings:active {
   background: #c0c0c0;
 }
+.settings-placeholder {
+  display: none;
+  width: 1.2em;
+  padding: 0 2px;
+}
 
 .settings-wrapper {
   display: none;
@@ -555,6 +561,9 @@ a.room-name .staging {
 }
 
 .settings.visible {
+  position: absolute;
+  top: 5px;
+  right: 3px;
   border-radius: 0;
   border-width: 1px 1px 0 0;
   padding: 1px 1px 2px 2px;
@@ -563,6 +572,9 @@ a.room-name .staging {
 }
 .settings.visible img {
   padding: 2px 2px 3px 3px;
+}
+.settings.visible + .settings-placeholder {
+  display: inline-block;
 }
 .settings-wrapper.visible {
   display: block;
