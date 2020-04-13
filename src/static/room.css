@@ -371,6 +371,12 @@ body {
   flex-direction: column;
   pointer-events: none;
 }
+.sidebar > * {
+  pointer-events: auto;
+}
+.sidebar > .sidebar-content {
+  pointer-events: none;
+}
 .sidebar-content, .sidebar-content > * {
   display: -webkit-flex;
   display: flex;
@@ -460,6 +466,7 @@ button.sidebar-widget:hover {
 }
 
 a.room-name {
+  display: inline-block;
   font-weight: bold;
   text-decoration: none;
   color: inherit;
@@ -482,11 +489,6 @@ a.room-name .staging {
   background: #c0c0c0;
 }
 
-.settings-wrapper {
-  display: inline-block;
-  position: relative;
-  z-index: 20;
-}
 .settings {
   background: white;
 }
@@ -496,36 +498,46 @@ a.room-name .staging {
 .settings:active {
   background: #c0c0c0;
 }
-/* Need to override .sidebar-widget.bordered img */
-.settings img, .settings-wrapper .settings img {
-  position: static;
-  padding: 1px;
-}
-.settings-content {
+
+.settings-wrapper {
   display: none;
   position: absolute;
-  top: -2px;
+  top: 0;
   right: 0;
+  bottom: 5em;
+  z-index: 20;
+}
+.settings-box {
+  display: -webkit-flex;
+  display: flex;
+  -webkit-flex-direction: column;
+  flex-direction: column;
+  margin: 6px 3px 0 0;
   border: 1px solid black;
-  padding: 5px;
-  z-index: -1;
-  text-align: left;
-  white-space: nowrap;
+  max-height: 100%;
   background: white;
+  text-align: left;
 }
-.settings-content h2, .settings-content h3 {
+.settings-box h2 {
+  margin: 1px 1.2em 1px 5px;
+  padding-right: 5px;
   font-size: inherit;
+  line-height: 1.2;
 }
-.settings-content h2 {
-  margin-top: -4px;
-  margin-right: 1.2em;
+.settings-scroller {
+  overflow: auto;
+}
+.settings-content {
+  padding: 0 5px 5px 5px;
 }
 .settings-content h3 {
+  font-size: inherit;
   font-weight: normal;
   font-style: italic;
 }
 .settings-content label {
   display: block;
+  white-space: nowrap;
 }
 .settings-content label.more-content {
   display: none;
@@ -542,13 +554,17 @@ a.room-name .staging {
   font-size: smaller;
 }
 
-.settings-wrapper.visible .settings {
+.settings.visible {
   border-radius: 0;
   border-width: 1px 1px 0 0;
   padding: 1px 1px 2px 2px;
   box-shadow: none;
+  z-index: 25;
 }
-.settings-wrapper.visible .settings-content {
+.settings.visible img {
+  padding: 2px 2px 3px 3px;
+}
+.settings-wrapper.visible {
   display: block;
 }
 

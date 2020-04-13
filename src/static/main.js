@@ -3749,7 +3749,8 @@ this.Instant = function() {
             ['div', 'sidebar-bottom', [
               Instant.userList.getCollapserNode()
             ]]
-          ]]
+          ]],
+          Instant.settings.getWrapperNode()
         ]);
         var topLine = $cls('sidebar-top-line', node);
         var nameNode = $cls('room-name', node);
@@ -3768,25 +3769,9 @@ this.Instant = function() {
       },
       /* Change the width of the content to avoid horizontal scrollbars */
       updateWidth: function() {
-        /* Extract nodes */
         var wrapper = $cls('sidebar-middle-wrapper', node);
         var content = $cls('sidebar-middle', wrapper);
-        /* Prevent faults during initialization */
-        if (! wrapper) return;
-        /* Make measurements accurate */
-        wrapper.style.minWidth = '';
-        /* HACK to check for the presence of (explicit) scrollbars
-         * Yes, that property naming is awful and historical. */
-        var outerRect = wrapper.getBoundingClientRect();
-        var outerWidth = outerRect.right - outerRect.left;
-        var innerWidth = wrapper.clientWidth;
-        if (innerWidth != outerWidth) {
-          wrapper.classList.add('overflow');
-          wrapper.style.minWidth = outerWidth + (outerWidth - innerWidth) +
-            'px';
-        } else {
-          wrapper.classList.remove('overflow');
-        }
+        Instant.util.adjustScrollbarWidth(wrapper, 'overflow');
       },
       /* Mount the given node into the sidebar top area */
       addTop: function(newNode) {
@@ -5603,8 +5588,8 @@ this.Instant = function() {
       },
       /* Adjust the sizes of various UI elements */
       adjustSizes: function() {
-        Instant.util.adjustScrollbar($cls('sidebar', main),
-                                     $cls('message-pane', main));
+        Instant.util.adjustScrollbarMagin($cls('sidebar', main),
+                                          $cls('message-pane', main));
       },
       /* Greeting pane */
       greeter: function() {
@@ -6086,6 +6071,8 @@ this.Instant = function() {
   Instant.settings = function() {
     /* The outer node containing all the nice stuff */
     var wrapperNode = null;
+    /* The button invoking the settings */
+    var buttonNode = null;
     return {
       /* Initialize submodule */
       init: function() {
@@ -6108,57 +6095,63 @@ this.Instant = function() {
           ]];
         }
         wrapperNode = $makeNode('div', 'settings-wrapper', [
-          ['button', 'sidebar-widget bordered settings',
-              {title: 'Settings'}, [
-            ['img', {src: '/static/gear.svg'}],
-          ]],
-          ['form', 'settings-content', [
+          ['div', 'settings-box', [
             ['h2', ['Settings']],
-            ['div', 'settings-theme', [
-              ['h3', ['Theme:']],
-              radio('theme', 'auto', 'Automatic', 'Either Bright or Dark ' +
-                'depending on system-wide preference', {checked: true}),
-              radio('theme', 'bright', 'Bright', 'Black-on-white theme ' +
-                'for well-lit environments'),
-              radio('theme', 'dark', 'Dark', 'Gray-on-black theme for ' +
-                'those who like it'),
-              radio('theme', 'verydark', 'Very dark', 'Dimmed version of ' +
-                'Dark for very dark evironments')
-            ]],
-            ['hr'],
-            ['div', 'settings-notifications', [
-              ['h3', ['Notifications: ',
-                ['a', 'more-link', {href: '#'}, '(more)']
-              ]],
-              radio('notifies', 'none', 'None', 'No notifications at all',
-                {checked: true}),
-              radio('notifies', 'privmsg', 'On private messages', 'Notify ' +
-                'when you receive a private message',
-                {className: 'more-content'}),
-              radio('notifies', 'ping', 'When pinged', 'Notify when you ' +
-                'are pinged (or any of the above)'),
-              radio('notifies', 'update', 'On updates', 'Notify when ' +
-                'there is a new update (or any of the above)',
-                {className: 'more-content'}),
-              radio('notifies', 'reply', 'When replied to', 'Notify when ' +
-                'one of your messages is replied to (or any of the above)'),
-              radio('notifies', 'activity', 'On activity', 'Notify when ' +
-                'anyone posts a message (or any of the above)'),
-              radio('notifies', 'disconnect', 'On disconnects', 'Notify ' +
-                'when your connection is interrupted (or any of the above)',
-                {className: 'more-content'})
-            ]],
-            ['hr'],
-            ['div', 'settings-nodisturb', [
-              checkbox('no-disturb', 'Do not disturb', 'Void ' +
-                'notifications that are below your chosen level')
+            ['div', 'settings-scroller', [
+              ['form', 'settings-content', [
+                ['div', 'settings-theme', [
+                  ['h3', ['Theme:']],
+                  radio('theme', 'auto', 'Automatic', 'Either Bright or ' +
+                    'Dark depending on system-wide preference',
+                    {checked: true}),
+                  radio('theme', 'bright', 'Bright', 'Black-on-white theme ' +
+                    'for well-lit environments'),
+                  radio('theme', 'dark', 'Dark', 'Gray-on-black theme for ' +
+                    'those who like it'),
+                  radio('theme', 'verydark', 'Very dark', 'Dimmed version ' +
+                    'of Dark for very dark evironments')
+                ]],
+                ['hr'],
+                ['div', 'settings-notifications', [
+                  ['h3', ['Notifications: ',
+                    ['a', 'more-link', {href: '#'}, '(more)']
+                  ]],
+                  radio('notifies', 'none', 'None', 'No notifications at all',
+                    {checked: true}),
+                  radio('notifies', 'privmsg', 'On private messages',
+                    'Notify when you receive a private message',
+                    {className: 'more-content'}),
+                  radio('notifies', 'ping', 'When pinged', 'Notify when ' +
+                    'you are pinged (or any of the above)'),
+                  radio('notifies', 'update', 'On updates', 'Notify when ' +
+                    'there is a new update (or any of the above)',
+                    {className: 'more-content'}),
+                  radio('notifies', 'reply', 'When replied to', 'Notify ' +
+                    'when one of your messages is replied to (or any of ' +
+                    'the above)'),
+                  radio('notifies', 'activity', 'On activity', 'Notify ' +
+                    'when anyone posts a message (or any of the above)'),
+                  radio('notifies', 'disconnect', 'On disconnects',
+                    'Notify when your connection is interrupted (or any of ' +
+                    'the above)', {className: 'more-content'})
+                ]],
+                ['hr'],
+                ['div', 'settings-nodisturb', [
+                  checkbox('no-disturb', 'Do not disturb', 'Void ' +
+                    'notifications that are below your chosen level')
+                ]]
+              ]]
             ]]
           ]]
+        ]);
+        buttonNode = $makeNode('button', 'sidebar-widget bordered settings',
+                               {title: 'Settings'}, [
+          ['img', {src: '/static/gear.svg'}],
         ]);
         var btn = $cls('settings', wrapperNode);
         var cnt = $cls('settings-content', wrapperNode);
         /* Toggle settings */
-        btn.addEventListener('click', Instant.settings.toggle);
+        buttonNode.addEventListener('click', Instant.settings.toggle);
         /* Install event listeners */
         var apply = Instant.settings.apply.bind(Instant.settings);
         Array.prototype.forEach.call($selAll('input', cnt), function(el) {
@@ -6173,9 +6166,13 @@ this.Instant = function() {
             section.classList.add('show-more');
             $cls('more-link', cnt).textContent = '(less)';
           }
+          Instant.settings.updateWidth();
           event.preventDefault();
         });
-        return wrapperNode;
+        /* Prepare width adjustment */
+        window.addEventListener('resize', Instant.settings.updateWidth);
+        Instant.settings.updateWidth();
+        return buttonNode;
       },
       /* Outlined final part of initialization */
       load: function() {
@@ -6223,8 +6220,19 @@ this.Instant = function() {
           wrapperNode.classList.remove('visible');
         }
         var visible = Instant.settings.isVisible();
+        if (visible) {
+          buttonNode.classList.add('visible');
+          Instant.settings.updateWidth();
+        } else {
+          buttonNode.classList.remove('visible');
+        }
         Instant._fireListeners('settings.visibility', {visible: visible,
           wasVisible: wasVisible, source: event});
+      },
+      /* Adjust the width of the settings content to avoid line wrapping */
+      updateWidth: function() {
+        Instant.util.adjustScrollbarWidth(
+          $cls('settings-scroller', wrapperNode), 'overflow');
       },
       /* Show the settings popup */
       show: function(event) {
@@ -6238,7 +6246,15 @@ this.Instant = function() {
       toggle: function(event) {
         Instant.settings._setVisible(null, event);
       },
-      /* Obtain the current setttings node */
+      /* Obtain the outer settings node */
+      getWrapperNode: function() {
+        return wrapperNode;
+      },
+      /* Obtain the settings button node */
+      getButtonNode: function() {
+        return
+      },
+      /* Obtain the setttings node */
       getMainNode: function() {
         return $cls('settings-content', wrapperNode);
       },
@@ -7398,10 +7414,32 @@ this.Instant = function() {
       /* Run a function immediately, and then after a fixed interval */
       repeat: repeat,
       /* Adjust the right margin of an element to account for scrollbars */
-      adjustScrollbar: function(target, measure) {
+      adjustScrollbarMagin: function(target, measure) {
+        if (! target || ! measure) return;
         var margin = (measure.offsetWidth - measure.clientWidth) + 'px';
         if (target.style.marginRight != margin)
           target.style.marginRight = margin;
+      },
+      /* Adjust the minimum width of the node to account for scrollbars
+       * The node must not have any borders or paddings as they are not taken
+       * into account. If overflowClass is given, it is a CSS class name that
+       * is added to the node if a scrollbar has been detected, or removed
+       * otherwise. */
+      adjustScrollbarWidth: function(node, overflowClass) {
+        if (! node) return;
+        /* Avoid keeping the node inflated. */
+        node.style.minWidth = '';
+        /* Yes, that property naming is awful and historical. */
+        var outerRect = node.getBoundingClientRect();
+        var outerWidth = outerRect.right - outerRect.left;
+        var innerWidth = node.clientWidth;
+        if (innerWidth != outerWidth) {
+          if (overflowClass) node.classList.add(overflowClass);
+          node.style.minWidth = Math.ceil(outerWidth + (outerWidth -
+            innerWidth)) + 'px';
+        } else {
+          if (overflowClass) node.classList.remove(overflowClass);
+        }
       }
     };
   }();
