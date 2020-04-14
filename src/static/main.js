@@ -5752,17 +5752,17 @@ this.Instant = function() {
               node.classList.remove('broken');
               node.classList.remove('local');
               node.classList.add('connected');
-              node.title = 'Connected';
+              node.title = 'Connection status: Connected';
             } else if (Instant.connection.wasConnected()) {
               node.classList.remove('connected');
               node.classList.remove('local');
               node.classList.add('broken');
-              node.title = 'Broken';
+              node.title = 'Connection status: Broken';
             } else if (Instant.connectionURL == null) {
               node.classList.remove('conneced');
               node.classList.remove('broken');
               node.classList.add('local');
-              node.title = 'Local';
+              node.title = 'Connection status: Local (no connection)';
             }
           },
           /* Return the DOM node */
@@ -5893,8 +5893,11 @@ this.Instant = function() {
               Instant.animation.flash(node);
             if (visible) {
               node.classList.add('visible');
+              node.title = 'Go to unread ' + ((ping) ? 'ping' : 'message') +
+                ' ' + name.replace(/^alert-/, '');
             } else {
               node.classList.remove('visible');
+              node.title = '(Go nowhere)';
             }
             if (ping) {
               node.classList.add('ping');
