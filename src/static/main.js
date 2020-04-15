@@ -3721,14 +3721,35 @@ this.Instant = function() {
   Instant.contentPane = function() {
     /* The main node */
     var node = null;
+    /* The current sidebar mode */
+    var mode = null;
+    /* All available modes */
+    var MODES = ['overlay', 'pane'];
     return {
       /* Initialize submodule */
       init: function() {
-        node = $makeNode('div', 'content-wrapper sidebar-overlay', [
+        mode = 'overlay';
+        node = $makeNode('div', 'content-wrapper sidebar-' + mode, [
           Instant.message.getMessagePane(),
           Instant.sidebar.getNode()
         ]);
         return node;
+      },
+      /* Obtain the current display mode of the sidebar */
+      getSidebarMode: function() {
+        return mode;
+      },
+      /* Set the display mode of the sidebar */
+      setSidebarMode: function(newMode) {
+        mode = newMode;
+        MODES.forEach(function(m) {
+          var cls = 'sidebar-' + m;
+          if (m == newMode) {
+            node.classList.add(cls);
+          } else {
+            node.classList.remove(cls);
+          }
+        });
       },
       /* Return the DOM node */
       getNode: function() {
@@ -4244,7 +4265,8 @@ this.Instant = function() {
       },
       /* Update the collapsing state */
       _updateCollapse: function() {
-        var newState = (document.documentElement.offsetWidth <= 400 ||
+        var newState = ((document.documentElement.offsetWidth <= 400 &&
+                         Instant.contentPane.getSidebarMode() == 'overlay') ||
                         ! node.children.length);
         if (newState == lastCollapsed) return;
         lastCollapsed = newState;
@@ -6116,12 +6138,11 @@ this.Instant = function() {
     return {
       /* Initialize submodule */
       init: function() {
-        function radio(group, name, desc, title, extra) {
-          extra = extra || {};
+        function radio(group, name, desc, title, checked, className) {
           var node = $makeNode('input', {type: 'radio', name: group,
             value: name});
-          if (extra.checked) node.checked = true;
-          var xcls = (extra.className && ' ' + extra.className || '');
+          if (checked) node.checked = true;
+          var xcls = (className) ? ' ' + className : '';
           return ['label', group + '-' + name + xcls, {title: title}, [
             node, ' ' + desc
           ]];
@@ -6142,8 +6163,7 @@ this.Instant = function() {
                 ['div', 'settings-theme', [
                   ['h3', ['Theme:']],
                   radio('theme', 'auto', 'Automatic', 'Either Bright or ' +
-                    'Dark depending on system-wide preference',
-                    {checked: true}),
+                    'Dark depending on system-wide preference', true),
                   radio('theme', 'bright', 'Bright', 'Black-on-white theme ' +
                     'for well-lit environments'),
                   radio('theme', 'dark', 'Dark', 'Gray-on-black theme for ' +
@@ -6157,15 +6177,15 @@ this.Instant = function() {
                     ['a', 'more-link', {href: '#'}, '(more)']
                   ]],
                   radio('notifies', 'none', 'None', 'No notifications at all',
-                    {checked: true}),
+                    true),
                   radio('notifies', 'privmsg', 'On private messages',
-                    'Notify when you receive a private message',
-                    {className: 'more-content'}),
+                    'Notify when you receive a private message', false,
+                    'more-content'),
                   radio('notifies', 'ping', 'When pinged', 'Notify when ' +
                     'you are pinged (or any of the above)'),
                   radio('notifies', 'update', 'On updates', 'Notify when ' +
-                    'there is a new update (or any of the above)',
-                    {className: 'more-content'}),
+                    'there is a new update (or any of the above)', false,
+                    'more-content'),
                   radio('notifies', 'reply', 'When replied to', 'Notify ' +
                     'when one of your messages is replied to (or any of ' +
                     'the above)'),
@@ -6173,12 +6193,20 @@ this.Instant = function() {
                     'when anyone posts a message (or any of the above)'),
                   radio('notifies', 'disconnect', 'On disconnects',
                     'Notify when your connection is interrupted (or any of ' +
-                    'the above)', {className: 'more-content'})
+                    'the above)', false, 'more-content')
                 ]],
                 ['hr'],
                 ['div', 'settings-nodisturb', [
                   checkbox('no-disturb', 'Do not disturb', 'Void ' +
                     'notifications that are below your chosen level')
+                ]],
+                ['hr'],
+                ['div', 'settings-sidebar', [
+                  ['h3', ['Sidebar:']],
+                  radio('sidebar', 'overlay', 'Overlay', 'The sidebar ' +
+                    'floats on top of the chat area', true),
+                  radio('sidebar', 'pane', 'Pane', 'The sidebar is ' +
+                    'separate from the chat area')
                 ]]
               ]]
             ]]
@@ -6231,9 +6259,12 @@ this.Instant = function() {
         if (level != 'none') Instant.notifications.desktop.request();
         var noDisturb = cnt.elements['no-disturb'].checked;
         Instant.notifications.noDisturb = noDisturb;
+        var sidebar = cnt.elements['sidebar'].value;
+        Instant.contentPane.setSidebarMode(sidebar);
         Instant.storage.set('theme', theme);
         Instant.storage.set('notification-level', level);
         Instant.storage.set('no-disturb', noDisturb);
+        Instant.storage.set('sidebar', sidebar);
         Instant._fireListeners('settings.apply', {source: event});
       },
       /* Restore the settings from storage */
@@ -6245,6 +6276,8 @@ this.Instant = function() {
         if (level) cnt.elements['notifies'].value = level;
         var noDisturb = Instant.storage.get('no-disturb');
         if (noDisturb) cnt.elements['no-disturb'].checked = noDisturb;
+        var sidebar = Instant.storage.get('sidebar');
+        if (sidebar) cnt.elements['sidebar'].value = sidebar;
       },
       /* Add a node to the settings content */
       addSetting: function(newNode) {
