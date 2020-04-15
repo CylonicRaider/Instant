@@ -3757,8 +3757,10 @@ this.Instant = function() {
           ['div', 'sidebar-content', [
             ['div', 'sidebar-top', [
               ['div', 'sidebar-top-line', [
-                ['span', 'sidebar-top-left', [
+                ['span', 'sidebar-top-dynamic', [
                   Instant.animation.spinner.init(),
+                ]],
+                ['span', 'sidebar-top-left', [
                   Instant.sidebar.roomName.getLogoNode()
                 ]],
                 ['span', 'sidebar-top-right', [

@@ -401,6 +401,7 @@ body {
   margin-right: 3px;
 }
 
+.sidebar-top-line .sidebar-top-dynamic .sidebar-widget,
 .sidebar-top-line .sidebar-top-left .sidebar-widget {
   margin-right: 3px;
 }
@@ -433,6 +434,7 @@ body {
 .content-wrapper.sidebar-overlay .sidebar-top-line {
   text-align: center;
 }
+.content-wrapper.sidebar-overlay .sidebar-top-line .sidebar-top-dynamic,
 .content-wrapper.sidebar-overlay .sidebar-top-line .sidebar-top-left {
   float: left;
 }
@@ -461,10 +463,15 @@ body {
   min-width: 0 !important;
   margin-right: -2px;
 }
+.content-wrapper.sidebar-pane .sidebar-top-line .sidebar-top-dynamic,
 .content-wrapper.sidebar-pane .sidebar-top-line .sidebar-top-left,
 .content-wrapper.sidebar-pane .sidebar-top-line .sidebar-top-right {
   -webkit-flex-shrink: 0;
   flex-shrink: 0;
+}
+.content-wrapper.sidebar-pane .sidebar-top-line .sidebar-top-dynamic {
+  -webkit-order: 19;
+  order: 19;
 }
 .content-wrapper.sidebar-pane .sidebar-top-line .sidebar-top-left {
   -webkit-order: 0;
