@@ -3717,6 +3717,25 @@ this.Instant = function() {
       }()
     };
   }();
+  /* Content layer pane management */
+  Instant.contentPane = function() {
+    /* The main node */
+    var node = null;
+    return {
+      /* Initialize submodule */
+      init: function() {
+        node = $makeNode('div', 'content-wrapper sidebar-overlay', [
+          Instant.message.getMessagePane(),
+          Instant.sidebar.getNode()
+        ]);
+        return node;
+      },
+      /* Return the DOM node */
+      getNode: function() {
+        return node;
+      }
+    };
+  }();
   /* Sidebar handling */
   Instant.sidebar = function() {
     /* The main sidebar node */
@@ -7916,9 +7935,9 @@ this.Instant = function() {
       $cls('alert-container', Instant.input.getNode()));
     Instant.popups.init();
     Instant.popups.windows.init();
+    Instant.contentPane.init();
     Instant.privmsg.init();
-    main.appendChild(Instant.message.getMessagePane());
-    main.appendChild(Instant.sidebar.getNode());
+    main.appendChild(Instant.contentPane.getNode());
     main.appendChild(Instant.popups.windows.getNode());
     main.appendChild(Instant.popups.getNode());
     Instant.pane.main.init(main);

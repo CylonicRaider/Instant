@@ -357,37 +357,28 @@ body {
 
 }
 
+.content-wrapper {
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  right: 0;
+}
+
 .sidebar {
   display: -webkit-flex;
   display: flex;
-  position: absolute;
-  top: 0;
-  right: 0;
-  height: 100%;
-  margin-right: 15px;
-  padding: 3px 0 5em 0;
+  padding-top: 3px;
   box-sizing: border-box;
   -webkit-flex-direction: column;
   flex-direction: column;
-  pointer-events: none;
-}
-.sidebar > * {
-  pointer-events: auto;
-}
-.sidebar > .sidebar-content {
-  pointer-events: none;
 }
 .sidebar-content, .sidebar-content > * {
   display: -webkit-flex;
   display: flex;
   -webkit-flex-direction: column;
-  -webkit-align-items: flex-end;
   flex-direction: column;
-  align-items: flex-end;
   min-height: 0;
-}
-.sidebar-content > * {
-  pointer-events: auto;
 }
 .sidebar-top > *, .sidebar-middle > *, .sidebar-bottom > * {
   background: rgba(255, 255, 255, 0.85);
@@ -399,7 +390,6 @@ body {
 }
 .sidebar-top-line {
   position: relative;
-  text-align: center;
   line-height: 1.2;
   padding: 2px 3px;
 }
@@ -411,17 +401,86 @@ body {
   margin-right: 3px;
 }
 
-.sidebar-top-line .sidebar-top-left {
-  float: left;
-}
-.sidebar-top-line .sidebar-top-right {
-  float: right;
-}
 .sidebar-top-line .sidebar-top-left .sidebar-widget {
   margin-right: 3px;
 }
 .sidebar-top-line .sidebar-top-right .sidebar-widget {
   margin-left: 3px;
+}
+
+.content-wrapper.sidebar-overlay .sidebar {
+  position: absolute;
+  top: 0;
+  right: 0;
+  height: 100%;
+  margin-right: 15px;
+  padding-top: 2px;
+  padding-bottom: 5em;
+  pointer-events: none;
+}
+.content-wrapper.sidebar-overlay .sidebar > *,
+.content-wrapper.sidebar-overlay .sidebar-content > * {
+  pointer-events: auto;
+}
+.content-wrapper.sidebar-overlay .sidebar > .sidebar-content {
+  pointer-events: none;
+}
+.content-wrapper.sidebar-overlay .sidebar-content,
+.content-wrapper.sidebar-overlay .sidebar-content > * {
+  -webkit-align-items: flex-end;
+  align-items: flex-end;
+}
+.content-wrapper.sidebar-overlay .sidebar-top-line {
+  text-align: center;
+}
+.content-wrapper.sidebar-overlay .sidebar-top-line .sidebar-top-left {
+  float: left;
+}
+.content-wrapper.sidebar-overlay .sidebar-top-line .sidebar-top-right {
+  float: right;
+}
+.content-wrapper.sidebar-pane {
+  display: -webkit-flex;
+  display: flex;
+}
+.content-wrapper.sidebar-pane .sidebar {
+  /* Override dynamic value set from JS */
+  margin-right: 0 !important;
+  margin-left: 5px;
+  border-left: 1px solid black;
+  padding: 2px;
+  width: 20%;
+  min-width: 15em;
+}
+.content-wrapper.sidebar-pane .sidebar-top-line {
+  display: -webkit-flex;
+  display: flex;
+}
+.content-wrapper.sidebar-pane .sidebar-middle-wrapper {
+  /* Override value set by JS */
+  min-width: 0 !important;
+  margin-right: -2px;
+}
+.content-wrapper.sidebar-pane .sidebar-top-line .sidebar-top-left,
+.content-wrapper.sidebar-pane .sidebar-top-line .sidebar-top-right {
+  -webkit-flex-shrink: 0;
+  flex-shrink: 0;
+}
+.content-wrapper.sidebar-pane .sidebar-top-line .sidebar-top-left {
+  -webkit-order: 0;
+  order: 0;
+}
+.content-wrapper.sidebar-pane .sidebar-top-line .sidebar-top-middle {
+  -webkit-order: 10;
+  order: 10;
+  -webkit-flex-grow: 1;
+  flex-grow: 1;
+  min-width: 5em;
+  text-align: center;
+}
+.content-wrapper.sidebar-pane .sidebar-top-line .sidebar-top-right {
+  -webkit-order: 20;
+  order: 20;
 }
 
 .sidebar-widget {
@@ -486,13 +545,22 @@ a.room-name {
   font-weight: bold;
   text-decoration: none;
   color: inherit;
-  /* "word-wrap: anywhere" (a.k.a. "overflow-wrap: anywhere") would be nicer,
-   * but the following is more compatible: */
-  word-break: break-all;
 }
 a.room-name .staging {
   font-weight: normal;
   font-style: italic;
+}
+
+.content-wrapper.sidebar-overlay a.room-name {
+  /* "word-wrap: anywhere" (a.k.a. "overflow-wrap: anywhere") would be nicer,
+   * but the following is more compatible: */
+  word-break: break-all;
+}
+.content-wrapper.sidebar-pane a.room-name {
+  vertical-align: top;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .online-status {
@@ -526,19 +594,22 @@ a.room-name .staging {
   position: absolute;
   top: 0;
   right: 0;
-  bottom: 5em;
   z-index: 20;
+  -webkit-flex-direction: column;
+  flex-direction: column;
+  pointer-events: none;
 }
 .settings-box {
   display: -webkit-flex;
   display: flex;
   -webkit-flex-direction: column;
   flex-direction: column;
-  margin: 6px 3px 0 0;
+  margin: 5px 3px 0 0;
   border: 1px solid black;
-  max-height: 100%;
+  min-height: 0;
   background: white;
   text-align: left;
+  pointer-events: auto;
 }
 .settings-box h2 {
   margin: 1px 1.2em 1px 5px;
@@ -593,11 +664,21 @@ a.room-name .staging {
   display: inline-block;
 }
 .settings-wrapper.visible {
-  display: block;
+  display: -webkit-flex;
+  display: flex;
+}
+
+.content-wrapper.sidebar-overlay .settings-wrapper {
+  bottom: 5em;
+}
+.content-wrapper.sidebar-pane .settings-wrapper {
+  bottom: 5px;
+}
+.content-wrapper.sidebar-pane .settings-box {
+  margin: 5px 5px 0 0;
 }
 
 .ui-message-box {
-  text-align: right;
   font-weight: bold;
   white-space: pre-line;
 }
@@ -611,13 +692,15 @@ a.room-name .staging {
   text-decoration: underline;
 }
 
+.content-wrapper.sidebar-overlay .ui-message-box {
+  text-align: right;
+}
+
 .user-list {
   display: -webkit-flex;
   display: flex;
   -webkit-flex-direction: column;
-  -webkit-align-items: flex-end;
   flex-direction: column;
-  align-items: flex-end;
   background: none;
 }
 .user-list.collapsed {
@@ -627,7 +710,6 @@ a.room-name .staging {
 .user-list .nick-box {
   margin-bottom: 2px;
   box-shadow: 0 0 5px white;
-  text-align: right;
 }
 .user-list .nick-box:last-child {
   margin-bottom: 0;
@@ -636,7 +718,7 @@ a.room-name .staging {
   display: none;
 }
 .user-list .nick-box > .nick {
-  float: right;
+  float: left;
   z-index: 11;
   cursor: pointer;
   outline-offset: -1px;
@@ -649,19 +731,18 @@ a.room-name .staging {
 
 .user-list .nick-box.selected .nick {
   margin-bottom: 1px;
-  margin-left: 1px;
-  border-width: 1px 1px 0 0;
+  margin-right: 5px;
+  border-width: 1px 0 0 1px;
   border-style: solid;
   border-color: black;
   padding-top: 0;
-  padding-right: 1px;
+  padding-left: 1px;
 }
 
 .user-list-menu {
   border: 1px solid black;
   padding: 1px;
   background: white;
-  text-align: left;
   min-width: 10em;
 }
 .user-list-menu h2 {
@@ -671,6 +752,30 @@ a.room-name .staging {
 }
 .user-list-menu .clear {
   clear: both;
+}
+
+.content-wrapper.sidebar-overlay .user-list {
+  -webkit-align-items: flex-end;
+  align-items: flex-end;
+}
+.content-wrapper.sidebar-overlay .user-list .nick-box {
+  text-align: right;
+}
+.content-wrapper.sidebar-overlay .user-list .nick-box > .nick {
+  float: right;
+}
+.content-wrapper.sidebar-overlay .user-list .nick-box.selected .nick {
+  margin-left: 1px;
+  margin-right: 1px;
+  border-width: 1px 1px 0 0;
+  padding-right: 1px;
+}
+.content-wrapper.sidebar-overlay .user-list-menu {
+  text-align: left;
+}
+.content-wrapper.sidebar-pane .user-list {
+  -webkit-align-items: flex-start;
+  align-items: flex-start;
 }
 
 .button {
