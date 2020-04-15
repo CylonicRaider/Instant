@@ -399,8 +399,9 @@ body {
 }
 .sidebar-top-line {
   position: relative;
+  text-align: center;
   line-height: 1.2;
-  padding: 5px 3px;
+  padding: 2px 3px;
 }
 .sidebar-middle-wrapper {
   padding: 0;
@@ -410,12 +411,25 @@ body {
   margin-right: 3px;
 }
 
+.sidebar-top-line .sidebar-top-left {
+  float: left;
+}
+.sidebar-top-line .sidebar-top-right {
+  float: right;
+}
+.sidebar-top-line .sidebar-top-left .sidebar-widget {
+  margin-right: 3px;
+}
+.sidebar-top-line .sidebar-top-right .sidebar-widget {
+  margin-left: 3px;
+}
+
 .sidebar-widget {
   display: inline-block;
   position: relative;
   width: 1.2em;
   height: 1.2em;
-  margin: -2px 0;
+  margin: 1px 0;
   border: 0;
   padding: 2px;
   box-sizing: content-box;
@@ -468,9 +482,13 @@ button.sidebar-widget:hover {
 
 a.room-name {
   display: inline-block;
+  margin: 3px 0;
   font-weight: bold;
   text-decoration: none;
   color: inherit;
+  /* "word-wrap: anywhere" (a.k.a. "overflow-wrap: anywhere") would be nicer,
+   * but the following is more compatible: */
+  word-break: break-all;
 }
 a.room-name .staging {
   font-weight: normal;
@@ -501,8 +519,6 @@ a.room-name .staging {
 }
 .settings-placeholder {
   display: none;
-  width: 1.2em;
-  padding: 0 2px;
 }
 
 .settings-wrapper {
@@ -562,7 +578,7 @@ a.room-name .staging {
 
 .settings.visible {
   position: absolute;
-  top: 5px;
+  top: 2px;
   right: 3px;
   border-radius: 0;
   border-width: 1px 1px 0 0;

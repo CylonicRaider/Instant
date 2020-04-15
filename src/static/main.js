@@ -3730,14 +3730,25 @@ this.Instant = function() {
           return (el.target == wrapper);
         }
         Instant.userList.init();
+        Instant.sidebar.roomName.init();
+        /* The peculiar arrangement of the sidebar-top contents (with the left
+         * and the right part being floated by CSS) ensure overly long room
+         * names wrap more-or-less nicely. */
         node = $makeNode('div', 'sidebar', [
           ['div', 'sidebar-content', [
             ['div', 'sidebar-top', [
               ['div', 'sidebar-top-line', [
-                Instant.animation.spinner.init(), ' ',
-                Instant.sidebar.roomName.init(), ' ',
-                Instant.animation.onlineStatus.init(), ' ',
-                Instant.settings.init()
+                ['span', 'sidebar-top-left', [
+                  Instant.animation.spinner.init(),
+                  Instant.sidebar.roomName.getLogoNode()
+                ]],
+                ['span', 'sidebar-top-right', [
+                  Instant.animation.onlineStatus.init(),
+                  Instant.settings.init()
+                ]],
+                ['span', 'sidebar-top-middle', [
+                  Instant.sidebar.roomName.getNameNode()
+                ]]
               ]],
               ['div', 'ui-message-box']
             ]],
@@ -3877,48 +3888,52 @@ this.Instant = function() {
       },
       /* Logo and room name widget */
       roomName: function() {
-        /* The wrapper DOM node */
-        var node = null;
+        /* Assorted DOM nodes */
+        var logoNode = null;
+        var nameNode = null;
         return {
           /* Initialize submodule */
           init: function() {
-            node = $makeNode('span', [
-              ['button', 'sidebar-widget logo-button',
-                  {title: 'Show popup screen'}, [
-                ['img', {src: '/static/logo-static.svg'}]
-              ]],
-              ' ',
-              ['a', 'room-name', {href: '#'}]
+            logoNode = $makeNode('button', 'sidebar-widget logo-button',
+                                 {title: 'Show popup screen'}, [
+              ['img', {src: '/static/logo-static.svg'}]
             ]);
-            $cls('logo-button', node).addEventListener('click',
+            nameNode = $makeNode('a', 'room-name', {href: '#'});
+            logoNode.addEventListener('click',
               Instant.popups.show.bind(Instant.popups));
             /* The link is dangerously close to possibly clickable UI
-             * messages, so we "ignore" single clicks and reload on
-             * double clicks instead. */
-            var link = $cls('room-name', node);
-            link.addEventListener('click', function() {
+             * messages, so we redirect single clicks to something rather
+             * harmless and reload on double clicks instead. */
+            nameNode.addEventListener('click', function() {
               Instant.animation.navigateToRoot();
             });
-            link.addEventListener('dblclick', function() {
+            nameNode.addEventListener('dblclick', function() {
               location.reload(false);
             });
             if (Instant.roomName) {
-              link.appendChild($text('&' + Instant.roomName));
+              nameNode.appendChild($text('&' + Instant.roomName));
+              nameNode.title = '&' + Instant.roomName;
             } else {
-              link.appendChild($makeNode('i', null, 'local'));
+              nameNode.appendChild($makeNode('i', null, 'local'));
+              nameNode.title = 'local';
             }
-            if (Instant.stagingLocation)
-              link.appendChild($makeFrag(
+            if (Instant.stagingLocation) {
+              nameNode.appendChild($makeFrag(
                 ' ',
                 ['span', 'staging', [
                   $text('(' + Instant.stagingLocation + ')')
                 ]]
               ));
-            return node;
+              nameNode.title += ' (' + Instant.stagingLocation + ')';
+            }
           },
-          /* Obtain the wrapped node */
-          getWrapper: function() {
-            return node;
+          /* Obtain the logo DOM node */
+          getLogoNode: function() {
+            return logoNode;
+          },
+          /* Obtain the room name DOM node */
+          getNameNode: function() {
+            return nameNode;
           }
         };
       }()
@@ -5588,8 +5603,8 @@ this.Instant = function() {
       },
       /* Adjust the sizes of various UI elements */
       adjustSizes: function() {
-        Instant.util.adjustScrollbarMagin($cls('sidebar', main),
-                                          $cls('message-pane', main));
+        Instant.util.adjustScrollbarMargin($cls('sidebar', main),
+                                           $cls('message-pane', main));
       },
       /* Greeting pane */
       greeter: function() {
@@ -6175,7 +6190,8 @@ this.Instant = function() {
         /* Prepare width adjustment */
         window.addEventListener('resize', Instant.settings.updateWidth);
         Instant.settings.updateWidth();
-        return $makeFrag(buttonNode, ['span', 'settings-placeholder']);
+        return $makeFrag(buttonNode,
+                         ['span', 'sidebar-widget settings-placeholder']);
       },
       /* Outlined final part of initialization */
       load: function() {
@@ -7416,8 +7432,11 @@ this.Instant = function() {
       formatDateNode: formatDateNode,
       /* Run a function immediately, and then after a fixed interval */
       repeat: repeat,
-      /* Adjust the right margin of an element to account for scrollbars */
-      adjustScrollbarMagin: function(target, measure) {
+      /* Adjust the right margin of an element to account for scrollbars
+       * measure is the node used to measure the width of a scrollbar (if it
+       * has no scrollbar, that is assumed to have a width of 0), target is
+       * the node that receives the margin. */
+      adjustScrollbarMargin: function(target, measure) {
         if (! target || ! measure) return;
         var margin = (measure.offsetWidth - measure.clientWidth) + 'px';
         if (target.style.marginRight != margin)
@@ -7425,8 +7444,8 @@ this.Instant = function() {
       },
       /* Adjust the minimum width of the node to account for scrollbars
        * The node must not have any borders or paddings as they are not taken
-       * into account. If overflowClass is given, it is a CSS class name that
-       * is added to the node if a scrollbar has been detected, or removed
+       * into account. If overflowClass is given, it is a CSS class that is
+       * added to the node if a scrollbar has been detected, or removed
        * otherwise. */
       adjustScrollbarWidth: function(node, overflowClass) {
         if (! node) return;
