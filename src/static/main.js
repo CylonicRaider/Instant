@@ -4001,14 +4001,15 @@ this.Instant = function() {
         ]);
         /* Maintain focus state of input bar */
         var inputWasFocused = false;
-        collapser.addEventListener('mousedown', function(event) {
+        var collapserLink = $sel('a', collapser);
+        collapserLink.addEventListener('mousedown', function(event) {
           inputWasFocused = Instant.input.isFocused();
         });
-        collapser.addEventListener('keydown', function(event) {
+        collapserLink.addEventListener('keydown', function(event) {
           if (event.keyCode == 13) // Return
             inputWasFocused = true;
         });
-        collapser.addEventListener('click', function(event) {
+        collapserLink.addEventListener('click', function(event) {
           Instant.userList.collapse(! Instant.userList.isCollapsed());
           if (inputWasFocused) {
             Instant.input.focus();
