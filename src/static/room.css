@@ -489,6 +489,11 @@ body {
   -webkit-order: 20;
   order: 20;
 }
+.content-wrapper.sidebar-pane .sidebar-top-line .sidebar-top-dynamic
+.sidebar-widget {
+  margin-right: 0;
+  margin-left: 3px;
+}
 
 .sidebar-widget {
   display: inline-block;
