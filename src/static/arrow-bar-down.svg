@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<svg version="1.1" xmlns="http://www.w3.org/2000/svg" viewBox="0,0 32,32">
+  <title>Down arrow to bar</title>
+  <path d="M 8,16 L 16,24 L 24,16 M 16,4 V 24 M 4,28 H 28" fill="none"
+        stroke="black" stroke-width="4"/>
+</svg>
