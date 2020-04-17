@@ -373,6 +373,32 @@ body {
   -webkit-flex-direction: column;
   flex-direction: column;
 }
+
+.sidebar-drawer-handle-wrapper {
+  display: none;
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+.sidebar-drawer-handle {
+  position: absolute;
+  top: 2px;
+  right: 3px;
+  opacity: 0.5;
+}
+.sidebar-drawer-handle:hover {
+  opacity: 1;
+}
+button.button-icon.sidebar-drawer-handle > img {
+  display: block;
+  width: 1.2em;
+  height: 1.2em;
+}
+.sidebar.open .sidebar-drawer-handle .icon-open,
+.sidebar.closed .sidebar-drawer-handle .icon-close {
+  display: none;
+}
+
 .sidebar-content, .sidebar-content > * {
   display: -webkit-flex;
   display: flex;
@@ -393,20 +419,19 @@ body {
   line-height: 1.2;
   padding: 2px 3px;
 }
-.sidebar-middle-wrapper {
-  padding: 0;
-  overflow: auto;
-}
-.sidebar-middle-wrapper.overflow {
-  margin-right: 3px;
-}
-
 .sidebar-top-line .sidebar-top-dynamic .sidebar-widget,
 .sidebar-top-line .sidebar-top-left .sidebar-widget {
   margin-right: 3px;
 }
 .sidebar-top-line .sidebar-top-right .sidebar-widget {
   margin-left: 3px;
+}
+.sidebar-middle-wrapper {
+  padding: 0;
+  overflow: auto;
+}
+.sidebar-middle-wrapper.overflow {
+  margin-right: 3px;
 }
 
 .content-wrapper.sidebar-overlay .sidebar {
@@ -453,6 +478,7 @@ body {
   padding: 2px;
   width: 20%;
   min-width: 15em;
+  background: white;
 }
 .content-wrapper.sidebar-pane .sidebar-top-line {
   display: -webkit-flex;
@@ -493,6 +519,23 @@ body {
 .sidebar-widget {
   margin-right: 0;
   margin-left: 3px;
+}
+.content-wrapper.sidebar-drawer .sidebar {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  margin-left: 0;
+}
+.content-wrapper.sidebar-drawer .sidebar.closed {
+  -webkit-transform: translateX(100%);
+  transform: translateX(100%);
+}
+.content-wrapper.sidebar-drawer .sidebar-drawer-handle-wrapper {
+  display: block;
+}
+.content-wrapper.sidebar-drawer .sidebar.open .sidebar-drawer-handle {
+  margin-right: 0 !important;
 }
 
 .sidebar-widget {
@@ -1598,4 +1641,12 @@ body {
 #main.ready {
   -webkit-transition: background 0.5s, opacity 1s;
   transition: background 0.5s, opacity 1s;
+}
+.content-wrapper.sidebar-pane .sidebar {
+  -webkit-transition: background 0.5s, transform 0.5s;
+  transition: background 0.5s, transform 0.5s;
+}
+.sidebar-drawer-handle {
+  -webkit-transition: margin 0.5s;
+  transition: margin 0.5s;
 }

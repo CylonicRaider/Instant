@@ -3723,13 +3723,17 @@ this.Instant = function() {
     var node = null;
     /* The current sidebar mode */
     var mode = null;
-    /* All available modes */
-    var MODES = ['overlay', 'pane'];
+    /* Mapping from CSS classes to modes where they are active. */
+    var CLASSES = {
+      overlay: {overlay: true},
+      pane: {pane: true, drawer: true},
+      drawer: {drawer: true}
+    };
     return {
       /* Initialize submodule */
       init: function() {
         mode = 'overlay';
-        node = $makeNode('div', 'content-wrapper sidebar-' + mode, [
+        node = $makeNode('div', 'content-wrapper sidebar-overlay', [
           Instant.message.getMessagePane(),
           Instant.sidebar.getNode()
         ]);
@@ -3741,15 +3745,18 @@ this.Instant = function() {
       },
       /* Set the display mode of the sidebar */
       setSidebarMode: function(newMode) {
+        if (newMode == mode) return;
         mode = newMode;
-        MODES.forEach(function(m) {
-          var cls = 'sidebar-' + m;
-          if (m == newMode) {
-            node.classList.add(cls);
+        for (var cn in CLASSES) {
+          if (! CLASSES.hasOwnProperty(cn)) {
+            /* NOP */
+          } else if (CLASSES[cn][mode]) {
+            node.classList.add('sidebar-' + cn);
           } else {
-            node.classList.remove(cls);
+            node.classList.remove('sidebar-' + cn);
           }
-        });
+        }
+        Instant.sidebar.open();
       },
       /* Return the DOM node */
       getNode: function() {
@@ -3774,7 +3781,15 @@ this.Instant = function() {
         /* The peculiar arrangement of the sidebar-top contents (with the left
          * and the right part being floated by CSS) ensure overly long room
          * names wrap more-or-less nicely. */
-        node = $makeNode('div', 'sidebar', [
+        node = $makeNode('div', 'sidebar open', [
+          ['span', 'sidebar-drawer-handle-wrapper', [
+            ['button', 'button button-icon sidebar-drawer-handle', [
+              ['img', 'icon icon-open turn-left',
+                {src: '/static/arrow-bar-up.svg'}],
+              ['img', 'icon icon-close turn-left',
+                {src: '/static/arrow-bar-down.svg'}]
+            ]]
+          ]],
           ['div', 'sidebar-content', [
             ['div', 'sidebar-top', [
               ['div', 'sidebar-top-line', [
@@ -3805,8 +3820,10 @@ this.Instant = function() {
           ]],
           Instant.settings.getWrapperNode()
         ]);
-        var topLine = $cls('sidebar-top-line', node);
-        var nameNode = $cls('room-name', node);
+        var handle = $cls('sidebar-drawer-handle', node);
+        handle.addEventListener('click', function(evt) {
+          Instant.sidebar.toggle();
+        });
         var wrapper = $cls('sidebar-middle-wrapper', node);
         window.addEventListener('resize', Instant.sidebar.updateWidth);
         if (window.MutationObserver) {
@@ -3825,6 +3842,33 @@ this.Instant = function() {
         var wrapper = $cls('sidebar-middle-wrapper', node);
         var content = $cls('sidebar-middle', wrapper);
         Instant.util.adjustScrollbarWidth(wrapper, 'overflow');
+      },
+      /* Test whether the sidebar is not closed */
+      isOpen: function() {
+        return node.classList.contains('open');
+      },
+      /* Open or close the sidebar
+       * If newState is not given, the state is inverted. Only has an effect
+       * if the sidebar is in drawer mode. */
+      toggle: function(newState) {
+        if (newState == null) {
+          newState = (! Instant.sidebar.isOpen());
+        }
+        if (newState) {
+          node.classList.add('open');
+          node.classList.remove('closed');
+        } else {
+          node.classList.remove('open');
+          node.classList.add('closed');
+        }
+      },
+      /* Open the sidebar */
+      open: function() {
+        Instant.sidebar.toggle(true);
+      },
+      /* Close the sidebar */
+      close: function() {
+        Instant.sidebar.toggle(false);
       },
       /* Mount the given node into the sidebar top area */
       addTop: function(newNode) {
@@ -5647,8 +5691,11 @@ this.Instant = function() {
       },
       /* Adjust the sizes of various UI elements */
       adjustSizes: function() {
-        Instant.util.adjustScrollbarMargin($cls('sidebar', main),
-                                           $cls('message-pane', main));
+        var sidebar = $cls('sidebar', main);
+        var handle = $cls('sidebar-drawer-handle', sidebar);
+        var messages = $cls('message-pane', main);
+        Instant.util.adjustScrollbarMargin(sidebar, messages);
+        Instant.util.adjustScrollbarMargin(handle, messages);
       },
       /* Greeting pane */
       greeter: function() {
@@ -6205,6 +6252,8 @@ this.Instant = function() {
                   ['h3', ['Sidebar:']],
                   radio('sidebar', 'overlay', 'Overlay', 'The sidebar ' +
                     'floats on top of the chat area', true),
+                  radio('sidebar', 'drawer', 'Drawer', 'The sidebar slides ' +
+                    'out of the edge of the screen'),
                   radio('sidebar', 'pane', 'Pane', 'The sidebar is ' +
                     'separate from the chat area')
                 ]]

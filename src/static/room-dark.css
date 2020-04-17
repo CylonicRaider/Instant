@@ -158,9 +158,15 @@
   background: #202020;
 }
 
+.dark .content-wrapper .sidebar {
+  border-color: #e0e0e0;
+}
 .dark .sidebar-top > *, .dark .sidebar-middle > *,
 .dark .sidebar-bottom > * {
   background: rgba(0, 0, 0, 0.85);
+}
+.dark .content-wrapper.sidebar-pane .sidebar {
+  background: black;
 }
 
 .dark .popups {
