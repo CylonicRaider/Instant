@@ -3757,6 +3757,8 @@ this.Instant = function() {
           }
         }
         Instant.sidebar.open();
+        Instant.sidebar.updateWidth();
+        Instant.settings.updateWidth();
       },
       /* Return the DOM node */
       getNode: function() {
@@ -3840,7 +3842,6 @@ this.Instant = function() {
       /* Change the width of the content to avoid horizontal scrollbars */
       updateWidth: function() {
         var wrapper = $cls('sidebar-middle-wrapper', node);
-        var content = $cls('sidebar-middle', wrapper);
         Instant.util.adjustScrollbarWidth(wrapper, 'overflow');
       },
       /* Test whether the sidebar is not closed */

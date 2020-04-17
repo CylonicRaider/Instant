@@ -168,6 +168,9 @@
 .dark .content-wrapper.sidebar-pane .sidebar {
   background: black;
 }
+.dark .content-wrapper.sidebar-drawer .sidebar {
+  box-shadow: 0 0 5px white;
+}
 
 .dark .popups {
   background: rgba(0, 0, 0, 0.5);

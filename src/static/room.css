@@ -473,11 +473,12 @@ button.button-icon.sidebar-drawer-handle > img {
 .content-wrapper.sidebar-pane .sidebar {
   /* Override dynamic value set from JS */
   margin-right: 0 !important;
-  margin-left: 5px;
   border-left: 1px solid black;
   padding: 2px;
   width: 20%;
   min-width: 15em;
+  -webkit-flex-shrink: 0;
+  flex-shrink: 0;
   background: white;
 }
 .content-wrapper.sidebar-pane .sidebar-top-line {
@@ -525,7 +526,6 @@ button.button-icon.sidebar-drawer-handle > img {
   top: 0;
   right: 0;
   bottom: 0;
-  margin-left: 0;
 }
 .content-wrapper.sidebar-drawer .sidebar.closed {
   -webkit-transform: translateX(100%);
@@ -821,7 +821,7 @@ a.room-name .staging {
 }
 .content-wrapper.sidebar-overlay .user-list .nick-box.selected .nick {
   margin-left: 1px;
-  margin-right: 1px;
+  margin-right: 0;
   border-width: 1px 1px 0 0;
   padding-right: 1px;
 }
