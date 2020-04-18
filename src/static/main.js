@@ -3746,6 +3746,7 @@ this.Instant = function() {
       /* Set the display mode of the sidebar */
       setSidebarMode: function(newMode) {
         if (newMode == mode) return;
+        var restore = Instant.input.saveScrollState();
         mode = newMode;
         for (var cn in CLASSES) {
           if (! CLASSES.hasOwnProperty(cn)) {
@@ -3759,6 +3760,7 @@ this.Instant = function() {
         Instant.sidebar.open();
         Instant.sidebar.updateWidth();
         Instant.settings.updateWidth();
+        restore();
       },
       /* Return the DOM node */
       getNode: function() {
