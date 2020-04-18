@@ -3757,6 +3757,11 @@ this.Instant = function() {
             node.classList.remove('sidebar-' + cn);
           }
         }
+        if (Instant.storage.get('more-contrast')) {
+          node.classList.add('more-contrast');
+        } else {
+          node.classList.remove('more-contrast');
+        }
         Instant.sidebar.show();
         Instant.sidebar.updateWidth();
         Instant.settings.updateWidth();

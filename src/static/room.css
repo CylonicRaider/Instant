@@ -479,7 +479,15 @@ body {
   min-width: 15em;
   -webkit-flex-shrink: 0;
   flex-shrink: 0;
+  background: #f0f0f0;
+}
+.content-wrapper.sidebar-pane.more-contrast .sidebar {
   background: white;
+}
+.content-wrapper.sidebar-pane .sidebar-top > *,
+.content-wrapper.sidebar-pane .sidebar-middle > *,
+.content-wrapper.sidebar-pane .sidebar-bottom > * {
+  background: none;
 }
 .content-wrapper.sidebar-pane .sidebar-top-line {
   display: -webkit-flex;
@@ -649,11 +657,14 @@ a.room-name .staging {
   position: absolute;
   top: 0;
   right: 0;
-  padding: 0;
   z-index: 20;
   -webkit-flex-direction: column;
   flex-direction: column;
   pointer-events: none;
+}
+.sidebar-top > .settings-wrapper {
+  padding: 0;
+  background: none;
 }
 .settings-box {
   display: -webkit-flex;

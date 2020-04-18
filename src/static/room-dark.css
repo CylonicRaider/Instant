@@ -164,8 +164,15 @@
 .dark .sidebar-top > *, .dark .sidebar-middle > *, .dark .sidebar-bottom > * {
   background: rgba(0, 0, 0, 0.85);
 }
-.dark .sidebar-drawer-handle, .dark .content-wrapper.sidebar-pane .sidebar {
+.dark .sidebar-top > .settings-wrapper {
+  background: none;
+}
+.dark .sidebar-drawer-handle,
+.dark .content-wrapper.sidebar-pane.more-contrast .sidebar {
   background: black;
+}
+.dark .content-wrapper.sidebar-pane .sidebar {
+  background: #101010;
 }
 .dark .content-wrapper.sidebar-drawer .sidebar {
   box-shadow: 0 0 5px white;
@@ -220,4 +227,7 @@
 
 .very-dark #main {
   opacity: 0.3 !important;
+}
+.dark.very-dark .content-wrapper.sidebar-pane .sidebar {
+  background: black;
 }
