@@ -457,14 +457,7 @@ button.button-icon.sidebar-drawer-handle > img {
   align-items: flex-end;
 }
 .content-wrapper.sidebar-overlay .sidebar-top-line {
-  text-align: center;
-}
-.content-wrapper.sidebar-overlay .sidebar-top-line .sidebar-top-dynamic,
-.content-wrapper.sidebar-overlay .sidebar-top-line .sidebar-top-left {
-  float: left;
-}
-.content-wrapper.sidebar-overlay .sidebar-top-line .sidebar-top-right {
-  float: right;
+  text-align: right;
 }
 .content-wrapper.sidebar-pane {
   display: -webkit-flex;
@@ -649,6 +642,7 @@ a.room-name .staging {
   position: absolute;
   top: 0;
   right: 0;
+  padding: 0;
   z-index: 20;
   -webkit-flex-direction: column;
   flex-direction: column;

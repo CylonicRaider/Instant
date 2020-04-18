@@ -3780,9 +3780,6 @@ this.Instant = function() {
         }
         Instant.userList.init();
         Instant.sidebar.roomName.init();
-        /* The peculiar arrangement of the sidebar-top contents (with the left
-         * and the right part being floated by CSS) ensure overly long room
-         * names wrap more-or-less nicely. */
         node = $makeNode('div', 'sidebar open', [
           ['span', 'sidebar-drawer-handle-wrapper', [
             ['button', 'button button-icon sidebar-drawer-handle', [
@@ -3801,14 +3798,15 @@ this.Instant = function() {
                 ['span', 'sidebar-top-left', [
                   Instant.sidebar.roomName.getLogoNode()
                 ]],
+                ['span', 'sidebar-top-middle', [
+                  Instant.sidebar.roomName.getNameNode()
+                ]],
                 ['span', 'sidebar-top-right', [
                   Instant.animation.onlineStatus.init(),
                   Instant.settings.init()
-                ]],
-                ['span', 'sidebar-top-middle', [
-                  Instant.sidebar.roomName.getNameNode()
                 ]]
               ]],
+              Instant.settings.getWrapperNode(),
               ['div', 'ui-message-box']
             ]],
             ['div', 'sidebar-middle-wrapper', [
@@ -3819,8 +3817,7 @@ this.Instant = function() {
             ['div', 'sidebar-bottom', [
               Instant.userList.getCollapserNode()
             ]]
-          ]],
-          Instant.settings.getWrapperNode()
+          ]]
         ]);
         var handle = $cls('sidebar-drawer-handle', node);
         handle.addEventListener('click', function(evt) {
