@@ -3757,7 +3757,7 @@ this.Instant = function() {
             node.classList.remove('sidebar-' + cn);
           }
         }
-        Instant.sidebar.open();
+        Instant.sidebar.show();
         Instant.sidebar.updateWidth();
         Instant.settings.updateWidth();
         restore();
@@ -3824,9 +3824,7 @@ this.Instant = function() {
           ]]
         ]);
         var handle = $sel('.sidebar-drawer-handle button', node);
-        handle.addEventListener('click', function(evt) {
-          Instant.sidebar.toggle();
-        });
+        handle.addEventListener('click', Instant.sidebar.toggle);
         var wrapper = $cls('sidebar-middle-wrapper', node);
         window.addEventListener('resize', Instant.sidebar.updateWidth);
         if (window.MutationObserver) {
@@ -3846,16 +3844,12 @@ this.Instant = function() {
         Instant.util.adjustScrollbarWidth(wrapper, 'overflow');
       },
       /* Test whether the sidebar is not closed */
-      isOpen: function() {
+      isVisible: function() {
         return node.classList.contains('open');
       },
-      /* Open or close the sidebar
-       * If newState is not given, the state is inverted. Only has an effect
-       * if the sidebar is in drawer mode. */
-      toggle: function(newState) {
-        if (newState == null) {
-          newState = (! Instant.sidebar.isOpen());
-        }
+      /* Set the openness state of the sidebar */
+      _setVisible: function(newState, event) {
+        var oldState = node.classList.contains('open');
         if (newState) {
           node.classList.add('open');
           node.classList.remove('closed');
@@ -3863,14 +3857,26 @@ this.Instant = function() {
           node.classList.remove('open');
           node.classList.add('closed');
         }
+        var handle = $sel('.sidebar-drawer-handle button', node);
+        if (newState) {
+          handle.title = 'Hide sidebar';
+        } else {
+          handle.title = 'Show sidebar';
+        }
+        Instant._fireListeners('sidebar.visbility', {wasOpen: oldState,
+          open: newState, source: event});
       },
-      /* Open the sidebar */
-      open: function() {
-        Instant.sidebar.toggle(true);
+      /* Open or close the sidebar */
+      toggle: function(event) {
+        Instant.sidebar._setVisible(! Instant.sidebar.isOpen(), event);
       },
-      /* Close the sidebar */
-      close: function() {
-        Instant.sidebar.toggle(false);
+      /* Show the sidebar */
+      show: function(event) {
+        Instant.sidebar._setVisible(true, event);
+      },
+      /* Hide the sidebar */
+      hide: function(event) {
+        Instant.sidebar._setVisible(false, event);
       },
       /* Mount the given node into the sidebar top area */
       addTop: function(newNode) {
@@ -6377,7 +6383,7 @@ this.Instant = function() {
       },
       /* Obtain the settings button node */
       getButtonNode: function() {
-        return
+        return buttonNode;
       },
       /* Obtain the setttings node */
       getMainNode: function() {
