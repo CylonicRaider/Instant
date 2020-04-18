@@ -373,32 +373,6 @@ body {
   -webkit-flex-direction: column;
   flex-direction: column;
 }
-
-.sidebar-drawer-handle-wrapper {
-  display: none;
-  position: absolute;
-  top: 0;
-  left: 0;
-}
-.sidebar-drawer-handle {
-  position: absolute;
-  top: 2px;
-  right: 3px;
-  opacity: 0.5;
-}
-.sidebar-drawer-handle:hover {
-  opacity: 1;
-}
-button.button-icon.sidebar-drawer-handle > img {
-  display: block;
-  width: 1.2em;
-  height: 1.2em;
-}
-.sidebar.open .sidebar-drawer-handle .icon-open,
-.sidebar.closed .sidebar-drawer-handle .icon-close {
-  display: none;
-}
-
 .sidebar-content, .sidebar-content > * {
   display: -webkit-flex;
   display: flex;
@@ -418,6 +392,39 @@ button.button-icon.sidebar-drawer-handle > img {
   position: relative;
   line-height: 1.2;
   padding: 2px 3px;
+}
+.sidebar-drawer-handle-wrapper {
+  display: none;
+  position: absolute;
+  left: -5px;
+}
+.sidebar-drawer-handle.sidebar-widget {
+  position: absolute;
+  right: 0;
+  background: white;
+  opacity: 0.75;
+  border-radius: 0;
+}
+.sidebar-drawer-handle:hover {
+  opacity: 1;
+}
+.sidebar-drawer-handle button {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  padding: 0;
+  outline-offset: 0;
+}
+.sidebar-drawer-handle button.button-icon > img {
+  width: 100%;
+  height: 100%;
+}
+.sidebar.open .sidebar-drawer-handle .icon-open,
+.sidebar.closed .sidebar-drawer-handle .icon-close {
+  display: none;
 }
 .sidebar-top-line .sidebar-top-dynamic .sidebar-widget,
 .sidebar-top-line .sidebar-top-left .sidebar-widget {

@@ -3781,19 +3781,21 @@ this.Instant = function() {
         Instant.userList.init();
         Instant.sidebar.roomName.init();
         node = $makeNode('div', 'sidebar open', [
-          ['span', 'sidebar-drawer-handle-wrapper', [
-            ['button', 'button button-icon sidebar-drawer-handle', [
-              ['img', 'icon icon-open turn-left',
-                {src: '/static/arrow-bar-up.svg'}],
-              ['img', 'icon icon-close turn-left',
-                {src: '/static/arrow-bar-down.svg'}]
-            ]]
-          ]],
           ['div', 'sidebar-content', [
             ['div', 'sidebar-top', [
               ['div', 'sidebar-top-line', [
+                ['span', 'sidebar-drawer-handle-wrapper', [
+                  ['span', 'sidebar-drawer-handle sidebar-widget', [
+                    ['button', 'button button-icon', [
+                      ['img', 'icon icon-open turn-left',
+                        {src: '/static/arrow-bar-up.svg'}],
+                      ['img', 'icon icon-close turn-left',
+                        {src: '/static/arrow-bar-down.svg'}]
+                    ]]
+                  ]],
+                ]],
                 ['span', 'sidebar-top-dynamic', [
-                  Instant.animation.spinner.init(),
+                  Instant.animation.spinner.init()
                 ]],
                 ['span', 'sidebar-top-left', [
                   Instant.sidebar.roomName.getLogoNode()
@@ -3819,7 +3821,7 @@ this.Instant = function() {
             ]]
           ]]
         ]);
-        var handle = $cls('sidebar-drawer-handle', node);
+        var handle = $sel('.sidebar-drawer-handle button', node);
         handle.addEventListener('click', function(evt) {
           Instant.sidebar.toggle();
         });
