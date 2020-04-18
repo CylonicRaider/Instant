@@ -3855,6 +3855,9 @@ this.Instant = function() {
       /* Set the openness state of the sidebar */
       _setVisible: function(newState, event) {
         var oldState = node.classList.contains('open');
+        if (newState == null) {
+          newState = (! Instant.sidebar.isVisible());
+        }
         if (newState) {
           node.classList.add('open');
           node.classList.remove('closed');
@@ -3873,7 +3876,7 @@ this.Instant = function() {
       },
       /* Open or close the sidebar */
       toggle: function(event) {
-        Instant.sidebar._setVisible(! Instant.sidebar.isOpen(), event);
+        Instant.sidebar._setVisible(null, event);
       },
       /* Show the sidebar */
       show: function(event) {
