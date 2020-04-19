@@ -6915,9 +6915,9 @@ this.Instant = function() {
       },
       /* Force displaying the UI */
       show: function() {
-        Instant.popups._setEmpty(false);
         if (wrapper.classList.contains('hidden'))
-          Instant.popups._updateHidden(true);
+          Instant.popups.hideAll(false);
+        Instant.popups._setEmpty(false);
       },
       /* Set whether the UI should be displayed or not */
       _setEmpty: function(status) {
