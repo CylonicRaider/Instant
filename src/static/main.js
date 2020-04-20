@@ -3719,10 +3719,13 @@ this.Instant = function() {
   }();
   /* Content layer pane management */
   Instant.contentPane = function() {
-    /* The main node */
+    /* The main and settings backdrop nodes */
     var node = null;
+    var backdropNode = null;
     /* The current sidebar mode */
     var mode = null;
+    /* What to do when the backdrop node is clicked */
+    var onBackdropClick = null;
     /* Mapping from CSS classes to modes where they are active. */
     var CLASSES = {
       overlay: {overlay: true},
@@ -3735,8 +3738,12 @@ this.Instant = function() {
         mode = 'overlay';
         node = $makeNode('div', 'content-wrapper sidebar-overlay', [
           Instant.message.getMessagePane(),
+          ['div', 'backdrop'],
           Instant.sidebar.getNode()
         ]);
+        backdropNode = $cls('backdrop', node);
+        backdropNode.addEventListener('click',
+                                      Instant.contentPane._onBackdropClick);
         return node;
       },
       /* Obtain the current display mode of the sidebar */
@@ -3767,9 +3774,27 @@ this.Instant = function() {
         Instant.settings.updateWidth();
         restore();
       },
+      /* Show the backdrop node */
+      showBackdrop: function(handler) {
+        backdropNode.classList.add('visible');
+        onBackdropClick = handler;
+      },
+      /* Hide the backdrop node */
+      hideBackdrop: function() {
+        backdropNode.classList.remove('visible');
+        onBackdropClick = null;
+      },
+      /* Event handler for the backdrop node being clicked */
+      _onBackdropClick: function(event) {
+        if (onBackdropClick) onBackdropClick(event);
+      },
       /* Return the DOM node */
       getNode: function() {
         return node;
+      },
+      /* Return the backdrop DOM node */
+      getBackdropNode: function() {
+        return backdropNode;
       }
     };
   }();
@@ -6362,8 +6387,10 @@ this.Instant = function() {
         if (visible) {
           buttonNode.classList.add('visible');
           Instant.settings.updateWidth();
+          Instant.contentPane.showBackdrop(Instant.settings.hide);
         } else {
           buttonNode.classList.remove('visible');
+          Instant.contentPane.hideBackdrop();
         }
         Instant._fireListeners('settings.visibility', {visible: visible,
           wasVisible: wasVisible, source: event});

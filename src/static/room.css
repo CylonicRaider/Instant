@@ -357,12 +357,20 @@ body {
 
 }
 
-.content-wrapper {
+.content-wrapper, .backdrop {
   position: absolute;
   top: 0;
   left: 0;
   bottom: 0;
   right: 0;
+}
+.backdrop {
+  display: none;
+  background: rgba(255, 255, 255, 0.5);
+  z-index: 9;
+}
+.backdrop.visible {
+  display: block;
 }
 
 .sidebar {
@@ -1646,7 +1654,7 @@ img.inline {
 @-webkit-keyframes clrfade { to { color: rgba(0, 0, 0, 0.5); } }
 @keyframes clrfade { to { color: rgba(0, 0, 0, 0.5); } }
 
-body {
+body, .backdrop {
   -webkit-transition: background 0.5s;
   transition: background 0.5s;
 }

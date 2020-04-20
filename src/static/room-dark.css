@@ -158,6 +158,10 @@
   background: #202020;
 }
 
+.dark .backdrop {
+  background: rgba(0, 0, 0, 0.5);
+}
+
 .dark .content-wrapper .sidebar {
   border-color: #e0e0e0;
 }
