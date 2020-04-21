@@ -6387,7 +6387,10 @@ this.Instant = function() {
         if (visible) {
           buttonNode.classList.add('visible');
           Instant.settings.updateWidth();
-          Instant.contentPane.showBackdrop(Instant.settings.hide);
+          Instant.contentPane.showBackdrop(function() {
+            Instant.settings.hide();
+            Instant.input.focus();
+          });
         } else {
           buttonNode.classList.remove('visible');
           Instant.contentPane.hideBackdrop();
