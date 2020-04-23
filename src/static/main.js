@@ -8126,13 +8126,17 @@ function init() {
   try {
     Instant.init(main, wrapper);
   } catch (e) {
+    console.error(e);
     var m = document.createElement('div');
-    m.className = 'note';
-    m.innerHTML = '<strong>Oops...</strong> <span>An error occured; see ' +
-      'the developer tools for details.</span>';
+    m.className = 'error-box';
+    m.innerHTML = '<strong>Oops...</strong> <em>An error occured.</em> ' +
+      '<span>Technical details follow:</span><pre></pre>' +
+      '<span>See also the developer tools for more details.</span>';
+    var details = "" + e;
+    if (e.stack) details += "\n" + e.stack;
+    $sel('pre', m).textContent = details;
     var cntbox = $cls('content-box', wrapper);
     cntbox.appendChild(m);
-    console.error(e);
     return;
   }
   Instant.input.focus();

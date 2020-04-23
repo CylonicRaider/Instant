@@ -106,6 +106,17 @@ body {
   padding-right: 0.35em;
 }
 
+.error-box {
+  border: 2px solid red;
+  padding: 3px;
+}
+.error-box pre {
+  margin: 5px 0;
+}
+#load-wrapper .error-box {
+  margin-top: 10px;
+}
+
 .indent {
   display: block;
   margin-left: 1em;
