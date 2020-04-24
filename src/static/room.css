@@ -689,8 +689,8 @@ a.room-name .staging {
   display: flex;
   -webkit-flex-direction: column;
   flex-direction: column;
-  margin: 5px 3px 0 0;
-  border: 1px solid black;
+  margin: 4px 2px 0 0;
+  border: 2px solid black;
   min-height: 0;
   background: white;
   text-align: left;
