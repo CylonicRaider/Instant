@@ -932,9 +932,9 @@ button.button-icon > img {
   vertical-align: top;
   opacity: 0.75;
 }
-.user-list-counter.collapsed img {
-  -webkit-transform: rotate(180deg);
-  transform: rotate(180deg);
+.user-list-counter.collapsed img.list-visible,
+.user-list-counter:not(.collapsed) img.list-collapsed {
+  display: none;
 }
 .user-list-counter a {
   font-style: italic;

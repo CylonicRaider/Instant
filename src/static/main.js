@@ -4095,8 +4095,13 @@ this.Instant = function() {
         node = $makeNode('div', 'user-list');
         collapser = $makeNode('div', 'user-list-counter', [
           ['a', {href: '#'}, [
-            ['img', {src: '/static/arrow-up.svg'}], ' ',
-            ['span', ['...']]
+            ['span', 'counter-icon', [
+              ['img', 'turn list-visible',
+                {src: '/static/arrow-bar-down.svg'}],
+              ['img', 'turn list-collapsed',
+                {src: '/static/arrow-bar-up.svg'}]
+            ]], ' ',
+            ['span', 'counter-text', ['...']]
           ]]
         ]);
         var showInfo = Instant.storage.get('show-user-info');
@@ -4373,7 +4378,7 @@ this.Instant = function() {
       _update: function(detail) {
         /* Update counter */
         if (node && collapser) {
-          var c = $sel('span', collapser);
+          var c = $cls('counter-text', collapser);
           var n = node.children.length;
           c.textContent = n + ' user' + ((n == 1) ? '' : 's');
         }
