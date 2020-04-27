@@ -3802,6 +3802,8 @@ this.Instant = function() {
   Instant.sidebar = function() {
     /* The main sidebar node */
     var node = null;
+    /* The drawer-mode handle node */
+    var handleNode = null;
     /* Already shown messages */
     var shownUIMessages = {};
     return {
@@ -3853,8 +3855,8 @@ this.Instant = function() {
             ]]
           ]]
         ]);
-        var handle = $sel('.sidebar-drawer-handle button', node);
-        handle.addEventListener('click', Instant.sidebar.toggle);
+        handleNode = $sel('.sidebar-drawer-handle button', node);
+        handleNode.addEventListener('click', Instant.sidebar.toggle);
         var wrapper = $cls('sidebar-middle-wrapper', node);
         window.addEventListener('resize', Instant.sidebar.updateWidth);
         if (window.MutationObserver) {
@@ -3886,15 +3888,12 @@ this.Instant = function() {
         if (newState) {
           node.classList.add('open');
           node.classList.remove('closed');
+          handleNode.title = 'Hide sidebar';
+          Instant.animation.unflash(handleNode.parentNode);
         } else {
           node.classList.remove('open');
           node.classList.add('closed');
-        }
-        var handle = $sel('.sidebar-drawer-handle button', node);
-        if (newState) {
-          handle.title = 'Hide sidebar';
-        } else {
-          handle.title = 'Show sidebar';
+          handleNode.title = 'Show sidebar';
         }
         Instant._fireListeners('sidebar.visbility', {wasOpen: oldState,
           open: newState, source: event});
@@ -3974,7 +3973,7 @@ this.Instant = function() {
           msgnode.style.color = options.color;
         }
         if (options.flash) {
-          Instant.animation.flash(msgnode);
+          Instant.sidebar.flashMessage(msgnode);
         }
         msgnode.addEventListener('animationend', stopFlash);
         msgnode.addEventListener('click', stopFlash);
@@ -4003,6 +4002,8 @@ this.Instant = function() {
         if (resort || msgnode.parentNode != msgbox)
           msgbox.appendChild(msgnode);
         Instant.sidebar.updateWidth();
+        if (! Instant.sidebar.isVisible())
+          Instant.animation.flash(handleNode.parentNode);
       },
       /* Hide a UI message */
       hideMessage: function(msgnode) {
@@ -4012,6 +4013,16 @@ this.Instant = function() {
         try {
           msgbox.removeChild(msgnode);
         } catch (e) {}
+      },
+      /* Flash a UI message */
+      flashMessage: function(msgnode) {
+        Instant.animation.flash(msgnode);
+        if (! Instant.sidebar.isVisible())
+          Instant.animation.flash(handleNode.parentNode);
+      },
+      /* Stop flashing a UI message */
+      unflashMessage: function(msgnode) {
+        Instant.animation.unflash(msgnode);
       },
       /* Logo and room name widget */
       roomName: function() {
@@ -4784,7 +4795,7 @@ this.Instant = function() {
             shownNew = true;
         });
         Instant.privmsg._update({bulkShow: flags, shownNew: shownNew});
-        Instant.animation.unflash(msgUnread);
+        Instant.sidebar.unflashMessage(msgUnread);
         return shownNew;
       },
       /* Toggle the requested class(es) of popups */
@@ -4946,7 +4957,7 @@ this.Instant = function() {
           Instant.privmsg._updateNicks(popup);
           Instant.privmsg._save(popup);
           Instant.privmsg._update({popup: popup});
-          Instant.animation.flash(msgUnread);
+          Instant.sidebar.flashMessage(msgUnread);
           Instant.notifications.submitNew({level: 'privmsg',
             text: 'You have a new private message.',
             btntext: 'View',
@@ -4955,7 +4966,7 @@ this.Instant = function() {
               Instant.privmsg._save(popup);
               Instant.popups.add(popup);
               Instant.privmsg._update({popup: popup});
-              Instant.animation.unflash(msgUnread);
+              Instant.sidebar.unflashMessage(msgUnread);
             }
           });
         }
@@ -6753,7 +6764,7 @@ this.Instant = function() {
         } else {
           Instant.sidebar.hideMessage(hiddenMsg);
         }
-        if (flash) Instant.animation.flash(hiddenMsg);
+        if (flash) Instant.sidebar.flashMessage(hiddenMsg);
         Instant._fireListeners('popups.hide', {hidden: hidden});
       },
       /* Create a new popup */
