@@ -4775,6 +4775,35 @@ this.Instant = function() {
           delete preferredReply[uid];
         }
       },
+      /* Check if this popup has unread replies or is an unread reply */
+      _checkReplyBanners: function(popup) {
+        if (! popup.classList.contains('pm-viewer')) return;
+        var checkID = popup.getAttribute('data-parent');
+        if (! popup.classList.contains('pm-unread')) checkID = null;
+        var checkParent = popup.getAttribute('data-id');
+        popups.forEach(function(p) {
+          if (! p.classList.contains('pm-viewer'))
+            return;
+          if (checkParent != null && p.classList.contains('pm-unread') &&
+              p.getAttribute('data-parent') == checkParent)
+            Instant.privmsg._addReplyBanner(popup, p);
+          if (checkID != null && p.getAttribute('data-id') == checkID)
+            Instant.privmsg._addReplyBanner(p, popup);
+        });
+      },
+      /* Add a banner informing about a reply */
+      _addReplyBanner: function(parent, child) {
+        var childID = child.getAttribute('data-id');
+        var banner = Instant.popups.addNewMessage(parent, {content: $makeFrag(
+          'A reply has arrived. ',
+          ['button', 'button reply-banner-open', 'Open']
+        ), className: 'popup-message-info reply-banner'});
+        var open = $cls('reply-banner-open', banner);
+        open.addEventListener('click', function() {
+          Instant.privmsg.navigateTo(childID);
+          Instant.popups.removeMessage(banner);
+        });
+      },
       /* Delete all private messages */
       clear: function() {
         popups.forEach(function(el) {
@@ -4953,6 +4982,7 @@ this.Instant = function() {
         var popup = Instant.privmsg._makePopup(data);
         Instant.privmsg._add(popup);
         Instant.privmsg._updatePreferredReply(null, popup);
+        Instant.privmsg._checkReplyBanners(popup);
         if (isNew) {
           Instant.privmsg._updateNicks(popup);
           Instant.privmsg._save(popup);
@@ -5200,6 +5230,7 @@ this.Instant = function() {
           var parentNode = $cls('pm-parent-id', popup);
           parentNode.textContent = data.parent;
           parentNode.href = '#pm-' + data.parent;
+          popup.setAttribute('data-parent', data.parent);
           Instant.hash.listenOn(parentNode);
         }
         if (draft) {

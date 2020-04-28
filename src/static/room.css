@@ -868,7 +868,7 @@ a.room-name .staging {
   border: 1px solid black;
   padding: 1px;
   font: inherit;
-  color: inherit;
+  color: black;
   border-radius: 0;
   background: none;
   cursor: pointer;
