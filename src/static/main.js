@@ -4862,6 +4862,7 @@ this.Instant = function() {
         Instant.privmsg.showOne(popup);
         Instant.popups.focus(popup);
         Instant.popups.scrollIntoView(popup);
+        Instant.privmsg._update({navigatedTo: id});
         return true;
       },
       /* Obtain the private message DOM node with the given ID */
