@@ -4794,10 +4794,12 @@ this.Instant = function() {
       /* Add a banner informing about a reply */
       _addReplyBanner: function(parent, child) {
         var childID = child.getAttribute('data-id');
-        var banner = Instant.popups.addNewMessage(parent, {content: $makeFrag(
-          'A reply has arrived. ',
-          ['button', 'button reply-banner-open', 'Open']
-        ), className: 'popup-message-info reply-banner'});
+        var banner = Instant.popups.addNewMessage(parent, {
+          content: $makeFrag('A reply has arrived. ',
+                             ['button', 'button reply-banner-open', 'Open']),
+          id: 'pm-reply-banner-' + childID,
+          className: 'popup-message-info reply-banner'
+        });
         var open = $cls('reply-banner-open', banner);
         open.addEventListener('click', function() {
           Instant.privmsg.navigateTo(childID);
@@ -5023,14 +5025,17 @@ this.Instant = function() {
         Instant.privmsg._retarget(popup, null, uid);
         popups.push(popup);
       },
-      /* Remove a PM draft or reader */
+      /* Remove a PM popup */
       _remove: function(popup) {
-        storage.del(popup.getAttribute('data-id'));
+        var id = popup.getAttribute('data-id');
+        storage.del(id);
         var uid = $sel('.popup-grid .nick', popup).getAttribute('data-uid');
         Instant.privmsg._retarget(popup, uid, null);
         var idx = popups.indexOf(popup);
         if (idx != -1) popups.splice(idx, 1);
         Instant.popups.del(popup);
+        var banner = $id('pm-reply-banner-' + id);
+        if (banner != null) Instant.popups.removeMessage(banner);
         Instant.privmsg._update({removed: popup});
       },
       /* Update the indexes to reflect popup's user */
@@ -7015,7 +7020,7 @@ this.Instant = function() {
             ]]
           ]]
         ]);
-        if (options.id) ret.id = id;
+        if (options.id) ret.id = options.id;
         if (options.className) ret.className += ' ' + options.className;
         if (typeof options.content == 'string') {
           ret.appendChild(document.createTextNode(options.content));
