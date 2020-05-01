@@ -4775,37 +4775,6 @@ this.Instant = function() {
           delete preferredReply[uid];
         }
       },
-      /* Check if this popup has unread replies or is an unread reply */
-      _checkReplyBanners: function(popup) {
-        if (! popup.classList.contains('pm-viewer')) return;
-        var checkID = popup.getAttribute('data-parent');
-        if (! popup.classList.contains('pm-unread')) checkID = null;
-        var checkParent = popup.getAttribute('data-id');
-        popups.forEach(function(p) {
-          if (! p.classList.contains('pm-viewer'))
-            return;
-          if (checkParent != null && p.classList.contains('pm-unread') &&
-              p.getAttribute('data-parent') == checkParent)
-            Instant.privmsg._addReplyBanner(popup, p);
-          if (checkID != null && p.getAttribute('data-id') == checkID)
-            Instant.privmsg._addReplyBanner(p, popup);
-        });
-      },
-      /* Add a banner informing about a reply */
-      _addReplyBanner: function(parent, child) {
-        var childID = child.getAttribute('data-id');
-        var banner = Instant.popups.addNewMessage(parent, {
-          content: $makeFrag('A reply has arrived. ',
-                             ['button', 'button reply-banner-open', 'Open']),
-          id: 'pm-reply-banner-' + childID,
-          className: 'popup-message-info reply-banner'
-        });
-        var open = $cls('reply-banner-open', banner);
-        open.addEventListener('click', function() {
-          Instant.privmsg.navigateTo(childID);
-          Instant.popups.removeMessage(banner);
-        });
-      },
       /* Delete all private messages */
       clear: function() {
         popups.forEach(function(el) {
@@ -4844,6 +4813,7 @@ this.Instant = function() {
         if (classFlags && ! classFlags[cls]) return false;
         if (cls == 'U') {
           popup.classList.remove('pm-unread');
+          Instant.privmsg._removeReplyBanner(popup);
           Instant.privmsg._save(popup);
         }
         Instant.popups.add(popup);
@@ -4874,12 +4844,15 @@ this.Instant = function() {
           if (ret != null) return ret;
         }
         var sentID = 'sent-' + id;
+        var found = null;
         for (var i = 0; i < popups.length; i++) {
           var elID = popups[i].getAttribute('data-id');
-          if (elID == id || allowAlternate && elID == sentID)
+          if (elID == id)
             return popups[i];
+          if (allowAlternate && elID == sentID && found == null)
+            found = popups[i];
         }
-        return null;
+        return found;
       },
       /* Start writing a message to uid */
       write: function(uid, nick, text, subject, parent) {
@@ -4995,9 +4968,7 @@ this.Instant = function() {
             text: 'You have a new private message.',
             btntext: 'View',
             onclick: function() {
-              popup.classList.remove('pm-unread');
-              Instant.privmsg._save(popup);
-              Instant.popups.add(popup);
+              Instant.privmsg.showOne(popup);
               Instant.privmsg._update({popup: popup});
               Instant.sidebar.unflashMessage(msgUnread);
             }
@@ -5027,15 +4998,13 @@ this.Instant = function() {
       },
       /* Remove a PM popup */
       _remove: function(popup) {
-        var id = popup.getAttribute('data-id');
-        storage.del(id);
+        storage.del(popup.getAttribute('data-id'));
         var uid = $sel('.popup-grid .nick', popup).getAttribute('data-uid');
         Instant.privmsg._retarget(popup, uid, null);
         var idx = popups.indexOf(popup);
         if (idx != -1) popups.splice(idx, 1);
         Instant.popups.del(popup);
-        var banner = $id('pm-reply-banner-' + id);
-        if (banner != null) Instant.popups.removeMessage(banner);
+        Instant.privmsg._removeReplyBanner(popup);
         Instant.privmsg._update({removed: popup});
       },
       /* Update the indexes to reflect popup's user */
@@ -5389,6 +5358,44 @@ this.Instant = function() {
         if (body.lastElementChild != editor)
           body.removeChild(body.lastElementChild);
         body.appendChild(newPreview);
+      },
+      /* Check if this popup has unread replies or is an unread reply */
+      _checkReplyBanners: function(popup) {
+        if (! popup.classList.contains('pm-viewer')) return;
+        var checkID = popup.getAttribute('data-parent');
+        if (! popup.classList.contains('pm-unread')) checkID = null;
+        var checkParent = popup.getAttribute('data-id');
+        popups.forEach(function(p) {
+          if (checkParent != null && p.classList.contains('pm-unread') &&
+              p.getAttribute('data-parent') == checkParent)
+            Instant.privmsg._addReplyBanner(popup, p);
+          if (checkID != null && p.getAttribute('data-id') == checkID)
+            Instant.privmsg._addReplyBanner(p, popup);
+        });
+      },
+      /* Add a banner informing about a reply */
+      _addReplyBanner: function(parent, child) {
+        var childID = child.getAttribute('data-id');
+        var banner = Instant.popups.addNewMessage(parent, {
+          content: $makeFrag('A reply has arrived. ',
+                             ['button', 'button reply-banner-open', 'Open']),
+          id: 'pm-reply-banner-' + childID,
+          className: 'popup-message-info reply-banner'
+        });
+        var open = $cls('reply-banner-open', banner);
+        open.addEventListener('click', function() {
+          Instant.privmsg.navigateTo(childID);
+        });
+      },
+      /* Remove the banner informing about child, if any */
+      _removeReplyBanner: function(child) {
+        var childID = child.getAttribute('data-id');
+        var parentID = child.getAttribute('data-parent');
+        var parent = Instant.privmsg.get(parentID);
+        if (parent == null) return;
+        var banner = $sel('#pm-reply-banner-' + childID, parent);
+        if (banner == null) return;
+        Instant.popups.removeMessage(banner);
       },
       /* Determine which of the four classes the popup belongs to */
       _getPopupClass: function(popup) {
