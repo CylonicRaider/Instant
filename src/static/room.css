@@ -814,7 +814,7 @@ a.room-name .staging {
   clear: both;
 }
 
-.user-list .nick-box.selected .nick {
+.user-list .nick-box.selected > .nick {
   margin-bottom: 1px;
   margin-right: 5px;
   border-width: 1px 0 0 1px;
@@ -849,10 +849,11 @@ a.room-name .staging {
 .content-wrapper.sidebar-overlay .user-list .nick-box > .nick {
   float: right;
 }
-.content-wrapper.sidebar-overlay .user-list .nick-box.selected .nick {
-  margin-left: 1px;
+.content-wrapper.sidebar-overlay .user-list .nick-box.selected > .nick {
+  margin-left: 5px;
   margin-right: 0;
   border-width: 1px 1px 0 0;
+  padding-left: 2px;
   padding-right: 1px;
 }
 .content-wrapper.sidebar-overlay .user-list-menu {
