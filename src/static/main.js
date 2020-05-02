@@ -6993,9 +6993,11 @@ this.Instant = function() {
           force = (! wrapper.classList.contains('hidden'));
         }
         if (force) {
-          if (! nonempty && ! Instant.popups.hasPopups())
-            return;
-          wrapper.classList.add('hidden');
+          if (! nonempty && ! Instant.popups.hasPopups()) {
+            Instant.popups._setEmpty(true);
+          } else {
+            wrapper.classList.add('hidden');
+          }
           Instant.input.focus();
         } else {
           wrapper.classList.remove('hidden');
@@ -8172,15 +8174,15 @@ function init() {
   }, true, true);
   /* Focus input bar if Escape pressed and not focused */
   document.documentElement.addEventListener('keydown', function(event) {
-    if (event.keyCode == 27) { // Escape
-      if (Instant.settings.isVisible())
-        Instant.settings.hide();
-      if (Instant.userList.getSelectedUser() != null)
-        Instant.userList.showMenu(null);
-      Instant.input.focus();
-      Instant.pane.scrollIntoView(Instant.input.getNode());
-      event.preventDefault();
-    }
+    if (event.keyCode != 27) return; // Escape
+    if (Instant.settings.isVisible())
+      Instant.settings.hide();
+    if (Instant.userList.getSelectedUser() != null)
+      Instant.userList.showMenu(null);
+    Instant.popups.hideAll(true);
+    Instant.input.focus();
+    Instant.pane.scrollIntoView(Instant.input.getNode());
+    event.preventDefault();
   });
   /* Fire up Instant! */
   try {
