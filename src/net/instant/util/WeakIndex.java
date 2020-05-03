@@ -3,21 +3,21 @@ package net.instant.util;
 import java.lang.ref.Reference;
 import java.lang.ref.ReferenceQueue;
 import java.lang.ref.WeakReference;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.WeakHashMap;
 
 public class WeakIndex<K, V> {
 
     private final Map<K, WeakReference<V>> wrapped;
     private final ReferenceQueue<V> queue;
-    private final List<V> toRemove;
+    private final Set<Reference<? extends V>> toRemove;
 
     public WeakIndex() {
         this.wrapped = new WeakHashMap<K, WeakReference<V>>();
         this.queue = new ReferenceQueue<V>();
-        this.toRemove = new ArrayList<V>();
+        this.toRemove = new HashSet<Reference<? extends V>>();
     }
 
     public boolean equals(Object o) {
@@ -64,11 +64,10 @@ public class WeakIndex<K, V> {
         Reference<? extends V> ref = queue.poll();
         if (ref == null) return;
         synchronized (toRemove) {
-            while (ref != null) {
-                V obj = ref.get();
-                if (obj != null) toRemove.add(obj);
+            do {
+                toRemove.add(ref);
                 ref = queue.poll();
-            }
+            } while (ref != null);
             wrapped.values().removeAll(toRemove);
             toRemove.clear();
         }
