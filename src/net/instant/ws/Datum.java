@@ -227,6 +227,8 @@ public class Datum implements ClientConnection, ResponseBuilder {
         String fwd = handshake.getFieldValue("X-Forwarded-For");
         if (! fwd.isEmpty())
             extraData.put("real-ip", fwd.replace(" ", ""));
+        if (conn instanceof InstantWebSocketImpl)
+            ((InstantWebSocketImpl) conn).setDescription(this);
     }
     protected void initResponse(ServerHandshakeBuilder handshake) {
         response = handshake;

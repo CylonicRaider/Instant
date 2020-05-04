@@ -22,6 +22,7 @@ import org.java_websocket.drafts.Draft;
 // which is just what we do not want.
 public class InstantWebSocketImpl extends WebSocketImpl {
 
+    private volatile Datum description;
     private volatile InetSocketAddress cachedLocalAddress;
     private volatile InetSocketAddress cachedRemoteAddress;
 
@@ -31,6 +32,13 @@ public class InstantWebSocketImpl extends WebSocketImpl {
     public InstantWebSocketImpl(WebSocketAdapter adapter,
                                 List<Draft> drafts) {
         super(adapter, drafts);
+    }
+
+    public Datum getDescription() {
+        return description;
+    }
+    public void setDescription(Datum desc) {
+        description = desc;
     }
 
     public InetSocketAddress getCachedLocalAddress() {
