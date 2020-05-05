@@ -111,8 +111,18 @@ public final class Encodings {
         }
         return new String(ret);
     }
-    public static byte[] fromBase64(String data) {
+    public static byte[] fromBase64(String data, boolean pad) {
         data = removeWhitespace(data);
+        if (! pad) {
+            switch (data.length() % 4) {
+                case 2:
+                    data += "==";
+                    break;
+                case 3:
+                    data += "=";
+                    break;
+            }
+        }
         if (! VALID_BASE64.matcher(data).matches())
             throw new IllegalArgumentException("Base64 string invalid");
         int l = data.length(), rl = l / 4 * 3;
@@ -147,6 +157,23 @@ public final class Encodings {
             ret[p++] = (byte) (d2 << 6 | d3     );
         }
         return ret;
+    }
+    public static String toBase64(byte[] data, boolean pad) {
+        String ret = toBase64(data);
+        if (! pad) {
+            int rl = ret.length();
+            if (rl == 0) {
+                /* NOP */
+            } else if (ret.charAt(rl - 2) == '=') {
+                return ret.substring(rl - 2);
+            } else if (ret.charAt(rl - 1) == '=') {
+                return ret.substring(rl - 1);
+            }
+        }
+        return ret;
+    }
+    public static byte[] fromBase64(String data) {
+        return fromBase64(data, true);
     }
 
 }

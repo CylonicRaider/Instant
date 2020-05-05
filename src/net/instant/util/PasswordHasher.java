@@ -71,31 +71,10 @@ public class PasswordHasher {
     }
 
     private static String toMB64(byte[] data) {
-        String ret = Encodings.toBase64(data).replace('+', '.');
-        int idx = ret.indexOf('=');
-        if (idx >= 0) {
-            return ret.substring(0, idx);
-        } else {
-            return ret;
-        }
+        return Encodings.toBase64(data, false).replace('+', '.');
     }
     private static byte[] fromMB64(String input) {
-        String pad;
-        switch (input.length() % 4) {
-            case 0:
-                pad = "";
-                break;
-            case 2:
-                pad = "==";
-                break;
-            case 3:
-                pad = "=";
-                break;
-            default:
-                throw new IllegalArgumentException("Invalid password hash " +
-                    "component");
-        }
-        return Encodings.fromBase64(input.replace('.', '+').concat(pad));
+        return Encodings.fromBase64(input.replace('.', '+'), false);
     }
 
     private static char[] resizeBuffer(char[] buf, int oldSize, int newSize) {
