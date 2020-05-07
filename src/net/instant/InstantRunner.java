@@ -42,6 +42,7 @@ import net.instant.plugins.PluginManager;
 import net.instant.proto.APIHook;
 import net.instant.proto.MessageDistributor;
 import net.instant.util.Formats;
+import net.instant.util.RecordDigester;
 import net.instant.util.UniqueCounter;
 import net.instant.util.Util;
 import net.instant.util.config.Configuration;
@@ -160,6 +161,7 @@ public class InstantRunner implements API1 {
     private ExecutorService taskRunner;
     private PluginManager plugins;
     private BackendConsoleManager console;
+    private String configurationHash;
 
     private Runnable consoleSpawner;
 
@@ -299,16 +301,22 @@ public class InstantRunner implements API1 {
     public void setStringFiles(StringProducer prod) {
         stringFiles = prod;
     }
+    public String makeVersionFile() {
+        String content = String.format("this._instantVersion_ = " +
+                "{version: %s, revision: %s, configuration: %s};\n",
+            Formats.escapeJSString(getVersion(), true),
+            Formats.escapeJSString(getFineVersion(), true),
+            Formats.escapeJSString(makeConfigurationHash(), true));
+        stringFiles.addFile(VERSION_FILE, content);
+        return content;
+    }
     public StringProducer makeStringFiles() {
         if (stringFiles == null) {
             stringFiles = new StringProducer();
             // Extended by plugins.
             stringFiles.addFile(SITE_FILE, "\n");
-            // Added right here.
-            stringFiles.addFile(VERSION_FILE, String.format(
-                "this._instantVersion_ = {version: %s, revision: %s};\n",
-                Formats.escapeJSString(getVersion(), true),
-                Formats.escapeJSString(getFineVersion(), true)));
+            // Added here.
+            makeVersionFile();
         }
         return stringFiles;
     }
@@ -392,6 +400,22 @@ public class InstantRunner implements API1 {
             console = BackendConsoleManager.makeDefault(this);
         }
         return console;
+    }
+
+    public String getConfigurationHash() {
+        return configurationHash;
+    }
+    public void setConfigurationHash(String ch) {
+        configurationHash = ch;
+    }
+    public String makeConfigurationHash() {
+        RecordDigester digester = RecordDigester.getInstance();
+        digester.addString(getVersion());
+        digester.addString(getFineVersion());
+        makePlugins().digestInto(digester);
+        String ret = digester.finishString();
+        configurationHash = ret;
+        return ret;
     }
 
     public String getVersion() {
@@ -571,6 +595,7 @@ public class InstantRunner implements API1 {
     }
     public void setup() throws Exception {
         makePlugins().setup();
+        makeVersionFile();
         makeConfig().addSource(new PluginConfigSource(getPlugins()));
         makeJobScheduler();
         makeTaskRunner();
@@ -582,6 +607,7 @@ public class InstantRunner implements API1 {
     public void launch() {
         InstantWebSocketServer srv = getServer();
         if (consoleSpawner != null) consoleSpawner.run();
+        LOGGER.info("Configuration hash: " + getConfigurationHash());
         LOGGER.info("Serving era " + getCounter().getEra() + " on " +
             Formats.formatInetSocketAddress(srv.getAddress()) + "...");
         // The server socket is only actually bound when run() is invoked, so

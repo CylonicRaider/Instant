@@ -1,5 +1,6 @@
 package net.instant.plugins;
 
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -13,8 +14,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 import net.instant.api.API1;
+import net.instant.util.RecordDigester;
 import net.instant.util.Util;
 
 public class PluginManager {
@@ -115,6 +118,27 @@ public class PluginManager {
                 tempOrder));
         }
         return order;
+    }
+
+    public void digestInto(RecordDigester digester) {
+        try {
+            computeOrder();
+        } catch (IntegrityException exc) {
+            throw new RuntimeException("Preparing configuration hash " +
+                "without checking plugin graph integrity", exc);
+        }
+        digester.addInt(order.size());
+        for (Plugin p : order) {
+            digester.addString(p.getName());
+            try {
+                digester.addInputStreamClosing(new FileInputStream(
+                    p.getSource()));
+            } catch (IOException exc) {
+                LOGGER.log(Level.WARNING,
+                    "Could not read file of plugin " + p.getName() + "?!",
+                    exc);
+            }
+        }
     }
 
     private Set<Plugin> getDeps(Map<Plugin, Set<Plugin>> data, Plugin key) {
