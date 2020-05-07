@@ -5,7 +5,7 @@ import java.io.InputStream;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 
-public class RecordDigester {
+public class RecordDigester implements Cloneable {
 
     private static final String ALGORITHM = "SHA-256";
 
@@ -19,7 +19,8 @@ public class RecordDigester {
     private static final byte TAG_LONG   = 5;
     private static final byte TAG_BYTES  = 6;
     private static final byte TAG_STRING = 7;
-    private static final byte TAG_STREAM = 8;
+    private static final byte TAG_HASH   = 8;
+    private static final byte TAG_STREAM = 9;
 
     private final MessageDigest digest;
     private final MessageDigest subDigest;
@@ -31,6 +32,10 @@ public class RecordDigester {
         subDigest = MessageDigest.getInstance(ALGORITHM);
         scratch = new byte[9];
         initialized = false;
+    }
+
+    public Object clone() throws CloneNotSupportedException {
+        return super.clone();
     }
 
     private void addTaggedInt(byte tag, int value) {
@@ -92,6 +97,11 @@ public class RecordDigester {
         digest.update(Encodings.toBytes(value));
     }
 
+    public void addHash(byte[] value) {
+        addTaggedInt(TAG_HASH, value.length);
+        digest.update(value);
+    }
+
     public void addInputStream(InputStream value) throws IOException {
         start();
         digest.update(TAG_STREAM);
@@ -117,8 +127,8 @@ public class RecordDigester {
         initialized = false;
         return digest.digest();
     }
-    public String finishEncoded() {
-        return encodeDigest(finish());
+    public String finishString() {
+        return digestToString(finish());
     }
 
     public static RecordDigester getInstance() {
@@ -129,7 +139,7 @@ public class RecordDigester {
         }
     }
 
-    public static String encodeDigest(byte[] digest) {
+    public static String digestToString(byte[] digest) {
         return Encodings.toBase64(digest, false);
     }
 
