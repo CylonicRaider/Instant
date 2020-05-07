@@ -16,7 +16,6 @@ import java.util.regex.Pattern;
 import net.instant.console.BackendConsoleManager;
 import net.instant.hooks.APIWebSocketHook;
 import net.instant.plugins.PluginException;
-import net.instant.util.Formats;
 import net.instant.util.Logging;
 import net.instant.util.argparse.Argument;
 import net.instant.util.argparse.ArgumentParser;
@@ -37,7 +36,6 @@ public class Main implements Runnable {
         "[a-zA-Z](?:[a-zA-Z0-9_-]*[a-zA-Z0-9])?";
     public static final String STAGING_RE = "dev/[a-zA-Z0-9-]+";
 
-    private static final String VERSION_FILE;
     private static final Logger LOGGER;
 
     static {
@@ -58,10 +56,6 @@ public class Main implements Runnable {
             } catch (IOException exc) {}
         }
         FINE_VERSION = v;
-        VERSION_FILE = String.format("this._instantVersion_ = " +
-            "{version: %s, revision: %s};\n",
-            Formats.escapeJSString(VERSION, true),
-            Formats.escapeJSString(FINE_VERSION, true));
     }
 
     private final String[] args;
@@ -175,7 +169,6 @@ public class Main implements Runnable {
         runner.addRedirect(Pattern.compile("/(" + STAGING_RE + "/room/" +
                                            ROOM_RE + ")"),
                            "\\1/", 301);
-        runner.addSyntheticFile(InstantRunner.VERSION_FILE, VERSION_FILE);
         FSResourceProducer prod = runner.makeSourceFiles();
         prod.whitelist("/pages/.*");
         prod.whitelist("/static/.*");

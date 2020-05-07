@@ -304,8 +304,11 @@ public class InstantRunner implements API1 {
             stringFiles = new StringProducer();
             // Extended by plugins.
             stringFiles.addFile(SITE_FILE, "\n");
-            // Added my Main.
-            stringFiles.addFile(VERSION_FILE, "");
+            // Added right here.
+            stringFiles.addFile(VERSION_FILE, String.format(
+                "this._instantVersion_ = {version: %s, revision: %s};\n",
+                Formats.escapeJSString(getVersion(), true),
+                Formats.escapeJSString(getFineVersion(), true)));
         }
         return stringFiles;
     }
@@ -389,6 +392,14 @@ public class InstantRunner implements API1 {
             console = BackendConsoleManager.makeDefault(this);
         }
         return console;
+    }
+
+    public String getVersion() {
+        return Main.VERSION;
+    }
+
+    public String getFineVersion() {
+        return Main.FINE_VERSION;
     }
 
     public void addRequestHook(RequestHook hook) {

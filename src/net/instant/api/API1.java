@@ -13,6 +13,17 @@ import net.instant.api.parser.ParserFactory;
 public interface API1 {
 
     /**
+     * Return the version of this API implementation.
+     */
+    String getVersion();
+
+    /**
+     * Return a fine-grained version indication, or null if not available.
+     * This could be, e.g., a VCS commit identifier.
+     */
+    String getFineVersion();
+
+    /**
      * Add a hook to potentially handle requests.
      * The hook can intercept HTTP requests and handle them, or let others
      * do so. If no hook can handle the request, the core tries own handlers,
