@@ -165,9 +165,9 @@ public final class Encodings {
             if (rl == 0) {
                 /* NOP */
             } else if (ret.charAt(rl - 2) == '=') {
-                return ret.substring(rl - 2);
+                return ret.substring(0, rl - 2);
             } else if (ret.charAt(rl - 1) == '=') {
-                return ret.substring(rl - 1);
+                return ret.substring(0, rl - 1);
             }
         }
         return ret;
