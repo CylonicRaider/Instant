@@ -601,6 +601,8 @@ public class InstantRunner implements API1 {
     }
     public void setup() throws Exception {
         makePlugins().setup();
+        clearConfigurationHash();
+        makeVersionFile();
         makeConfig().addSource(new PluginConfigSource(getPlugins()));
         makeJobScheduler();
         makeTaskRunner();
