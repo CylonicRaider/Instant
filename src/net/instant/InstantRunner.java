@@ -408,14 +408,18 @@ public class InstantRunner implements API1 {
     public void setConfigurationHash(String ch) {
         configurationHash = ch;
     }
+    public void clearConfigurationHash() {
+        configurationHash = null;
+    }
     public String makeConfigurationHash() {
-        RecordDigester digester = RecordDigester.getInstance();
-        digester.addString(getVersion());
-        digester.addString(getFineVersion());
-        makePlugins().digestInto(digester);
-        String ret = digester.finishString();
-        configurationHash = ret;
-        return ret;
+        if (configurationHash == null) {
+            RecordDigester digester = RecordDigester.getInstance();
+            digester.addString(getVersion());
+            digester.addString(getFineVersion());
+            makePlugins().digestInto(digester);
+            configurationHash = digester.finishString();
+        }
+        return configurationHash;
     }
 
     public String getVersion() {
@@ -595,7 +599,6 @@ public class InstantRunner implements API1 {
     }
     public void setup() throws Exception {
         makePlugins().setup();
-        makeVersionFile();
         makeConfig().addSource(new PluginConfigSource(getPlugins()));
         makeJobScheduler();
         makeTaskRunner();
@@ -607,7 +610,7 @@ public class InstantRunner implements API1 {
     public void launch() {
         InstantWebSocketServer srv = getServer();
         if (consoleSpawner != null) consoleSpawner.run();
-        LOGGER.info("Configuration hash: " + getConfigurationHash());
+        LOGGER.info("Configuration hash: " + makeConfigurationHash());
         LOGGER.info("Serving era " + getCounter().getEra() + " on " +
             Formats.formatInetSocketAddress(srv.getAddress()) + "...");
         // The server socket is only actually bound when run() is invoked, so
