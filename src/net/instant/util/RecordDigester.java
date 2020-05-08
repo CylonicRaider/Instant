@@ -61,6 +61,12 @@ public class RecordDigester implements Cloneable {
         digest.update(scratch, 0, 9);
     }
 
+    private boolean addNullIfNull(Object value) {
+        if (value != null) return false;
+        addNull();
+        return true;
+    }
+
     private void start() {
         if (initialized) return;
         initialized = true;
@@ -88,21 +94,25 @@ public class RecordDigester implements Cloneable {
     }
 
     public void addByteArray(byte[] value) {
+        if (addNullIfNull(value)) return;
         addTaggedInt(TAG_BYTES, value.length);
         digest.update(value);
     }
 
     public void addString(String value) {
+        if (addNullIfNull(value)) return;
         addTaggedInt(TAG_STRING, value.length());
         digest.update(Encodings.toBytes(value));
     }
 
     public void addHash(byte[] value) {
+        if (addNullIfNull(value)) return;
         addTaggedInt(TAG_HASH, value.length);
         digest.update(value);
     }
 
     public void addInputStream(InputStream value) throws IOException {
+        if (addNullIfNull(value)) return;
         start();
         digest.update(TAG_STREAM);
         byte[] buffer = new byte[Util.BUFFER_SIZE];
@@ -114,6 +124,7 @@ public class RecordDigester implements Cloneable {
         digest.update(subDigest.digest());
     }
     public void addInputStreamClosing(InputStream value) throws IOException {
+        if (addNullIfNull(value)) return;
         try {
             addInputStream(value);
         } finally {
