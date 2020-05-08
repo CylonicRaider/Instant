@@ -5,7 +5,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.logging.Logger;
-import net.instant.Main;
 import net.instant.api.API1;
 import net.instant.api.ClientConnection;
 import net.instant.api.Message;
@@ -186,9 +185,13 @@ public class APIWebSocketHook extends WebSocketHook {
         if (roomName.equals("")) roomName = null;
         RoomDistributor room = distr.getRoom(roomName);
         MessageContents identity = new MessageContents("identity").withData(
-            "id", id, "uuid", uuid,
-            "version", Main.VERSION, "revision", Main.FINE_VERSION,
-            "era", api.getCounter().getEra());
+            "id", id,
+            "uuid", uuid,
+            "version", api.getProperty("version"),
+            "revision", api.getProperty("revision"),
+            "configHash", api.getProperty("configHash"),
+            "era", api.getCounter().getEra()
+        );
         PresenceChange event = new PresenceChangeImpl(true, conn, room);
         event.getMessage().updateData("id", id, "uuid", uuid);
         for (MessageHook h : getAllHooks())
