@@ -293,6 +293,8 @@ this.Instant = function() {
       serverVersion: null,
       /* Fine-grained server version */
       serverRevision: null,
+      /* Even more fine-grained server version and configuration */
+      serverConfigHash: null,
       /* Identifier of the particular server instance */
       serverEra: null,
       /* Initialize the identity from the data part of a
@@ -300,10 +302,13 @@ this.Instant = function() {
       initFields: function(data) {
         if (Instant.connection.isURLOverridden()) {
           /* NOP */
-        } else if ((Instant.identity.serverVersion != null &&
+        } else if (
+             Instant.identity.serverVersion != null &&
              Instant.identity.serverVersion != data.version ||
              Instant.identity.serverRevision != null &&
-             Instant.identity.serverRevision != data.revision)) {
+             Instant.identity.serverRevision != data.revision ||
+             Instant.identity.serverConfigHash != null &&
+             Instant.identity.serverConfigHash != data.configHash) {
           Instant.notifications.submitNew({level: 'update',
             text: 'Update available; click to reload.',
             onclick: function() {
@@ -315,7 +320,8 @@ this.Instant = function() {
             }});
         } else if (window._instantVersion_ &&
             (_instantVersion_.version != data.version ||
-             _instantVersion_.revision != data.revision)) {
+             _instantVersion_.revision != data.revision ||
+             _instantVersion_.configHash != data.configHash)) {
           Instant.notifications.submitNew({level: 'update',
             text: 'Your page is outdated; please refresh it manually.',
             data: {
@@ -330,6 +336,7 @@ this.Instant = function() {
         Instant.identity.uuid = data.uuid;
         Instant.identity.serverVersion = data.version;
         Instant.identity.serverRevision = data.revision;
+        Instant.identity.serverConfigHash = data.configHash;
         Instant.identity.serverEra = data.era;
         Instant._fireListeners('identity.established');
       },
