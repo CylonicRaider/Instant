@@ -13,15 +13,19 @@ import net.instant.api.parser.ParserFactory;
 public interface API1 {
 
     /**
-     * Return the version of this API implementation.
+     * Return a textual property of the API implementation.
+     * Defined property names are:
+     * name      : The name of the implementation.
+     * version   : The version of the implementation.
+     * revision  : A fine-grained version indication, if available, or null.
+     * configHash: A pseudorandom string deterministically derived from
+     *             the version and revision properties, and the names and
+     *             contents of all plugins. Intended to allow determining
+     *             whether client-side code should be updated.
+     * If the property name is unrecognized, an IllegalArgumentException is
+     * thrown.
      */
-    String getVersion();
-
-    /**
-     * Return a fine-grained version indication, or null if not available.
-     * This could be, e.g., a VCS commit identifier.
-     */
-    String getFineVersion();
+    String getProperty(String name) throws IllegalArgumentException;
 
     /**
      * Add a hook to potentially handle requests.

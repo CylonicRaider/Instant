@@ -303,10 +303,10 @@ public class InstantRunner implements API1 {
     }
     public String makeVersionFile() {
         String content = String.format("this._instantVersion_ = " +
-                "{version: %s, revision: %s, configuration: %s};\n",
-            Formats.escapeJSString(getVersion(), true),
-            Formats.escapeJSString(getFineVersion(), true),
-            Formats.escapeJSString(makeConfigurationHash(), true));
+                "{version: %s, revision: %s, configHash: %s};\n",
+            Formats.escapeJSString(getProperty("version"), true),
+            Formats.escapeJSString(getProperty("revision"), true),
+            Formats.escapeJSString(getProperty("configHash"), true));
         stringFiles.addFile(VERSION_FILE, content);
         return content;
     }
@@ -414,20 +414,22 @@ public class InstantRunner implements API1 {
     public String makeConfigurationHash() {
         if (configurationHash == null) {
             RecordDigester digester = RecordDigester.getInstance();
-            digester.addString(getVersion());
-            digester.addString(getFineVersion());
+            digester.addString(getProperty("version"));
+            digester.addString(getProperty("revision"));
             makePlugins().digestInto(digester);
             configurationHash = digester.finishString();
         }
         return configurationHash;
     }
 
-    public String getVersion() {
-        return Main.VERSION;
-    }
-
-    public String getFineVersion() {
-        return Main.FINE_VERSION;
+    public String getProperty(String name) {
+        switch (name) {
+            case "name": return Main.APPNAME;
+            case "version": return Main.VERSION;
+            case "revision": return Main.FINE_VERSION;
+            case "configHash": return makeConfigurationHash();
+        }
+        throw new IllegalArgumentException("Unrecognized property " + name);
     }
 
     public void addRequestHook(RequestHook hook) {
