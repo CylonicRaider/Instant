@@ -15,7 +15,6 @@ import java.util.Set;
 import java.util.WeakHashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import net.instant.Main;
 import net.instant.api.API1;
 import net.instant.api.RequestData;
 import net.instant.api.RequestHook;
@@ -56,6 +55,7 @@ public class InstantWebSocketServer extends WebSocketServer
         DEFAULT_DRAFTS = Collections.unmodifiableList(l);
     }
 
+    private final String serverLabel;
     private final Set<RequestHook> hooks;
     private final Set<RequestHook> internalHooks;
     private final Map<WebSocket, RequestHook> assignments;
@@ -67,6 +67,7 @@ public class InstantWebSocketServer extends WebSocketServer
 
     public InstantWebSocketServer(API1 api, InetSocketAddress addr) {
         super(addr, wrapDrafts(DEFAULT_DRAFTS));
+        serverLabel = makeServerLabel(api);
         hooks = new LinkedHashSet<RequestHook>();
         internalHooks = new LinkedHashSet<RequestHook>();
         assignments = Collections.synchronizedMap(
@@ -87,6 +88,10 @@ public class InstantWebSocketServer extends WebSocketServer
         this(api, new InetSocketAddress(port));
     }
 
+    protected String makeServerLabel(API1 api) {
+        return api.getProperty("name") + "/" + api.getProperty("version");
+    }
+
     protected StringSigner makeStringSigner(API1 api) {
         String keypath = api.getConfiguration(K_KEYFILE);
         File keyfile = (keypath == null) ? null : new File(keypath);
@@ -96,6 +101,10 @@ public class InstantWebSocketServer extends WebSocketServer
         } else {
             return StringSigner.getInstance(null);
         }
+    }
+
+    public String getServerLabel() {
+        return serverLabel;
     }
 
     public CookieHandler getCookieHandler() {
@@ -170,7 +179,7 @@ public class InstantWebSocketServer extends WebSocketServer
     }
 
     protected void postProcessInner(RequestData req, ResponseBuilder resp) {
-        resp.addHeader("Server", Main.APPNAME + "/" + Main.VERSION);
+        resp.addHeader("Server", serverLabel);
     }
 
     @Override
