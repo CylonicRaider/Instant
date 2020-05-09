@@ -734,11 +734,11 @@ a.room-name .staging {
 
 .settings.visible {
   position: absolute;
-  top: 2px;
-  right: 3px;
+  top: 1px;
+  right: 2px;
   border-radius: 0;
-  border-width: 1px 1px 0 0;
-  padding: 1px 1px 2px 2px;
+  border-width: 2px 2px 0 0;
+  padding: 0px 0px 3px 3px;
   box-shadow: none;
   z-index: 25;
 }
