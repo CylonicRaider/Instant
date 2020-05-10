@@ -7670,11 +7670,17 @@ this.Instant = function() {
         if (! node) return;
         /* Avoid keeping the node inflated. */
         node.style.minWidth = '';
-        /* Yes, that property naming is awful and historical. */
+        /* Yes, that property naming is awful and historical.
+         * In contrast to adjustScrollbarMargin (where this is less critical),
+         * we use fractional metrics to avoid the width being just small
+         * enough to cause overflow anyway. Furthermore, integer rounding
+         * can cause innerWidth to be *greater* than outerWidth, which is not
+         * indicative of an overflow condition, hence the less-than
+         * comparison. */
         var outerRect = node.getBoundingClientRect();
         var outerWidth = outerRect.right - outerRect.left;
         var innerWidth = node.clientWidth;
-        if (innerWidth != outerWidth) {
+        if (innerWidth < outerWidth) {
           if (overflowClass) node.classList.add(overflowClass);
           node.style.minWidth = Math.ceil(outerWidth + (outerWidth -
             innerWidth)) + 'px';
