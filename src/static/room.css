@@ -804,6 +804,10 @@ a.room-name .staging {
 }
 .user-list .nick-box > .nick {
   float: left;
+  border-width: 1px 0 0 1px;
+  border-style: solid;
+  border-color: transparent;
+  padding: 0 1px 1px 1px;
   z-index: 11;
   cursor: pointer;
   outline-offset: -1px;
@@ -817,11 +821,7 @@ a.room-name .staging {
 .user-list .nick-box.selected > .nick {
   margin-bottom: 1px;
   margin-right: 5px;
-  border-width: 1px 0 0 1px;
-  border-style: solid;
   border-color: black;
-  padding-top: 0;
-  padding-left: 1px;
 }
 
 .user-list-menu {
@@ -848,13 +848,12 @@ a.room-name .staging {
 }
 .content-wrapper.sidebar-overlay .user-list .nick-box > .nick {
   float: right;
+  border-width: 1px 1px 0 0;
+  padding: 0 0 1px 2px;
 }
 .content-wrapper.sidebar-overlay .user-list .nick-box.selected > .nick {
   margin-left: 5px;
   margin-right: 0;
-  border-width: 1px 1px 0 0;
-  padding-left: 2px;
-  padding-right: 1px;
 }
 .content-wrapper.sidebar-overlay .user-list-menu {
   text-align: left;

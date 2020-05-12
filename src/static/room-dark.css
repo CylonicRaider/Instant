@@ -113,7 +113,7 @@
 .dark .sidebar-middle > .user-list {
   background: none;
 }
-.dark .user-list .nick-box.selected .nick {
+.dark .user-list .nick-box.selected > .nick {
   border-color: #e0e0e0;
 }
 .dark .user-list-menu h2 {
