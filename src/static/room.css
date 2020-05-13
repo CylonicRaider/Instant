@@ -668,6 +668,8 @@ a.room-name .staging {
 }
 .settings-placeholder {
   display: none;
+  border: 1px solid transparent;
+  padding: 1px;
 }
 
 .settings-wrapper {
