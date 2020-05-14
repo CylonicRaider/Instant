@@ -2873,6 +2873,49 @@ this.Instant = function() {
             /* Done! */
             return ret;
           },
+          /* Create a copy of content truncated to at most maxChars
+           * characters
+           * Providing Infinity as maxChars results in no effective
+           * truncation. Copying is recursive, but does not descend into
+           * elements with a class of no-copy; if those are present, the
+           * return value gains a class of copy-reduced. If truncation
+           * actually took place, the return value gains a class of
+           * copy-truncated. */
+          truncatedCopy: function(content, maxChars) {
+            function traverse(src, dest) {
+              if (src.nodeType == Node.TEXT_NODE) {
+                var remaining = maxChars - seen;
+                var add, truncated;
+                if (remaining >= src.nodeValue.length) {
+                  add = src.cloneNode(false);
+                  truncated = false;
+                } else {
+                  add = $text(src.nodeValue.substring(0, remaining));
+                  truncated = true;
+                  ret.classList.add('copy-truncated')
+                }
+                seen += add.nodeValue.length;
+                dest.appendChild(add);
+                return truncated;
+              } else if (src.nodeType != Node.ELEMENT_NODE) {
+                return;
+              } else if (src.classList.contains('no-copy')) {
+                dest.appendChild($makeNode('span', 'copy-placeholder'));
+                ret.classList.add('copy-reduced');
+                return;
+              }
+              var copy = src.cloneNode(false);
+              dest.appendChild(copy);
+              return Array.prototype.some.call(src.childNodes, function(c) {
+                return traverse(c, copy);
+              });
+            }
+            var ret = content.cloneNode(false);
+            ret.classList.add('copy');
+            var seen = 0;
+            traverse(content, ret);
+            return ret;
+          },
           /* Reverse the transformation performed by the parser */
           extractText: function(content) {
             var ret = '';
