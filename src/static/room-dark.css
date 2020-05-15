@@ -183,6 +183,10 @@
   box-shadow: 0 0 5px white;
 }
 
+.dark .sidebar-unread > h2 {
+  color: white;
+}
+
 .dark .popups {
   background: rgba(0, 0, 0, 0.5);
 }

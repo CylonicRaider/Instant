@@ -3903,7 +3903,8 @@ this.Instant = function() {
             ['div', 'sidebar-bottom', [
               Instant.userList.getCollapserNode()
             ]]
-          ]]
+          ]],
+          Instant.sidebar.unread.init()
         ]);
         handleNode = $sel('.sidebar-drawer-handle button', node);
         handleNode.addEventListener('click', Instant.sidebar.toggle);
@@ -4122,6 +4123,23 @@ this.Instant = function() {
           /* Obtain the room name DOM node */
           getNameNode: function() {
             return nameNode;
+          }
+        };
+      }(),
+      /* Unread message notification area */
+      unread: function() {
+        /* The messages currently being tracked */
+        var messages = [];
+        /* The DOM node */
+        var node = null;
+        /* Initialize submodule */
+        return {
+          init: function() {
+            node = $makeNode('div', 'sidebar-unread', [
+              ['h2', null, 'Notifications'],
+              ['small', null, '(NYI)']
+            ]);
+            return node;
           }
         };
       }()
