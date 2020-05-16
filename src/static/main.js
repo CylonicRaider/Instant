@@ -1569,12 +1569,20 @@ this.Instant = function() {
         /* Done */
         return stack[0][1];
       },
-      /* Extract the text of message, if any, or fallback otherwise */
-      extractText: function(message, fallback) {
+      /* Extract the text of message as a DOM node, or return fallback
+       * otherwise */
+      extractTextNode: function(message, fallback) {
         if (fallback === undefined) fallback = null;
         var line = $cls('line', message);
         if (line == null) return fallback;
         var textNode = $cls('message-text', line);
+        if (textNode == null) return fallback;
+        return textNode;
+      },
+      /* Extract the text of message, if any, or fallback otherwise */
+      extractText: function(message, fallback) {
+        if (fallback === undefined) fallback = null;
+        var textNode = Instant.message.extractTextNode(message);
         if (textNode == null) return fallback;
         return Instant.message.parser.extractText(textNode);
       },
@@ -1690,6 +1698,7 @@ this.Instant = function() {
         if (typeof params.timestamp == 'number') {
           var date = new Date(params.timestamp);
           timeNode.setAttribute('datetime', date.toISOString());
+          timeNode.setAttribute('data-timestamp', date.getTime());
           timeNode.title = formatDate(date);
           permalink.textContent = (leftpad(date.getHours(), 2, '0') + ':' +
             leftpad(date.getMinutes(), 2, '0'));
@@ -4128,8 +4137,10 @@ this.Instant = function() {
       }(),
       /* Unread message notification area */
       unread: function() {
-        /* The messages currently being tracked */
-        var messages = [];
+        /* Preview nodes for each tracked message */
+        var previews = {};
+        /* The length to trim message texts to */
+        var trimLength = Infinity;
         /* The DOM node */
         var node = null;
         /* Initialize submodule */
@@ -4137,9 +4148,39 @@ this.Instant = function() {
           init: function() {
             node = $makeNode('div', 'sidebar-unread', [
               ['h2', null, 'Notifications'],
-              ['small', null, '(NYI)']
+              ['div', 'previews']
             ]);
+            var trimLengthOverride = parseInt(
+              Instant.storage.get('message-preview-trim'), 10);
+            if (! isNaN(trimLengthOverride)) trimLength = trimLengthOverride;
             return node;
+          },
+          /* Create a preview node for the given message */
+          _makePreview: function(msg) {
+            var cnt = Instant.message.extractTextNode(msg);
+            var tcnt = Instant.message.parser.truncatedCopy(cnt, trimLength);
+            var ret = $makeNode('div', 'unread-message', [tcnt]);
+            ret.addEventListener('click', function() {
+              Instant.input.moveTo(msg, true);
+              Instant.input.focus();
+              Instant.pane.scrollIntoView(Instant.input.getNode());
+            });
+            return ret;
+          },
+          /* Add an unread message to the list */
+          add: function(msg) {
+            var msgid = msg.getAttribute('data-id');
+            if (previews[msgid]) return;
+            previews[msgid] = Instant.sidebar.unread._makePreview(msg);
+            $cls('previews', node).appendChild(previews[msgid]);
+          },
+          /* Remove a message from the list */
+          remove: function(msg) {
+            var msgid = msg.getAttribute('data-id');
+            if (! previews[msgid]) return;
+            var preview = previews[msgid];
+            delete previews[msgid];
+            preview.parentNode.removeChild(preview);
           }
         };
       }()
@@ -6245,6 +6286,7 @@ this.Instant = function() {
                     changed = true;
                   }
                 }
+                Instant.sidebar.unread.add(n);
               }
             }
             if (remove && remove.length) {
@@ -6258,6 +6300,7 @@ this.Instant = function() {
                 if (n == unreadBelow) rescanUB = true;
                 if (n == mentionAbove) rescanMA = true;
                 if (n == mentionBelow) rescanMB = true;
+                Instant.sidebar.unread.remove(n);
               }
               if (rescanUA || rescanUB || rescanMA || rescanMB) {
                 var im = Instant.message;
