@@ -4140,7 +4140,7 @@ this.Instant = function() {
         /* Preview nodes for each tracked message */
         var previews = {};
         /* The length to trim message texts to */
-        var trimLength = Infinity;
+        var trimLength = 100;
         /* The DOM node */
         var node = null;
         /* Initialize submodule */
@@ -4159,7 +4159,8 @@ this.Instant = function() {
           _makePreview: function(msg) {
             var cnt = Instant.message.extractTextNode(msg);
             var tcnt = Instant.message.parser.truncatedCopy(cnt, trimLength);
-            var ret = $makeNode('div', 'unread-message', [tcnt]);
+            var ret = $makeNode('button',
+              'unread-message button button-noborder', [tcnt]);
             ret.addEventListener('click', function() {
               Instant.input.moveTo(msg, true);
               Instant.input.focus();

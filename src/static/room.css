@@ -893,9 +893,6 @@ a.room-name .staging {
   border: 0;
   padding: 0;
 }
-.button.button-block {
-  display: block;
-}
 .button.button-noborder, .button.button-icon {
   border: 0;
   padding: 0;
@@ -978,6 +975,21 @@ button.button-icon > img {
 .sidebar-unread > h2 {
   font: inherit;
   font-weight: bold;
+}
+.sidebar-unread .previews {
+  overflow: auto;
+}
+.sidebar-unread .unread-message {
+  width: 100%;
+  text-align: left;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.sidebar-unread .unread-message .message-text {
+  white-space: nowrap;
+}
+.sidebar-unread .copy-truncated::after {
+  content: "\2026";
 }
 
 .content-wrapper.sidebar-pane .sidebar-unread {
