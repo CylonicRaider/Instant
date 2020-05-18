@@ -2891,21 +2891,21 @@ this.Instant = function() {
            * actually took place, the return value gains a class of
            * copy-truncated. */
           truncatedCopy: function(content, maxChars) {
-            function traverse(src, dest) {
+            function traverse(src) {
+              var copy;
               if (src.nodeType == Node.TEXT_NODE) {
-                var remaining = maxChars - seen;
-                var add, truncated;
+                var remaining = maxChars - seenChars
                 if (remaining >= src.nodeValue.length) {
-                  add = src.cloneNode(false);
-                  truncated = false;
-                } else {
-                  add = $text(src.nodeValue.substring(0, remaining));
+                  copy = src.cloneNode(false);
+                } else if (remaining <= 0) {
                   truncated = true;
-                  ret.classList.add('copy-truncated')
+                  return null;
+                } else {
+                  copy = $text(src.nodeValue.substring(0, remaining));
+                  truncated = true;
                 }
-                seen += add.nodeValue.length;
-                dest.appendChild(add);
-                return truncated;
+                seenChars += copy.nodeValue.length;
+                return copy;
               } else if (src.nodeType != Node.ELEMENT_NODE) {
                 return;
               } else if (src.classList.contains('no-copy')) {
@@ -2913,16 +2913,20 @@ this.Instant = function() {
                 ret.classList.add('copy-reduced');
                 return;
               }
-              var copy = src.cloneNode(false);
-              dest.appendChild(copy);
-              return Array.prototype.some.call(src.childNodes, function(c) {
-                return traverse(c, copy);
-              });
+              copy = src.cloneNode(false);
+              var children = src.childNodes;
+              for (var i = 0; i < children.length; i++) {
+                var cp = traverse(children[i]);
+                if (cp == null) break;
+                copy.appendChild(cp);
+                if (truncated) break;
+              }
+              return copy;
             }
-            var ret = content.cloneNode(false);
+            var seenChars = 0, truncated = false;
+            var ret = traverse(content);
             ret.classList.add('copy');
-            var seen = 0;
-            traverse(content, ret);
+            if (truncated) ret.classList.add('copy-truncated');
             return ret;
           },
           /* Reverse the transformation performed by the parser */
