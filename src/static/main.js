@@ -2248,6 +2248,7 @@ this.Instant = function() {
             Instant.pane.scrollIntoView(Instant.input.getNode());
           },
           data: {
+            message: msg,
             unreadMessages: 1,
             unreadReplies: (isReply) ? 1 : 0,
             unreadMentions: (isPing) ? 1 : 0
@@ -4159,12 +4160,25 @@ this.Instant = function() {
             if (! isNaN(trimLengthOverride)) trimLength = trimLengthOverride;
             return node;
           },
+          /* Notification handler */
+          _notify: function(notify) {
+            var msg = notify.data.message;
+            if (msg == null || msg.classList.contains('mine')) return;
+            var level = null;
+            if (notify.data.unreadMentions) {
+              level = 'ping';
+            } else if (notify.data.unreadReplies) {
+              level = 'reply';
+            }
+            Instant.sidebar.unread.add(msg, level);
+          },
           /* Create a preview node for the given message */
-          _makePreview: function(msg) {
+          _makePreview: function(msg, level) {
             var cnt = Instant.message.extractTextNode(msg);
             var tcnt = Instant.message.parser.truncatedCopy(cnt, trimLength);
             var ret = $makeNode('button',
               'unread-message button button-noborder', [tcnt]);
+            if (level != null) ret.classList.add('unread-message-' + level);
             ret.addEventListener('click', function() {
               Instant.input.moveTo(msg, true);
               Instant.input.focus();
@@ -4173,10 +4187,10 @@ this.Instant = function() {
             return ret;
           },
           /* Add an unread message to the list */
-          add: function(msg) {
+          add: function(msg, level) {
             var msgid = msg.getAttribute('data-id');
             if (previews[msgid]) return;
-            previews[msgid] = Instant.sidebar.unread._makePreview(msg);
+            previews[msgid] = Instant.sidebar.unread._makePreview(msg, level);
             $cls('previews', node).appendChild(previews[msgid]);
           },
           /* Remove a message from the list */
@@ -6291,7 +6305,6 @@ this.Instant = function() {
                     changed = true;
                   }
                 }
-                Instant.sidebar.unread.add(n);
               }
             }
             if (remove && remove.length) {
@@ -6724,6 +6737,7 @@ this.Instant = function() {
           return null;
         Instant.sidebar._notify(notify);
         Instant.animation.onlineStatus._notify(notify);
+        Instant.sidebar.unread._notify(notify);
         /* Externally visible means of notification can be swallowed */
         if (! data.suppress) {
           Instant.title._notify(notify);

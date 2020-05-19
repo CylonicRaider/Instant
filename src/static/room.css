@@ -979,17 +979,23 @@ button.button-icon > img {
 .sidebar-unread .previews {
   overflow: auto;
 }
-.sidebar-unread .unread-message {
+.unread-message {
   width: 100%;
   text-align: left;
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.sidebar-unread .unread-message .message-text {
+.unread-message .message-text {
   white-space: nowrap;
 }
-.sidebar-unread .copy-truncated::after {
+.unread-message .copy-truncated::after {
   content: "\2026";
+}
+.unread-message.unread-message-reply {
+  background: rgba(0, 64, 255, 0.15);
+}
+.unread-message.unread-message-ping {
+  background: rgba(192, 192, 0, 0.15);
 }
 
 .content-wrapper.sidebar-pane .sidebar-unread {
