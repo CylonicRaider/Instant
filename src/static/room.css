@@ -970,9 +970,15 @@ button.button-icon > img {
 
 .sidebar-unread {
   display: none;
+  -webkit-flex-direction: column;
+  flex-direction: column;
   margin: 3px;
+  min-height: 0;
+  max-height: 50%;
 }
 .sidebar-unread > h2 {
+  -webkit-flex-shrink: 0;
+  flex-shrink: 0;
   font: inherit;
   font-weight: bold;
 }
@@ -999,7 +1005,8 @@ button.button-icon > img {
 }
 
 .content-wrapper.sidebar-pane .sidebar-unread {
-  display: block;
+  display: -webkit-flex;
+  display: flex;
 }
 
 .input-bar {
