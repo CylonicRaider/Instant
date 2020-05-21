@@ -4169,6 +4169,8 @@ this.Instant = function() {
               level = 'ping';
             } else if (notify.data.unreadReplies) {
               level = 'reply';
+            } else {
+              level = 'activity';
             }
             Instant.sidebar.unread.add(msg, level);
           },
@@ -4176,10 +4178,13 @@ this.Instant = function() {
           _makePreview: function(msg, level) {
             var cnt = Instant.message.extractTextNode(msg);
             var tcnt = Instant.message.parser.truncatedCopy(cnt, trimLength);
-            var ret = $makeNode('button',
-              'unread-message button button-noborder', [tcnt]);
+            var ret = $makeNode('div', 'unread-message', [
+              ['div', 'unread-message-line', [
+                ['button', 'button button-noborder', [tcnt]]
+              ]]
+            ]);
             if (level != null) ret.classList.add('unread-message-' + level);
-            ret.addEventListener('click', function() {
+            $sel('button', ret).addEventListener('click', function() {
               Instant.input.moveTo(msg, true);
               Instant.input.focus();
               Instant.pane.scrollIntoView(Instant.input.getNode());

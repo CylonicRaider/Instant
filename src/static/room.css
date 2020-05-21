@@ -985,23 +985,29 @@ button.button-icon > img {
 .sidebar-unread .previews {
   overflow: auto;
 }
-.unread-message {
+.unread-message-line > button.button-noborder {
   width: 100%;
   text-align: left;
   overflow: hidden;
   text-overflow: ellipsis;
+  padding: 2px;
 }
-.unread-message .message-text {
+.unread-message-line .message-text {
   white-space: nowrap;
 }
-.unread-message .copy-truncated::after {
+.unread-message-line .copy-truncated::after {
   content: "\2026";
 }
-.unread-message.unread-message-reply {
+.unread-message.unread-message-reply > .unread-message-line {
+  border-left: 2px solid #0040ff;
   background: rgba(0, 64, 255, 0.15);
 }
-.unread-message.unread-message-ping {
+.unread-message.unread-message-ping > .unread-message-line {
+  border-left: 2px solid #c0c000;
   background: rgba(192, 192, 0, 0.15);
+}
+.unread-message.unread-message-activity > .unread-message-line {
+  border-left: 2px solid #c0c0c0;
 }
 
 .content-wrapper.sidebar-pane .sidebar-unread {
