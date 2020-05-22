@@ -4176,9 +4176,11 @@ this.Instant = function() {
           },
           /* Create a preview node for the given message */
           _makePreview: function(msg, level) {
+            var msgid = msg.getAttribute('data-id');
             var cnt = Instant.message.extractTextNode(msg);
             var tcnt = Instant.message.parser.truncatedCopy(cnt, trimLength);
-            var ret = $makeNode('div', 'unread-message', [
+            var ret = $makeNode('div', 'unread-message',
+                {id: 'unread-' + msgid, 'data-id': msgid}, [
               ['div', 'unread-message-line', [
                 ['button', 'button button-noborder', [tcnt]]
               ]]
@@ -4190,6 +4192,15 @@ this.Instant = function() {
               Instant.pane.scrollIntoView(Instant.input.getNode());
             });
             return ret;
+          },
+          /* Retrieve (or create) the DOM node hosting preview's replies */
+          _getRepliesNode: function(preview) {
+            var lastChild = preview.lastElementChild;
+            if (! lastChild.classList.contains('replies')) {
+              lastChild = $makeNode('div', 'replies');
+              preview.appendChild(lastChild);
+            }
+            return lastChild;
           },
           /* Add an unread message to the list */
           add: function(msg, level) {
@@ -4205,6 +4216,22 @@ this.Instant = function() {
             var preview = previews[msgid];
             delete previews[msgid];
             preview.parentNode.removeChild(preview);
+          },
+          /* Locate the position where to insert preview into array
+           * The return value is suitable for use with the DOM insertBefore()
+           * API. */
+          bisect: function(array, preview) {
+            var b = 0, e = array.length - 1;
+            var pid = preview.id;
+            while (b != e) {
+              var m = (b + e) >> 1;
+              if (array[m].id <= pid) {
+                b = m + 1;
+              } else {
+                e = m;
+              }
+            }
+            return array[b] || null;
           }
         };
       }()
