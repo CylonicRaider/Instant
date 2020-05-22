@@ -998,6 +998,9 @@ button.button-icon > img {
 .unread-message-line .copy-truncated::after {
   content: "\2026";
 }
+.unread-message > .unread-message-line {
+  border-left: 2px solid transparent;
+}
 .unread-message.unread-message-reply > .unread-message-line {
   border-left: 2px solid #0040ff;
   background: rgba(0, 64, 255, 0.15);
