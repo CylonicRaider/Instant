@@ -4193,6 +4193,17 @@ this.Instant = function() {
             });
             return ret;
           },
+          /* Locate the preview node corresponding to preview's message's
+           * closest ancestor (that has a preview), if any */
+          _findParentByMessage: function(preview) {
+            var msg = Instant.sidebar.unread.getMessage(preview);
+            for (;;) {
+              msg = Instant.message.getParentMessage(msg);
+              if (msg == null) return null;
+              var parPreview = Instant.sidebar.unread.get(msg);
+              if (parPreview != null) return parPreview;
+            }
+          },
           /* Retrieve (or create) the DOM node hosting preview's replies */
           _getRepliesNode: function(preview) {
             var lastChild = preview.lastElementChild;
@@ -4202,12 +4213,26 @@ this.Instant = function() {
             }
             return lastChild;
           },
+          /* Retrieve the preview node corresponding to msg, if any */
+          get: function(msg) {
+            var msgid = msg.getAttribute('data-id');
+            return previews[msgid] || null;
+          },
           /* Add an unread message to the list */
           add: function(msg, level) {
             var msgid = msg.getAttribute('data-id');
             if (previews[msgid]) return;
-            previews[msgid] = Instant.sidebar.unread._makePreview(msg, level);
-            $cls('previews', node).appendChild(previews[msgid]);
+            var preview = Instant.sidebar.unread._makePreview(msg, level);
+            previews[msgid] = preview;
+            var parent = Instant.sidebar.unread._findParentByMessage(preview);
+            if (parent == null) {
+              $cls('previews', node).appendChild(preview);
+            } else {
+              var replies = Instant.sidebar.unread._getRepliesNode(parent);
+              var succ = Instant.sidebar.unread.bisect(replies.childNodes,
+                                                       preview);
+              replies.insertBefore(preview, succ);
+            }
           },
           /* Remove a message from the list */
           remove: function(msg) {
@@ -4215,13 +4240,18 @@ this.Instant = function() {
             if (! previews[msgid]) return;
             var preview = previews[msgid];
             delete previews[msgid];
-            preview.parentNode.removeChild(preview);
+            if (preview.parentNode != null)
+              preview.parentNode.removeChild(preview);
+          },
+          /* Retrieve the message node corresponding to preview */
+          getMessage: function(preview) {
+            return Instant.message.get(preview.getAttribute('data-id'));
           },
           /* Locate the position where to insert preview into array
            * The return value is suitable for use with the DOM insertBefore()
            * API. */
           bisect: function(array, preview) {
-            var b = 0, e = array.length - 1;
+            var b = 0, e = array.length;
             var pid = preview.id;
             while (b != e) {
               var m = (b + e) >> 1;
