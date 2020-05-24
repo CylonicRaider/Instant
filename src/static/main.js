@@ -4193,6 +4193,15 @@ this.Instant = function() {
             });
             return ret;
           },
+          /* Set whether the given preview should be visible
+           * Descendants of hidden previews are still visible on their own. */
+          _setVisible: function(preview, visibility) {
+            if (visibility) {
+              preview.classList.add('unread-message-hidden');
+            } else {
+              preview.classList.remove('unread-message-hidden');
+            }
+          },
           /* Locate the preview node corresponding to preview's message's
            * closest ancestor (that has a preview), if any */
           _findParentByMessage: function(preview) {

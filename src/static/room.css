@@ -995,14 +995,23 @@ button.button-icon > img {
 .unread-message-line .message-text {
   white-space: nowrap;
 }
+.unread-message.unread-message-hidden > .unread-message-line {
+  display: none;
+}
 .unread-message-line .copy-truncated::after {
   content: "\2026";
 }
 .unread-message > .replies {
   padding-left: 3px;
 }
+.unread-message.unread-message-hidden > .replies {
+  padding-left: 0;
+}
 .unread-message {
   border-left: 2px solid transparent;
+}
+.unread-message.unread-message-hidden {
+  border-width: 0;
 }
 .unread-message.unread-message-ping {
   border-color: #c0c000;
