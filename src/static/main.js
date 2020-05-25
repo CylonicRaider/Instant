@@ -4213,14 +4213,29 @@ this.Instant = function() {
               if (parPreview != null) return parPreview;
             }
           },
-          /* Retrieve (or create) the DOM node hosting preview's replies */
-          _getRepliesNode: function(preview) {
+          /* Retrieve (or create) the DOM node hosting preview's replies
+           * If dontCreate is true and there is no replies node, this returns
+           * null. */
+          _getRepliesNode: function(preview, dontCreate) {
             var lastChild = preview.lastElementChild;
             if (! lastChild.classList.contains('replies')) {
+              if (dontCreate) return null;
               lastChild = $makeNode('div', 'replies');
               preview.appendChild(lastChild);
             }
             return lastChild;
+          },
+          /* Insert the given preview into the preview node hierarchy */
+          _insert: function(preview) {
+            var parent = Instant.sidebar.unread._findParentByMessage(preview);
+            if (parent == null) {
+              $cls('previews', node).appendChild(preview);
+            } else {
+              var replies = Instant.sidebar.unread._getRepliesNode(parent);
+              var succ = Instant.sidebar.unread.bisect(replies.childNodes,
+                                                       preview);
+              replies.insertBefore(preview, succ);
+            }
           },
           /* Retrieve the preview node corresponding to msg, if any */
           get: function(msg) {
@@ -4233,15 +4248,7 @@ this.Instant = function() {
             if (previews[msgid]) return;
             var preview = Instant.sidebar.unread._makePreview(msg, level);
             previews[msgid] = preview;
-            var parent = Instant.sidebar.unread._findParentByMessage(preview);
-            if (parent == null) {
-              $cls('previews', node).appendChild(preview);
-            } else {
-              var replies = Instant.sidebar.unread._getRepliesNode(parent);
-              var succ = Instant.sidebar.unread.bisect(replies.childNodes,
-                                                       preview);
-              replies.insertBefore(preview, succ);
-            }
+            Instant.sidebar.unread._insert(preview);
           },
           /* Remove a message from the list */
           remove: function(msg) {
@@ -4249,8 +4256,13 @@ this.Instant = function() {
             if (! previews[msgid]) return;
             var preview = previews[msgid];
             delete previews[msgid];
-            if (preview.parentNode != null)
-              preview.parentNode.removeChild(preview);
+            if (preview.parentNode) preview.parentNode.removeChild(preview);
+            var replies = Instant.sidebar.unread._getRepliesNode(preview,
+                                                                 true);
+            if (replies) {
+              var replyList = Array.prototype.slice.call(replies.childNodes);
+              replyList.forEach(Instant.sidebar.unread._insert);
+            }
           },
           /* Retrieve the message node corresponding to preview */
           getMessage: function(preview) {
