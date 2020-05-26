@@ -4193,14 +4193,14 @@ this.Instant = function() {
             });
             return ret;
           },
-          /* Set whether the given preview should be visible
-           * Descendants of hidden previews are still visible on their own. */
-          _setVisible: function(preview, visibility) {
-            if (visibility) {
-              preview.classList.add('unread-message-hidden');
-            } else {
-              preview.classList.remove('unread-message-hidden');
-            }
+          /* Return the parent of the given preview, or null if it is a
+           * top-level one */
+          _getParent: function(preview) {
+            var hostNode = preview.parentNode;
+            if (hostNode == null) return null;
+            var parent = hostNode.parentNode;
+            if (! parent.classList.contains('unread-message')) return null;
+            return parent;
           },
           /* Locate the preview node corresponding to preview's message's
            * closest ancestor (that has a preview), if any */
@@ -4211,6 +4211,28 @@ this.Instant = function() {
               if (msg == null) return null;
               var parPreview = Instant.sidebar.unread.get(msg);
               if (parPreview != null) return parPreview;
+            }
+          },
+          /* Return the rank of the preview */
+          _getRank: function(preview) {
+            var cl = preview.classList;
+            if (cl.contains('unread-message-ping')) {
+              return 3;
+            } else if (cl.contains('unread-message-reply')) {
+              return 2;
+            } else if (cl.contains('unread-message-activity')) {
+              return 1;
+            } else {
+              return 0;
+            }
+          },
+          /* Set whether the given preview should be visible
+           * Descendants of hidden previews are still visible on their own. */
+          _setVisible: function(preview, visibility) {
+            if (visibility) {
+              preview.classList.remove('unread-message-hidden');
+            } else {
+              preview.classList.add('unread-message-hidden');
             }
           },
           /* Retrieve (or create) the DOM node hosting preview's replies
@@ -4225,6 +4247,30 @@ this.Instant = function() {
             }
             return lastChild;
           },
+          /* Update the visibility of the given preview and all of its
+           * descendants as appropriate */
+          _updateVisibilityTree: function(preview) {
+            function traverse(preview, enclosingRank) {
+              var thisRank = Instant.sidebar.unread._getRank(preview);
+              Instant.sidebar.unread._setVisible(preview,
+                (thisRank > enclosingRank));
+              var replies = Instant.sidebar.unread._getRepliesNode(preview,
+                                                                   true);
+              if (replies == null) return;
+              enclosingRank = Math.max(thisRank, enclosingRank);
+              Array.prototype.forEach.call(replies.childNodes, function(p) {
+                traverse(p, enclosingRank);
+              });
+            }
+            var parent = preview, enclosingRank = 0;
+            for (;;) {
+              parent = Instant.sidebar.unread._getParent(parent);
+              if (parent == null) break;
+              enclosingRank = Math.max(enclosingRank,
+                Instant.sidebar.unread._getRank(parent));
+            }
+            traverse(preview, enclosingRank);
+          },
           /* Insert the given preview into the preview node hierarchy */
           _insert: function(preview) {
             var parent = Instant.sidebar.unread._findParentByMessage(preview);
@@ -4236,6 +4282,7 @@ this.Instant = function() {
                                                        preview);
               replies.insertBefore(preview, succ);
             }
+            Instant.sidebar.unread._updateVisibilityTree(preview);
           },
           /* Retrieve the preview node corresponding to msg, if any */
           get: function(msg) {
