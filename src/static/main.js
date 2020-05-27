@@ -4236,12 +4236,12 @@ this.Instant = function() {
             }
           },
           /* Retrieve (or create) the DOM node hosting preview's replies
-           * If dontCreate is true and there is no replies node, this returns
-           * null. */
-          _getRepliesNode: function(preview, dontCreate) {
+           * If there is no replies node and create is true, a new node is
+           * created (and returned). */
+          _getReplyNode: function(preview, create) {
             var lastChild = preview.lastElementChild;
             if (! lastChild.classList.contains('replies')) {
-              if (dontCreate) return null;
+              if (! create) return null;
               lastChild = $makeNode('div', 'replies');
               preview.appendChild(lastChild);
             }
@@ -4254,8 +4254,7 @@ this.Instant = function() {
               var thisRank = Instant.sidebar.unread._getRank(preview);
               Instant.sidebar.unread._setVisible(preview,
                 (thisRank > enclosingRank));
-              var replies = Instant.sidebar.unread._getRepliesNode(preview,
-                                                                   true);
+              var replies = Instant.sidebar.unread._getReplyNode(preview);
               if (replies == null) return;
               enclosingRank = Math.max(thisRank, enclosingRank);
               Array.prototype.forEach.call(replies.childNodes, function(p) {
@@ -4277,7 +4276,8 @@ this.Instant = function() {
             if (parent == null) {
               $cls('previews', node).appendChild(preview);
             } else {
-              var replies = Instant.sidebar.unread._getRepliesNode(parent);
+              var replies = Instant.sidebar.unread._getReplyNode(parent,
+                                                                 true);
               var succ = Instant.sidebar.unread.bisect(replies.childNodes,
                                                        preview);
               replies.insertBefore(preview, succ);
@@ -4304,8 +4304,7 @@ this.Instant = function() {
             var preview = previews[msgid];
             delete previews[msgid];
             if (preview.parentNode) preview.parentNode.removeChild(preview);
-            var replies = Instant.sidebar.unread._getRepliesNode(preview,
-                                                                 true);
+            var replies = Instant.sidebar.unread._getReplyNode(preview);
             if (replies) {
               var replyList = Array.prototype.slice.call(replies.childNodes);
               replyList.forEach(Instant.sidebar.unread._insert);
