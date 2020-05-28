@@ -998,6 +998,12 @@ button.button-icon > img {
 .unread-message.unread-message-hidden > .unread-message-line {
   display: none;
 }
+.unread-message-line .copy-placeholder {
+  display: inline-block;
+  border: 1px solid #808080;
+  width: 1ex;
+  height: 1ex;
+}
 .unread-message-line .copy-truncated::after {
   content: "\2026";
 }
