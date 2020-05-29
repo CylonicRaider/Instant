@@ -986,14 +986,26 @@ button.button-icon > img {
   overflow: auto;
 }
 .unread-message-line > button.button-noborder {
+  display: -webkit-flex;
+  display: flex;
   width: 100%;
   text-align: left;
+  padding: 0 2px;
+  -webkit-align-items: baseline;
+  align-items: baseline;
+}
+.unread-message-line .nick, .unread-message-line .message-text {
+  white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  padding: 2px;
+}
+.unread-message-line .nick {
+  max-width: 25%;
+  -webkit-flex-shrink: 0;
+  flex-shrink: 0;
 }
 .unread-message-line .message-text {
-  white-space: nowrap;
+  padding: 1px 0 1px 0.25em;
 }
 .unread-message.unread-message-hidden > .unread-message-line {
   display: none;
@@ -1008,7 +1020,7 @@ button.button-icon > img {
   content: "\2026";
 }
 .unread-message > .replies {
-  padding-left: 3px;
+  padding-left: 2px;
 }
 .unread-message.unread-message-hidden > .replies {
   padding-left: 0;

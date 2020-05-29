@@ -4182,7 +4182,10 @@ this.Instant = function() {
             var ret = $makeNode('div', 'unread-message',
                 {id: 'unread-' + msgid, 'data-id': msgid}, [
               ['div', 'unread-message-line', [
-                ['button', 'button button-noborder', [tcnt]]
+                ['button', 'button button-noborder', [
+                  $cls('nick', msg).cloneNode(true),
+                  tcnt
+                ]]
               ]]
             ]);
             if (level != null) ret.classList.add('unread-message-' + level);
