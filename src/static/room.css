@@ -1015,6 +1015,7 @@ button.button-icon > img {
   border: 1px solid #808080;
   width: 1ex;
   height: 1ex;
+  box-sizing: border-box;
 }
 .unread-message-line .copy-truncated::after {
   content: "\2026";
