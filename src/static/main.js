@@ -4250,28 +4250,38 @@ this.Instant = function() {
             }
             return lastChild;
           },
-          /* Update the visibility of the given preview and all of its
-           * descendants as appropriate */
-          _updateVisibilityTree: function(preview) {
-            function traverse(preview, enclosingRank) {
+          /* Update the visibility of the given preview as appropriate
+           * If descendants is true, all descendants of preview are updated as
+           * well. */
+          _updateVisibility: function(preview, descendants) {
+            function traverse(preview, boundingRank) {
               var thisRank = Instant.sidebar.unread._getRank(preview);
               Instant.sidebar.unread._setVisible(preview,
-                (thisRank > enclosingRank));
+                (thisRank > boundingRank));
               var replies = Instant.sidebar.unread._getReplyNode(preview);
-              if (replies == null) return;
-              enclosingRank = Math.max(thisRank, enclosingRank);
+              if (replies == null || ! descendants) return thisRank;
+              boundingRank = Math.max(thisRank, boundingRank);
               Array.prototype.forEach.call(replies.childNodes, function(p) {
-                traverse(p, enclosingRank);
+                var localRank = traverse(p, boundingRank);
+                boundingRank = Math.max(boundingRank, localRank);
               });
+              return thisRank;
             }
-            var parent = preview, enclosingRank = 0;
+            var parent = preview, boundingRank = 0;
             for (;;) {
               parent = Instant.sidebar.unread._getParent(parent);
               if (parent == null) break;
-              enclosingRank = Math.max(enclosingRank,
+              boundingRank = Math.max(boundingRank,
                 Instant.sidebar.unread._getRank(parent));
             }
-            traverse(preview, enclosingRank);
+            var sibling = preview;
+            for (;;) {
+              sibling = sibling.previousSibling;
+              if (sibling == null) break;
+              boundingRank = Math.max(boundingRank,
+                Instant.sidebar.unread._getRank(sibling));
+            }
+            traverse(preview, boundingRank);
           },
           /* Insert the given preview into the preview node hierarchy */
           _insert: function(preview) {
@@ -4285,7 +4295,20 @@ this.Instant = function() {
                                                        preview);
               replies.insertBefore(preview, succ);
             }
-            Instant.sidebar.unread._updateVisibilityTree(preview);
+            Instant.sidebar.unread._updateVisibility(preview, true);
+          },
+          /* Remove the given node from the preview hierarchy */
+          _remove: function(preview) {
+            var sibling = preview.nextSibling;
+            if (preview.parentNode) preview.parentNode.removeChild(preview);
+            var replies = Instant.sidebar.unread._getReplyNode(preview);
+            if (replies) {
+              var replyList = Array.prototype.slice.call(replies.childNodes);
+              replyList.forEach(Instant.sidebar.unread._insert);
+            }
+            if (sibling) {
+              Instant.sidebar.unread._updateVisibility(sibling);
+            }
           },
           /* Retrieve the preview node corresponding to msg, if any */
           get: function(msg) {
@@ -4306,12 +4329,7 @@ this.Instant = function() {
             if (! previews[msgid]) return;
             var preview = previews[msgid];
             delete previews[msgid];
-            if (preview.parentNode) preview.parentNode.removeChild(preview);
-            var replies = Instant.sidebar.unread._getReplyNode(preview);
-            if (replies) {
-              var replyList = Array.prototype.slice.call(replies.childNodes);
-              replyList.forEach(Instant.sidebar.unread._insert);
-            }
+            Instant.sidebar.unread._remove(preview);
           },
           /* Retrieve the message node corresponding to preview */
           getMessage: function(preview) {
