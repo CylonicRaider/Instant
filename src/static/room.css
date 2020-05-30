@@ -990,7 +990,6 @@ button.button-icon > img {
   display: flex;
   width: 100%;
   text-align: left;
-  padding: 0 2px;
   -webkit-align-items: baseline;
   align-items: baseline;
 }
@@ -1007,9 +1006,6 @@ button.button-icon > img {
 .unread-message-line .message-text {
   padding: 1px 0 1px 0.25em;
 }
-.unread-message.unread-message-hidden > .unread-message-line {
-  display: none;
-}
 .unread-message-line .copy-placeholder {
   display: inline-block;
   border: 1px solid #808080;
@@ -1020,17 +1016,12 @@ button.button-icon > img {
 .unread-message-line .copy-truncated::after {
   content: "\2026";
 }
-.unread-message > .replies {
-  padding-left: 2px;
+.unread-message.unread-message-hidden > .unread-message-line {
+  display: none;
 }
-.unread-message.unread-message-hidden > .replies {
-  padding-left: 0;
-}
-.unread-message {
+.unread-message:not(.unread-message-hidden) {
   border-left: 2px solid transparent;
-}
-.unread-message.unread-message-hidden {
-  border-width: 0;
+  padding-left: 2px;
 }
 .unread-message.unread-message-ping {
   border-color: #c0c000;
@@ -1046,6 +1037,9 @@ button.button-icon > img {
 }
 .unread-message.unread-message-activity {
   border-color: #808080;
+}
+.replies > .unread-message-line:not(.unread-message-hidden) {
+  margin-top: 2px;
 }
 
 .content-wrapper.sidebar-pane .sidebar-unread {
