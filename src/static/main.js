@@ -4140,7 +4140,7 @@ this.Instant = function() {
           }
         };
       }(),
-      /* Unread message notification area */
+      /* Unread message preview pane */
       unread: function() {
         /* Preview nodes for each tracked message */
         var previews = {};
@@ -4152,7 +4152,7 @@ this.Instant = function() {
         return {
           init: function() {
             node = $makeNode('div', 'sidebar-unread', [
-              ['h2', null, 'Notifications'],
+              ['h2', null, 'Unread messages'],
               ['div', 'previews']
             ]);
             var trimLengthOverride = parseInt(
@@ -4308,6 +4308,18 @@ this.Instant = function() {
             }
             if (sibling) {
               Instant.sidebar.unread._updateVisibility(sibling);
+            }
+          },
+          /* Return whether the unread message pane itself is visible */
+          isEnabled: function() {
+            return node.classList.contains('visible');
+          },
+          /* Show or hide the entire unread message pane */
+          setEnabled: function(enabled) {
+            if (enabled) {
+              node.classList.add('visible');
+            } else {
+              node.classList.remove('visible');
             }
           },
           /* Retrieve the preview node corresponding to msg, if any */
@@ -6625,7 +6637,10 @@ this.Instant = function() {
                 ['hr'],
                 ['div', 'settings-nodisturb', [
                   checkbox('no-disturb', 'Do not disturb', 'Void ' +
-                    'notifications that are below your chosen level')
+                    'notifications that are below your chosen level'),
+                  checkbox('unread-previews', 'Unread message previews',
+                    'Show unread messages in the sidebar (only in Drawer ' +
+                    'or Pane mode)')
                 ]],
                 ['hr'],
                 ['div', 'settings-sidebar', [
@@ -6688,11 +6703,14 @@ this.Instant = function() {
         if (level != 'none') Instant.notifications.desktop.request();
         var noDisturb = cnt.elements['no-disturb'].checked;
         Instant.notifications.noDisturb = noDisturb;
+        var unreadPreviews = cnt.elements['unread-previews'].checked;
+        Instant.sidebar.unread.setEnabled(unreadPreviews);
         var sidebar = cnt.elements['sidebar'].value;
         Instant.contentPane.setSidebarMode(sidebar);
         Instant.storage.set('theme', theme);
         Instant.storage.set('notification-level', level);
         Instant.storage.set('no-disturb', noDisturb);
+        Instant.storage.set('unread-previews', unreadPreviews);
         Instant.storage.set('sidebar', sidebar);
         Instant._fireListeners('settings.apply', {source: event});
       },
@@ -6700,13 +6718,20 @@ this.Instant = function() {
       restore: function() {
         var cnt = $cls('settings-content', wrapperNode);
         var theme = Instant.storage.get('theme');
-        if (theme) cnt.elements['theme'].value = theme;
+        if (theme)
+          cnt.elements['theme'].value = theme;
         var level = Instant.storage.get('notification-level');
-        if (level) cnt.elements['notifies'].value = level;
+        if (level)
+          cnt.elements['notifies'].value = level;
         var noDisturb = Instant.storage.get('no-disturb');
-        if (noDisturb) cnt.elements['no-disturb'].checked = noDisturb;
+        if (noDisturb)
+          cnt.elements['no-disturb'].checked = noDisturb;
+        var unreadPreviews = Instant.storage.get('unread-previews');
+        if (unreadPreviews)
+          cnt.elements['unread-previews'].checked = unreadPreviews;
         var sidebar = Instant.storage.get('sidebar');
-        if (sidebar) cnt.elements['sidebar'].value = sidebar;
+        if (sidebar)
+          cnt.elements['sidebar'].value = sidebar;
       },
       /* Add a node to the settings content */
       addSetting: function(newNode) {
