@@ -3799,7 +3799,6 @@ this.Instant = function() {
     return {
       /* Initialize submodule */
       init: function() {
-        mode = 'overlay';
         node = $makeNode('div', 'content-wrapper sidebar-overlay', [
           Instant.message.getMessagePane(),
           ['div', 'backdrop'],
@@ -3814,9 +3813,12 @@ this.Instant = function() {
       getSidebarMode: function() {
         return mode;
       },
-      /* Set the display mode of the sidebar */
+      /* Set the display mode of the sidebar
+       * This function should be called at least once during page load (which
+       * is done by Instant.settings.) */
       setSidebarMode: function(newMode) {
         if (newMode == mode) return;
+        var oldMode = mode;
         var restore = Instant.input.saveScrollState();
         mode = newMode;
         for (var cn in CLASSES) {
@@ -3833,7 +3835,13 @@ this.Instant = function() {
         } else {
           node.classList.remove('more-contrast');
         }
-        Instant.sidebar.show();
+        if (oldMode == null) {
+          var visible = Instant.storage.get('sidebar-visible');
+          if (visible == null) visible = true;
+          Instant.sidebar._setVisible(visible);
+        } else {
+          Instant.sidebar.show();
+        }
         Instant.sidebar.updateWidth();
         Instant.settings.updateWidth();
         restore();
@@ -3960,6 +3968,7 @@ this.Instant = function() {
           node.classList.add('closed');
           handleNode.title = 'Show sidebar';
         }
+        Instant.storage.set('sidebar-visible', newState);
         Instant._fireListeners('sidebar.visbility', {wasOpen: oldState,
           open: newState, source: event});
       },
