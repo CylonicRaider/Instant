@@ -4098,6 +4098,16 @@ this.Instant = function() {
       unflashMessage: function(msgnode) {
         Instant.animation.unflash(msgnode);
       },
+      /* Respond to user list (un)collapsing */
+      _userListCollapsed: function(invisible) {
+        if (node == null) {
+          /* NOP */
+        } else if (invisible) {
+          node.classList.add('user-list-collapsed');
+        } else {
+          node.classList.remove('user-list-collapsed');
+        }
+      },
       /* Logo and room name widget */
       roomName: function() {
         /* Assorted DOM nodes */
@@ -4716,6 +4726,7 @@ this.Instant = function() {
           Instant.userList._updateDecay();
         }
         Instant.userList._update({collapsed: invisible});
+        Instant.sidebar._userListCollapsed(invisible);
       },
       /* Return whether the user list is currently collapsed */
       isCollapsed: function() {
