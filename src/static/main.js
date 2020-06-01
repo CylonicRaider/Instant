@@ -7959,6 +7959,138 @@ this.Instant = function() {
       }
     };
   }();
+  /* Timer management */
+  Instant.timers = function() {
+    /* Timer resolutions */
+    var RESOLUTIONS = {'s': 1000, 'ts': 10000, 'm': 60000};
+    /* The main data structure */
+    var timers = {'s': [], 'ts': [], 'm': []};
+    /* The current timeout ID (if any) */
+    var timeout = null, timeoutGranularity = null;
+    /* Compare the two given granularities and return -1, 0, or 1 depending on
+     * whether a is less than, equal to, or greater than b. */
+    function granCmp(a, b) {
+      var res = RESOLUTIONS[a] - RESOLUTIONS[b];
+      return (res < 0) ? -1 : (res > 0) ? 1 : 0;
+    }
+    return {
+      /* Schedule another run of the callbacks if necessary */
+      _schedule: function(checkGranularity) {
+        if (timeoutGranularity != null &&
+            granCmp(timeoutGranularity, checkGranularity) <= 0)
+          return;
+        var minGran = null;
+        for (var key in timers) {
+          if (! timers.hasOwnProperty(key)) continue;
+          if (! timers[key].length) continue;
+          if (minGran != null && granCmp(minGran, key) >= 0) continue;
+          minGran = key;
+        }
+        if (minGran == timeoutGranularity) return;
+        if (timeout != null) clearTimeout(timeout);
+        if (minGran == null) {
+          timeoutGranularity = null;
+          timeout = null;
+          return;
+        }
+        timeoutGranularity = minGran;
+        var resolution = RESOLUTIONS[minGran];
+        var now = Date.now();
+        var nextRun = Math.ceil(now / resolution) * resolution;
+        timeout = setTimeout(function() {
+          var realGranularity = minGran;
+          for (var key in RESOLUTIONS) {
+            if (! RESOLUTIONS.hasOwnProperty(key)) continue;
+            if (nextRun % RESOLUTIONS[key] != 0) continue;
+            if (granCmp(realGranularity, key) >= 0) continue;
+            realGranularity = key;
+          }
+          Instant.timers._run(realGranularity);
+        }, nextRun - now);
+      },
+      /* Run all timers at or below the given granularity */
+      _run: function(granularity) {
+        timeout = null;
+        timeoutGranularity = null;
+        var moved = null;
+        for (var key in timers) {
+          if (! timers.hasOwnProperty(key)) continue;
+          if (granCmp(key, granularity) > 0) continue;
+          /* Traverse the current callback list, effectively erasing those
+           * callbacks that are to be moved somewhere else or to be dropped
+           * altogether. */
+          var thisList = timers[key];
+          var curIndex = 0, wbIndex = 0;
+          while (curIndex < thisList.length) {
+            var curEntry = thisList[curIndex++];
+            var res;
+            try {
+              res = curEntry(granularity);
+            } catch (e) {
+              console.error('Error in timer callback:', e);
+              continue;
+            }
+            if (res == key) {
+              thisList[wbIndex++] = curEntry;
+            } else if (res == null) {
+              /* NOP */
+            } else if (! timers.hasOwnProperty(res)) {
+              console.error('Dropping timer callback', cb,
+                            'due to bad return value', res);
+            } else {
+              /* Callbacks to be moved to another list cannot be put there
+               * immediately because they would be called twice. */
+              if (moved == null) moved = {};
+              if (! moved[res]) moved[res] = [];
+              moved[res].push(curEntry);
+            }
+          }
+          thisList.length = wbIndex;
+        }
+        if (moved) {
+          for (var key in moved) {
+            if (! moved.hasOwnProperty(key)) continue;
+            Array.prototype.push.apply(timers[key], moved[key]);
+          }
+        }
+        Instant.timers._schedule();
+      },
+      /* Schedule the given function to be run within the given granularity
+       * cb is a function that takes a single argument (the granularity of the
+       * concrete run), does something, and returns the granularity it wants
+       * to be scheduled at again, or null (or undefined) if it does *not*
+       * want to be scheduled again.
+       * granularity is one of the following strings: 's' for each second,
+       * 'ts' for each ten seconds, or 'm' for each minute. */
+      add: function(cb, granularity) {
+        timers[granularity].push(cb);
+        Instant.timers._schedule(granularity);
+      },
+      /* Cancel all schedulings of the given function */
+      remove: function(cb) {
+        var found = false;
+        for (var key in timers) {
+          if (! timers.hasOwnProperty(key)) continue;
+          var list = timers[key];
+          for (;;) {
+            var index = list.indexOf(cb);
+            if (index == -1) break;
+            list.splice(index, 1);
+            found = true;
+          }
+        }
+        if (found) Instant.timers._schedule();
+      },
+      /* Discard all timers */
+      clear: function() {
+        for (var key in timers) {
+          if (! timers.hasOwnProperty(key)) continue;
+          timers[key].length = 0;
+        }
+        Instant.timers._schedule();
+      }
+    };
+  }();
   /* Miscellaneous utilities */
   Instant.util = function() {
     return {
