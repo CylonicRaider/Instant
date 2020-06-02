@@ -7962,9 +7962,9 @@ this.Instant = function() {
   /* Timer management */
   Instant.timers = function() {
     /* Timer resolutions */
-    var RESOLUTIONS = {'s': 1000, 'ts': 10000, 'm': 60000};
+    var RESOLUTIONS = {s: 1000, ts: 10000, m: 60000, tm: 600000, h: 3600000};
     /* The main data structure */
-    var timers = {'s': [], 'ts': [], 'm': []};
+    var timers = {s: [], ts: [], m: [], tm: [], h: []};
     /* The current timeout ID (if any) */
     var timeout = null, timeoutGranularity = null;
     /* Compare the two given granularities and return -1, 0, or 1 depending on
