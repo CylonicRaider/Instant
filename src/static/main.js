@@ -6584,6 +6584,61 @@ this.Instant = function() {
             return mentionBelow;
           }
         };
+      }(),
+      /* Animated DOM nodes displaying a relative time */
+      timers: function() {
+        /* All timer nodes and their timer callbacks */
+        var registry = [], callbacks = [];
+        /* The ID of the next timer */
+        var nextID = 1;
+        return {
+          /* Create, register, and return a timer node */
+          create: function(timestamp) {
+            function callback() {
+              var diff = Date.now() - timestamp;
+              var str = '';
+              if (diff < 0) {
+                str = '\u2212'; // Minus sign.
+                diff = -diff;
+              }
+              var gran;
+              if (diff > 3600000) {
+                str += Math.floor(diff / 3600000) + 'h';
+                gran = 'h';
+              } else if (diff > 60000) {
+                str += Math.floor(diff / 60000) + 'm';
+                gran = 'm';
+              } else {
+                str += Math.floor(diff / 1000) + 's';
+                gran = 's';
+              }
+              node.textContent = str;
+              return gran;
+            }
+            var id = nextID++;
+            var dateobj = new Date(timestamp);
+            var node = $makeNode('time', 'timer', {
+              'datetime': dateobj.toISOString(),
+              'data-timestamp': timestamp,
+              'title': formatDate(dateobj),
+              'id': 'timer-' + id,
+              'data-timer-id': id
+            }, '???');
+            registry.push(node);
+            callbacks.push(callback);
+            Instant.timers.add(callback, callback());
+            return node;
+          },
+          /* Destroy the given timer node */
+          destroy: function(node) {
+            var id = +node.getAttribute('data-timer-id');
+            var cb = callbacks[id];
+            if (! cb) return;
+            delete registry[id];
+            delete callbacks[id];
+            Instant.timers.remove(cb);
+          }
+        };
       }()
     };
   }();
