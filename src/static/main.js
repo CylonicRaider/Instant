@@ -4198,12 +4198,14 @@ this.Instant = function() {
             var msgid = msg.getAttribute('data-id');
             var cnt = Instant.message.extractTextNode(msg);
             var tcnt = Instant.message.parser.truncatedCopy(cnt, trimLength);
+            var ts = +$sel('time', msg).getAttribute('data-timestamp');
             var ret = $makeNode('div', 'unread-message',
                 {id: 'unread-' + msgid, 'data-id': msgid}, [
               ['div', 'unread-message-line', [
                 ['button', 'button button-noborder', [
                   $cls('nick', msg).cloneNode(true),
-                  tcnt
+                  tcnt,
+                  Instant.animation.timers.create(ts)
                 ]]
               ]]
             ]);
@@ -4318,6 +4320,7 @@ this.Instant = function() {
           },
           /* Remove the given node from the preview hierarchy */
           _remove: function(preview) {
+            Instant.animation.timers.destroy($sel('.timer', preview));
             var sibling = preview.nextSibling;
             if (preview.parentNode) preview.parentNode.removeChild(preview);
             var replies = Instant.sidebar.unread._getReplyNode(preview);

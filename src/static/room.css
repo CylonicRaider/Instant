@@ -1006,7 +1006,9 @@ button.button-icon > img {
   flex-shrink: 0;
 }
 .unread-message-line .message-text {
-  padding: 1px 0 1px 0.25em;
+  padding: 1px 0.25em 1px 0.25em;
+  -webkit-flex-grow: 1;
+  flex-grow: 1;
 }
 .unread-message-line .copy-placeholder {
   display: inline-block;
@@ -1017,6 +1019,14 @@ button.button-icon > img {
 }
 .unread-message-line .copy-truncated::after {
   content: "\2026";
+}
+.unread-message-line .timer {
+  padding: 1px 0;
+  overflow: hidden;
+  -webkit-flex-shrink: 0;
+  flex-shrink: 0;
+  font-style: italic;
+  color: #808080;
 }
 .unread-message.unread-message-hidden > .unread-message-line {
   display: none;
