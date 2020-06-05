@@ -4179,22 +4179,8 @@ this.Instant = function() {
             if (! isNaN(trimLengthOverride)) trimLength = trimLengthOverride;
             return node;
           },
-          /* Notification handler */
-          _notify: function(notify) {
-            var msg = notify.data.message;
-            if (msg == null || msg.classList.contains('mine')) return;
-            var level = null;
-            if (notify.data.unreadMentions) {
-              level = 'ping';
-            } else if (notify.data.unreadReplies) {
-              level = 'reply';
-            } else {
-              level = 'activity';
-            }
-            Instant.sidebar.unread.add(msg, level);
-          },
           /* Create a preview node for the given message */
-          _makePreview: function(msg, level) {
+          _makePreview: function(msg) {
             var msgid = msg.getAttribute('data-id');
             var cnt = Instant.message.extractTextNode(msg);
             var tcnt = Instant.message.parser.truncatedCopy(cnt, trimLength);
@@ -4209,7 +4195,8 @@ this.Instant = function() {
                 ]]
               ]]
             ]);
-            if (level != null) ret.classList.add('unread-message-' + level);
+            var level = Instant.notifications.getLevel(msg);
+            ret.classList.add('unread-message-' + level);
             $sel('button', ret).addEventListener('click', function() {
               Instant.input.moveTo(msg, true);
               Instant.input.focus();
@@ -4350,10 +4337,10 @@ this.Instant = function() {
             return previews[msgid] || null;
           },
           /* Add an unread message to the list */
-          add: function(msg, level) {
+          add: function(msg) {
             var msgid = msg.getAttribute('data-id');
             if (previews[msgid]) return;
-            var preview = Instant.sidebar.unread._makePreview(msg, level);
+            var preview = Instant.sidebar.unread._makePreview(msg);
             previews[msgid] = preview;
             Instant.sidebar.unread._insert(preview);
           },
@@ -6490,6 +6477,7 @@ this.Instant = function() {
                     changed = true;
                   }
                 }
+                Instant.sidebar.unread.add(n);
               }
             }
             if (remove && remove.length) {
@@ -6990,7 +6978,6 @@ this.Instant = function() {
           return null;
         Instant.sidebar._notify(notify);
         Instant.animation.onlineStatus._notify(notify);
-        Instant.sidebar.unread._notify(notify);
         /* Externally visible means of notification can be swallowed */
         if (! data.suppress) {
           Instant.title._notify(notify);
