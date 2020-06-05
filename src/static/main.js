@@ -8028,7 +8028,7 @@ this.Instant = function() {
         for (var key in timers) {
           if (! timers.hasOwnProperty(key)) continue;
           if (! timers[key].length) continue;
-          if (minGran != null && granCmp(minGran, key) >= 0) continue;
+          if (minGran != null && granCmp(key, minGran) >= 0) continue;
           minGran = key;
         }
         if (minGran == timeoutGranularity) return;
