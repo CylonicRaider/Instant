@@ -6585,26 +6585,32 @@ this.Instant = function() {
         return {
           /* Create, register, and return a timer node */
           create: function(timestamp) {
-            function callback() {
+            function callback(curGran) {
               var diff = Date.now() - timestamp;
               var str = '';
               if (diff < 0) {
                 str = '\u2212'; // Minus sign.
                 diff = -diff;
               }
-              var gran;
-              if (diff > 3600000) {
+              if (curGran == 'm' && diff >= 60000 && diff < 120000) {
+                minGran = 'm';
+              } else if (curGran == 'h' && diff >= 3600000 &&
+                         diff < 7200000) {
+                minGran = 'h';
+              }
+              var nextGran;
+              if (diff >= 7200000 || minGran == 'h') {
                 str += Math.floor(diff / 3600000) + 'h';
-                gran = 'h';
-              } else if (diff > 60000) {
+                nextGran = 'h';
+              } else if (diff >= 120000 || minGran == 'm') {
                 str += Math.floor(diff / 60000) + 'm';
-                gran = 'm';
+                nextGran = 'm';
               } else {
                 str += Math.floor(diff / 1000) + 's';
-                gran = 's';
+                nextGran = 's';
               }
               node.textContent = str;
-              return gran;
+              return nextGran;
             }
             var id = nextID++;
             var dateobj = new Date(timestamp);
@@ -6615,6 +6621,7 @@ this.Instant = function() {
               'id': 'timer-' + id,
               'data-timer-id': id
             }, '???');
+            var minGran = null;
             registry.push(node);
             callbacks.push(callback);
             Instant.timers.add(callback, callback());
