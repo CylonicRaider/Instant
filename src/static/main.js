@@ -6592,11 +6592,14 @@ this.Instant = function() {
                 str = '\u2212'; // Minus sign.
                 diff = -diff;
               }
-              if (curGran == 'm' && diff >= 60000 && diff < 120000) {
-                minGran = 'm';
-              } else if (curGran == 'h' && diff >= 3600000 &&
-                         diff < 7200000) {
+              if (curGran == 'h' &&
+                  diff >= 3600000 && diff < 7200000) {
                 minGran = 'h';
+              } else if ((curGran == 'm' || curGran == 'tm') &&
+                         diff >= 60000 && diff < 120000) {
+                minGran = 'm';
+              } else if (diff < 60000) {
+                minGran = null;
               }
               var nextGran;
               if (diff >= 7200000 || minGran == 'h') {
