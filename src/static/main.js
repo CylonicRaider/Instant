@@ -2178,6 +2178,14 @@ this.Instant = function() {
         }
         return ret;
       },
+      /* Highlight the given message visually */
+      highlight: function(msg) {
+        if (msg.classList.contains('highlight')) {
+          msg.classList.remove('highlight');
+          void msg.offsetWidth; // Force a reflow.
+        }
+        msg.classList.add('highlight');
+      },
       /* Retrieve the ID of the latest message in a thread
        * thread may be either a message ID of DOM node of a thread root. */
       getLatestMessage: function(thread) {
@@ -4198,9 +4206,11 @@ this.Instant = function() {
             var level = Instant.notifications.getLevel(msg);
             ret.classList.add('unread-message-' + level);
             $sel('button', ret).addEventListener('click', function() {
+              msg = Instant.message.get(msgid);
               Instant.input.moveTo(msg, true);
               Instant.input.focus();
               Instant.pane.scrollIntoView(Instant.input.getNode());
+              Instant.message.highlight(msg);
             });
             return ret;
           },
