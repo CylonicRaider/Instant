@@ -1676,7 +1676,7 @@ img.inline {
   display: inline-block;
 }
 
-.message.new:not(.mine):not(.ping) > .line, .message.highlight > .line {
+.message.new:not(.mine):not(.ping):not(.highlight) > .line {
   background: rgba(128, 128, 128, 0.3);
   /* Have to define explicitly so that the pausing selector
    * has a chance */
@@ -1689,7 +1689,7 @@ img.inline {
   animation-timing-function: linear;
   animation-fill-mode: both;
 }
-.message.new > .line time::after, .message.highlight > .line time::after {
+.message.new > .line time::after {
   content: "";
   display: block;
   position: absolute;
@@ -1725,7 +1725,7 @@ img.inline {
 
 }
 
-.flash {
+.flash, .message.highlight > .line {
   -webkit-animation: bgflash 4s step-start;
   animation: bgflash 4s step-start;
 }
