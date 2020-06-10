@@ -6008,21 +6008,15 @@ this.Instant = function() {
       },
       /* Flash something */
       flash: function(node) {
-        if (node.classList.contains('flash-done')) {
-          node.classList.remove('flash-done');
-        } else if (! node.classList.contains('flash')) {
-          node.classList.add('flash');
-        } else {
+        if (node.classList.contains('flash')) {
           node.classList.remove('flash');
-          /* HACK: Force a reflow. */
-          void node.offsetWidth;
-          node.classList.add('flash');
+          void node.offsetWidth; // Force a reflow.
         }
+        node.classList.add('flash');
       },
       /* Abort flashing something */
       unflash: function(node) {
-        if (node.classList.contains('flash'))
-          node.classList.add('flash-done');
+        node.classList.remove('flash');
       },
       /* Apply the given UI theme */
       setTheme: function(newTheme) {

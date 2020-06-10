@@ -1729,9 +1729,6 @@ img.inline {
   -webkit-animation: bgflash 4s step-start;
   animation: bgflash 4s step-start;
 }
-.flash.flash-done {
-  animation-name: none;
-}
 @-webkit-keyframes bgflash {
   0% { background: transparent; }
   12.5% { background: #808080; }
