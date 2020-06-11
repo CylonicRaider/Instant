@@ -6005,6 +6005,11 @@ this.Instant = function() {
           function(dark) {
             Instant.animation.setTheme(theme);
           });
+        /* Adjust sizes regularly */
+        Instant.timers.add(function() {
+          Instant.animation.adjustSizes();
+          return 's';
+        }, 's');
       },
       /* Flash something */
       flash: function(node) {
@@ -8657,7 +8662,6 @@ this.Instant = function() {
     Instant._fireListeners('init.late');
     Instant.settings.load();
     Instant.connection.init();
-    repeat(Instant.animation.adjustSizes.bind(Instant.animation), 1000);
     Instant.notifications.submitNew({text: 'Ready.'});
     Instant._fireListeners('init.final');
   };
