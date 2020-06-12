@@ -4196,21 +4196,27 @@ this.Instant = function() {
             var ret = $makeNode('div', 'unread-message',
                 {id: 'unread-' + msgid, 'data-id': msgid}, [
               ['div', 'unread-message-line', [
-                ['button', 'button button-noborder', [
+                ['button', 'button button-noborder unread-main', [
                   $cls('nick', msg).cloneNode(true),
                   tcnt,
                   Instant.animation.timers.create(ts)
+                ]],
+                ['button', 'button button-noborder button-icon unread-drop', [
+                  ['img', {src: Instant.icons.get('close')}]
                 ]]
               ]]
             ]);
             var level = Instant.notifications.getLevel(msg);
             ret.classList.add('unread-message-' + level);
-            $sel('button', ret).addEventListener('click', function() {
+            $cls('unread-main', ret).addEventListener('click', function() {
               msg = Instant.message.get(msgid);
               Instant.input.moveTo(msg, true);
               Instant.input.focus();
               Instant.pane.scrollIntoView(Instant.input.getNode());
               Instant.message.highlight(msg);
+            });
+            $cls('unread-drop', ret).addEventListener('click', function() {
+              Instant.sidebar.unread.remove(ret);
             });
             return ret;
           },

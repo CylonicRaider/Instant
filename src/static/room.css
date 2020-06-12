@@ -987,10 +987,14 @@ button.button-icon > img {
 .sidebar-unread .previews {
   overflow: auto;
 }
-.unread-message-line > button.button-noborder {
+.unread-message-line, .unread-message-line .unread-main {
   display: -webkit-flex;
   display: flex;
+  line-height: 1.2;
+}
+.unread-message-line .unread-main {
   width: 100%;
+  padding-right: 0.25em;
   text-align: left;
   -webkit-align-items: baseline;
   align-items: baseline;
@@ -1027,6 +1031,21 @@ button.button-icon > img {
   flex-shrink: 0;
   font-style: italic;
   color: #808080;
+}
+.unread-message-line button.unread-drop {
+  width: 1.2em;
+  height: 1.2em;
+  padding: 1px;
+  box-sizing: content-box;
+  position: relative;
+  outline-offset: -1px;
+}
+.unread-message-line button.unread-drop > img {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
 }
 .unread-message.unread-message-hidden > .unread-message-line {
   display: none;
