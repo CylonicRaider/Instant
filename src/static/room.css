@@ -998,9 +998,7 @@ button.button-icon > img {
   padding-right: 0.25em;
   text-align: left;
   -webkit-align-items: baseline;
-  -webkit-flex-shrink: 0;
   align-items: baseline;
-  flex-shrink: 0;
 }
 .unread-message-line .nick, .unread-message-line .message-text {
   white-space: nowrap;
