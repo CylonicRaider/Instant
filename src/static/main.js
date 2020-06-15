@@ -4210,9 +4210,8 @@ this.Instant = function() {
             ret.classList.add('unread-message-' + level);
             $cls('unread-main', ret).addEventListener('click', function() {
               msg = Instant.message.get(msgid);
-              Instant.input.moveTo(msg, true);
-              Instant.input.focus();
-              Instant.pane.scrollIntoView(Instant.input.getNode());
+              Instant.animation.goToMessage(msg);
+              Instant.animation.offscreen.check(msg);
               Instant.message.highlight(msg);
             });
             $cls('unread-drop', ret).addEventListener('click', function() {
