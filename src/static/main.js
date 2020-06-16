@@ -1193,7 +1193,7 @@ this.Instant = function() {
                   /* Prepare for scrolling */
                   var restore = Instant.input.saveScrollState(true);
                   /* Import messages */
-                  added.forEach(function(key) {
+                  var msgNodes = added.map(function(key) {
                     /* Sanitize input */
                     var msg = messages[key];
                     if (typeof msg.nick != 'string')
@@ -1201,12 +1201,13 @@ this.Instant = function() {
                     if (typeof msg.text != 'string')
                       msg.text = JSON.stringify(msg.text);
                     /* Import message */
-                    Instant.message.importMessage(msg, pane);
+                    return Instant.message.importMessage(msg, pane);
                   });
                   /* Scroll back */
                   restore();
                   /* Avoid stale node references */
                   Instant.animation.offscreen._updateMessages();
+                  Instant.animation.offscreen.checkMany(msgNodes);
                   /* Detect earliest and latest message */
                   data.data.forEach(function(el) {
                     if (! before || el.id < before) before = el.id;
@@ -6317,8 +6318,7 @@ this.Instant = function() {
         }
         /* Is the given message offscreen? */
         function isUnread(msg) {
-          return (msg.classList.contains('offscreen') &&
-                  msg.classList.contains('new'));
+          return msg.classList.contains('offscreen');
         }
         /* Is the given message offscreen and a mention of the current
          * user? */
@@ -6343,10 +6343,8 @@ this.Instant = function() {
             /* Link interesting node (lists) */
             messageBox = msgbox;
             containerNode = container;
-            unreadMessages = $clsAll('message new offscreen',
-                                     msgbox);
-            unreadMentions = $clsAll('message new offscreen ping',
-                                     msgbox);
+            unreadMessages = $clsAll('message offscreen', msgbox);
+            unreadMentions = $clsAll('message offscreen ping', msgbox);
             /* Extract the alerts themself */
             var aboveNode = $cls('alert-above', container);
             var belowNode = $cls('alert-below', container);
@@ -6465,8 +6463,7 @@ this.Instant = function() {
               var input = Instant.input.getNode();
               for (var i = 0; i < add.length; i++) {
                 var n = add[i];
-                if (! n.classList.contains('new') ||
-                    n.classList.contains('offscreen'))
+                if (n.classList.contains('offscreen'))
                   continue;
                 n.classList.add('offscreen');
                 var icmp = docCmp(n, input);
