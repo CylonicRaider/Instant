@@ -7663,7 +7663,8 @@ this.Instant = function() {
     var urls = {close:    '/static/close.svg',
                 collapse: '/static/collapse.svg',
                 expand:   '/static/expand.svg',
-                reload:   '/static/reload.svg'};
+                reload:   '/static/reload.svg',
+                chevron:  '/static/chevron-up.svg'};
     /* A mapping from icons being loaded to the corresponding Promises */
     var promises = {};
     return {
