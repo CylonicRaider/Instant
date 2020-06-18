@@ -6318,7 +6318,8 @@ this.Instant = function() {
         }
         /* Is the given message offscreen? */
         function isUnread(msg) {
-          return msg.classList.contains('offscreen');
+          return (msg.classList.contains('offscreen') &&
+                  msg.classList.contains('new'));
         }
         /* Is the given message offscreen and a mention of the current
          * user? */
@@ -6343,8 +6344,10 @@ this.Instant = function() {
             /* Link interesting node (lists) */
             messageBox = msgbox;
             containerNode = container;
-            unreadMessages = $clsAll('message offscreen', msgbox);
-            unreadMentions = $clsAll('message offscreen ping', msgbox);
+            unreadMessages = $clsAll('message new offscreen',
+                                     msgbox);
+            unreadMentions = $clsAll('message new offscreen ping',
+                                     msgbox);
             /* Extract the alerts themself */
             var aboveNode = $cls('alert-above', container);
             var belowNode = $cls('alert-below', container);
@@ -6463,7 +6466,8 @@ this.Instant = function() {
               var input = Instant.input.getNode();
               for (var i = 0; i < add.length; i++) {
                 var n = add[i];
-                if (n.classList.contains('offscreen'))
+                if (! n.classList.contains('new') ||
+                    n.classList.contains('offscreen'))
                   continue;
                 n.classList.add('offscreen');
                 var icmp = docCmp(n, input);
