@@ -4203,7 +4203,7 @@ this.Instant = function() {
                   Instant.animation.timers.create(ts)
                 ]],
                 ['button', 'button button-noborder button-icon unread-drop', [
-                  ['img', {src: Instant.icons.get('close')}]
+                  Instant.icons.makeNode('close')
                 ]]
               ]]
             ]);
@@ -5404,7 +5404,7 @@ this.Instant = function() {
                 ['small', ['(user ID ', ['a', 'monospace pm-to-id'], ')']],
                 ' ',
                 ['button', 'button button-icon pm-reload-to hidden', [
-                  ['img', {src: Instant.icons.get('reload')}]
+                  Instant.icons.makeNode('reload')
                 ]]
               ]]
             ]],
@@ -7169,12 +7169,12 @@ this.Instant = function() {
           ['span', 'separator'],
           ['button', 'button button-noborder hide-all',
               {title: 'Hide all popups'}, [
-            ['img', {src: Instant.icons.get('collapse')}]
+            Instant.icons.makeNode('collapse')
           ]],
           ['span', 'separator'],
           ['button', 'button button-noborder close-all',
               {title: 'Close all popups'}, [
-            ['img', {src: Instant.icons.get('close')}]
+            Instant.icons.makeNode('close')
           ]]
         ));
         stack = $cls('popups', wrapper);
@@ -7218,12 +7218,12 @@ this.Instant = function() {
             co && ['span', 'popup-title-sep'],
             co && ['button', 'button popup-button popup-collapse',
                 {title: 'Collapse/Expand'}, [
-              ['img', {src: Instant.icons.get('collapse')}]
+              Instant.icons.makeNode('collapse')
             ]],
             cl && ['span', 'popup-title-sep'],
             cl && ['button', 'button popup-button popup-close',
                 {title: 'Close'}, [
-              ['img', {src: Instant.icons.get('close')}]
+              Instant.icons.makeNode('close')
             ]]
           ]],
           ['div', 'popup-content'],
@@ -7416,7 +7416,7 @@ this.Instant = function() {
         var ret = $makeNode('div', 'popup-message', [
           ! options.noClose && ['span', 'popup-message-close-wrapper', [
             ['button', 'button button-noborder popup-message-close', [
-              ['img', {src: Instant.icons.get('close')}]
+              Instant.icons.makeNode('close')
             ]]
           ]]
         ]);
@@ -7720,6 +7720,12 @@ this.Instant = function() {
        * icon. */
       get: function(name) {
         return urls[name];
+      },
+      /* Create a DOM img node displaying the named icon
+       * className, if truthy, is used to initialize the node's CSS class. */
+      makeNode: function(name, className) {
+        return $makeNode('img', className || null,
+                         {src: Instant.icons.get(name)});
       }
     };
   }();
