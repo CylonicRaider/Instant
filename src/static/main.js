@@ -4202,6 +4202,10 @@ this.Instant = function() {
                   tcnt,
                   Instant.animation.timers.create(ts)
                 ]],
+                ['button', 'button button-noborder button-icon ' +
+                    'unread-expand', [
+                  Instant.icons.makeNode('chevron')
+                ]],
                 ['button', 'button button-noborder button-icon unread-drop', [
                   Instant.icons.makeNode('close')
                 ]]
@@ -4214,6 +4218,9 @@ this.Instant = function() {
               Instant.animation.goToMessage(msg);
               Instant.animation.offscreen.check(msg);
               Instant.message.highlight(msg);
+            });
+            $cls('unread-expand', ret).addEventListener('click', function() {
+              ret.classList.toggle('unread-expanded');
             });
             $cls('unread-drop', ret).addEventListener('click', function() {
               Instant.sidebar.unread.remove(ret);
@@ -4261,6 +4268,16 @@ this.Instant = function() {
             } else {
               preview.classList.add('unread-message-hidden');
             }
+          },
+          /* Retrieve the parent preview of the given preview, if any */
+          _getParent: function(preview) {
+            var replies = preview.parentNode;
+            if (! replies || ! replies.classList.contains('replies'))
+              return null;
+            var parent = replies.parentNode;
+            if (! parent || ! parent.classList.contains('unread-message'))
+              return null;
+            return parent;
           },
           /* Retrieve (or create) the DOM node hosting preview's replies
            * If there is no replies node and create is true, a new node is
@@ -4318,18 +4335,23 @@ this.Instant = function() {
               var succ = Instant.sidebar.unread.bisect(replies.childNodes,
                                                        preview);
               replies.insertBefore(preview, succ);
+              parent.classList.add('has-replies');
             }
             Instant.sidebar.unread._updateVisibility(preview, true);
           },
           /* Remove the given node from the preview hierarchy */
           _remove: function(preview) {
             Instant.animation.timers.destroy($sel('.timer', preview));
+            var parent = Instant.sidebar.unread._getParent(preview);
             var sibling = preview.nextSibling;
             if (preview.parentNode) preview.parentNode.removeChild(preview);
             var replies = Instant.sidebar.unread._getReplyNode(preview);
             if (replies) {
               var replyList = Array.prototype.slice.call(replies.childNodes);
               replyList.forEach(Instant.sidebar.unread._insert);
+            }
+            if (parent && ! replies.hasChildNodes()) {
+              parent.classList.remove('has-replies');
             }
             if (sibling) {
               Instant.sidebar.unread._updateVisibility(sibling);
