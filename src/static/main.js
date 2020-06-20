@@ -4203,7 +4203,7 @@ this.Instant = function() {
                   Instant.animation.timers.create(ts)
                 ]],
                 ['button', 'button button-noborder button-icon ' +
-                    'unread-expand', [
+                    'unread-collapse', [
                   Instant.icons.makeNode('chevron')
                 ]],
                 ['button', 'button button-noborder button-icon unread-drop', [
@@ -4219,9 +4219,10 @@ this.Instant = function() {
               Instant.animation.offscreen.check(msg);
               Instant.message.highlight(msg);
             });
-            $cls('unread-expand', ret).addEventListener('click', function() {
-              ret.classList.toggle('unread-expanded');
-            });
+            $cls('unread-collapse', ret).addEventListener('click',
+              function() {
+                ret.classList.toggle('unread-collapsed');
+              });
             $cls('unread-drop', ret).addEventListener('click', function() {
               Instant.sidebar.unread.remove(ret);
             });
@@ -4260,13 +4261,14 @@ this.Instant = function() {
               return 0;
             }
           },
-          /* Set whether the given preview should be visible
-           * Descendants of hidden previews are still visible on their own. */
-          _setVisible: function(preview, visibility) {
-            if (visibility) {
-              preview.classList.remove('unread-message-hidden');
+          /* Set the given preview's importance flag
+           * Important previews are visible even if any of their parents is
+           * collapsed. */
+          _setImportant: function(preview, importance) {
+            if (importance) {
+              preview.classList.add('unread-important');
             } else {
-              preview.classList.add('unread-message-hidden');
+              preview.classList.remove('unread-important');
             }
           },
           /* Retrieve the parent preview of the given preview, if any */
@@ -4291,16 +4293,17 @@ this.Instant = function() {
             }
             return lastChild;
           },
-          /* Update the visibility of the given preview as appropriate
+          /* Update the importance of the given preview as appropriate
            * If descendants is true, all descendants of preview are updated as
            * well. */
-          _updateVisibility: function(preview, descendants) {
+          _updateImportance: function(preview, descendants) {
             function traverse(preview, boundingRank) {
               var thisRank = Instant.sidebar.unread._getRank(preview);
-              Instant.sidebar.unread._setVisible(preview,
+              Instant.sidebar.unread._setImportant(preview,
                 (thisRank > boundingRank));
+              if (! descendants) return thisRank;
               var replies = Instant.sidebar.unread._getReplyNode(preview);
-              if (replies == null || ! descendants) return thisRank;
+              if (replies == null) return thisRank;
               boundingRank = Math.max(thisRank, boundingRank);
               Array.prototype.forEach.call(replies.childNodes, function(p) {
                 var localRank = traverse(p, boundingRank);
@@ -4337,7 +4340,7 @@ this.Instant = function() {
               replies.insertBefore(preview, succ);
               parent.classList.add('has-replies');
             }
-            Instant.sidebar.unread._updateVisibility(preview, true);
+            Instant.sidebar.unread._updateImportance(preview, true);
           },
           /* Remove the given node from the preview hierarchy */
           _remove: function(preview) {
@@ -4350,11 +4353,12 @@ this.Instant = function() {
               var replyList = Array.prototype.slice.call(replies.childNodes);
               replyList.forEach(Instant.sidebar.unread._insert);
             }
-            if (parent && ! replies.hasChildNodes()) {
+            var parentReplies = Instant.sidebar.unread._getReplyNode(parent);
+            if (! parentReplies || ! parentReplies.hasChildNodes()) {
               parent.classList.remove('has-replies');
             }
             if (sibling) {
-              Instant.sidebar.unread._updateVisibility(sibling);
+              Instant.sidebar.unread._updateImportance(sibling);
             }
           },
           /* Return whether the unread message pane itself is visible */

@@ -1050,24 +1050,20 @@ button.button-icon > img {
   width: 100%;
   height: 100%;
 }
-.unread-message-line .unread-expand img {
-  -webkit-transform: rotate(270deg);
-  transform: rotate(270deg);
-}
-.unread-message.unread-expanded > .unread-message-line .unread-expand img {
+.unread-message-line .unread-collapse img {
   -webkit-transform: rotate(180deg);
   transform: rotate(180deg);
 }
-.unread-message:not(.has-replies) > .unread-message-line .unread-expand {
+.unread-message.unread-collapsed > .unread-message-line .unread-collapse img {
+  -webkit-transform: rotate(270deg);
+  transform: rotate(270deg);
+}
+.unread-message:not(.has-replies) > .unread-message-line .unread-collapse {
   display: none;
 }
-.unread-message.unread-message-hidden > .unread-message-line {
+.unread-message.unread-collapsed > .replies
+.unread-message:not(.unread-important) > .unread-message-line {
   display: none;
-}
-.unread-message.unread-expanded > .replies > .unread-message >
-.unread-message-line {
-  display: -webkit-flex;
-  display: flex;
 }
 .unread-message {
   border-left: 2px solid transparent;
