@@ -1069,7 +1069,7 @@ button.button-icon > img {
   display: -webkit-flex;
   display: flex;
 }
-.unread-message:not(.unread-message-hidden) {
+.unread-message {
   border-left: 2px solid transparent;
   padding-left: 2px;
 }
@@ -1088,7 +1088,7 @@ button.button-icon > img {
 .unread-message.unread-message-activity {
   border-color: #808080;
 }
-.replies > .unread-message-line:not(.unread-message-hidden) {
+.unread-message-line {
   margin-top: 2px;
 }
 
