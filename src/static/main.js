@@ -4353,9 +4353,11 @@ this.Instant = function() {
               var replyList = Array.prototype.slice.call(replies.childNodes);
               replyList.forEach(Instant.sidebar.unread._insert);
             }
-            var parentReplies = Instant.sidebar.unread._getReplyNode(parent);
-            if (! parentReplies || ! parentReplies.hasChildNodes()) {
-              parent.classList.remove('has-replies');
+            if (parent) {
+              var parReplies = Instant.sidebar.unread._getReplyNode(parent);
+              if (! parReplies || ! parReplies.hasChildNodes()) {
+                parent.classList.remove('has-replies');
+              }
             }
             if (sibling) {
               Instant.sidebar.unread._updateImportance(sibling);
