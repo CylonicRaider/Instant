@@ -4174,19 +4174,29 @@ this.Instant = function() {
         var previews = {};
         /* The length to trim message texts to */
         var trimLength = 100;
-        /* The DOM node */
-        var node = null;
+        /* The main and the counter DOM nodes */
+        var node = null, sizeNode = null;
         /* Initialize submodule */
         return {
           init: function() {
             node = $makeNode('div', 'sidebar-unread', [
-              ['h2', null, 'Unread messages'],
+              ['h2', [
+                'Unread messages',
+                ['span', 'unread-size', '']
+              ]],
               ['div', 'previews']
             ]);
+            sizeNode = $cls('unread-size', node);
             var trimLengthOverride = parseInt(
               Instant.storage.get('message-preview-trim'), 10);
             if (! isNaN(trimLengthOverride)) trimLength = trimLengthOverride;
+            Instant.sidebar.unread._updateSize();
             return node;
+          },
+          /* Update the counter in the heading */
+          _updateSize: function() {
+            var size = Object.keys(previews).length;
+            sizeNode.textContent = ' (' + size + ')';
           },
           /* Create a preview node for the given message */
           _makePreview: function(msg) {
@@ -4341,6 +4351,7 @@ this.Instant = function() {
               parent.classList.add('has-replies');
             }
             Instant.sidebar.unread._updateImportance(preview, true);
+            Instant.sidebar.unread._updateSize();
           },
           /* Remove the given node from the preview hierarchy */
           _remove: function(preview) {
@@ -4362,6 +4373,7 @@ this.Instant = function() {
             if (sibling) {
               Instant.sidebar.unread._updateImportance(sibling);
             }
+            Instant.sidebar.unread._updateSize();
           },
           /* Return whether the unread message pane itself is visible */
           isEnabled: function() {

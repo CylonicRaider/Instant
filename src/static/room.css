@@ -984,6 +984,9 @@ button.button-icon > img {
   font: inherit;
   font-weight: bold;
 }
+.sidebar-unread .unread-size {
+  font-weight: normal;
+}
 .sidebar-unread .previews {
   overflow: auto;
 }
