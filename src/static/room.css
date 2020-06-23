@@ -979,13 +979,22 @@ button.button-icon > img {
   max-height: 50%;
 }
 .sidebar-unread > h2 {
+  display: -webkit-flex;
+  display: flex;
   -webkit-flex-shrink: 0;
+  -webkit-justify-content: space-between;
   flex-shrink: 0;
+  justify-content: space-between;
   font: inherit;
   font-weight: bold;
+  line-height: 1.2em;
 }
-.sidebar-unread .unread-size {
+.sidebar-unread > h2 .unread-size {
   font-weight: normal;
+}
+.sidebar-unread > h2 .unread-clear > img {
+  width: 1.2em;
+  height: 1.2em;
 }
 .sidebar-unread .previews {
   overflow: auto;

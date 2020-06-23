@@ -4181,12 +4181,21 @@ this.Instant = function() {
           init: function() {
             node = $makeNode('div', 'sidebar-unread', [
               ['h2', [
-                'Unread messages',
-                ['span', 'unread-size', '']
+                ['span', 'unread-top-left', [
+                  'Unread messages',
+                  ['span', 'unread-size', ' ???'],
+                ]],
+                ['button', 'button button-noborder button-icon ' +
+                    'unread-clear', [
+                  Instant.icons.makeNode('close')
+                ]]
               ]],
               ['div', 'previews']
             ]);
             sizeNode = $cls('unread-size', node);
+            $cls('unread-clear', node).addEventListener('click', function() {
+              Instant.sidebar.unread.clear();
+            });
             var trimLengthOverride = parseInt(
               Instant.storage.get('message-preview-trim'), 10);
             if (! isNaN(trimLengthOverride)) trimLength = trimLengthOverride;
@@ -4195,7 +4204,7 @@ this.Instant = function() {
           },
           /* Update the counter in the heading */
           _updateSize: function() {
-            var size = Object.keys(previews).length;
+            var size = Object.getOwnPropertyNames(previews).length;
             sizeNode.textContent = ' (' + size + ')';
           },
           /* Create a preview node for the given message */
@@ -4407,6 +4416,19 @@ this.Instant = function() {
             var preview = previews[msgid];
             delete previews[msgid];
             Instant.sidebar.unread._remove(preview);
+          },
+          /* Remove all previews */
+          clear: function() {
+            Object.getOwnPropertyNames(previews).forEach(function(k) {
+              var p = previews[k];
+              Instant.animation.timers.destroy($sel('.timer', p));
+              delete previews[k];
+            });
+            var container = $cls('previews', node);
+            while (container.firstChild) {
+              container.removeChild(container.firstChild);
+            }
+            Instant.sidebar.unread._updateSize();
           },
           /* Retrieve the message node corresponding to preview */
           getMessage: function(preview) {
