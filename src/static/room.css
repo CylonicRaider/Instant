@@ -1534,6 +1534,19 @@ button.button-icon > img {
   padding-top: 0;
 }
 
+.popup .popup-text-error, .popup .popup-text-delete {
+  color: #c00000;
+}
+.popup .popup-text-warning {
+  color: #808000;
+}
+.popup .popup-text-success, .popup .popup-text-create {
+  color: #008000;
+}
+.popup .popup-text-info, .popup .popup-text-update {
+  color: #0080ff;
+}
+
 .popup .popup-message {
   margin: 0 5px 5px 5px;
   min-height: 1.2em;

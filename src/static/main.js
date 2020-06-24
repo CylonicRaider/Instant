@@ -7213,6 +7213,9 @@ this.Instant = function() {
   }();
   /* Popup nodes */
   Instant.popups = function() {
+    /* Textual representations of standard dialog popup actions */
+    var ACTION_TEXTS = {'ok': 'OK', 'yes': 'Yes', 'no': 'No',
+                        'continue': 'Continue', 'cancel': 'Cancel'};
     /* The main node wrapper and the main node itself */
     var wrapper = null, stack = null;
     /* A UI message shown when there are hidden popups */
@@ -7221,6 +7224,8 @@ this.Instant = function() {
     var curID = 0;
     /* Popup ID -> listener for removal of popup */
     var removeListeners = {};
+    /* Index of named dialog popups */
+    var dialogs = {};
     return {
       /* Initialize submodule */
       init: function() {
@@ -7266,7 +7271,7 @@ this.Instant = function() {
           Instant.sidebar.hideMessage(hiddenMsg);
         }
         if (flash) Instant.sidebar.flashMessage(hiddenMsg);
-        Instant._fireListeners('popups.hide', {hidden: hidden});
+        Instant._fireListeners('popups.hidden', {hidden: hidden});
       },
       /* Create a new popup */
       make: function(options) {
@@ -7393,6 +7398,8 @@ this.Instant = function() {
           Instant.popups._setEmpty(true);
           Instant.popups._updateHidden();
           Instant.input.focus();
+        } else if (wrapper.classList.contains('hidden')) {
+          Instant.popups._updateHidden();
         } else {
           Instant.popups.focus(next);
         }
@@ -7437,11 +7444,79 @@ this.Instant = function() {
       scrollIntoView: function(node) {
         Instant.pane.scrollIntoViewEx(node, $cls('popups-content', wrapper));
       },
+      /* Create and show a dialog popup */
+      dialog: function(options) {
+        function invokeCallback(action) {
+          if (callbackInvoked) return;
+          callbackInvoked = true;
+          if (options.cb) options.cb(action);
+        }
+        if (options.id && dialogs[options.id]) {
+          var popup = dialogs[options.id];
+          if (! Instant.popups.isShown(popup))
+            Instant.popups.add(popup);
+          Instant.popups.scrollIntoView(popup);
+          Instant.popups.focus(popup);
+          return popup;
+        }
+        var popupOptions = {
+          className: options.className,
+          title: options.title,
+          content: options.content,
+          noClose: (! options.closeAction),
+          buttons: options.actions.map(function(el) {
+            if (el == null) return null;
+            var buttonOptions = {
+              onclick: function() {
+                invokeCallback(el.action);
+                Instant.popups.del(popup);
+              }
+            };
+            if (el.text == null) {
+              buttonOptions.text = ACTION_TEXTS[el.action];
+            } else {
+              buttonOptions.text = el.text;
+            }
+            if (el.category) {
+              buttonOptions.className = 'popup-text-' + el.category;
+            }
+            if (el.color) {
+              buttonOptions.color = el.color;
+            }
+            return buttonOptions;
+          }),
+          onremove: function() {
+            if (options.id) delete dialogs[options.id];
+            var action = options.closeAction;
+            if (action === undefined) action = null;
+            invokeCallback(action);
+          }
+        };
+        var callbackInvoked = false;
+        if (options.id) popupOptions.id = 'dialog-' + options.id;
+        var popup = Instant.popups.addNew(popupOptions);
+        if (options.id) {
+          popup.setAttribute('data-dialog-id', options.id);
+          dialogs[options.id] = popup;
+        }
+        Instant.popups.scrollIntoView(popup);
+        return popup;
+      },
       /* Remove all popups */
       delAll: function() {
-        while (stack.firstChild) stack.removeChild(stack.firstChild);
+        while (stack.firstChild) {
+          var popup = stack.firstChild;
+          stack.removeChild(popup);
+          var id = popup.getAttribute('data-popup-id');
+          if (id) {
+            var list = removeListeners[id];
+            delete removeListeners[id];
+            runList(list, popup);
+          }
+        }
         Instant.popups._setEmpty(true);
         Instant.input.focus();
+        Instant.popups._updateHidden();
         Instant._fireListeners('popups.clear');
       },
       /* Hide/unhide all popups */
