@@ -7467,6 +7467,7 @@ this.Instant = function() {
           buttons: options.actions.map(function(el) {
             if (el == null) return null;
             var buttonOptions = {
+              className: (el.className || ''),
               onclick: function() {
                 invokeCallback(el.action);
                 Instant.popups.del(popup);
@@ -7478,13 +7479,14 @@ this.Instant = function() {
               buttonOptions.text = el.text;
             }
             if (el.category) {
-              buttonOptions.className = 'popup-text-' + el.category;
+              buttonOptions.className += ' popup-text-' + el.category;
             }
             if (el.color) {
               buttonOptions.color = el.color;
             }
             return buttonOptions;
           }),
+          focusSel: (options.focusSel || '.popup-bottom .button'),
           onremove: function() {
             if (options.id) delete dialogs[options.id];
             var action = options.closeAction;
