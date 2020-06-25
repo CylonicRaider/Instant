@@ -4194,7 +4194,20 @@ this.Instant = function() {
             ]);
             sizeNode = $cls('unread-size', node);
             $cls('unread-clear', node).addEventListener('click', function() {
-              Instant.sidebar.unread.clear();
+              if (Object.getOwnPropertyNames(previews).length == 0) return;
+              Instant.popups.dialog({
+                id: 'clear-unread',
+                title: 'Confirmation',
+                content: 'Really remove all unread message previews?',
+                actions: [
+                  {action: 'continue', category: 'delete'},
+                  {action: 'cancel'}
+                ],
+                closeAction: 'cancel',
+                cb: function(action) {
+                  if (action == 'continue') Instant.sidebar.unread.clear();
+                }
+              });
             });
             var trimLengthOverride = parseInt(
               Instant.storage.get('message-preview-trim'), 10);
@@ -5022,7 +5035,22 @@ this.Instant = function() {
         function tg(u, i, d, o) {
           return Instant.privmsg.toggle.bind(Instant.privmsg, u, i, d, o);
         }
-        var clr = Instant.privmsg.clear.bind(Instant.privmsg);
+        function clr() {
+          if (! popups.length) return;
+          Instant.popups.dialog({
+            id: 'clear-pms',
+            title: 'Confirmation',
+            content: 'Really remove all private messages?',
+            actions: [
+              {action: 'continue', category: 'delete'},
+              {action: 'cancel'}
+            ],
+            closeAction: 'cancel',
+            cb: function(action) {
+              if (action == 'continue') Instant.privmsg.clear();
+            }
+          });
+        }
         msgUnread = Instant.sidebar.makeMessage({
           content: 'New private messages',
           color: Instant.notifications.COLORS.privmsg,
