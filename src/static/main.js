@@ -7439,6 +7439,9 @@ this.Instant = function() {
             node.focus();
           }
         }
+        if (wrapper.classList.contains('hidden')) {
+          Instant.sidebar.flashMessage(hiddenMsg);
+        }
       },
       /* Scroll the given popup into view */
       scrollIntoView: function(node) {
