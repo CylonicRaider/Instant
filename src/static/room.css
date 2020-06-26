@@ -1062,14 +1062,6 @@ button.button-icon > img {
   width: 100%;
   height: 100%;
 }
-.unread-message-line .unread-collapse img {
-  -webkit-transform: rotate(180deg);
-  transform: rotate(180deg);
-}
-.unread-message.unread-collapsed > .unread-message-line .unread-collapse img {
-  -webkit-transform: rotate(270deg);
-  transform: rotate(270deg);
-}
 .unread-message:not(.has-replies) > .unread-message-line .unread-collapse {
   display: none;
 }

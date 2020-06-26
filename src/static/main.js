@@ -4186,7 +4186,7 @@ this.Instant = function() {
                   ['span', 'unread-size', ' ???'],
                 ]],
                 ['button', 'button button-noborder button-icon ' +
-                    'unread-clear', [
+                    'unread-clear', {title: 'Remove all'}, [
                   Instant.icons.makeNode('close')
                 ]]
               ]],
@@ -4235,16 +4235,21 @@ this.Instant = function() {
                   Instant.animation.timers.create(ts)
                 ]],
                 ['button', 'button button-noborder button-icon ' +
-                    'unread-collapse', [
-                  Instant.icons.makeNode('chevron')
+                    'unread-collapse', {title: 'Collapse'}, [
+                  Instant.icons.makeNode('chevron', 'turn')
                 ]],
-                ['button', 'button button-noborder button-icon unread-drop', [
+                ['button', 'button button-noborder button-icon unread-drop',
+                    {title: 'Remove'}, [
                   Instant.icons.makeNode('close')
                 ]]
               ]]
             ]);
+            var nickNode = $cls('nick', ret);
+            var collapser = $cls('unread-collapse', ret);
+            var collapserIcon = $sel('img', collapser);
             var level = Instant.notifications.getLevel(msg);
             ret.classList.add('unread-message-' + level);
+            nickNode.title = nickNode.textContent;
             $cls('unread-main', ret).addEventListener('click', function() {
               msg = Instant.message.get(msgid);
               Instant.animation.goToMessage(msg);
@@ -4254,6 +4259,13 @@ this.Instant = function() {
             $cls('unread-collapse', ret).addEventListener('click',
               function() {
                 ret.classList.toggle('unread-collapsed');
+                if (ret.classList.contains('unread-collapsed')) {
+                  collapser.title = 'Expand';
+                  collapserIcon.className = 'turn-left';
+                } else {
+                  collapser.title = 'Collapse';
+                  collapserIcon.className = 'turn';
+                }
               });
             $cls('unread-drop', ret).addEventListener('click', function() {
               Instant.sidebar.unread.remove(ret);
@@ -5040,7 +5052,7 @@ this.Instant = function() {
           Instant.popups.dialog({
             id: 'clear-pms',
             title: 'Confirmation',
-            content: 'Really remove all private messages?',
+            content: 'Really delete all private messages?',
             actions: [
               {action: 'continue', category: 'delete'},
               {action: 'cancel'}
