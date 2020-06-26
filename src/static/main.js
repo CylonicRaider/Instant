@@ -3901,7 +3901,7 @@ this.Instant = function() {
               ['div', 'sidebar-top-line', [
                 ['span', 'sidebar-drawer-handle-wrapper', [
                   ['span', 'sidebar-drawer-handle sidebar-widget', [
-                    ['button', 'button button-icon', [
+                    ['button', 'button button-icon-cover', [
                       ['img', 'icon icon-open turn-left',
                         {src: '/static/arrow-bar-up.svg'}],
                       ['img', 'icon icon-close turn-left',
@@ -4185,7 +4185,7 @@ this.Instant = function() {
                   'Unread messages',
                   ['span', 'unread-size', ' ???'],
                 ]],
-                ['button', 'button button-noborder button-icon ' +
+                ['button', 'button button-noborder button-icon-cover ' +
                     'unread-clear', {title: 'Remove all'}, [
                   Instant.icons.makeNode('close')
                 ]]
@@ -4234,12 +4234,12 @@ this.Instant = function() {
                   tcnt,
                   Instant.animation.timers.create(ts)
                 ]],
-                ['button', 'button button-noborder button-icon ' +
+                ['button', 'button button-noborder button-icon-cover ' +
                     'unread-collapse', {title: 'Collapse'}, [
                   Instant.icons.makeNode('chevron', 'turn')
                 ]],
-                ['button', 'button button-noborder button-icon unread-drop',
-                    {title: 'Remove'}, [
+                ['button', 'button button-noborder button-icon-cover ' +
+                    'unread-drop', {title: 'Remove'}, [
                   Instant.icons.makeNode('close')
                 ]]
               ]]

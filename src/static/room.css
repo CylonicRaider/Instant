@@ -428,7 +428,7 @@ body {
 .sidebar-drawer-handle:hover {
   opacity: 1;
 }
-.sidebar-drawer-handle button {
+.sidebar-drawer-handle button.button {
   position: absolute;
   top: 0;
   left: 0;
@@ -437,10 +437,6 @@ body {
   border: 0;
   padding: 0;
   outline-offset: 0;
-}
-.sidebar-drawer-handle button.button-icon > img {
-  width: 100%;
-  height: 100%;
 }
 .sidebar.open .sidebar-drawer-handle .icon-open,
 .sidebar.closed .sidebar-drawer-handle .icon-close {
@@ -895,21 +891,35 @@ a.room-name .staging {
   border: 0;
   padding: 0;
 }
-.button.button-noborder, .button.button-icon {
+.button.button-icon, .button.button-icon-cover, .button.button-noborder {
   border: 0;
   padding: 0;
 }
-.button.button-noborder {
-  outline-offset: -1px;
-}
-.button.button-icon {
+.button.button-icon, .button.button-icon-cover {
   outline-offset: 0;
   line-height: 0;
+}
+.button.button-noborder {
+  outline-offset: -1px;
 }
 button.button-icon > img {
   width: 1em;
   height: 1em;
   vertical-align: middle;
+}
+.button.button-icon-cover {
+  position: relative;
+  width: 1.2em;
+  height: 1.2em;
+  box-sizing: content-box;
+  line-height: 0;
+}
+.button.button-icon-cover > img {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
 }
 .button.hidden {
   display: none;
@@ -989,12 +999,14 @@ button.button-icon > img {
   font-weight: bold;
   line-height: 1.2em;
 }
+.sidebar-unread > h2 .unread-top-left {
+  padding: 1px 0;
+}
 .sidebar-unread > h2 .unread-size {
   font-weight: normal;
 }
-.sidebar-unread > h2 .unread-clear > img {
-  width: 1.2em;
-  height: 1.2em;
+.sidebar-unread > h2 .unread-clear {
+  padding: 1px;
 }
 .sidebar-unread .previews {
   overflow: auto;
@@ -1045,22 +1057,10 @@ button.button-icon > img {
   font-style: italic;
   color: #808080;
 }
-.unread-message-line button.button-icon {
-  position: relative;
-  width: 1.2em;
-  height: 1.2em;
+.unread-message-line button.button-icon-cover {
   padding: 1px;
-  box-sizing: content-box;
-  outline-offset: -1px;
   -webkit-flex-shrink: 0;
   flex-shrink: 0;
-}
-.unread-message-line button.button-icon > img {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
 }
 .unread-message:not(.has-replies) > .unread-message-line .unread-collapse {
   display: none;
