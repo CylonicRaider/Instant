@@ -517,7 +517,6 @@ body {
 .content-wrapper.sidebar-pane .sidebar-middle-wrapper {
   /* Override value set by JS */
   min-width: 0 !important;
-  margin-right: -2px;
 }
 .content-wrapper.sidebar-pane .sidebar-top-line .sidebar-top-dynamic,
 .content-wrapper.sidebar-pane .sidebar-top-line .sidebar-top-left,
