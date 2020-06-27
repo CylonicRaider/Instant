@@ -32,6 +32,7 @@ import net.instant.api.parser.ParserFactory;
 import net.instant.console.BackendConsoleManager;
 import net.instant.console.security.PasswordHashAuthenticator;
 import net.instant.hooks.APIWebSocketHook;
+import net.instant.hooks.AuthHook;
 import net.instant.hooks.CodeHook;
 import net.instant.hooks.RedirectHook;
 import net.instant.hooks.StaticFileHook;
@@ -152,6 +153,7 @@ public class InstantRunner implements API1 {
     private InstantWebSocketServer server;
     private RedirectHook redirects;
     private StaticFileHook files;
+    private AuthHook authHook;
     private APIWebSocketHook wsAPI;
     private ListProducer pluginFiles;
     private StringProducer stringFiles;
@@ -232,6 +234,7 @@ public class InstantRunner implements API1 {
             server.addInternalHook(makeRedirectHook());
             server.addInternalHook(makeFileHook());
             server.addInternalHook(makeAPIHook());
+            server.addInternalHook(makeAuthHook());
             server.addInternalHook(CodeHook.NOT_FOUND);
             server.addInternalHook(CodeHook.METHOD_NOT_ALLOWED);
         }
@@ -266,6 +269,19 @@ public class InstantRunner implements API1 {
             l.add(new QueryStrippingProducer(makeSourceFiles()));
         }
         return files;
+    }
+
+    public AuthHook getAuthHook() {
+        return authHook;
+    }
+    public void setAuthHook(AuthHook hook) {
+        authHook = hook;
+    }
+    public AuthHook makeAuthHook() {
+        if (authHook == null) {
+            authHook = new AuthHook();
+        }
+        return authHook;
     }
 
     public APIWebSocketHook getAPIHook() {

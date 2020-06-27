@@ -4,8 +4,6 @@ import net.instant.api.RequestData;
 import net.instant.api.RequestHook;
 import net.instant.api.RequestType;
 import net.instant.api.ResponseBuilder;
-import net.instant.util.Encodings;
-import net.instant.util.Util;
 import net.instant.util.stringmatch.ListStringMatcher;
 
 public abstract class WebSocketHook implements RequestHook {
@@ -27,14 +25,7 @@ public abstract class WebSocketHook implements RequestHook {
         if (tag == null) return false;
         resp.respond(101, "Switching Protocols", -1);
         resp.addHeader("Content-Type", "application/x-websocket");
-        addMagicCookie(resp);
         return evaluateRequestInner(req, resp, tag);
-    }
-
-    protected void addMagicCookie(ResponseBuilder resp) {
-        byte[] data = Util.getRandomness(12);
-        resp.addHeader("X-Magic-Cookie", '"' + Encodings.toBase64(data) +
-                       '"');
     }
 
     protected abstract boolean evaluateRequestInner(RequestData req,
