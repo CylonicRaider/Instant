@@ -4187,12 +4187,21 @@ this.Instant = function() {
                 ['span', 'unread-size', ' ???'],
               ]],
               ['button', 'button button-noborder button-icon-cover ' +
+                  'unread-collapse-all', {title: 'Collapse all'}, [
+                Instant.icons.makeNode('arrowBar', 'turn')
+              ]],
+              ['button', 'button button-noborder button-icon-cover ' +
                   'unread-clear', {title: 'Remove all'}, [
                 Instant.icons.makeNode('close')
               ]]
             ]);
             node = $makeNode('div', 'sidebar-unread sidebar-unread-content');
             sizeNode = $cls('unread-size', headingNode);
+            $cls('unread-collapse-all', headingNode).addEventListener('click',
+              function() {
+                Instant.sidebar.unread.collapseAll();
+              }
+            );
             $cls('unread-clear', headingNode).addEventListener('click',
               function() {
                 if (Object.getOwnPropertyNames(previews).length == 0) return;
@@ -4247,8 +4256,6 @@ this.Instant = function() {
               ]]
             ]);
             var nickNode = $cls('nick', ret);
-            var collapser = $cls('unread-collapse', ret);
-            var collapserIcon = $sel('img', collapser);
             var level = Instant.notifications.getLevel(msg);
             ret.classList.add('unread-message-' + level);
             nickNode.title = nickNode.textContent;
@@ -4260,14 +4267,7 @@ this.Instant = function() {
             });
             $cls('unread-collapse', ret).addEventListener('click',
               function() {
-                ret.classList.toggle('unread-collapsed');
-                if (ret.classList.contains('unread-collapsed')) {
-                  collapser.title = 'Expand';
-                  collapserIcon.className = 'turn-left';
-                } else {
-                  collapser.title = 'Collapse';
-                  collapserIcon.className = 'turn';
-                }
+                Instant.sidebar.unread.collapse(ret);
               });
             $cls('unread-drop', ret).addEventListener('click', function() {
               Instant.sidebar.unread.remove(ret);
@@ -4438,13 +4438,29 @@ this.Instant = function() {
             previews[msgid] = preview;
             Instant.sidebar.unread._insert(preview);
           },
-          /* Remove a message from the list */
+          /* Remove the preview of a message from the list */
           remove: function(msg) {
             var msgid = msg.getAttribute('data-id');
             if (! previews[msgid]) return;
             var preview = previews[msgid];
             delete previews[msgid];
             Instant.sidebar.unread._remove(preview);
+          },
+          /* Collapse or expand a preview */
+          collapse: function(preview, newState) {
+            if (newState == null)
+              newState = (! preview.classList.contains('unread-collapsed'));
+            var collapser = $cls('unread-collapse', preview);
+            var collapserIcon = $sel('img', collapser);
+            if (newState) {
+              preview.classList.add('unread-collapsed');
+              collapser.title = 'Expand';
+              collapserIcon.className = 'turn-left';
+            } else {
+              preview.classList.remove('unread-collapsed');
+              collapser.title = 'Collapse';
+              collapserIcon.className = 'turn';
+            }
           },
           /* Remove all previews */
           clear: function() {
@@ -4457,6 +4473,22 @@ this.Instant = function() {
               node.removeChild(node.firstChild);
             }
             Instant.sidebar.unread._updateSize();
+          },
+          /* Collapse or expand the entire area */
+          collapseAll: function(newState) {
+            if (newState == null)
+              newState = (! node.classList.contains('unread-collapsed'));
+            var collapser = $cls('unread-collapse-all', headingNode);
+            var collapserIcon = $sel('img', collapser);
+            if (newState) {
+              node.classList.add('unread-collapsed');
+              collapser.title = 'Expand all';
+              collapserIcon.className = '';
+            } else {
+              node.classList.remove('unread-collapsed');
+              collapser.title = 'Collapse all';
+              collapserIcon.className = 'turn';
+            }
           },
           /* Retrieve the heading node */
           getHeadingNode: function() {
@@ -7861,7 +7893,9 @@ this.Instant = function() {
                 collapse: '/static/collapse.svg',
                 expand:   '/static/expand.svg',
                 reload:   '/static/reload.svg',
-                chevron:  '/static/chevron-up.svg'};
+                arrow:    '/static/arrow-up.svg',
+                chevron:  '/static/chevron-up.svg',
+                arrowBar: '/static/arrow-bar-up.svg'};
     /* A mapping from icons being loaded to the corresponding Promises */
     var promises = {};
     return {
