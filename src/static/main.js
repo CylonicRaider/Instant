@@ -215,12 +215,16 @@ this.Instant = function() {
   var roomMatch = ROOM_PATH_RE.exec(document.location.pathname);
   if (roomMatch) {
     var scheme = (document.location.protocol == 'https:') ? 'wss' : 'ws';
+    var apiURL = document.location.protocol + '//' + document.location.host +
+      '/api/';
     var wsURL = scheme + '://' + document.location.host +
       roomMatch[2] + '/ws';
+    Instant.apiURL = apiURL;
     Instant.connectionURL = wsURL;
     Instant.roomName = roomMatch[3];
     Instant.stagingLocation = roomMatch[1];
   } else {
+    Instant.apiURL = null;
     Instant.connectionURL = null;
     Instant.roomName = null;
     Instant.stagingLocation = null;
@@ -357,41 +361,22 @@ this.Instant = function() {
     var seqid = null;
     /* The actual WebSocket */
     var ws = null;
-    /* Whether the WebSocket is connected, or was in the past */
-    var connected = false, wasConnected = false;
+    /* Whether the WebSocket is connected, or was in the past, and whether the
+     * pre-connection handler had been called */
+    var connected = false, wasConnected = false, didPreConnect = false;
     /* Whether the default URL was overridden */
     var overridden = false;
     /* Message handlers */
     var rawHandlers = {}, handlers = {};
     /* Callbacks for individual messages */
     var callbacks = {};
-    /* Send regular pings
-     * lastPong is a [local time, server time] array (or null). */
+    /* Information about the last ping response as a [local time, server time]
+     * array (or null). */
     var lastPong = null;
-    setInterval(function() {
-      if (! Instant || ! Instant.connection ||
-          ! Instant.connection.isConnected())
-        return;
-      var payload = null;
-      if (lastPong) {
-        var now = Date.now();
-        var delta = lastPong[1] - lastPong[0];
-        if (lastPong[0] <= now - 35000) {
-          console.warn('Last ping response too far in the past; ' +
-              'reconnecting...');
-          Instant.connection.reconnect();
-          return;
-        } else {
-          payload = {next: Date.now() + delta + 35000};
-        }
-      }
-      Instant.connection.sendPing(payload);
-    }, 30000);
     return {
       /* A kill switch for certain edge cases */
       _dontConnect: false,
-      /* Initialize the submodule, by installing the connection status
-       * widget */
+      /* Initialize the submodule */
       init: function() {
         /* Debugging hook */
         if (window.logInstantMessages === undefined)
@@ -411,11 +396,53 @@ this.Instant = function() {
         /* Update related modules */
         Instant.animation.onlineStatus.update();
         Instant.userList._update();
+        /* Send regular pings */
+        setInterval(function() {
+          if (! Instant.connection.isConnected())
+            return;
+          var payload = null;
+          if (lastPong) {
+            var now = Date.now();
+            var delta = lastPong[1] - lastPong[0];
+            if (lastPong[0] <= now - 35000) {
+              console.warn('Last ping response too far in the past; ' +
+                  'reconnecting...');
+              Instant.connection.reconnect();
+              return;
+            } else {
+              payload = {next: Date.now() + delta + 35000};
+            }
+          }
+          Instant.connection.sendPing(payload);
+        }, 30000);
+      },
+      /* Special API call performed before the first connection */
+      _preConnect: function() {
+        if (Instant.apiURL && ! Instant.connection._dontConnect) {
+          /* Mobile Safari workaround: (As of this writing,) the browser does
+           * not store HttpOnly cookies delivered via WebSocket response
+           * headers (although it happily sends them back); to counteract
+           * this, we perform an XHR that sets the cookie before the first
+           * WebSocket connection. */
+          var xhr = new XMLHttpRequest();
+          xhr.onload = function() {
+            // We only care about the side effects of the request.
+            if (ws == null) Instant.connection.connect();
+          };
+          xhr.open('GET', Instant.apiURL + 'auth');
+          xhr.send();
+        }
+        didPreConnect = true;
+        Instant.connection.connect();
       },
       /* Actually connect */
       connect: function() {
         if (! Instant.connectionURL || Instant.connection._dontConnect) {
           ws = null;
+          return null;
+        }
+        if (! didPreConnect) {
+          Instant.connection._preConnect();
           return null;
         }
         /* Create WebSocket */
