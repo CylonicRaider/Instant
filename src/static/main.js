@@ -3895,6 +3895,7 @@ this.Instant = function() {
         }
         Instant.userList.init();
         Instant.sidebar.roomName.init();
+        Instant.sidebar.unread.init();
         node = $makeNode('div', 'sidebar open', [
           ['div', 'sidebar-content', [
             ['div', 'sidebar-top', [
@@ -3933,9 +3934,10 @@ this.Instant = function() {
             ]],
             ['div', 'sidebar-bottom', [
               Instant.userList.getCollapserNode()
-            ]]
-          ]],
-          Instant.sidebar.unread.init()
+            ]],
+            Instant.sidebar.unread.getHeadingNode(),
+            Instant.sidebar.unread.getNode()
+          ]]
         ]);
         handleNode = $sel('.sidebar-drawer-handle button', node);
         handleNode.addEventListener('click', Instant.sidebar.toggle);
@@ -4174,41 +4176,41 @@ this.Instant = function() {
         var previews = {};
         /* The length to trim message texts to */
         var trimLength = 100;
-        /* The main and the counter DOM nodes */
-        var node = null, sizeNode = null;
+        /* The heading, main, and counter DOM nodes */
+        var headingNode = null, node = null, sizeNode = null;
         /* Initialize submodule */
         return {
           init: function() {
-            node = $makeNode('div', 'sidebar-unread', [
-              ['h2', [
-                ['span', 'unread-top-left', [
-                  'Unread messages',
-                  ['span', 'unread-size', ' ???'],
-                ]],
-                ['button', 'button button-noborder button-icon-cover ' +
-                    'unread-clear', {title: 'Remove all'}, [
-                  Instant.icons.makeNode('close')
-                ]]
+            headingNode = $makeNode('h2', 'sidebar-unread', [
+              ['span', 'unread-top-left', [
+                'Unread messages',
+                ['span', 'unread-size', ' ???'],
               ]],
-              ['div', 'previews']
+              ['button', 'button button-noborder button-icon-cover ' +
+                  'unread-clear', {title: 'Remove all'}, [
+                Instant.icons.makeNode('close')
+              ]]
             ]);
-            sizeNode = $cls('unread-size', node);
-            $cls('unread-clear', node).addEventListener('click', function() {
-              if (Object.getOwnPropertyNames(previews).length == 0) return;
-              Instant.popups.dialog({
-                id: 'clear-unread',
-                title: 'Confirmation',
-                content: 'Really remove all unread message previews?',
-                actions: [
-                  {action: 'continue', category: 'delete'},
-                  {action: 'cancel'}
-                ],
-                closeAction: 'cancel',
-                cb: function(action) {
-                  if (action == 'continue') Instant.sidebar.unread.clear();
-                }
-              });
-            });
+            node = $makeNode('div', 'sidebar-unread sidebar-unread-content');
+            sizeNode = $cls('unread-size', headingNode);
+            $cls('unread-clear', headingNode).addEventListener('click',
+              function() {
+                if (Object.getOwnPropertyNames(previews).length == 0) return;
+                Instant.popups.dialog({
+                  id: 'clear-unread',
+                  title: 'Confirmation',
+                  content: 'Really remove all unread message previews?',
+                  actions: [
+                    {action: 'continue', category: 'delete'},
+                    {action: 'cancel'}
+                  ],
+                  closeAction: 'cancel',
+                  cb: function(action) {
+                    if (action == 'continue') Instant.sidebar.unread.clear();
+                  }
+                });
+              }
+            );
             var trimLengthOverride = parseInt(
               Instant.storage.get('message-preview-trim'), 10);
             if (! isNaN(trimLengthOverride)) trimLength = trimLengthOverride;
@@ -4375,7 +4377,7 @@ this.Instant = function() {
           _insert: function(preview) {
             var parent = Instant.sidebar.unread._findParentByMessage(preview);
             if (parent == null) {
-              $cls('previews', node).appendChild(preview);
+              node.appendChild(preview);
             } else {
               var replies = Instant.sidebar.unread._getReplyNode(parent,
                                                                  true);
@@ -4416,8 +4418,10 @@ this.Instant = function() {
           /* Show or hide the entire unread message pane */
           setEnabled: function(enabled) {
             if (enabled) {
+              headingNode.classList.add('visible');
               node.classList.add('visible');
             } else {
+              headingNode.classList.remove('visible');
               node.classList.remove('visible');
             }
           },
@@ -4449,11 +4453,18 @@ this.Instant = function() {
               Instant.animation.timers.destroy($sel('.timer', p));
               delete previews[k];
             });
-            var container = $cls('previews', node);
-            while (container.firstChild) {
-              container.removeChild(container.firstChild);
+            while (node.firstChild) {
+              node.removeChild(node.firstChild);
             }
             Instant.sidebar.unread._updateSize();
+          },
+          /* Retrieve the heading node */
+          getHeadingNode: function() {
+            return headingNode;
+          },
+          /* Retrieve the main node */
+          getNode: function() {
+            return node;
           },
           /* Retrieve the message node corresponding to preview */
           getMessage: function(preview) {
