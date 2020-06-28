@@ -4237,8 +4237,8 @@ this.Instant = function() {
                   title: 'Confirmation',
                   content: 'Really remove all unread message previews?',
                   actions: [
-                    {action: 'continue', category: 'delete'},
-                    {action: 'cancel'}
+                    {action: 'cancel'},
+                    {action: 'continue', category: 'delete'}
                   ],
                   closeAction: 'cancel',
                   cb: function(action) {
@@ -5124,8 +5124,8 @@ this.Instant = function() {
             title: 'Confirmation',
             content: 'Really delete all private messages?',
             actions: [
-              {action: 'continue', category: 'delete'},
-              {action: 'cancel'}
+              {action: 'cancel'},
+              {action: 'continue', category: 'delete'}
             ],
             closeAction: 'cancel',
             cb: function(action) {
