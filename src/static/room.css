@@ -992,6 +992,7 @@ h2.sidebar-unread {
   flex-shrink: 0;
   justify-content: space-between;
   align-items: flex-end;
+  padding: 3px 3px 0;
   font: inherit;
   font-weight: bold;
   line-height: 1.2em;
@@ -1008,8 +1009,9 @@ h2.sidebar-unread .button-icon-cover {
   padding: 1px;
 }
 .sidebar-unread-content {
-  overflow: auto;
+  padding: 0 3px 3px;
   max-height: 50%;
+  overflow: auto;
 }
 .unread-message-line, .unread-message-line .unread-main {
   display: -webkit-flex;
