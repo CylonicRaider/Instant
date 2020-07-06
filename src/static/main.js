@@ -2578,7 +2578,7 @@ this.Instant = function() {
             re: /((?:(?!\n)\s)*)```((?:(?!\n)\s)*)/,
             bef: /[^`]|^$/, aft: /[^`]|^$/,
             cb: function(m, out) {
-              var nodes = [makeSigil('```', 'mono-block-before')];
+              var nodes = [makeSigil('```', 'mono-block-marker')];
               if (m[1]) nodes.unshift(m[1]);
               if (m[2]) nodes.push(m[2]);
               out.push({toggle: 'monoBlock', nodes: nodes});
