@@ -2575,7 +2575,7 @@ this.Instant = function() {
           },
           { /* Monospace blocks */
             name: 'monoBlock',
-            re: /((?:(?!\n)\s)*)```((?:(?!\n)\s)*)/,
+            re: /(^(?:(?!\n)\s)*)?```((?:(?!\n)\s)*$)?/m,
             bef: /[^`]|^$/, aft: /[^`]|^$/,
             cb: function(m, out) {
               var nodes = [makeSigil('```', 'mono-block-marker')];
@@ -2584,7 +2584,9 @@ this.Instant = function() {
               out.push({toggle: 'monoBlock', nodes: nodes});
             },
             add: function() {
-              return makeNode(null, 'monospace block', 'pre');
+              /* HACK: Using inline element for marginally better
+               *       select-and-paste behavior. */
+              return makeNode(null, 'monospace block', null, 'code');
             }
           },
           { /* Subheadings */
