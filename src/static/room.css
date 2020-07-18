@@ -1008,6 +1008,10 @@ h2.sidebar-unread .unread-size {
 h2.sidebar-unread .button-icon-cover {
   padding: 1px;
 }
+.unread-collapse-all:not(.unread-collapsed) img.unread-collapsed,
+.unread-collapse-all.unread-collapsed img:not(.unread-collapsed) {
+  display: none;
+}
 .sidebar-unread-content {
   padding: 0 3px 3px;
   max-height: 50%;

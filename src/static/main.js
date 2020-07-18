@@ -4217,7 +4217,8 @@ this.Instant = function() {
               ]],
               ['button', 'button button-noborder button-icon-cover ' +
                   'unread-collapse-all', {title: 'Collapse all'}, [
-                Instant.icons.makeNode('arrowBar', 'turn')
+                Instant.icons.makeNode('arrowBar', 'unread-collapsed'),
+                Instant.icons.makeNode('arrowBarDown')
               ]],
               ['button', 'button button-noborder button-icon-cover ' +
                   'unread-clear', {title: 'Remove all'}, [
@@ -4508,15 +4509,14 @@ this.Instant = function() {
             if (newState == null)
               newState = (! node.classList.contains('unread-collapsed'));
             var collapser = $cls('unread-collapse-all', headingNode);
-            var collapserIcon = $sel('img', collapser);
             if (newState) {
               node.classList.add('unread-collapsed');
+              collapser.classList.add('unread-collapsed');
               collapser.title = 'Expand all';
-              collapserIcon.className = '';
             } else {
               node.classList.remove('unread-collapsed');
+              collapser.classList.remove('unread-collapsed');
               collapser.title = 'Collapse all';
-              collapserIcon.className = 'turn';
             }
           },
           /* Retrieve the heading node */
@@ -7918,13 +7918,14 @@ this.Instant = function() {
     /* The icon storage
      * The URL-s are replaced by data URI-s when the corresponding icon gets
      * loaded. */
-    var urls = {close:    '/static/close.svg',
-                collapse: '/static/collapse.svg',
-                expand:   '/static/expand.svg',
-                reload:   '/static/reload.svg',
-                arrow:    '/static/arrow-up.svg',
-                chevron:  '/static/chevron-up.svg',
-                arrowBar: '/static/arrow-bar-up.svg'};
+    var urls = {close:        '/static/close.svg',
+                collapse:     '/static/collapse.svg',
+                expand:       '/static/expand.svg',
+                reload:       '/static/reload.svg',
+                arrow:        '/static/arrow-up.svg',
+                chevron:      '/static/chevron-up.svg',
+                arrowBar:     '/static/arrow-bar-up.svg',
+                arrowBarDown: '/static/arrow-bar-down.svg'};
     /* A mapping from icons being loaded to the corresponding Promises */
     var promises = {};
     return {
