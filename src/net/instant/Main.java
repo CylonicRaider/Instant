@@ -27,7 +27,7 @@ import net.instant.util.fileprod.FSResourceProducer;
 public class Main implements Runnable {
 
     public static final String APPNAME = "Instant";
-    public static final String VERSION = "1.5.5";
+    public static final String VERSION = "1.5.6";
     public static final String FINE_VERSION;
     public static final String DESCRIPTION = "A Web-based threaded chat " +
         "(server).";
