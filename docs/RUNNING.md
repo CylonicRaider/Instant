@@ -71,6 +71,18 @@ can be used to report a summary and single-letter aliases):
 Instant.jar`, and point your browser to
 [localhost:8080](http://localhost:8080).
 
+### External dependencies
+
+The only "external" dependency of the Instant backend is the Java standard
+library; additional dependencies are bundled into the backend.
+
+Backends *before version 1.5.3* depended on the *Java Architecture for XML
+Binding* (*JAXB*), which was provided as part of the Java standard library up
+to Java 8; when running older backends on newer JVM-s, an implementation of
+JAXB (or at least `javax.xml.bind.DatatypeConverter`) must be included
+externally (or the pertinent transition mechanisms of Java 9 and 10 may be
+used when available).
+
 ### HTTPS
 
 The backend supports plain HTTP exclusively; to provide HTTPS, you have to
