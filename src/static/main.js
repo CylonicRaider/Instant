@@ -8394,8 +8394,12 @@ this.Instant = function() {
        * concrete run), does something, and returns the granularity it wants
        * to be scheduled at again, or null (or undefined) if it does *not*
        * want to be scheduled again.
-       * granularity is one of the following strings: 's' for each second,
-       * 'ts' for each ten seconds, or 'm' for each minute. */
+       * granularity is one of the following strings:
+       * "s" : Every second;
+       * "ts": Every ten seconds;
+       * "m" : Every minute;
+       * "tm": Every ten minutes;
+       * "h" : Every hour. */
       add: function(cb, granularity) {
         timers[granularity].push(cb);
         Instant.timers._schedule(granularity);
