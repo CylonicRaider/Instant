@@ -8899,7 +8899,9 @@ this.Instant = function() {
     if (! handlers[name]) handlers[name] = [];
     handlers[name].push(handler);
   };
-  /* Invoke the listeners for a given event */
+  /* Invoke the listeners for a given event
+   * If there are no listeners for the event, a dummy object that only has a
+   * "canceled" property (which is set to false) is returned. */
   Instant._fireListeners = function(type, data) {
     if (! handlers[type] && ! handlers['*']) return {canceled: false};
     var event = new InstantEvent(type, data);
