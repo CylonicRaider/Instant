@@ -8439,6 +8439,9 @@ this.Instant = function() {
       formatDateNode: formatDateNode,
       /* Run a function immediately, and then after a fixed interval */
       repeat: repeat,
+      /* Run all function from an array against variadially passed arguments,
+       * and log and suppress exceptions */
+      runList: runList,
       /* Adjust the right margin of an element to account for scrollbars
        * measure is the node used to measure the width of a scrollbar (if it
        * has no scrollbar, that is assumed to have a width of 0), target is
