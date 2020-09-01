@@ -8880,7 +8880,7 @@ this.Instant = function() {
   };
   Instant.InstantEvent = InstantEvent;
   /* Stop listening for an event
-   * Returns where the listener had been installed at all. */
+   * Returns whether the listener had been installed at all. */
   Instant.stopListening = function(name, handler) {
     if (! handlers[name]) return;
     var idx = handlers[name].indexOf(handler);
