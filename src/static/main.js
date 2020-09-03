@@ -516,11 +516,16 @@ this.Instant = function() {
         delete callbacks[msg.seq];
         if (cb) cb(msg);
         /* Invoke handlers */
-        var handled = false;
+        var handled = false, lateHandlers = [];
         if (msg.type && rawHandlers[msg.type]) {
           handled = rawHandlers[msg.type].some(function(h) {
             try {
-              return h(msg, event);
+              var res = h(msg, event);
+              if (typeof res == 'function') {
+                lateHandlers.push(res);
+                return true;
+              }
+              return res;
             } catch (e) {
               console.error('Could not run listener:', e);
               return false;
@@ -562,7 +567,12 @@ this.Instant = function() {
             if (data.type && handlers[data.type]) {
               handled |= handlers[data.type].some(function(h) {
                 try {
-                  return h(msg, event);
+                  var res = h(msg, event);
+                  if (typeof res == 'function') {
+                    lateHandlers.push(res);
+                    return true;
+                  }
+                  return res;
                 } catch (e) {
                   console.error('Could not run listener:', e);
                   return false;
@@ -642,6 +652,11 @@ this.Instant = function() {
             if (! handled) console.warn('Unknown server message:', msg);
             break;
         }
+        /* Finally, allow individual handlers to delay effects until after the
+         * default processing has run */
+        lateHandlers.forEach(function(hnd) {
+          hnd();
+        });
       },
       /* Handle a dead connection */
       _closed: function(event) {
