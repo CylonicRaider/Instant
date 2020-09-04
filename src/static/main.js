@@ -2590,13 +2590,29 @@ this.Instant = function() {
           },
           { /* Monospace blocks */
             name: 'monoBlock',
-            re: /(^(?:(?!\n)\s)*)?```((?:(?!\n)\s)*$)?/m,
+            re: /(^(?:(?!\n)\s)*)```((?:(?!\n)\s)*$)?|```((?:(?!\n)\s)*$)/m,
             bef: /[^`]|^$/, aft: /[^`]|^$/,
-            cb: function(m, out) {
-              var nodes = [makeSigil('```', 'mono-block-marker')];
+            cb: function(m, out, status) {
+              /* HACK: At least one regex engine skips the optional capturing
+               *       group if it matches no characters although it could
+               *       match otherwise. Therefore, we test the preceding /
+               *       following character explicitly. */
+              var nlb = /\n|^$/.test(status.bef);
+              var nla = /\n|^$/.test(status.aft);
+              var nodes;
+              if (nlb && nla) {
+                nodes = [makeSigil('```', 'mono-block-marker')];
+                out.push({toggle: 'monoBlock', nodes: nodes});
+              } else if (nla) {
+                nodes = [makeSigil('```', 'mono-block-before')];
+                out.push({add: 'monoBlock', nodes: nodes});
+              } else {
+                nodes = [makeSigil('```', 'mono-block-after')];
+                out.push({rem: 'monoBlock', nodes: nodes});
+              }
               if (m[1]) nodes.unshift(m[1]);
               if (m[2]) nodes.push(m[2]);
-              out.push({toggle: 'monoBlock', nodes: nodes});
+              if (m[3]) nodes.push(m[3]);
             },
             add: function() {
               /* HACK: Using inline element for marginally better
