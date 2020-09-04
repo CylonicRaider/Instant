@@ -2326,9 +2326,9 @@ this.Instant = function() {
           '[sSD)\\\\/\\]}|{\\[(cCoO][\',]?[:=]<?|' +
           // Extensible Japanese-style emoticons.
           '([\\^o0O~><*xX])(\\.|_+)\\1|>(\\.|_*)<|;(-|_+);|\\._+\\.|' +
-          // Non-extensible Japanese-style emoticons (laughing eyes, person
+          // Non-extensible Japanese-style emoticons (laughing eyes, persons
           // extending arms outwards).
-          '\\^\\^|\\\\o/');
+          '\\^\\^|\\\\o/?|o/|/?o\\\\|/o');
         /* Smiley table */
         var SMILIES = {
           '+1'  : '#008000', '-1'  : '#c00000',
