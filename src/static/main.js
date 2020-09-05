@@ -8463,6 +8463,8 @@ this.Instant = function() {
   /* Miscellaneous utilities */
   Instant.util = function() {
     return {
+      /* Regular expression for isTruthy() */
+      TRUTHY_RE: /^(true|1|y|yes|on)$/i,
       /* Left-pad a string */
       leftpad: leftpad,
       /* Format a date-time nicely */
@@ -8473,6 +8475,10 @@ this.Instant = function() {
       /* Run all function from an array against variadially passed arguments,
        * and log and suppress exceptions */
       runList: runList,
+      /* Return whether the given string is affirmative (e.g. "true") */
+      isTruthy: function(s) {
+        return Instant.util.TRUTHY_RE.test(s);
+      },
       /* Adjust the right margin of an element to account for scrollbars
        * measure is the node used to measure the width of a scrollbar (if it
        * has no scrollbar, that is assumed to have a width of 0), target is
