@@ -379,8 +379,7 @@ this.Instant = function() {
       /* Initialize the submodule */
       init: function() {
         /* Debugging hook */
-        if (window.logInstantMessages === undefined)
-          window.logInstantMessages = (!! Instant.query.get('verbose'));
+        Instant.query.initVerboseFlag(window, 'logInstantMessages', 'msg');
         /* Apply URL override */
         var override = Instant.query.get('connect');
         if (override) {
@@ -1048,10 +1047,8 @@ this.Instant = function() {
           /* Initialize the pane node */
           init: function(paneNode) {
             /* Verbosity level */
-            if (window.logInstantLogPulling === undefined) {
-              var v = (!! Instant.query.get('verbose'));
-              window.logInstantLogPulling = v;
-            }
+            Instant.query.initVerboseFlag(window, 'logInstantLogPulling',
+                                          'log');
             pane = paneNode;
           },
           /* Actually start pulling logs */
@@ -8027,15 +8024,38 @@ this.Instant = function() {
   Instant.query = function() {
     /* The actual data */
     var data = null;
+    /* Verbosity selections */
+    var verbose = null;
     return {
       /* Initialize submodule */
       init: function() {
         data = $query(location.search);
+        var rawVerbose = Instant.query.get('verbose');
+        if (! rawVerbose) {
+          verbose = false;
+        } else if (Instant.util.isTruthy(rawVerbose)) {
+          verbose = true;
+        } else {
+          verbose = rawVerbose.split(",");
+        }
       },
       /* Get a parameter, or undefined if none */
       get: function(name) {
         if (! data.hasOwnProperty(name)) return undefined;
         return data[name];
+      },
+      /* Whether verbose logging has been selected for the given tag */
+      isVerbose: function(tag) {
+        if (typeof verbose == 'boolean') {
+          return verbose;
+        } else {
+          return verbose.indexOf(tag) != -1;
+        }
+      },
+      /* If object[key] is undefined, set it to isVerbose(tag) */
+      initVerboseFlag: function(object, key, tag) {
+        if (object[key] === undefined)
+          object[key] = Instant.query.isVerbose(tag);
       },
       /* Return the internal storage object */
       getData: function() {
