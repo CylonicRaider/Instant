@@ -3152,9 +3152,11 @@ this.Instant = function() {
     var focusedNode = null;
     /* Sequence ID for fake messages */
     var fakeSeq = 0;
+    /* Scroll state for window resizing */
+    var scrollState = null;
     return {
       /* Initialize input bar control */
-      init: function() {
+      init: function(messageBox) {
         /* Helpers for below */
         function updateNick(event) {
           var name = inputNick.value;
@@ -3248,10 +3250,15 @@ this.Instant = function() {
         /* Save the last focused node */
         inputNick.addEventListener('focus', updateFocus);
         inputMsg.addEventListener('focus', updateFocus);
-        /* Scroll input into view when resized */
+        /* Avoid the input bar jumping out of view when the window is
+         * resized */
         window.addEventListener('resize', function(event) {
           Instant.input._updateInputSize();
-          Instant.pane.scrollIntoView(inputNode);
+          if (scrollState) {
+            scrollState();
+          } else {
+            Instant.input.saveScrollState();
+          }
         });
         /* Read nickname from storage */
         var nick = Instant.storage.get('nickname');
@@ -3271,6 +3278,12 @@ this.Instant = function() {
         updateNick();
         if (focusedNode == inputMsg)
           promptNick.style.display = 'none';
+        /* Add us to the message box */
+        messageBox.appendChild(inputNode);
+        var pane = Instant.pane.getPane(inputNode);
+        pane.addEventListener('scroll', function() {
+          Instant.input.saveScrollState();
+        });
         return inputNode;
       },
       /* Return the input bar */
@@ -3312,6 +3325,8 @@ this.Instant = function() {
         parent.appendChild(inputNode);
         /* Handle animation */
         Instant.animation.offscreen._inputMoved();
+        /* Update window resizing state */
+        Instant.input.saveScrollState();
         /* Successful */
         return true;
       },
@@ -3458,9 +3473,10 @@ this.Instant = function() {
               direction);
         }
       },
-      /* Convenience wrapper for Instant.pane.saveScrollState() */
+      /* Save the scrolling state of the input bar */
       saveScrollState: function(focus) {
-        return Instant.pane.saveScrollState(inputNode, 1, true, focus);
+        scrollState = Instant.pane.saveScrollState(inputNode, 1, true, focus);
+        return scrollState;
       },
       /* Update the message bar sizer */
       _updateMessage: function(event) {
@@ -8977,8 +8993,7 @@ this.Instant = function() {
     Instant.storage.init();
     Instant.icons.init();
     Instant.message.init();
-    Instant.input.init();
-    Instant.message.getMessageBox().appendChild(Instant.input.getNode());
+    Instant.input.init(Instant.message.getMessageBox());
     Instant.sidebar.init();
     Instant.title.init();
     Instant.notifications.init();
