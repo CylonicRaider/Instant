@@ -3253,12 +3253,11 @@ this.Instant = function() {
         /* Avoid the input bar jumping out of view when the window is
          * resized */
         window.addEventListener('resize', function(event) {
+          /* _updateInputSize() does a saveScrollState() internally; we want
+           * to restore the scroll state *before* that. */
+          var savedState = scrollState;
           Instant.input._updateInputSize();
-          if (scrollState) {
-            scrollState();
-          } else {
-            Instant.input.saveScrollState();
-          }
+          if (savedState) savedState();
         });
         /* Read nickname from storage */
         var nick = Instant.storage.get('nickname');
