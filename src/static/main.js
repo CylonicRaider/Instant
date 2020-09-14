@@ -517,17 +517,17 @@ this.Instant = function() {
         /* Invoke handlers */
         var handled = false, lateHandlers = [];
         if (msg.type && rawHandlers[msg.type]) {
-          handled = rawHandlers[msg.type].some(function(h) {
+          rawHandlers[msg.type].forEach(function(h) {
             try {
               var res = h(msg, event);
               if (typeof res == 'function') {
                 lateHandlers.push(res);
-                return true;
+                handled = true;
+              } else if (res) {
+                handled = true;
               }
-              return res;
             } catch (e) {
               console.error('Could not run listener:', e);
-              return false;
             }
           });
         }
@@ -564,17 +564,17 @@ this.Instant = function() {
             var data = msg.data || {};
             /* Run handlers again */
             if (data.type && handlers[data.type]) {
-              handled |= handlers[data.type].some(function(h) {
+              handlers[data.type].forEach(function(h) {
                 try {
                   var res = h(msg, event);
                   if (typeof res == 'function') {
                     lateHandlers.push(res);
-                    return true;
+                    handled = true;
+                  } else if (res) {
+                    handled = true;
                   }
-                  return res;
                 } catch (e) {
                   console.error('Could not run listener:', e);
-                  return false;
                 }
               });
             }
