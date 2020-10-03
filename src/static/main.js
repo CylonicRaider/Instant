@@ -272,17 +272,23 @@ this.Instant = function() {
     callback();
     setInterval(callback, time);
   }
-  /* Run a list of callbacks */
-  function runList(list) {
-    if (! list) return;
-    var args = Array.prototype.slice.call(arguments, 1);
+  /* Run a list of callbacks, with arguments and the this object passed
+   * explicitly */
+  function runListEx(list, self, args) {
+    if (! list) return false;
     for (var i = 0; i < list.length; i++) {
       try {
-        list[i].apply(this, args);
+        list[i].apply(self, args);
       } catch (e) {
         console.error('Could not run callback:', e);
       }
     }
+    return (list.length != 0);
+  }
+  /* Run a list of callbacks, with arguments passed variadically */
+  function runList(list) {
+    if (! list) return false;
+    return runListEx(list, this, Array.prototype.slice.call(arguments, 1));
   }
   /* Own identity */
   Instant.identity = function() {
@@ -8497,9 +8503,139 @@ this.Instant = function() {
   }();
   /* Miscellaneous utilities */
   Instant.util = function() {
+    /* (Single) event tracker
+     * This allows registering listeners for the event, and (independently)
+     * raising the event, passing the listeners (if any) variadic arguments
+     * in the process. Callback return values are ignored.
+     * The constructor can be passed an initial array of listeners. The array
+     * is assumed not to contain duplicates. */
+    function EventTracker(listeners) {
+      if (listeners == null) listeners = [];
+      this.listeners = listeners;
+    }
+    EventTracker.prototype = {
+      /* Return whether there are any listeners registered. */
+      hasListeners: function() {
+        return (this.listeners.length != 0);
+      },
+      /* Add a listener
+       * Returns whether the addition succeeded. */
+      listen: function(cb) {
+        var idx = this.listeners.indexOf(cb);
+        if (idx != -1) return false;
+        this.listeners.push(cb);
+        return true;
+      },
+      /* Remove a listener
+       * Returns whether the removal succeeded. */
+      unlisten: function(cb) {
+        var idx = this.listeners.indexOf(cb);
+        if (idx == -1) return false;
+        this.listeners.splice(idx, 1);
+        return true;
+      },
+      /* Invoke the listeners for this event, with explicit arguments
+       * The only difference to fire() is that the listeners' arguments are
+       * passed as an explicit array rather than variadically. */
+      fireEx: function(self, args) {
+        return runListEx(this.listeners, self, args);
+      },
+      /* Invoke the listeners for this event
+       * self is the this object passed to the callbacks; any additional
+       * arguments are passed on to the listeners.
+       * The return values of the listeners are ignored.
+       * Returns whether any listeners were invoked. */
+      fire: function(self) {
+        return this.fireEx(self, Array.prototype.slice.call(arguments, 1));
+      }
+    };
+    /* Event dispatcher
+     * This maintains a mapping from strings to EventTracker instances,
+     * creating the latters on demand.
+     * The constructor can be passed an initial listener mapping. It must be
+     * an object mapping event names to EventTracker instance; it is not
+     * validated. */
+    function EventDispatcher(trackers) {
+      if (trackers == null) trackers = {};
+      this.trackers = trackers;
+    }
+    EventDispatcher.prototype = {
+      /* Check whether there are any listeners for the given event */
+      hasListeners: function(event) {
+        return (this.trackers[event] &&
+                this.trackers[event].hasListeners());
+      },
+      /* Add a listener for the given event type
+       * Returns whether the addition actually happened. */
+      listen: function(event, cb) {
+        if (! this.trackers[event]) {
+          this.trackers[event] = new EventTracker([cb]);
+          return true;
+        }
+        return this.trackers[event].listen(cb);
+      },
+      /* Remove a listener
+       * Returns whether the removal actually happened. */
+      unlisten: function(event, cb) {
+        if (! this.trackers[event]) return false;
+        return this.trackers[event].unlisten(cb);
+      },
+      /* Invoke the listeners for the given event, with explicit arguments
+       * The only difference to fire() is that the listeners' arguments are
+       * passed as a single array rather than variadically. */
+      fireEx: function(event, self, args) {
+        if (! this.trackers[event]) return false;
+        return this.trackers[event].fireEx(self, args);
+      },
+      /* Invoke the listeners for the given event
+       * event is the name of the event to fire; self is the this object to
+       * pass to the callbacks; positional arguments for the listeners are
+       * passed variadically.
+       * The event name is *not* passed to listeners (unless explicitily
+       * specified as a listener argument). The listeners' return values are
+       * ignored.
+       * Returns whether any listeners were invoked. */
+      fire: function(event, self) {
+        return this.fireEx(event, self,
+                           Array.prototype.slice.call(arguments, 2));
+      }
+    };
+    /* Event dispatcher supporting a wildcard event
+     * If the wildcard instance attribute is not null, listeners for that
+     * event are invoked for every other event as well (but never twice). */
+    function WildcardEventDispatcher(wildcard, trackers) {
+      if (wildcard === undefined) wildcard = null;
+      EventDispatcher.call(this, trackers);
+      this.wildcard = wildcard;
+    }
+    WildcardEventDispatcher.prototype =
+      Object.create(EventDispatcher.prototype);
+    /* Check whether there are any listeners for the given event, or for the
+     * wildcard event
+     * As wildcard event listeners are invoked along with regular listeners,
+     * those count as well. */
+    WildcardEventDispatcher.prototype.hasListeners = function(event) {
+      return EventDispatcher.prototype.hasListeners.call(this, event) ||
+        (this.wildcard != null && this.trackers[this.wildcard] &&
+         this.trackers[this.wildcard].hasListeners());
+    };
+    /* Invoke the listeners for the given event and the wildcard event
+     * See the EventDispatcher.prototype.fireEx documentation for details. */
+    WildcardEventDispatcher.prototype.fireEx = function(event, self, args) {
+      var ret = EventDispatcher.prototype.fireEx.call(this, event, self,
+                                                      args);
+      if (this.wildcard != null && this.trackers[this.wildcard] &&
+          this.trackers[this.wildcard].fireEx(self, args))
+        ret = true;
+      return ret;
+    };
     return {
       /* Regular expression for isTruthy() */
       TRUTHY_RE: /^(true|1|y|yes|on)$/i,
+      /* Export event tracker classes */
+      EventTracker: EventTracker,
+      EventDispatcher: EventDispatcher,
+      WildcardEventDispatcher: WildcardEventDispatcher,
       /* Left-pad a string */
       leftpad: leftpad,
       /* Format a date-time nicely */
