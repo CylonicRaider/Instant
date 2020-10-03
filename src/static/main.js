@@ -9067,7 +9067,7 @@ this.Instant = function() {
   /* Alias */
   Instant.loadPlugin = Instant.plugins.loadPlugin.bind(Instant.plugins);
   /* Event handling */
-  var handlers = {};
+  var eventDispatcher = new Instant.util.WildcardEventDispatcher('*');
   /* Event class */
   function InstantEvent(type, data) {
     if (! (this instanceof InstantEvent))
@@ -9090,34 +9090,24 @@ this.Instant = function() {
     }
   };
   Instant.InstantEvent = InstantEvent;
-  /* Stop listening for an event
-   * Returns whether the listener had been installed at all. */
-  Instant.stopListening = function(name, handler) {
-    if (! handlers[name]) return;
-    var idx = handlers[name].indexOf(handler);
-    if (idx == -1) return false;
-    handlers.splice(idx, 1);
-    return true;
-  };
   /* Listen for an event
    * handler is invoked upon the event with an object containing at least the
    * following properties:
    * instant: The Instant object.
    * type   : The type of the event.
    * Specific events may define more properties. */
-  Instant.listen = function(name, handler) {
-    Instant.stopListening(name, handler);
-    if (! handlers[name]) handlers[name] = [];
-    handlers[name].push(handler);
-  };
+  Instant.listen = eventDispatcher.listen.bind(eventDispatcher);
+  /* Stop listening for an event
+   * Returns whether the listener had been installed at all. */
+  Instant.unlisten = eventDispatcher.unlisten.bind(eventDispatcher);
+  Instant.stopListening = Instant.unlisten;
   /* Invoke the listeners for a given event
    * If there are no listeners for the event, a dummy object that only has a
    * "canceled" property (which is set to false) is returned. */
   Instant._fireListeners = function(type, data) {
-    if (! handlers[type] && ! handlers['*']) return {canceled: false};
+    if (! eventDispatcher.hasListeners(type)) return {canceled: false};
     var event = new InstantEvent(type, data);
-    runList(handlers[type], event);
-    runList(handlers['*'], event);
+    eventDispatcher.fire(type, Instant, event);
     return event;
   };
   /* Global initialization function */
