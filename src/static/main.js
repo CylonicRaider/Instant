@@ -1395,9 +1395,7 @@ this.Instant = function() {
       makeNode: function(name) {
         var node = document.createElement('span');
         node.className = 'nick';
-        node.textContent = name;
-        node.style.backgroundColor = Instant.nick.nickColor(name);
-        node.setAttribute('data-nick', name);
+        Instant.nick.updateNode(node, name);
         return node;
       },
       /* Generate a DOM node carrying a mention of the nick
@@ -1405,11 +1403,8 @@ this.Instant = function() {
       makeMention: function(name) {
         if (name[0] != '@') throw new Error('Bad nick for makeMention()');
         var node = document.createElement('span');
-        var realName = name.substr(1);
         node.className = 'mention';
-        node.textContent = name;
-        node.style.color = Instant.nick.pingColor(realName);
-        node.setAttribute('data-nick', realName);
+        Instant.nick.updateMention(node, name);
         return node;
       },
       /* Make a nickname node for an anonymous user */
@@ -1418,6 +1413,20 @@ this.Instant = function() {
         node.className = 'nick anonymous';
         node.textContent = 'Anonymous';
         return node;
+      },
+      /* Change a node to reflect a new nickname */
+      updateNode: function(node, name) {
+        node.textContent = name;
+        node.style.backgroundColor = Instant.nick.nickColor(name);
+        node.setAttribute('data-nick', name);
+      },
+      /* Change a mention node to reflect a new nickname */
+      updateMention: function(node, name) {
+        if (name[0] != '@') throw new Error('Bad nick for updateMention()');
+        var realName = name.substr(1);
+        node.textContent = name;
+        node.style.color = Instant.nick.pingColor(realName);
+        node.setAttribute('data-nick', realName);
       }
     };
   }();
