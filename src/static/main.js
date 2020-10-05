@@ -1394,7 +1394,6 @@ this.Instant = function() {
       /* Generate a DOM node carrying the nick */
       makeNode: function(name) {
         var node = document.createElement('span');
-        var hue = Instant.nick.hueHash(name);
         node.className = 'nick';
         node.textContent = name;
         node.style.backgroundColor = Instant.nick.nickColor(name);
@@ -1407,7 +1406,6 @@ this.Instant = function() {
         if (name[0] != '@') throw new Error('Bad nick for makeMention()');
         var node = document.createElement('span');
         var realName = name.substr(1);
-        var hue = Instant.nick.hueHash(realName);
         node.className = 'mention';
         node.textContent = name;
         node.style.color = Instant.nick.pingColor(realName);
