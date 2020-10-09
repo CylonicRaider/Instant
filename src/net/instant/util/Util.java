@@ -172,7 +172,7 @@ public final class Util {
 
     // Use ByteBuffer.wrap() to reverse.
     public static byte[] extractBytes(ByteBuffer buf) {
-        byte[] ret = new byte[buf.limit()];
+        byte[] ret = new byte[buf.remaining()];
         buf.get(ret);
         return ret;
     }
