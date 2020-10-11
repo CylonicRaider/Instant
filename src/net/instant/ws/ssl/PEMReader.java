@@ -5,12 +5,13 @@ import java.io.IOException;
 import java.io.LineNumberReader;
 import java.io.Reader;
 import java.nio.ByteBuffer;
+import java.util.Iterator;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import net.instant.util.Encodings;
 import net.instant.util.Util;
 
-public class PEMReader implements Closeable {
+public class PEMReader implements Closeable, Iterable<PEMReader.PEMObject> {
 
     public static class PEMParsingException extends IOException {
 
@@ -55,18 +56,47 @@ public class PEMReader implements Closeable {
 
     }
 
+    private class PEMIterator implements Iterator<PEMObject> {
+
+        public boolean hasNext() {
+            try {
+                return (peekPEMObject() != null);
+            } catch (IOException exc) {
+                throw new RuntimeException(exc);
+            }
+        }
+
+        public PEMObject next() {
+            try {
+                return readPEMObject();
+            } catch (IOException exc) {
+                throw new RuntimeException(exc);
+            }
+        }
+
+        public void remove() {
+            throw new UnsupportedOperationException(
+                "Cannot remove from PEMReader");
+        }
+
+    }
+
     private static final Pattern ENCAPSULATION_LINE =
         Pattern.compile("-----\\s*(BEGIN|END)" +
             "(?:\\s+([!-,.-~](?:[\\s-]?[!-,.-~])*))?\\s*-----\\s*");
 
     private final LineNumberReader reader;
+    private final PEMIterator iterator;
+    private PEMObject buffered;
 
     public PEMReader(Reader reader) {
         this.reader = (reader instanceof LineNumberReader) ?
             (LineNumberReader) reader : new LineNumberReader(reader);
+        this.iterator = new PEMIterator();
     }
 
-    public PEMObject readObject() throws IOException {
+    public synchronized PEMObject peekPEMObject() throws IOException {
+        if (buffered != null) return buffered;
         String label = null;
         StringBuilder buffer = new StringBuilder();
         for (;;) {
@@ -105,7 +135,18 @@ public class PEMReader implements Closeable {
         } catch (IllegalArgumentException exc) {
             throw new PEMParsingException("Invalid PEM base64 payload", exc);
         }
-        return new PEMObject(label, decodedData);
+        buffered = new PEMObject(label, decodedData);
+        return buffered;
+    }
+
+    public synchronized PEMObject readPEMObject() throws IOException {
+        PEMObject ret = peekPEMObject();
+        buffered = null;
+        return ret;
+    }
+
+    public Iterator<PEMObject> iterator() {
+        return iterator;
     }
 
     public void close() throws IOException {
