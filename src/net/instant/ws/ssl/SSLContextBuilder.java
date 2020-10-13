@@ -2,9 +2,9 @@ package net.instant.ws.ssl;
 
 import java.io.IOException;
 import java.security.GeneralSecurityException;
+import java.security.Key;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
-import java.security.PrivateKey;
 import java.security.cert.Certificate;
 import java.security.cert.X509Certificate;
 import javax.net.ssl.KeyManager;
@@ -59,7 +59,7 @@ public class SSLContextBuilder {
         keyStore = ks;
     }
 
-    public void addCertificate(Certificate[] chain, PrivateKey key)
+    public void addCertificate(Certificate[] chain, Key key)
             throws KeyStoreException {
         if (chain == null || chain.length == 0)
             throw new IllegalArgumentException(
