@@ -4,14 +4,12 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.io.LineNumberReader;
 import java.io.Reader;
-import java.nio.ByteBuffer;
 import java.util.Iterator;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import net.instant.util.Encodings;
-import net.instant.util.Util;
 
-public class PEMReader implements Closeable, Iterable<PEMReader.PEMObject> {
+public class PEMReader implements Closeable, Iterable<PEMObject> {
 
     public static class PEMParsingException extends IOException {
 
@@ -26,32 +24,6 @@ public class PEMReader implements Closeable, Iterable<PEMReader.PEMObject> {
         }
         public PEMParsingException(String message, Throwable cause) {
             super(message, cause);
-        }
-
-    }
-
-    public static class PEMObject {
-
-        private final String label;
-        private final ByteBuffer data;
-
-        public PEMObject(String label, byte[] data) {
-            this.label = label;
-            this.data = ByteBuffer.wrap(data);
-        }
-
-        public String getLabel() {
-            return label;
-        }
-
-        public ByteBuffer getData() {
-            return data.asReadOnlyBuffer();
-        }
-
-        public byte[] getDataBytes() {
-            // The getData() call avoids changing the underlying buffer's
-            // position.
-            return Util.extractBytes(getData());
         }
 
     }
