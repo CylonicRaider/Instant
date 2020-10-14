@@ -10,6 +10,8 @@ import java.security.cert.X509Certificate;
 import javax.net.ssl.KeyManager;
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLEngine;
+import javax.net.ssl.SSLParameters;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
 
@@ -101,10 +103,32 @@ public class SSLContextBuilder {
         return tmf.getTrustManagers();
     }
 
-    public SSLContext build() throws GeneralSecurityException {
+    public SSLContext buildContext() throws GeneralSecurityException {
         SSLContext ctx = SSLContext.getInstance(getContextAlgorithm());
         ctx.init(createKeyManagers(), createTrustManagers(), null);
         return ctx;
+    }
+
+    public SSLParameters getParameters(SSLContext ctx)
+            throws GeneralSecurityException {
+        SSLParameters params = ctx.getDefaultSSLParameters();
+        if (trustStore != null && trustStore.size() != 0)
+            params.setNeedClientAuth(true);
+        return params;
+    }
+
+    public SSLEngineFactory buildEngineFactory()
+            throws GeneralSecurityException {
+        final SSLContext ctx = buildContext();
+        final SSLParameters params = getParameters(ctx);
+        return new SSLEngineFactory() {
+            public SSLEngine createSSLEngine(boolean clientMode) {
+                SSLEngine engine = ctx.createSSLEngine();
+                engine.setUseClientMode(clientMode);
+                engine.setSSLParameters(params);
+                return engine;
+            }
+        };
     }
 
     public void reset() {
