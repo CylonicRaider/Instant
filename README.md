@@ -16,8 +16,9 @@ correspondingly named subsections.
 In order to add a dependency `<NAME>`, create a manifest file for it at
 `deps/<NAME>/MANIFEST` (see the pertinent section below for details), leaving
 the `commit` field set to a dummy value, and fetch and build the dependency
-using `make fetch-<NAME> build-<NAME>`. If multiple dependencies are to be
-added, the corresponding command lines can be coalesced into
+using `make update-<NAME>` (which is an alias for
+`make fetch-<NAME> build-<NAME>`). If multiple dependencies are to be added,
+the corresponding command lines should be interleaved into
 `make fetch-<NAME1> fetch-<NAME2> ... build-<NAME1> build-<NAME2> ...`.
 
 ### Removing dependencies
@@ -31,9 +32,9 @@ only one full build need be done.
 
 In order to change the version of dependency `<NAME>`, update its manifest
 file at `deps/<NAME>/MANIFEST` to refer to the new version, and refresh the
-dependency using `make fetch-<NAME> build-<NAME>`. If multiple dependencies
-are being updated, performing a full fetch-and-build cycle via `make update`
-may be advisable (_e.g._ to catch incompatibilities).
+dependency using `make update-<NAME>`. If multiple dependencies are being
+updated, performing a full fetch-and-build cycle via `make update` may be
+advisable (_e.g._ to catch incompatibilities).
 
 ### Fixating changes
 

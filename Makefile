@@ -5,9 +5,10 @@ DEPS_MANIFESTS = $(patsubst %,deps/%/MANIFEST,$(DEPS_NAMES))
 _DEPS_CLEANS = $(patsubst %,clean-%,$(DEPS_NAMES))
 _DEPS_FETCHES = $(patsubst %,fetch-%,$(DEPS_NAMES))
 _DEPS_BUILDS = $(patsubst %,build-%,$(DEPS_NAMES))
+_DEPS_UPDATES = $(patsubst %,update-%,$(DEPS_NAMES))
 
 .PHONY: update fetch build pre-build $(_DEPS_CLEANS) $(_DEPS_FETCHES) \
-    $(_DEPS_BUILDS)
+    $(_DEPS_BUILDS) $(_DEPS_UPDATES)
 .NOTPARALLEL:
 
 update: fetch build
@@ -31,6 +32,8 @@ $(_DEPS_BUILDS): build-%: deps/%/MANIFEST | src
 	@echo "Building dependency $* ..."
 	./build.sh build $*
 	@echo "Building dependency $* done."
+
+$(_DEPS_UPDATES): update-%: fetch-% build-%
 
 .deps.mk: $(DEPS_MANIFESTS)
 	@set -e; exec >$@; for name in $(DEPS_NAMES); do build_depends=""; \
