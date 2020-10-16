@@ -125,7 +125,7 @@ public class PEMReader implements Closeable, Iterable<PEMObject> {
         reader.close();
     }
 
-    private static final String nullToEmpty(String s) {
+    private static String nullToEmpty(String s) {
         return (s == null) ? "" : s;
     }
 
