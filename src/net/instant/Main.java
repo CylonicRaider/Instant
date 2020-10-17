@@ -8,7 +8,9 @@ import java.io.InputStream;
 import java.io.PrintStream;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.jar.Manifest;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -93,6 +95,9 @@ public class Main implements Runnable {
             "Port to bind to.").defaultsTo(8080));
         Option<File> webroot = p.add(Option.of(File.class, "webroot", 'r',
             "Path containing static directories.").defaultsTo(new File(".")));
+        Option<List<KeyValue>> tlsFlags = p.add(Option.ofList(KeyValue.class,
+            "tls", 't', "TLS configuration")
+            .defaultsTo(new ArrayList<KeyValue>()));
         Option<File> httpLog = p.add(Option.of(File.class, "http-log", null,
             "Log file for HTTP requests.").defaultsTo(new File("-"))
             .withComment("\"-\" = standard error"));
@@ -119,6 +124,7 @@ public class Main implements Runnable {
         runner.setHost(hostval);
         runner.setPort(r.get(port));
         runner.setWebroot(r.get(webroot));
+        runner.setSSLConfig(pairsToMap(r.get(tlsFlags)));
         runner.setHTTPLog(resolveLogFile(r.get(httpLog)));
         runner.makeConfig().putAll(r.get(options));
         File configPath = r.get(config);
@@ -190,6 +196,15 @@ public class Main implements Runnable {
         runner.registerShutdownHook();
         if (startupCmd != null) runCommand(startupCmd);
         runner.launch();
+    }
+
+    private static <K, V> Map<K, V> pairsToMap(
+            Iterable<? extends Map.Entry<K, V>> pairs) {
+        Map<K, V> ret = new LinkedHashMap<K, V>();
+        for (Map.Entry<K, V> ent : pairs) {
+            ret.put(ent.getKey(), ent.getValue());
+        }
+        return ret;
     }
 
     private static PrintStream resolveLogFile(File path) {
