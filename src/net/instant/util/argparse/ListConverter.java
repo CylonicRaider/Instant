@@ -48,7 +48,11 @@ public class ListConverter<E> extends Converter<List<E>> {
     }
 
     public String format(List<E> list) {
-        if (list == null || list.isEmpty()) return null;
+        if (list == null || list.isEmpty())
+            return null;
+        if (separator == null && list.size() != 1)
+            throw new IllegalStateException(
+                "Cannot format more than one argument without a separator");
         StringBuilder sb = new StringBuilder();
         boolean first = true;
         for (E item : list) {
