@@ -10,6 +10,7 @@ import java.security.PrivateKey;
 import java.security.cert.Certificate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 public class SSLConfiguration {
 
@@ -151,9 +152,25 @@ public class SSLConfiguration {
         }
     }
 
+    public SSLEngineFactory doConfiguration(Map<String, String> data)
+            throws ConfigurationException {
+        return doConfiguration(fileOrNull(data.get("cert")),
+                               fileOrNull(data.get("key")),
+                               fileOrNull(data.get("ca")));
+    }
+
     public static SSLEngineFactory configure(File cert, File key, File ca)
             throws ConfigurationException {
         return new SSLConfiguration().doConfiguration(cert, key, ca);
+    }
+
+    public static SSLEngineFactory configure(Map<String, String> data)
+            throws ConfigurationException {
+        return new SSLConfiguration().doConfiguration(data);
+    }
+
+    private static File fileOrNull(String str) {
+        return (str == null) ? null : new File(str);
     }
 
 }
