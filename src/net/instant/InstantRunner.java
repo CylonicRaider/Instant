@@ -147,6 +147,7 @@ public class InstantRunner implements API1 {
     private String host;
     private int port;
     private File webroot;
+    private Map<String, String> sslConfig;
     private PrintStream httpLog;
 
     private DynamicConfiguration config;
@@ -195,6 +196,13 @@ public class InstantRunner implements API1 {
         webroot = p;
     }
 
+    public Map<String, String> getSSLConfig() {
+        return sslConfig;
+    }
+    public void setSSLConfig(Map<String, String> c) {
+        sslConfig = c;
+    }
+
     public PrintStream getHTTPLog() {
         return httpLog;
     }
@@ -229,7 +237,7 @@ public class InstantRunner implements API1 {
             } else {
                 addr = new InetSocketAddress(host, port);
             }
-            server = new InstantWebSocketServer(this, addr);
+            server = new InstantWebSocketServer(this, addr, getSSLConfig());
             server.setHTTPLog(httpLog);
             server.addInternalHook(makeRedirectHook());
             server.addInternalHook(makeFileHook());

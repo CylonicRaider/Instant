@@ -22,7 +22,9 @@ import net.instant.api.ResponseBuilder;
 import net.instant.util.Formats;
 import net.instant.util.StringSigner;
 import net.instant.util.Util;
+import net.instant.ws.ssl.SSLConfiguration;
 import org.java_websocket.WebSocket;
+import org.java_websocket.WebSocketServerFactory;
 import org.java_websocket.drafts.Draft;
 import org.java_websocket.drafts.Draft_6455;
 import org.java_websocket.exceptions.InvalidDataException;
@@ -65,7 +67,8 @@ public class InstantWebSocketServer extends WebSocketServer
     private ConnectionGC gc;
     private PrintStream httpLog;
 
-    public InstantWebSocketServer(API1 api, InetSocketAddress addr) {
+    public InstantWebSocketServer(API1 api, InetSocketAddress addr,
+                                  Map<String, String> sslConfig) {
         super(addr, wrapDrafts(DEFAULT_DRAFTS));
         serverLabel = makeServerLabel(api);
         hooks = new LinkedHashSet<RequestHook>();
@@ -77,7 +80,7 @@ public class InstantWebSocketServer extends WebSocketServer
         identifier = new IdentityCookieManager(api);
         gc = new ConnectionGC(api);
         httpLog = System.err;
-        setWebSocketFactory(new InstantWebSocketServerFactory());
+        setWebSocketFactory(makeWSSFactory(api, sslConfig));
         setReuseAddr(! Util.isTrue(api.getConfiguration(K_NO_REUSEADDR)));
         for (Draft d : getDraft()) {
             if (d instanceof DraftWrapper)
@@ -85,7 +88,7 @@ public class InstantWebSocketServer extends WebSocketServer
         }
     }
     public InstantWebSocketServer(API1 api, int port) {
-        this(api, new InetSocketAddress(port));
+        this(api, new InetSocketAddress(port), null);
     }
 
     protected String makeServerLabel(API1 api) {
@@ -100,6 +103,17 @@ public class InstantWebSocketServer extends WebSocketServer
             return StringSigner.getInstance(keyfile, create);
         } else {
             return StringSigner.getInstance(null);
+        }
+    }
+
+    protected WebSocketServerFactory makeWSSFactory(API1 api,
+            Map<String, String> sslConfig) {
+        if (sslConfig == null) return new InstantWebSocketServerFactory();
+        try {
+            return new InstantWebSocketServerFactory(
+                SSLConfiguration.configure(sslConfig), api.getExecutor());
+        } catch (SSLConfiguration.ConfigurationException exc) {
+            throw new RuntimeException(exc);
         }
     }
 
