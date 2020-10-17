@@ -16,7 +16,7 @@ public class ListConverter<E> extends Converter<List<E>> {
         registerL(String.class, ",");
         registerL(Integer.class, ",");
         registerL(File.class, File.pathSeparator);
-        registerL(KeyValue.class, ";");
+        registerL(KeyValue.class, ",");
     }
 
     private final Converter<E> inner;
