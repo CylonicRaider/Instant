@@ -8,20 +8,18 @@ TRANSCLUDEFLAGS = --config tools/transclude.conf
 # HACK: Make's syntax is... simplicistic.
 SP := $(subst ,, )
 
-TOOL_NAMES := $(filter-out tools/build.mk tools/transclude.conf tools/build \
+TOOL_DIRS := $(filter-out tools/build.mk tools/transclude.conf tools/build \
     tools/%.jar,$(wildcard tools/*))
-TOOL_ARCHIVES := $(patsubst %,%.jar,$(TOOL_NAMES))
+TOOL_NAMES := $(patsubst tools/%,%,$(TOOL_DIRS))
+TOOL_ARCHIVES := $(patsubst %,%.jar,$(TOOL_DIRS))
 TOOL_CLASSPATH := $(subst $(SP),:,$(patsubst tools/%,../%, \
-    $(TOOL_NAMES))):../../src
+    $(TOOL_DIRS))):../../src
+TOOL_SOURCES := $(shell find tools/ -name '*.java' 2>/dev/null)
 
 .PHONY: tools/_clean tools/_pre-commit
 
-# Perform the include before secondary expansion.
--include tools/.deps.mk
-
 .SECONDARY:
 .DELETE_ON_ERROR:
-.SECONDEXPANSION:
 
 all: $(TOOL_ARCHIVES)
 clean: tools/_clean
@@ -30,16 +28,14 @@ pre-commit: tools/_pre-commit
 tools/build:
 	mkdir $@
 
-tools/build/%.jar: $$(shell find tools/$$* -name '*.java' 2>/dev/null) | \
-    tools/build
+tools/build/%.jar: | tools/build
 	find tools/$* -name '*.class' -exec rm {} +
 	cd tools/$* && find . -name '*.java' -print0 | xargs -0r \
 	    javac -cp $(CLASSPATH):$(TOOL_CLASSPATH) $(JAVACFLAGS)
 	cd tools/$* && jar cf ../build/$*.jar META-INF/MANIFEST.MF \
 	    $$(find . -name '*.class')
 
-tools/%.jar: tools/build/%.jar $$(shell find tools/$$* -type f 2>/dev/null) \
-    tools/transclude.conf
+tools/%.jar: tools/build/%.jar tools/transclude.conf
 	cp tools/build/$*.jar tools/$*.jar
 	cd tools/$* && jar uf ../$*.jar $$(find . -type f -not -path \
 	    './META-INF/MANIFEST.MF')
@@ -53,6 +49,13 @@ tools/_clean:
 tools/_pre-commit:
 	@git add $(TOOL_ARCHIVES)
 
-tools/.deps.mk: tools/transclude.conf $(SOURCES)
-	@script/transclude.py $(TRANSCLUDEFLAGS) --deps - --all | \
-	sed -e 's/\$$/&&/g' > $@
+tools/.deps.mk: tools/transclude.conf $(SOURCES) $(TOOL_SOURCES)
+	@(script/transclude.py $(TRANSCLUDEFLAGS) --deps - --all; \
+	for name in $(TOOL_NAMES); do \
+	    echo "tools/build/$$name.jar: $$(find tools/$$name -name \
+	        '*.java' 2>/dev/null | tr '\n' ' ')"; \
+	    echo "tools/$$name.jar: $$(find tools/$$name -type f \
+	        2>/dev/null | tr '\n' ' ')"; \
+	done) | sed -e 's/\$$/&&/g' > $@
+
+-include tools/.deps.mk
