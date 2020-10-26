@@ -286,20 +286,28 @@ class AtomicSequence(object):
 
 class InstantClient(object):
     """
-    InstantClient(url, [timeout], [cookies], keepalive=False, **kwds)
-        -> new instance
+    InstantClient(url, *, keepalive=False, **kwds) -> new instance
 
     Generic Instant API endpoint wrapper.
 
-    url is the URL of the API endpoint; timeout is the connection timeout (a
-    floating-point amount of seconds or None for no timeout), which defaults
-    to the TIMEOUT class attribute; cookies is a CookieJar instance (or None)
-    which is used for cookie management, and defaults to the COOKIES class
-    attribute; keepalive indicates whether the client should reconnect when
-    its connection breaks. Unrecognized keyword arguments are ignored.
+    url is the URL of the API endpoint; keepalive indicates whether the client
+    should reconnect when its connection breaks.
 
-    timeout and cookies are forwarded to the underlying WebSocket connect()
-    call.
+    The following keyword-only arguments are passed on to the underlying
+    WebSocket connect() call:
+    timeout   : The connection timeout (a floating-point amount of seconds or
+                None for no timeout); default to the TIMEOUT class attribute.
+    cookies   : A CookieJar instance (or None) for cookie management; defaults
+                to the COOKIES class attribute.
+    ssl_config: A mapping of SSL configuration values, or None for default SSL
+                settings. May have the following (string) keys:
+                cert: A client certificate file (in PEM format).
+                key : The private key corresponding to cert (in PEM format; if
+                      omitted, the private key is taken from the cert file).
+                ca  : A list of CA certificates to trust (exclusively; in PEM
+                      format).
+
+    Unrecognized keyword arguments are ignored.
 
     The following groups of methods are provided:
     - The underlying connection can be managed via connect() and close();
@@ -757,8 +765,8 @@ class Bot(InstantClient):
 
 class HookBot(Bot):
     """
-    HookBot(url, nickname=Ellipsis, init_cb=None, open_cb=None, post_cb=None,
-            close_cb=None) -> new instance
+    HookBot(url, nickname=Ellipsis, *, init_cb=None, open_cb=None,
+            post_cb=None, close_cb=None, **kwds) -> new instance
 
     An extension of Bot that provides externally settable callbacks for key
     events.
@@ -1701,6 +1709,17 @@ class CmdlineBotBuilder:
                            help='Cookie file (empty string -> memory)')
         self.parser.flag_ex('no-cookies', None, 'cookies',
                             help='Do not save cookies')
+        self.parser.option('tls', type=websocket_server.quick.tls_flags,
+                           placeholder='KEY=VALUE[,...]',
+                           varname='ssl_config',
+                           help='TLS configuration. Possible keys are:\n'
+                                'cert: Client certificate to present (as a '
+                                    'PEM file).\n'
+                                'key : Private key corresponding to cert (as '
+                                    'a PEM file; defaults to the value of '
+                                    'cert).\n'
+                                'ca  : CA certificates to trust exclusively '
+                                    '(as a PEM file).')
         kwargs = {}
         if self.defurl is not Ellipsis: kwargs['default'] = self.defurl
         self.parser.argument('url', help='URL to connect to', **kwargs)
