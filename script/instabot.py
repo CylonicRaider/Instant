@@ -330,6 +330,7 @@ class InstantClient(object):
         self.url = url
         self.timeout = kwds.get('timeout', self.TIMEOUT)
         self.cookies = kwds.get('cookies', self.COOKIES)
+        self.ssl_config = kwds.get('ssl_config', None)
         self.keepalive = kwds.get('keepalive', False)
         self.ws = None
         self.sequence = AtomicSequence()
@@ -345,7 +346,7 @@ class InstantClient(object):
             if self.ws is not None: return self.ws
             jar = self.cookies
             self.ws = websocket_server.client.connect(self.url,
-                cookies=jar, timeout=self.timeout)
+                cookies=jar, timeout=self.timeout, ssl_config=self.ssl_config)
             if isinstance(jar, websocket_server.cookies.FileCookieJar):
                 jar.save()
         return self.ws
@@ -1748,6 +1749,11 @@ class CmdlineBotBuilder:
             self.cookies.relaxed = self.relaxed_cookies
             self.cookies.load()
             self.kwds['cookies'] = self.cookies
+        sc = self.parser.get('ssl_config')
+        if sc is None:
+            self.kwds.pop('ssl_config', None)
+        else:
+            self.kwds['ssl_config'] = sc
     def add(self, *args, **kwds):
         """
         Store the given arguments for passing to the Bot constructor.
