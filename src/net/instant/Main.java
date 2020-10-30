@@ -96,7 +96,7 @@ public class Main implements Runnable {
         Option<File> webroot = p.add(Option.of(File.class, "webroot", 'r',
             "Path containing static directories.").defaultsTo(new File(".")));
         Option<List<KeyValue>> tlsFlags = p.add(Option.ofList(KeyValue.class,
-            "tls", 't', "TLS configuration")
+            "tls", 't', "TLS configuration.")
             .defaultsTo(new ArrayList<KeyValue>()));
         Option<File> httpLog = p.add(Option.of(File.class, "http-log", null,
             "Log file for HTTP requests.").defaultsTo(new File("-"))
