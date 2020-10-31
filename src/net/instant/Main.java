@@ -96,8 +96,7 @@ public class Main implements Runnable {
         Option<File> webroot = p.add(Option.of(File.class, "webroot", 'r',
             "Path containing static directories.").defaultsTo(new File(".")));
         Option<List<KeyValue>> tlsFlags = p.add(Option.ofList(KeyValue.class,
-            "tls", 't', "TLS configuration.")
-            .defaultsTo(new ArrayList<KeyValue>()));
+            "tls", 't', "TLS configuration."));
         Option<File> httpLog = p.add(Option.of(File.class, "http-log", null,
             "Log file for HTTP requests.").defaultsTo(new File("-"))
             .withComment("\"-\" = standard error"));
@@ -200,6 +199,7 @@ public class Main implements Runnable {
 
     private static <K, V> Map<K, V> pairsToMap(
             Iterable<? extends Map.Entry<K, V>> pairs) {
+        if (pairs == null) return null;
         Map<K, V> ret = new LinkedHashMap<K, V>();
         for (Map.Entry<K, V> ent : pairs) {
             ret.put(ent.getKey(), ent.getValue());
