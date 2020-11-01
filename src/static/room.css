@@ -106,13 +106,44 @@ body {
   padding-right: 0.35em;
 }
 
-.error-box {
-  border: 2px solid red;
-  padding: 3px;
+#errors {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 10000;
+  background: rgba(255, 255, 255, 0.25);
+  text-align: center;
+  overflow: auto;
 }
-.error-box pre {
+#errors .error-box {
+  display: inline-block;
+  text-align: left;
+  margin: 30px auto;
+}
+.error-box {
+  border: 5px solid red;
+  padding: 5px;
+  background: white;
+  color: black;
+}
+.error-box h2, .error-box p, .error-box hr, .error-box pre {
   margin: 5px 0;
 }
+.error-box hr {
+  border: 1px solid black;
+}
+.error-box .bottom {
+  text-align: right;
+}
+.error-box .bottom .dismiss {
+  color: #c00000;
+}
+.error-box .bottom .reload {
+  color: #008000;
+}
+
 #load-wrapper .error-box {
   margin-top: 10px;
 }
@@ -871,11 +902,13 @@ a.room-name .staging {
   border: 1px solid black;
   padding: 1px;
   font: inherit;
-  color: black;
   border-radius: 0;
   background: none;
   cursor: pointer;
   outline-offset: -2px;
+}
+.button, a.button {
+  color: black;
 }
 .button:hover {
   text-decoration: underline;
