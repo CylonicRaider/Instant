@@ -177,6 +177,7 @@ public class Main implements Runnable {
         FSResourceProducer prod = runner.makeSourceFiles();
         prod.whitelist("/pages/.*");
         prod.whitelist("/static/.*");
+        runner.makeAuthHook().setPath("/api/auth");
         APIWebSocketHook ws = runner.makeAPIHook();
         ws.getWhitelist().add(Pattern.compile("/room/(" + ROOM_RE + ")/ws"),
                               "\\1");

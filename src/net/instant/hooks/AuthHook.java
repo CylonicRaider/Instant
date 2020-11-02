@@ -9,8 +9,20 @@ import net.instant.util.Util;
 
 public class AuthHook extends HookAdapter {
 
+    private String path;
+
+    public String getPath() {
+        return path;
+    }
+
+    public void setPath(String p) {
+        path = p;
+    }
+
     public boolean evaluateRequest(RequestData req, ResponseBuilder resp) {
-        if (req.getRequestType() != RequestType.HTTP) return false;
+        if (req.getRequestType() != RequestType.HTTP || path == null ||
+                ! path.equals(req.getPath()))
+            return false;
         String magic = createMagicCookie();
         resp.respond(200, "OK", magic.length());
         resp.addHeader("Content-Type", "text/plain; charset=utf-8");
