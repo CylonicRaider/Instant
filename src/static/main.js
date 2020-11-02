@@ -290,6 +290,8 @@ this.Instant = function() {
     if (! list) return false;
     return runListEx(list, this, Array.prototype.slice.call(arguments, 1));
   }
+  /* Error handler (loaded separately) */
+  Instant.errors = InstantErrors;
   /* Own identity */
   Instant.identity = function() {
     return {
@@ -9195,17 +9197,7 @@ function init() {
   try {
     Instant.init(main, wrapper);
   } catch (e) {
-    console.error(e);
-    var m = document.createElement('div');
-    m.className = 'error-box';
-    m.innerHTML = '<strong>Oops...</strong> <em>An error occured.</em> ' +
-      '<span>Technical details follow:</span><pre></pre>' +
-      '<span>See also the developer tools for more details.</span>';
-    var details = "" + e;
-    if (e.stack) details += "\n" + e.stack;
-    $sel('pre', m).textContent = details;
-    var cntbox = $cls('content-box', wrapper);
-    cntbox.appendChild(m);
+    Instant.errors.showError(e);
     return;
   }
   Instant.input.focus();
