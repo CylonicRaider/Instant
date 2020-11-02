@@ -13,6 +13,7 @@ this.InstantErrors = function() {
       errorBox = homeNode.querySelector('.error-box');
       var dismiss = errorBox.querySelector('.dismiss');
       dismiss.addEventListener('click', InstantErrors.hide);
+      window.onerror = InstantErrors.handle;
     },
     /* Display an error report with the given additional information */
     show: function(extraText) {
@@ -30,6 +31,10 @@ this.InstantErrors = function() {
     hide: function() {
       errorBox.querySelector('pre').textContent = '';
       errorBox.parentNode.style.display = 'none';
+    },
+    /* Callback function for window.onerror */
+    handle: function(message, source, lineno, colno, error) {
+      InstantErrors.showError(error);
     },
     /* Format an exception object into an error report text */
     format: function(exc) {
