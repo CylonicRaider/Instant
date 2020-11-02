@@ -9194,12 +9194,7 @@ function init() {
     event.preventDefault();
   });
   /* Fire up Instant! */
-  try {
-    Instant.init(main, wrapper);
-  } catch (e) {
-    Instant.errors.showError(e);
-    return;
-  }
+  Instant.init(main, wrapper);
   Instant.input.focus();
   /* Allow dismissing wrapper */
   var wrapperClose = $id('load-wrapper-close');
