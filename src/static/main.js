@@ -7847,6 +7847,12 @@ this.Instant = function() {
             po._del = self.del.bind(self);
             return Instant.popups.make(po);
           },
+          /* Create, add, and return a window from the given options */
+          addNew: function(options) {
+            var ret = Instant.popups.windows.make(options);
+            Instant.popups.windows.add(ret);
+            return ret;
+          },
           /* Return the DOM node hosting the windows */
           getNode: function() {
             return winnode;
