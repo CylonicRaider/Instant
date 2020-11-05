@@ -7816,7 +7816,7 @@ this.Instant = function() {
           add: function(wnd) {
             var cont = $cls('windows', winnode);
             cont.appendChild(wnd);
-            winnode.classList.remove('hidden');
+            winnode.classList.remove('empty');
             Instant._fireListeners('windows.add', {window: wnd});
           },
           /* Hide the given window */
@@ -7826,7 +7826,7 @@ this.Instant = function() {
               cont.removeChild(wnd);
             } catch (e) {}
             if (cont.children.length == 0)
-              winnode.classList.add('hidden');
+              winnode.classList.add('empty');
             Instant._fireListeners('windows.del', {window: wnd});
           },
           /* Collapse (iconify) the given window */
