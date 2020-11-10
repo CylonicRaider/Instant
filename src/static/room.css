@@ -1513,6 +1513,10 @@ h2.sidebar-unread .button-icon-cover {
 }
 
 .popup {
+  display: -webkit-flex;
+  display: flex;
+  -webkit-flex-direction: column;
+  flex-direction: column;
   position: relative;
   margin: auto;
   border: 2px solid black;
@@ -1527,6 +1531,8 @@ h2.sidebar-unread .button-icon-cover {
 .popup .popup-header {
   display: -webkit-flex;
   display: flex;
+  -webkit-flex-shrink: 0;
+  flex-shrink: 0;
   background: white;
   border-bottom: 1px solid black;
 }
@@ -1556,7 +1562,27 @@ h2.sidebar-unread .button-icon-cover {
 }
 
 .popup .popup-content {
+  display: -webkit-flex;
+  display: flex;
+  -webkit-flex-direction: column;
+  -webkit-flex-grow: 1;
+  flex-direction: column;
+  flex-grow: 1;
+  min-height: 0;
   padding: 5px;
+}
+.popup .popup-content > * {
+  -webkit-flex-shrink: 0;
+  flex-shrink: 0;
+}
+.popup .popup-content > .popup-growable {
+  -webkit-flex-grow: 1;
+  flex-grow: 1;
+}
+.popup .popup-content > .popup-shrinkable {
+  -webkit-flex-shrink: 1;
+  flex-shrink: 1;
+  min-height: 0;
 }
 .popup .popup-content hr {
   margin: 5px 0;
@@ -1624,8 +1650,10 @@ h2.sidebar-unread .button-icon-cover {
 .popup .popup-bottom {
   display: -webkit-flex;
   display: flex;
+  -webkit-flex-shrink: 0;
   -webkit-justify-content: flex-end;
   -webkit-flex-wrap: wrap;
+  flex-shrink: 0;
   justify-content: flex-end;
   flex-wrap: wrap;
   margin: 0 5px 5px 5px;
