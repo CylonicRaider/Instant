@@ -2991,9 +2991,8 @@ this.Instant = function() {
               } else if (src.nodeType != Node.ELEMENT_NODE) {
                 return;
               } else if (src.classList.contains('no-copy')) {
-                dest.appendChild($makeNode('span', 'copy-placeholder'));
-                ret.classList.add('copy-reduced');
-                return;
+                reduced = true;
+                return $makeNode('span', 'copy-placeholder');
               }
               copy = src.cloneNode(false);
               var children = src.childNodes;
@@ -3005,10 +3004,11 @@ this.Instant = function() {
               }
               return copy;
             }
-            var seenChars = 0, truncated = false;
+            var seenChars = 0, truncated = false, reduced = false;
             var ret = traverse(content);
             ret.classList.add('copy');
             if (truncated) ret.classList.add('copy-truncated');
+            if (reduced) ret.classList.add('copy-reduced');
             return ret;
           },
           /* Reverse the transformation performed by the parser */
