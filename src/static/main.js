@@ -7808,22 +7808,25 @@ this.Instant = function() {
           /* Initialize submodule */
           init: function() {
             winnode = $makeNode('div', 'windows-wrapper empty', [
-              ['div', 'windows']
+              ['div', 'windows-inner-wrapper', [
+                ['div', 'windows']
+              ]]
             ]);
             return winnode;
           },
           /* Show the given window */
           add: function(wnd) {
             var cont = $cls('windows', winnode);
-            cont.appendChild(wnd);
+            cont.appendChild($makeNode('div', 'window-wrapper', [wnd]));
             winnode.classList.remove('empty');
             Instant._fireListeners('windows.add', {window: wnd});
           },
           /* Hide the given window */
           del: function(wnd) {
-            var cont = $cls('windows', winnode);;
+            var cont = $cls('windows', winnode);
+            var wrapper = wnd.parentNode;
             try {
-              cont.removeChild(wnd);
+              cont.removeChild(wrapper);
             } catch (e) {}
             if (cont.children.length == 0)
               winnode.classList.add('empty');

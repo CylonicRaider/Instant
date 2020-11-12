@@ -198,7 +198,7 @@
   color: white;
 }
 
-.dark .popups {
+.dark .popups-wrapper, .dark .windows-wrapper {
   background: rgba(0, 0, 0, 0.5);
 }
 .dark .popups-menu, .dark .popups-menu > .button,
@@ -227,9 +227,6 @@
 .dark .popup .popup-button img, .dark .popup .popup-message-close img {
   -webkit-filter: invert(1);
   filter: invert(1);
-}
-.dark .windows .popup {
-  box-shadow: 0 0 5px white;
 }
 
 .dark .input-bar, .dark .input-bar .input-nick-prompt {

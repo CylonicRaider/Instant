@@ -1335,25 +1335,21 @@ h2.sidebar-unread .button-icon-cover {
   top: 0;
   left: 0;
   width: 100%;
-  height: 100%;
   z-index: 100;
+  background: rgba(255, 255, 255, 0.5);
 }
-.windows-wrapper {
-  pointer-events: none;
-}
-.windows-wrapper > * {
-  pointer-events: auto;
-}
-.popups-wrapper.empty, .popups-wrapper.hidden,
-.windows-wrapper.empty {
-  display: none;
-}
-
 .popups-wrapper {
   display: -webkit-flex;
   display: flex;
   -webkit-flex-direction: column;
   flex-direction: column;
+  height: 100%;
+}
+.windows-wrapper {
+  height: 65%;
+}
+.popups-wrapper.empty, .popups-wrapper.hidden, .windows-wrapper.empty {
+  display: none;
 }
 
 .popups-menu {
@@ -1481,7 +1477,6 @@ h2.sidebar-unread .button-icon-cover {
   min-height: 100%;
   padding: 0.5em;
   box-sizing: border-box;
-  background: rgba(255, 255, 255, 0.5);
   z-index: 1000;
 }
 .popups > .popup {
@@ -1494,22 +1489,36 @@ h2.sidebar-unread .button-icon-cover {
 .popups > .popup:last-child {
   margin-bottom: auto;
 }
+.windows-inner-wrapper {
+  position: absolute;
+  top: 1em;
+  left: 1em;
+  bottom: 1em;
+  right: 1em;
+  overflow: auto;
+}
 .windows {
   z-index: 900;
   display: -webkit-flex;
   display: flex;
   -webkit-flex-direction: column;
   -webkit-flex-wrap: wrap;
+  -webkit-justify-content: center;
+  -webkit-align-content: center;
+  -webkit-align-items: center;
   flex-direction: column;
   flex-wrap: wrap;
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 50%;
-  padding: 1em;
-  box-sizing: border-box;
-  overflow: hidden;
+  justify-content: center;
+  align-content: center;
+  align-items: center;
+  height: 100%;
+}
+.window-wrapper {
+  display: -webkit-flex;
+  display: flex;
+  -webkit-flex-direction: column;
+  flex-direction: column;
+  max-height: 100%;
 }
 
 .popup {
@@ -1526,6 +1535,10 @@ h2.sidebar-unread .button-icon-cover {
 }
 .popup:target {
   box-shadow: 0 0 10px #808080;
+}
+.windows .popup {
+  margin: 5px;
+  min-height: 0;
 }
 
 .popup .popup-header {
@@ -1712,10 +1725,6 @@ h2.sidebar-unread .button-icon-cover {
 .popup.collapsed .popup-content,
 .popup.collapsed .popup-bottom {
   display: none;
-}
-
-.windows .popup {
-  box-shadow: 0 0 5px black;
 }
 
 .popup .popup-grid-wrapper {
