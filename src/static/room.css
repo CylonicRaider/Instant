@@ -1538,7 +1538,8 @@ h2.sidebar-unread .button-icon-cover {
 }
 .windows .popup {
   margin: 5px;
-  min-height: 0;
+  -webkit-flex-grow: 1;
+  flex-grow: 1;
 }
 
 .popup .popup-header {
@@ -1581,7 +1582,6 @@ h2.sidebar-unread .button-icon-cover {
   -webkit-flex-grow: 1;
   flex-direction: column;
   flex-grow: 1;
-  min-height: 0;
   padding: 5px;
 }
 .popup .popup-content > * {
@@ -1596,6 +1596,7 @@ h2.sidebar-unread .button-icon-cover {
   -webkit-flex-shrink: 1;
   flex-shrink: 1;
   min-height: 0;
+  overflow: auto;
 }
 .popup .popup-content hr {
   margin: 5px 0;
