@@ -7556,13 +7556,6 @@ this.Instant = function() {
           stack.removeChild(node);
         } catch (e) {
           return;
-        } finally {
-          var id = node.getAttribute('data-popup-id');
-          if (id) {
-            var list = removeListeners[id];
-            delete removeListeners[id];
-            runList(list, node);
-          }
         }
         if (! Instant.popups.hasPopups()) {
           Instant.popups._setEmpty(true);
@@ -7573,7 +7566,17 @@ this.Instant = function() {
         } else {
           Instant.popups.focus(next);
         }
+        Instant.popups._ondel(node);
         Instant._fireListeners('popups.del', {popup: node});
+      },
+      /* Run on-deletion listeners for the given popup */
+      _ondel: function(node) {
+        var id = node.getAttribute('data-popup-id');
+        if (id) {
+          var list = removeListeners[id];
+          delete removeListeners[id];
+          runList(list, node);
+        }
       },
       /* Collapse or expand a popup */
       collapse: function(node, force) {
@@ -7827,9 +7830,13 @@ this.Instant = function() {
             var wrapper = wnd.parentNode;
             try {
               cont.removeChild(wrapper);
-            } catch (e) {}
-            if (cont.children.length == 0)
+            } catch (e) {
+              return;
+            }
+            if (cont.children.length == 0) {
               winnode.classList.add('empty');
+            }
+            Instant.popups._ondel(wnd);
             Instant._fireListeners('windows.del', {window: wnd});
           },
           /* Collapse (iconify) the given window */
