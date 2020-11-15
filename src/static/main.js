@@ -7692,7 +7692,10 @@ this.Instant = function() {
         Instant.popups._updateHidden();
         Instant._fireListeners('popups.clear');
       },
-      /* Hide/unhide all popups */
+      /* Hide/unhide all popups
+       * force defines the new hiding state, or toggles it if null.
+       * If there are no popups and the UI is to be hidden, it is closed
+       * instead; if nonempty is true, this special case is ignored. */
       hideAll: function(force, nonempty) {
         if (force == null) {
           force = (! wrapper.classList.contains('hidden'));
@@ -7802,6 +7805,8 @@ this.Instant = function() {
       windows: function() {
         /* The main node */
         var winnode = null;
+        /* The hidden windows indicator */
+        var hiddenMsg = null;
         return {
           /* Initialize submodule */
           init: function() {
@@ -7810,6 +7815,12 @@ this.Instant = function() {
                 ['div', 'windows']
               ]]
             ]);
+            hiddenMsg = Instant.sidebar.makeMessage({
+              content: 'Hidden windows',
+              onclick: function() {
+                Instant.popups.windows.hideAll(false);
+              }
+            });
             return winnode;
           },
           /* Show the given window */
@@ -7817,6 +7828,8 @@ this.Instant = function() {
             var cont = $cls('windows', winnode);
             cont.appendChild($makeNode('div', 'window-wrapper', [wnd]));
             winnode.classList.remove('empty');
+            if (winnode.classList.contains('hidden'))
+              Instant.popups.windows._updateHidden(true);
             Instant._fireListeners('windows.add', {window: wnd});
           },
           /* Hide the given window */
@@ -7831,6 +7844,7 @@ this.Instant = function() {
             if (cont.children.length == 0) {
               winnode.classList.add('empty');
             }
+            Instant.popups.windows._updateHidden();
             Instant.popups._ondel(wnd);
             Instant._fireListeners('windows.del', {window: wnd});
           },
@@ -7838,9 +7852,59 @@ this.Instant = function() {
           collapse: function(wnd, force) {
             Instant.popups.collapse(wnd, force);
           },
+          /* Return whether there are any windows */
+          hasWindows: function() {
+            return (!! $sel('.popup', winnode));
+          },
           /* Check whether the given window is visible as such */
           isShown: function(wnd) {
             return winnode.contains(wnd);
+          },
+          /* Remove all windows */
+          delAll: function() {
+            var cont = $cls('windows', winnode);
+            while (cont.firstChild) {
+              var wnd = cont.firstChild.firstChild;
+              cont.removeChild(cont.firstChild);
+              Instant.popups._ondel(wnd);
+            }
+            winnode.classList.add('empty');
+            Instant.input.focus();
+            Instant.popups.windows._updateHidden();
+            Instant._fireListeners('windows.clear');
+          },
+          /* Hide/unhide all windows
+           * See Instant.popups.hideAll() for an explanation of the
+           * parameters. */
+          hideAll: function(force, nonempty) {
+            if (force == null) {
+              force = (! winnode.classList.contains('hidden'));
+            }
+            if (force) {
+              if (! nonempty && ! Instant.popups.windows.hasWindows()) {
+                winnode.classList.add('empty');
+              } else {
+                winnode.classList.add('hidden');
+              }
+              Instant.input.focus();
+            } else {
+              winnode.classList.remove('hidden');
+            }
+            Instant.popups.windows._updateHidden();
+          },
+          /* Update the hidden window counter */
+          _updateHidden: function(flash) {
+            var count = $selAll('.popup', winnode).length;
+            hiddenMsg.textContent = 'Hidden windows (' + (count || 'none') +
+              ')';
+            var hidden = winnode.classList.contains('hidden');
+            if (hidden) {
+              Instant.sidebar.showMessage(hiddenMsg);
+            } else {
+              Instant.sidebar.hideMessage(hiddenMsg);
+            }
+            if (flash) Instant.sidebar.flashMessage(hiddenMsg);
+            Instant._fireListeners('windows.hidden', {hidden: hidden});
           },
           /* Create a new window with the given options */
           make: function(options) {

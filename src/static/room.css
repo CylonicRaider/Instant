@@ -1348,7 +1348,8 @@ h2.sidebar-unread .button-icon-cover {
 .windows-wrapper {
   height: 65%;
 }
-.popups-wrapper.empty, .popups-wrapper.hidden, .windows-wrapper.empty {
+.popups-wrapper.empty, .popups-wrapper.hidden, .windows-wrapper.empty,
+.windows-wrapper.hidden {
   display: none;
 }
 
