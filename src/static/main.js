@@ -7685,12 +7685,7 @@ this.Instant = function() {
         while (stack.firstChild) {
           var popup = stack.firstChild;
           stack.removeChild(popup);
-          var id = popup.getAttribute('data-popup-id');
-          if (id) {
-            var list = removeListeners[id];
-            delete removeListeners[id];
-            runList(list, popup);
-          }
+          Instant.popups._ondel(popup);
         }
         Instant.popups._setEmpty(true);
         Instant.input.focus();
