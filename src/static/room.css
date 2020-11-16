@@ -1353,14 +1353,22 @@ h2.sidebar-unread .button-icon-cover {
   display: none;
 }
 
-.popups-menu {
+.popups-menu, .windows-menu {
   display: -webkit-flex;
   display: flex;
   -webkit-flex-shrink: 0;
   flex-shrink: 0;
   border-bottom: 2px solid black;
   background: white;
+}
+.popups-menu {
   z-index: 1100;
+}
+.windows-menu {
+  position: absolute;
+  top: 0;
+  right: 0;
+  border-left: 2px solid black;
 }
 .popups-menu > * {
   line-height: 1.2;
@@ -1374,23 +1382,23 @@ h2.sidebar-unread .button-icon-cover {
   flex-grow: 1;
   margin: 0;
 }
-.popups-menu > .separator {
+.popups-menu > .separator, .windows-menu > .separator {
   display: inline-block;
   width: 1px;
   margin: 0;
   background: black;
 }
-.popups-menu > .button {
+.popups-menu > .button, .windows-menu > .button {
   width: 2em;
   height: 2em;
   margin: auto 0;
   line-height: 0;
   background: white;
 }
-.popups-menu > .button:hover {
+.popups-menu > .button:hover, .windows-menu > .button:hover {
   background: #c0c0c0;
 }
-.popups-menu > .button:active {
+.popups-menu > .button:active, .windows-menu > .button:active {
   background: #808080;
 }
 
@@ -1492,10 +1500,10 @@ h2.sidebar-unread .button-icon-cover {
 }
 .windows-inner-wrapper {
   position: absolute;
-  top: 1em;
-  left: 1em;
+  top: 0;
+  left: 0;
   bottom: 1em;
-  right: 1em;
+  right: 0;
   overflow: auto;
 }
 .windows {

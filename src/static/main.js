@@ -7812,6 +7812,17 @@ this.Instant = function() {
           init: function() {
             winnode = $makeNode('div', 'windows-wrapper empty', [
               ['div', 'windows-inner-wrapper', [
+                ['div', 'windows-menu', [
+                  ['button', 'button button-noborder hide-all',
+                      {title: 'Hide all windows'}, [
+                    Instant.icons.makeNode('collapse')
+                  ]],
+                  ['span', 'separator'],
+                  ['button', 'button button-noborder close-all',
+                      {title: 'Close all windows'}, [
+                    Instant.icons.makeNode('close')
+                  ]]
+                ]],
                 ['div', 'windows']
               ]]
             ]);
@@ -7820,6 +7831,12 @@ this.Instant = function() {
               onclick: function() {
                 Instant.popups.windows.hideAll(false);
               }
+            });
+            $cls('hide-all', winnode).addEventListener('click', function() {
+              Instant.popups.windows.hideAll(true);
+            });
+            $cls('close-all', winnode).addEventListener('click', function() {
+              Instant.popups.windows.delAll();
             });
             return winnode;
           },
