@@ -1362,13 +1362,14 @@ h2.sidebar-unread .button-icon-cover {
   background: white;
 }
 .popups-menu {
-  z-index: 1100;
+  z-index: 1010;
 }
 .windows-menu {
   position: absolute;
   top: 0;
   right: 0;
   border-left: 2px solid black;
+  z-index: 910;
 }
 .popups-menu > * {
   line-height: 1.2;

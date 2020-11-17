@@ -6344,6 +6344,7 @@ this.Instant = function() {
         var messages = $cls('message-pane', main);
         Instant.util.adjustScrollbarMargin(sidebar, messages);
         Instant.util.adjustScrollbarMargin(handle, messages);
+        Instant.popups.windows._adjustSizes();
       },
       /* Greeting pane */
       greeter: function() {
@@ -7811,18 +7812,18 @@ this.Instant = function() {
           /* Initialize submodule */
           init: function() {
             winnode = $makeNode('div', 'windows-wrapper empty', [
-              ['div', 'windows-inner-wrapper', [
-                ['div', 'windows-menu', [
-                  ['button', 'button button-noborder hide-all',
-                      {title: 'Hide all windows'}, [
-                    Instant.icons.makeNode('collapse')
-                  ]],
-                  ['span', 'separator'],
-                  ['button', 'button button-noborder close-all',
-                      {title: 'Close all windows'}, [
-                    Instant.icons.makeNode('close')
-                  ]]
+              ['div', 'windows-menu', [
+                ['button', 'button button-noborder hide-all',
+                    {title: 'Hide all windows'}, [
+                  Instant.icons.makeNode('collapse')
                 ]],
+                ['span', 'separator'],
+                ['button', 'button button-noborder close-all',
+                    {title: 'Close all windows'}, [
+                  Instant.icons.makeNode('close')
+                ]]
+              ]],
+              ['div', 'windows-inner-wrapper', [
                 ['div', 'windows']
               ]]
             ]);
@@ -7838,7 +7839,16 @@ this.Instant = function() {
             $cls('close-all', winnode).addEventListener('click', function() {
               Instant.popups.windows.delAll();
             });
+            window.addEventListener('resize', function() {
+              Instant.popups.windows._adjustSizes();
+            });
             return winnode;
+          },
+          /* Adjust the sizes and margins of various elements */
+          _adjustSizes: function() {
+            var windowsWrapper = $cls('windows-inner-wrapper', main);
+            var windowsMenu = $cls('windows-menu', main);
+            Instant.util.adjustScrollbarMargin(windowsMenu, windowsWrapper);
           },
           /* Show the given window */
           add: function(wnd) {
