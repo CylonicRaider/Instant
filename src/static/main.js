@@ -7853,7 +7853,8 @@ this.Instant = function() {
           /* Show the given window */
           add: function(wnd) {
             var cont = $cls('windows', winnode);
-            cont.appendChild($makeNode('div', 'window-wrapper', [wnd]));
+            if (! cont.contains(wnd))
+              cont.appendChild($makeNode('div', 'window-wrapper', [wnd]));
             winnode.classList.remove('empty');
             if (winnode.classList.contains('hidden'))
               Instant.popups.windows._updateHidden(true);
