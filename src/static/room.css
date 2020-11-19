@@ -1335,7 +1335,6 @@ h2.sidebar-unread .button-icon-cover {
   top: 0;
   left: 0;
   width: 100%;
-  z-index: 100;
   background: rgba(255, 255, 255, 0.5);
 }
 .popups-wrapper {
@@ -1344,9 +1343,11 @@ h2.sidebar-unread .button-icon-cover {
   -webkit-flex-direction: column;
   flex-direction: column;
   height: 100%;
+  z-index: 1000;
 }
 .windows-wrapper {
   height: 65%;
+  z-index: 800;
 }
 .popups-wrapper.empty, .popups-wrapper.hidden, .windows-wrapper.empty,
 .windows-wrapper.hidden {
@@ -1369,7 +1370,7 @@ h2.sidebar-unread .button-icon-cover {
   top: 0;
   right: 0;
   border-left: 2px solid black;
-  z-index: 910;
+  z-index: 810;
 }
 .popups-menu > * {
   line-height: 1.2;
@@ -1487,7 +1488,6 @@ h2.sidebar-unread .button-icon-cover {
   min-height: 100%;
   padding: 0.5em;
   box-sizing: border-box;
-  z-index: 1000;
 }
 .popups > .popup {
   margin: 0.5em auto;
@@ -1508,7 +1508,6 @@ h2.sidebar-unread .button-icon-cover {
   overflow: auto;
 }
 .windows {
-  z-index: 900;
   display: -webkit-flex;
   display: flex;
   -webkit-flex-direction: column;
