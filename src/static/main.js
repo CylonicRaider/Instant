@@ -3905,6 +3905,14 @@ this.Instant = function() {
                                       Instant.contentPane._onBackdropClick);
         return node;
       },
+      /* Configure a CSS class on the content node */
+      _setCSSClass: function(cls, flag) {
+        if (flag) {
+          node.classList.add(cls);
+        } else {
+          node.classList.remove(cls);
+        }
+      },
       /* Obtain the current display mode of the sidebar */
       getSidebarMode: function() {
         return mode;
@@ -7431,7 +7439,7 @@ this.Instant = function() {
           }});
         return stack;
       },
-      /* Adjust the "hidden popups" UI message */
+      /* Adjust the "hidden popups" UI message, and related things */
       _updateHidden: function(flash) {
         var count = $selAll('.popup', stack).length;
         hiddenMsg.textContent = 'Hidden popups (' + (count || 'none') + ')';
@@ -7442,6 +7450,8 @@ this.Instant = function() {
           Instant.sidebar.hideMessage(hiddenMsg);
         }
         if (flash) Instant.sidebar.flashMessage(hiddenMsg);
+        Instant.contentPane._setCSSClass('has-visible-popups', (! hidden &&
+          ! wrapper.classList.contains('empty')));
         Instant._fireListeners('popups.hidden', {hidden: hidden});
       },
       /* Create a new popup */
@@ -7728,6 +7738,7 @@ this.Instant = function() {
         } else {
           wrapper.classList.remove('empty');
         }
+        Instant.popups._updateHidden();
       },
       /* Create a message to be embedded into a popup */
       makeMessage: function(options) {
@@ -7856,8 +7867,8 @@ this.Instant = function() {
             if (! cont.contains(wnd))
               cont.appendChild($makeNode('div', 'window-wrapper', [wnd]));
             winnode.classList.remove('empty');
-            if (winnode.classList.contains('hidden'))
-              Instant.popups.windows._updateHidden(true);
+            Instant.popups.windows._updateHidden(
+              winnode.classList.contains('hidden'));
             Instant._fireListeners('windows.add', {window: wnd});
           },
           /* Hide the given window */
@@ -7920,7 +7931,7 @@ this.Instant = function() {
             }
             Instant.popups.windows._updateHidden();
           },
-          /* Update the hidden window counter */
+          /* Update the hidden window counter, and related things */
           _updateHidden: function(flash) {
             var count = $selAll('.popup', winnode).length;
             hiddenMsg.textContent = 'Hidden windows (' + (count || 'none') +
@@ -7932,6 +7943,8 @@ this.Instant = function() {
               Instant.sidebar.hideMessage(hiddenMsg);
             }
             if (flash) Instant.sidebar.flashMessage(hiddenMsg);
+            Instant.contentPane._setCSSClass('has-visible-windows',
+              (! hidden && ! winnode.classList.contains('empty')));
             Instant._fireListeners('windows.hidden', {hidden: hidden});
           },
           /* Create a new window with the given options */
