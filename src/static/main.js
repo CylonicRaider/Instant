@@ -3896,7 +3896,9 @@ this.Instant = function() {
       /* Initialize submodule */
       init: function() {
         node = $makeNode('div', 'content-wrapper sidebar-overlay', [
-          Instant.message.getMessagePane(),
+          ['div', 'message-pane-wrapper', [
+            Instant.message.getMessagePane(),
+          ]],
           ['div', 'backdrop'],
           Instant.sidebar.getNode()
         ]);
@@ -9257,8 +9259,9 @@ this.Instant = function() {
     Instant.contentPane.init();
     Instant.privmsg.init();
     main.appendChild(Instant.contentPane.getNode());
-    main.appendChild(Instant.popups.windows.getNode());
     main.appendChild(Instant.popups.getNode());
+    $cls('message-pane-wrapper', main).appendChild(
+      Instant.popups.windows.getNode());
     Instant.pane.main.init(main);
     Instant._fireListeners('init.late');
     Instant.settings.load();

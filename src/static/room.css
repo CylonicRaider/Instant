@@ -414,6 +414,13 @@ body {
   display: block;
 }
 
+.message-pane-wrapper {
+  -webkit-flex-grow: 1;
+  flex-grow: 1;
+  height: 100%;
+  position: relative;
+}
+
 .sidebar {
   display: -webkit-flex;
   display: flex;
