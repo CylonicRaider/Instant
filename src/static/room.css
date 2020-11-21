@@ -591,7 +591,6 @@ body {
   top: 0;
   right: 0;
   bottom: 0;
-  z-index: 900;
 }
 .content-wrapper.sidebar-drawer .sidebar.closed {
   -webkit-transform: translateX(100%);
@@ -603,10 +602,6 @@ body {
 .content-wrapper.sidebar-drawer .sidebar.open .sidebar-drawer-handle {
   /* Override dynamic value set by JS */
   margin-right: 0 !important;
-}
-.content-wrapper.sidebar-drawer.has-visible-windows .sidebar:not(.open)
-.sidebar-drawer-handle {
-  margin-top: 2em;
 }
 
 .sidebar-widget {
