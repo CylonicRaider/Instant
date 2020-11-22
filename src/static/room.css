@@ -415,10 +415,11 @@ body {
 }
 
 .message-pane-wrapper {
+  position: relative;
+  height: 100%;
+  min-width: 0;
   -webkit-flex-grow: 1;
   flex-grow: 1;
-  height: 100%;
-  position: relative;
 }
 
 .sidebar {
