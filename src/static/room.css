@@ -292,6 +292,9 @@ body {
   white-space: pre;
   overflow: auto;
 }
+.message-text .hidden.whitespace {
+  display: block;
+}
 
 .message-text .embed-outer {
   margin: 1px 0;

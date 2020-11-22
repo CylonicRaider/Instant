@@ -2679,14 +2679,14 @@ this.Instant = function() {
             name: 'whitespace',
             re: /^\s+|\s+$/,
             cb: function(m, out) {
-              out.push(makeNode(m[0], 'hidden'));
+              out.push(makeNode(m[0], 'hidden whitespace'));
             }
           },
           { /* Line-trailing whitespace */
             name: 'trailingWhitespace',
             re: /((?!\n)\s)+$/m,
             cb: function(m, out) {
-              out.push(makeNode(m[0], 'hidden'));
+              out.push(makeNode(m[0], 'hidden whitespace-line'));
             }
           }
         ];
