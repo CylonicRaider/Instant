@@ -395,6 +395,10 @@ body {
     display: inline;
   }
 
+  .message-text .hidden.whitespace {
+    display: inline-block;
+  }
+
   .message .nick {
     padding: 0 1px;
   }
