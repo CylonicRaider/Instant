@@ -8158,6 +8158,12 @@ this.Instant = function() {
       get: function(name) {
         return urls[name];
       },
+      /* Register a new icon with the given name and URL
+       * If preload is true, a fetch of the icon is immediately initiated. */
+      add: function(name, url, preload) {
+        icons[name] = url;
+        if (preload) Instant.icons.fetch(name);
+      },
       /* Create a DOM img node displaying the named icon
        * className, if truthy, is used to initialize the node's CSS class. */
       makeNode: function(name, className) {
