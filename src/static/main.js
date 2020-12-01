@@ -8118,18 +8118,42 @@ this.Instant = function() {
         /* HACK: Using <object> elements to avoid devtools noise.
          *       Blame me for that later. */
         return new Promise(function(resolve, reject) {
+          function doXHR() {
+            if (isDone) return;
+            try {
+              document.head.removeChild(obj);
+            } catch (e) {}
+            var req = new XMLHttpRequest();
+            req.open('GET', url);
+            req.onreadystatechange = function() {
+              if (req.readyState != 4) return; // DONE
+              if (req.status != 200) { // Successful.
+                reject(new Error('Icon download encountered HTTP status ' +
+                                 req.status));
+                return;
+              }
+              finish(req.response);
+            };
+            req.send();
+          }
+          function finish(xmlText) {
+            resolve('data:image/svg+xml;base64,' + btoa(xmlText));
+          }
           var obj = document.createElement('object');
+          var isDone = false;
           obj.addEventListener('load', function() {
+            isDone = true;
             var doc = obj.contentDocument;
             var xml = new XMLSerializer().serializeToString(doc);
             /* Shush! */
             document.head.removeChild(obj);
-            resolve('data:image/svg+xml;base64,' + btoa(xml));
+            finish(xml);
           });
           obj.addEventListener('error', function(event) {
-            document.head.removeChild(obj);
-            reject(event);
+            console.warn('SVG icon load failed:', event);
+            doXHR();
           });
+          setTimeout(doXHR, 10000);
           obj.data = url;
           document.head.appendChild(obj);
         });
