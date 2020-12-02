@@ -5048,24 +5048,26 @@ this.Instant = function() {
         var lastActive = +node.getAttribute('data-last-active');
         var popup = Instant.popups.addNew({title: 'User information',
           content: $makeFrag(
-            ['div', 'popup-grid', [
-              ['b', null, 'Name: '],
-              ['span', 'userinfo-nick', [
-                Instant.nick.makeNode(node.getAttribute('data-nick'))
-              ]]
-            ]],
-            ['div', 'popup-grid', [
-              ['b', null, 'ID: '],
-              ['span', 'monospace userinfo-id', [$text(uid)]]
-            ]],
-            ['div', 'popup-grid', [
-              ['b', null, 'UUID: '],
-              ['span', 'monospace userinfo-uuid', [$text(uuid)]]
-            ]],
-            ['div', 'popup-grid', [
-              ['b', null, 'Active: '],
-              ['span', 'userinfo-active', [
-                formatDateNode(lastActive)
+            ['div', 'popup-grid-wrapper', [
+              ['div', 'popup-grid', [
+                ['b', null, 'Name: '],
+                ['span', 'userinfo-nick', [
+                  Instant.nick.makeNode(node.getAttribute('data-nick'))
+                ]]
+              ]],
+              ['div', 'popup-grid', [
+                ['b', null, 'ID: '],
+                ['span', 'monospace userinfo-id', [$text(uid)]]
+              ]],
+              ['div', 'popup-grid', [
+                ['b', null, 'UUID: '],
+                ['span', 'monospace userinfo-uuid', [$text(uuid)]]
+              ]],
+              ['div', 'popup-grid', [
+                ['b', null, 'Active: '],
+                ['span', 'userinfo-active', [
+                  formatDateNode(lastActive)
+                ]]
               ]]
             ]]
           ),
