@@ -4942,6 +4942,24 @@ this.Instant = function() {
         /* Fire event */
         Instant._fireListeners('userList.update', detail);
       },
+      /* Add an indicator icon to the indicated user */
+      addIcon: function(uid, iconName) {
+        var node = Instant.userList.get(uid);
+        if (node == null) return;
+        var child = $sel('.indicator[data-name="' + iconName + '"]', node);
+        if (child) return;
+        node.appendChild(Instant.icons.makeNode(iconName, 'indicator'));
+        Instant.sidebar.updateWidth();
+      },
+      /* Remove an indicator icon from the given user again */
+      removeIcon: function(uid, iconName) {
+        var node = Instant.userList.get(uid);
+        if (node == null) return;
+        var child = $sel('.indicator[data-name="' + iconName + '"]', node);
+        if (! child) return;
+        node.removeChild(child);
+        Instant.sidebar.updateWidth();
+      },
       /* Collapse or uncollapse the user list */
       collapse: function(invisible) {
         var parent = node.parentNode;

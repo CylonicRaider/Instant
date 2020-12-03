@@ -867,6 +867,14 @@ a.room-name .staging {
   display: block;
   clear: both;
 }
+.user-list .nick-box .indicator {
+  height: 1.5ex;
+  margin-bottom: -0.25ex;
+  margin-left: 0.1em;
+}
+.user-list .nick-box .indicator:first-child {
+  margin-left: 0.2em;
+}
 
 .user-list .nick-box.selected > .nick {
   margin-bottom: 1px;
