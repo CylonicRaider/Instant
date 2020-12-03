@@ -8194,7 +8194,7 @@ this.Instant = function() {
        * className, if truthy, is used to initialize the node's CSS class. */
       makeNode: function(name, className) {
         return $makeNode('img', className || null,
-                         {src: Instant.icons.get(name)});
+          {src: Instant.icons.get(name), 'data-name': name});
       }
     };
   }();
