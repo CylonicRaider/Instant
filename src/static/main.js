@@ -8806,13 +8806,84 @@ this.Instant = function() {
         ret = true;
       return ret;
     };
+    /* A set of strings that are eventually "garbage-collected"
+     * Every item in the set is associated with a deadline; after the current
+     * time passes that deadline, the item is collected.
+     * granularity  is the (Instant.timers) granularity at which garbage
+     *              collection should be done.
+     * defaultDelay defines an item's default timeout (if no explicit deadline
+     *              is specified, an item is collected this long after
+     *              insertion) in milliseconds.
+     * collect      is a function taking a single string as an argument that
+     *              is responsible for actually executing garbage collection.
+     *              Its return value is ignored. Before it is invoked, the
+     *              item in question is removed from the GCSet. */
+    function GCSet(granularity, defaultDelay, collect) {
+      this.granularity = granularity;
+      this.defaultDelay = defaultDelay;
+      this.collect = collect;
+      this.deadlines = {};
+      this._timerScheduled = false;
+    }
+    GCSet.prototype = {
+      /* Add the given item to the GC set and update its deadline
+       * deadline, if not null, defines the item's new GC deadline. If null,
+       * the deadline is set to be defaultDelay milliseconds in the future.
+       * If the item's deadline is not in the future, it is removed
+       * immediately (and synchronously) instead of being added. */
+      add: function(item, deadline) {
+        var now = Date.now();
+        if (deadline == null) deadline = now + this.defaultDelay;
+        if (deadline <= now) {
+          this._doCollect(item);
+        } else {
+          this.deadlines[item] = deadline;
+        }
+      },
+      /* Remove the given item without triggering garbage collection */
+      drop: function(item) {
+        delete this.deadlines[item];
+      },
+      /* Internal: Schedule a future GC run, if necessary */
+      _schedule: function() {
+        if (this._timerScheduled) return;
+        Instant.timers.add(this._doGC.bind(this), this.granularity);
+        this._timerScheduled = true;
+      },
+      /* Internal: Perform a GC run */
+      _doGC: function() {
+        var now = Date.now(), empty = true;
+        for (var key in this.deadlines) {
+          if (! this.deadlines.hasOwnProperty(key)) continue;
+          var deadline = this.deadlines[key];
+          if (deadline > now) {
+            empty = false;
+            continue;
+          }
+          // Yes, deleting from an object while iterating over it is valid.
+          this._doCollect(key);
+        }
+        if (empty) {
+          this._timerScheduled = false;
+          return null;
+        } else {
+          return this.granularity;
+        }
+      },
+      /* Internal: Actually garbage-collect the given item */
+      _doCollect: function(item) {
+        delete this.deadlines[item];
+        this.collect(item);
+      }
+    };
     return {
       /* Regular expression for isTruthy() */
       TRUTHY_RE: /^(true|1|y|yes|on)$/i,
-      /* Export event tracker classes */
+      /* Export classes */
       EventTracker: EventTracker,
       EventDispatcher: EventDispatcher,
       WildcardEventDispatcher: WildcardEventDispatcher,
+      GCSet: GCSet,
       /* Left-pad a string */
       leftpad: leftpad,
       /* Format a date-time nicely */
