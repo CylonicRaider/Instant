@@ -1711,7 +1711,7 @@ class CmdlineBotBuilder:
         self.parser.flag_ex('no-cookies', None, 'cookies',
                             help='Do not save cookies')
         self.parser.option('tls', type=websocket_server.quick.tls_flags,
-                           placeholder='KEY=VALUE[,...]',
+                           placeholder='<key>=<value>[,...]',
                            varname='ssl_config',
                            help='TLS configuration. Possible keys are:\n'
                                 'cert: Client certificate to present (as a '
