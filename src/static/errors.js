@@ -5,8 +5,12 @@
 this.InstantErrors = function() {
   /* The error box node */
   var errorBox = null;
+  /* Whether we are inside a handleBackground() call. */
+  var insideHandleBackground = false;
   /* The module contents */
   var InstantErrors = {
+    /* Callback for handleBackground() */
+    _onBackgroundError: null,
     /* Initialize module */
     init: function() {
       var homeNode = document.getElementById('errors');
@@ -35,6 +39,20 @@ this.InstantErrors = function() {
     /* Callback function for window.onerror */
     handle: function(message, source, lineno, colno, error) {
       InstantErrors.showError(error);
+    },
+    /* Handle a non-fatal error */
+    handleBackground: function(error) {
+      var handler = InstantErrors._onBackgroundError;
+      if (typeof handler != 'function' || insideHandleBackground) {
+        InstantErrors.showError(error);
+        return;
+      }
+      insideHandleBackground = true;
+      try {
+        handler(error);
+      } finally {
+        insideHandleBackground = false;
+      }
     },
     /* Format an exception object into an error report text */
     format: function(exc) {
