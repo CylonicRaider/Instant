@@ -8106,6 +8106,77 @@ this.Instant = function() {
             return node;
           }
         };
+      }(),
+      /* UI for showing non-fatal errors */
+      errors: function() {
+        /* UI message for showing the popup */
+        var msg = null;
+        /* The primary popup */
+        var popup = null;
+        return {
+          /* Initialize submodule */
+          init: function() {
+            msg = Instant.sidebar.makeMessage({
+              content: 'Errors (N/A)',
+              color: '#ff0000',
+              onclick: function() {
+                Instant.popups.add(popup);
+              }
+            });
+            popup = Instant.popups.make({
+              title: 'Past errors',
+              className: 'background-errors',
+              content: $makeNode('ol', 'error-list'),
+              buttons: [
+                {text: 'Dismiss', onclick: function() {
+                  Instant.popups.del(popup);
+                }},
+                {text: 'Clear', color: '#c00000', onclick: function() {
+                  Instant.popups.errors.clear();
+                  Instant.popups.errors.hide();
+                  Instant.popups.del(popup);
+                }},
+                {text: 'Reload', color: '#008000', onclick: function() {
+                  location.reload(false);
+                }}
+              ]
+            });
+            Instant.popups.errors._updateCount();
+          },
+          /* Update the UI message's error counter */
+          _updateCount: function() {
+            var count = Instant.popups.errors.getListNode().childNodes.length;
+            msg.textContent = 'Errors (' + (count || 'none') + ')';
+          },
+          /* Display the sidebar notification */
+          show: function() {
+            Instant.sidebar.showMessage(msg);
+            Instant.sidebar.flashMessage(msg);
+          },
+          /* Hide the sidebar notification */
+          hide: function() {
+            Instant.sidebar.hideMessage(msg);
+          },
+          /* Add a new crash report */
+          add: function(details, timestamp) {
+            if (timestamp == null) timestamp = Date.now();
+            Instant.popups.errors.getListNode().appendChild($makeNode('li', [
+              ['b', [formatDateNode(timestamp)]],
+              ['pre', [$text(details)]]
+            ]));
+            Instant.popups.errors._updateCount();
+          },
+          /* Remove all crash reports */
+          clear: function() {
+            var node = Instant.popups.errors.getListNode();
+            while (node.firstChild) node.removeChild(node.firstChild);
+            Instant.popups.errors._updateCount();
+          },
+          /* Retrieve the error list node */
+          getListNode: function() {
+            return $cls('error-list', popup);
+          }
+        };
       }()
     };
   }();
@@ -9384,6 +9455,7 @@ this.Instant = function() {
     $cls('message-pane-wrapper', main).appendChild(
       Instant.popups.windows.getNode());
     Instant.pane.main.init(main);
+    Instant.popups.errors.init();
     Instant._fireListeners('init.late');
     Instant.settings.load();
     Instant.connection.init();

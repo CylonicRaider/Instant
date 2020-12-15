@@ -1825,6 +1825,10 @@ h2.sidebar-unread .button-icon-cover {
   display: none;
 }
 
+.background-errors li {
+  margin-left: 2em;
+}
+
 img.turn-right {
   -webkit-transform: rotate(90deg);
   transform: rotate(90deg);
