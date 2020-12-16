@@ -1825,8 +1825,21 @@ h2.sidebar-unread .button-icon-cover {
   display: none;
 }
 
-.background-errors li {
+.background-errors p {
+  margin-bottom: 0.5em;
+}
+.background-errors .error-list {
+  /* The right padding should be enough to contain the scrollbar (if any),
+   * and to balance the items' left margin. */
+  max-height: 65vh;
+  padding-right: 2em;
+  overflow: auto;
+}
+.background-errors .error-list li {
   margin-left: 2em;
+}
+.background-errors .error-list li:not(:first-child) {
+  margin-top: 0.5em;
 }
 
 img.turn-right {

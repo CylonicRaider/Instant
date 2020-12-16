@@ -8126,7 +8126,12 @@ this.Instant = function() {
             popup = Instant.popups.make({
               title: 'Past errors',
               className: 'background-errors',
-              content: $makeNode('ol', 'error-list'),
+              content: $makeFrag(
+                ['p', null, 'Some errors have occurred in the past. ' +
+                  'You might wish to reload your page. See also your ' +
+                  'browser\'s developer tools (if any) for more details.'],
+                $makeNode('ol', 'error-list')
+              ),
               buttons: [
                 {text: 'Dismiss', onclick: function() {
                   Instant.popups.del(popup);
