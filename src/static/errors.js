@@ -24,12 +24,14 @@ this.InstantErrors = function() {
       errorBox.querySelector('pre').textContent = '' + extraText;
       errorBox.parentNode.style.display = '';
     },
-    /* Convenience combination of format() and show() */
-    showError: function(exc) {
+    /* Convenience combination of format(), show(), and console.error() */
+    showError: function(exc, context) {
+      var displayContext = context;
+      if (displayContext == null) displayContext = 'Unexpected error!';
       try {
-        console.error('Unexpected error!', exc);
+        console.error(displayContext, exc);
       } catch (e) {}
-      InstantErrors.show(InstantErrors.format(exc));
+      InstantErrors.show(InstantErrors.format(exc, context));
     },
     /* Dismiss the error reporter again */
     hide: function() {
@@ -41,24 +43,26 @@ this.InstantErrors = function() {
       InstantErrors.showError(error);
     },
     /* Handle a non-fatal error */
-    handleBackground: function(error) {
+    handleBackground: function(error, context) {
       var handler = InstantErrors._onBackgroundError;
       if (typeof handler != 'function' || insideHandleBackground) {
-        InstantErrors.showError(error);
+        InstantErrors.showError(error, context);
         return;
       }
       insideHandleBackground = true;
       try {
-        handler(error);
+        handler(error, context);
       } catch (e) {
-        InstantErrors.showError(e);
+        InstantErrors.showError(e, 'Unexpected error while handling errors!');
       } finally {
         insideHandleBackground = false;
       }
     },
     /* Format an exception object into an error report text */
-    format: function(exc) {
-      var ret = '' + exc;
+    format: function(exc, context) {
+      var ret = '';
+      if (context) ret += context + ' ';
+      ret += exc;
       if (typeof exc == 'object') {
         if ('fileName' in exc) {
           ret += '\n[at ' + exc.fileName;

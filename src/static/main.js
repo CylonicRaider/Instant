@@ -8156,8 +8156,8 @@ this.Instant = function() {
             msg.textContent = 'Errors (' + (count || 'none') + ')';
           },
           /* Capture an error report */
-          capture: function(err) {
-            Instant.popups.errors.add(Instant.errors.format(err));
+          capture: function(err, context) {
+            Instant.popups.errors.add(Instant.errors.format(err, context));
             Instant.popups.errors.show();
           },
           /* Display the sidebar notification */
