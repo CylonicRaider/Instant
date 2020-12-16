@@ -280,7 +280,7 @@ this.Instant = function() {
       try {
         list[i].apply(self, args);
       } catch (e) {
-        console.error('Could not run callback:', e);
+        Instant.errors.handleBackground(e, 'Could not run callback:');
       }
     }
     return (list.length != 0);
@@ -535,7 +535,7 @@ this.Instant = function() {
                 handled = true;
               }
             } catch (e) {
-              console.error('Could not run listener:', e);
+              Instant.errors.handleBackground(e, 'Could not run listener:');
             }
           });
         }
@@ -582,7 +582,8 @@ this.Instant = function() {
                     handled = true;
                   }
                 } catch (e) {
-                  console.error('Could not run listener:', e);
+                  Instant.errors.handleBackground(e,
+                    'Could not run listener:');
                 }
               });
             }
@@ -7278,8 +7279,8 @@ this.Instant = function() {
       submitNew: function(options) {
         return Instant.notifications.create(options).then(
           Instant.notifications.submit, function(error) {
-            console.error('Failed to create internal notification object:',
-                          error);
+            Instant.errors.handleBackground(error,
+              'Failed to create internal notification object:');
             return Promise.reject(error);
           });
       },
@@ -8693,7 +8694,7 @@ this.Instant = function() {
             try {
               res = curEntry(granularity);
             } catch (e) {
-              console.error('Error in timer callback:', e);
+              Instant.errors.handleBackground(e, 'Error in timer callback:');
               continue;
             }
             if (res == key) {
@@ -9155,7 +9156,8 @@ this.Instant = function() {
             if (this.onerror) {
               this.onerror(e);
             } else {
-              console.error('Error while handling mailbox:', e);
+              Instant.errors.handleBackground(e,
+                'Error while handling mailbox:');
             }
           }
         }.bind(this));
@@ -9170,7 +9172,8 @@ this.Instant = function() {
             if (this.onerror) {
               this.onerror(e);
             } else {
-              console.error('Error while handling mailbox mark:', e);
+              Instant.errors.handleBackground(e,
+                'Error while handling mailbox mark:');
             }
           }
         }.bind(this));
