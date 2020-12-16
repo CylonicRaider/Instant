@@ -50,6 +50,8 @@ this.InstantErrors = function() {
       insideHandleBackground = true;
       try {
         handler(error);
+      } catch (e) {
+        InstantErrors.showError(e);
       } finally {
         insideHandleBackground = false;
       }

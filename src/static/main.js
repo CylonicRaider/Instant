@@ -8147,11 +8147,18 @@ this.Instant = function() {
               ]
             });
             Instant.popups.errors._updateCount();
+            Instant.errors._onBackgroundError =
+              Instant.popups.errors.capture.bind(Instant.popups.errors);
           },
           /* Update the UI message's error counter */
           _updateCount: function() {
             var count = Instant.popups.errors.getListNode().childNodes.length;
             msg.textContent = 'Errors (' + (count || 'none') + ')';
+          },
+          /* Capture an error report */
+          capture: function(err) {
+            Instant.popups.errors.add(Instant.errors.format(err));
+            Instant.popups.errors.show();
           },
           /* Display the sidebar notification */
           show: function() {
