@@ -25,11 +25,12 @@ so.
 ### Running an own clone
 
 Refer to [`docs/RUNNING.md`](docs/RUNNING.md) for an extensive guide on how
-to run Instant.
+to run Instant, and to [`docs/BUILDING.md`](docs/BUILDING.md) on how to
+compile the backend.
 
 **TL;DR**: The stock backend (as provided in every commit, unless someone
 messes it up) can be put up quickly like `java -jar Instant.jar 8080`,
-whereafter Instant should be available under
+whereafter Instant should be available at
 [localhost:8080](http://localhost:8080/).
 
 ## Whom to blame?
