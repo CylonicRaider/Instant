@@ -29,6 +29,11 @@ can be used to report a summary and single-letter aliases):
   files. If a static file is absent, Instant falls back to a version bundled
   with the backend. Defaults to `.` (the current directory).
 
+- `--tls` *params* — *TLS configuration*: A comma-separated list of
+  `<KEY>=<VALUE>` pairs providing TLS configuration. HTTPS is served on the
+  port given below if-and-only-if this option is passed. See
+  [the *HTTPS* section](#https) for details.
+
 - `--http-log` *file* — *HTTP log location*: Either a file name where to
   append the HTTP log to, or the `-` character to write to standard error.
   Output is entry-buffered (i.e. flushed after every entry). Defaults to `-`.
@@ -85,8 +90,25 @@ for a note on older backends.
 
 ### HTTPS
 
-The backend supports plain HTTP exclusively; to provide HTTPS, you have to
-use a reverse proxy.
+The backend can be configured to serve plain HTTP or HTTPS. In either case,
+it is strongly recommended to locate the backend behind a reverse proxy.
+
+TLS configuration is provided in a uniform manner for both the backend and the
+Scribe bot (whose interface is documented [below](#running-scribe)). It is
+encoded as comma-separated `<KEY>=<VALUE>` lists, with the following keys
+defined:
+
+- `cert`=*file*: The certificate to present to the other side, as the path of
+  a text file containing PEM-encoded data. If any intermediate certificates
+  are required, those must be located inside the file (after the end-entity
+  certificate). Required for the backend, optional for Scribe.
+- `key`=*file*: The private key corresponding to `cert`, as the path of a text
+  file containing PEM-encoded data. If `cert` is provided but this is not, the
+  private key is assumed to be located inside the certificate file.
+- `ca`=*file*: A set of certification authority certificates to exclusively
+  trust, as the path of a text file containing PEM-encoded data. If this is
+  omitted, no client certificates are required (for the backend), or a default
+  set of CA-s is used (for Scribe).
 
 ## Orchestrator script
 
@@ -121,9 +143,10 @@ configuration file, if no processes are named on the command line) as default;
 to display them as they arrive, pass a `--sort=no` option to the subcommands;
 to disable the status reports entirely, pass a `--verbose=no`.
 
-**TL;DR**: Skip to the example subsection below, copy the configuration file
-to `config/run.ini` in the Instant directory, modify it to your needs, and
-use `script/run.py COMMAND` for `COMMAND`-s listed just above.
+**TL;DR**: Skip to the [example subsection](#example-configuration) below,
+copy the configuration file to `config/run.ini` in the Instant directory,
+modify it to your needs, and use `script/run.py COMMAND` for `COMMAND`-s
+listed just above.
 
 ### Master process mode
 
@@ -481,6 +504,8 @@ option. (Refer to the `--help` message for a listing.)
     Use `:memory:` to create an in-memory message database that does not
     discard messages if there are more than *maxlen* ones.
 
+- `--no-msgdb` — *No message database*: Does not store messages at all.
+
 - `--read-file` *file* — *Scrape messages from logfile*: Scribe formats its
   logfile in a machine-readable way, and indeed supports restoring messages
   from it. Since this may be time-consuming, users are encouraged to use
@@ -518,13 +543,17 @@ option. (Refer to the `--help` message for a listing.)
 - `--no-nick` — *No nickname*: Disables sending of a nickname altogether;
   this renders the bot truly invisible (from the user list's perspective).
 
-- `--cookies` *file*: Stores cookies in the given file. Allows the bot to
-  maintain a consistent identity across reconnects. If the empty string is
-  passed as the file, cookies will be recorded in memory only and forgotten
-  when the bot exits.
+- `--cookies` *file* — *Cookie file*: Stores cookies in the given file. Allows
+  the bot to maintain a consistent identity across reconnects. If the empty
+  string is passed as the file, cookies will be recorded in memory only and
+  forgotten when the bot exits.
 
 - `--no-cookies` — *No cookies*: Disables the storage of cookies (as is the
   default).
+
+- `--tls` *params* — *TLS configuration*: A comma-separated list of
+  `<KEY>=<VALUE>` pairs providing TLS configuration (if a `wss` URL is used).
+  See [the *HTTPS* section](#https) for details.
 
 - *url* — *WebSocket URL to connect to*: The single optional positional
   argument specifies (indeed) where to connect to. It is the resource `ws`
