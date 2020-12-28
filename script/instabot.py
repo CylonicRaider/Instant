@@ -1713,14 +1713,7 @@ class CmdlineBotBuilder:
         self.parser.option('tls', type=websocket_server.quick.tls_flags,
                            placeholder='<key>=<value>[,...]',
                            varname='ssl_config',
-                           help='TLS configuration. Possible keys are:\n'
-                                'cert: Client certificate to present (as a '
-                                    'PEM file).\n'
-                                'key : Private key corresponding to cert (as '
-                                    'a PEM file; defaults to the value of '
-                                    'cert).\n'
-                                'ca  : CA certificates to trust exclusively '
-                                    '(as a PEM file).')
+                           help='TLS configuration.')
         kwargs = {}
         if self.defurl is not Ellipsis: kwargs['default'] = self.defurl
         self.parser.argument('url', help='URL to connect to', **kwargs)
