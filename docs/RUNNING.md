@@ -469,7 +469,7 @@ and provides an approximate replacement for the `run.bash` script:
     stdout=>>log/${name}.log
     stderr=>>log/${name}.err.log
 
-    ; This section screates a Scribe bot in &welcome; it does not need to
+    ; This section creates a Scribe bot in &welcome; it does not need to
     ; contain values of its own.
     [scribe/welcome]
 
