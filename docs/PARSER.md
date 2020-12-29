@@ -34,7 +34,7 @@ first character may not be a digit). Identifiers are case-sensitive (`test`
 and `tEsT` are different idenfiers); identifiers starting with dollar signs
 are reserved for special uses.
 
-Productions are defined on individual ("virtual") lines using the following
+Productions are defined on individual (“virtual”) lines using the following
 syntax:
 
     NAME = SYM1 SYM2 ... | SYM3 SYM4 ... | ...
@@ -47,7 +47,7 @@ a single percent sign (`%`). Optional whitespace may be included between any
 of the components; in particular, including whitespace between adjacent
 symbols is *highly* encouraged. Lines breaks may appear around the equals sign
 and *after* vertical bar characters, splitting the production definition onto
-multiple "physical" lines. A line break after the last alternative is
+multiple “physical” lines. A line break after the last alternative is
 mandatory (an end-of-file is *not* permissible).
 
 Multiple productions with the same name are equivalent to one production whose
@@ -85,10 +85,10 @@ flags. The type and the content are expressed using special syntax:
   boundary). For example, the symbol `/tes+t/` matches the strings `test`,
   `tesst`, `tessst`, and so on.
 
-Flags are expressed by prepending or appending a "modifier" character to the
+Flags are expressed by prepending or appending a “modifier” character to the
 above representations of symbols. Multiple flags can be specified with no
 regard for order (as long as they are at the correct positions w.r.t. the
-"base" symbol). There may be *no* whitespace between a "base" symbol and its
+“base” symbol). There may be *no* whitespace between a “base” symbol and its
 flags. The following flags are defined:
 
 - *Inline*: leading caret (`^`). For nonterminals, specifies that no
@@ -114,11 +114,11 @@ flags. The following flags are defined:
   matches the same strings as the symbol `/tes+t/`. May be combined with
   *Optional* to obtain any amount of repetition, including none.
 
-If both *Inline* and *Discard* are specified for a symbol, the latter "wins"
+If both *Inline* and *Discard* are specified for a symbol, the latter “wins”
 (the inlined contents are discarded, or there is nothing to inline).
 
 If both a fixed terminal and a pattern terminal are applicable to a particular
-portion of the input, the fixed terminal "wins"; for example, keywords defined
+portion of the input, the fixed terminal “wins”; for example, keywords defined
 via fixed terminals would outcompete identifiers defined via pattern
 terminals.
 
@@ -127,7 +127,7 @@ terminals.
 Certain (rather restricted) productions define classes of *tokens*, each of
 which has a *name*, a textual *content* and a *location* denoting where in the
 input stream it appeared. Tokens form the leaves of parse trees (together with
-"regular" that produce no sub-trees for other reasons). Of the above
+“regular” that produce no sub-trees for other reasons). Of the above
 attributes, token definitions provide names and sets of possible contents.
 
 A token definition is a production that contains exactly one alternative and
@@ -186,7 +186,7 @@ grammars, Instant's parser implementation does not accept all of them; in
 fact, most of the above examples are invalid for it. The following limitations
 apply:
 
-- **Terminals and tokens**: Instant does not allow using "raw" terminal
+- **Terminals and tokens**: Instant does not allow using “raw” terminal
   symbols outside of token definitions. This limitation is not significant,
   as all raw terminals can be replaced with equivalent token definitions.
 

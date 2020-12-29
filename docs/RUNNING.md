@@ -64,7 +64,7 @@ can be used to report a summary and single-letter aliases):
   path nor the arguments may contain spaces themselves). The backend waits
   for the command to finish before it proceeds. Can be used to reduce
   downtime during updates by starting a new backend in the background and
-  letting it shut down the "old" one before taking over.
+  letting it shut down the “old” one before taking over.
 
 - `--option` *key*=*value* — *Configuration value*: Explicitly sets a
   configuration value (overriding environment variables and system
@@ -128,8 +128,8 @@ with a `--help` option.
 - `start`: Launches those processes that are not running.
 - `stop`: Terminates those processes that are running.
 - `restart`: Terminates and re-starts processes.
-- `bg-restart`: Performs a "fast restart": In the background, new instances
-  of those processes that support it are pre-loaded, then the "old" instances
+- `bg-restart`: Performs a “fast restart”: In the background, new instances
+  of those processes that support it are pre-loaded, then the “old” instances
   of (all named) processes are stopped, and finally the background processes
   are swapped in (or new instances are started). Requires a master process
   (see below) to be effective; falls back to an equivalent of `restart`
@@ -210,7 +210,7 @@ forward slashes (`//`). Keys starting and ending with double underscores
 but ignored when listing sections (which becomes relevant when enumerating the
 sections defining processes to run).
 
-**Inheritance**: A section *inherits* the values of its "parent" section (if
+**Inheritance**: A section *inherits* the values of its “parent” section (if
 any), whose name is derived from the current section's name as follows: If the
 section name ends with a slash (`/`), the parent section name is the section
 name without that slash; otherwise, if the section name contains a slash, the
@@ -298,7 +298,7 @@ keys configure the process:
   shell-like syntax (as implemented by the `shlex` Python module); that
   happens **after** interpolation has been performed on the value. Required.
 - `env` — *Environment variables*: The value is, similarly to `cmdline`, split
-  into individual "words" using shell-like syntax; those are then split at
+  into individual “words” using shell-like syntax; those are then split at
   the first occurrences of equals signs (`=`; each word must contain at least
   one) and added to a new process' environment. **Remark** that the syntax is
   more lax than an actual shell's: `"abc=def"` is valid inside `env`, but
@@ -321,11 +321,11 @@ The following keys configure the orchestrator's handling of the process:
 - `pid-file` — *PID file*: The path of a file to write the PID of the process
   to. Used in standalone mode to locate the process. A default value (which
   varies according to the process name) is provided.
-- `pid-file-warmup` — *Secondary PID file*: During a "fast restart", if
+- `pid-file-warmup` — *Secondary PID file*: During a “fast restart”, if
   supported by the process, the PID of its background copy is written here.
   Defaults to the value of `pid-file` with a `.new` suffix appended.
-- `startup-notify` — *Fast restart support*: Setting this key enables "fast
-  restart" support for this process. When performing a fast restart, the value
+- `startup-notify` — *Fast restart support*: Setting this key enables “fast
+  restart” support for this process. When performing a fast restart, the value
   of this key is appended to the process' command line (as a single argument),
   followed by a shell command (as a single argument which is internally
   delimited by spaces) to invoke (and wait for) when the process is done
@@ -533,7 +533,7 @@ option. (Refer to the `--help` message for a listing.)
     If used in conjunction with `--dont-stay`, this will let the current
     instance exit as soon as another instance indicates it is done with
     updating its logs. Intended to provide short-term coverage when the
-    "main" instance of Scribe is being restarted.
+    “main” instance of Scribe is being restarted.
 
 - `--nick` *name* — *Nickname*: Allows setting a custom nickname for the
   bot. An empty nickname will make the bot invisible to users, although it
@@ -564,7 +564,7 @@ option. (Refer to the `--help` message for a listing.)
 
     If *url* is not specified, the bot exits after initializing the message
     database and reading logfiles without connecting to any server; this can
-    be used to "convert" log files to databases without the need to run a
+    be used to “convert” log files to databases without the need to run a
     backend.
 
 **TL;DR**: Installing the `websocket_server` library mentioned in the second

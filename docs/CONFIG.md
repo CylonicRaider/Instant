@@ -111,5 +111,5 @@ will cache them.
 
 A Boolean indicating whether the server should *disable* the `SO_REUSEADDR`
 option on its main listening socket. The default is to enable `SO_REUSEADDR`,
-allowing the server to be restarted quickly without getting "address in use"
+allowing the server to be restarted quickly without getting “address in use”
 errors.
