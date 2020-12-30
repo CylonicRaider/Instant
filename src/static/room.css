@@ -56,7 +56,8 @@ body {
 }
 #load-wrapper hr {
   margin: 10px 0;
-  border: 1px solid black;
+  border: none;
+  border-top: 2px solid black;
 }
 
 #load-wrapper .content-box {
@@ -132,7 +133,8 @@ body {
   margin: 5px 0;
 }
 .error-box hr {
-  border: 1px solid black;
+  border: none;
+  border-top: 2px solid black;
 }
 .error-box .bottom {
   text-align: right;
