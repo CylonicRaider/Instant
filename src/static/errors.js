@@ -18,6 +18,7 @@ this.InstantErrors = function() {
       var dismiss = errorBox.querySelector('.dismiss');
       dismiss.addEventListener('click', InstantErrors.hide);
       window.onerror = InstantErrors.handle;
+      window.onunhandledrejection = InstantErrors.handlePromise;
     },
     /* Display an error report with the given additional information */
     show: function(extraText) {
@@ -41,6 +42,11 @@ this.InstantErrors = function() {
     /* Callback function for window.onerror */
     handle: function(message, source, lineno, colno, error) {
       InstantErrors.showError(error);
+    },
+    /* Callback function for window.onunhandledrejection */
+    handlePromise: function(event) {
+      InstantErrors.handleBackground(event.reason,
+        'Promise (' + event.promise + ') rejected:');
     },
     /* Handle a non-fatal error */
     handleBackground: function(error, context) {
