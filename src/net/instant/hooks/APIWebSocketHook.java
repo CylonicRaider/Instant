@@ -19,6 +19,7 @@ import net.instant.proto.ProtocolError;
 import net.instant.proto.RoomDistributor;
 import net.instant.util.Util;
 import net.instant.ws.IdentityCookieManager;
+import org.java_websocket.exceptions.WebsocketNotConnectedException;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -104,7 +105,11 @@ public class APIWebSocketHook extends WebSocketHook {
 
         public void sendResponse(MessageContents resp) {
             resp.setSequence(data.getSequence());
-            source.getConnection().send(resp.toString());
+            try {
+                source.getConnection().send(resp.toString());
+            } catch (WebsocketNotConnectedException exc) {
+                // This one would have been lost anyway.
+            }
         }
 
         public MessageContents makeMessage(String type) {
@@ -209,8 +214,12 @@ public class APIWebSocketHook extends WebSocketHook {
 
     public void onInput(ClientConnection conn, String data) {
         RoomDistributor room = distr.getRoom(conn);
-        if (room == null)
-            LOGGER.warning("Connection " + conn + " has a null room?!");
+        if (room == null) {
+            LOGGER.warning("Got input from " + conn + " (readyState " +
+                conn.getConnection().getReadyState() +
+                ") with a null room?!");
+            return;
+        }
         Message event;
         try {
             event = new MessageImpl(data, conn, room);
@@ -236,8 +245,9 @@ public class APIWebSocketHook extends WebSocketHook {
         for (MessageHook h : getAllHooks())
             h.onDisconnect(event);
         if (room == null) {
-            LOGGER.warning("Closing connection " + conn + " with a null " +
-                "room?!");
+            LOGGER.warning("Closing connection " + conn + " (readyState " +
+                conn.getConnection().getReadyState() +
+                ") with a null room?!");
         } else if (room.getName() != null) {
             room.sendBroadcast(event.getMessage());
         }

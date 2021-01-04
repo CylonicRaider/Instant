@@ -30,7 +30,11 @@ public class RoomDistributor implements Room {
     }
 
     public void sendUnicast(ClientConnection client, MessageContents msg) {
-        client.getConnection().send(msg.toString());
+        try {
+            client.getConnection().send(msg.toString());
+        } catch (WebsocketNotConnectedException exc) {
+            // This one would have been lost anyway.
+        }
     }
 
     public void sendBroadcast(MessageContents msg) {
