@@ -616,9 +616,9 @@ class InstantClient(object):
         to ensure that its main loop does not attempt to reconnect.
         """
         with self._wslock:
+            if final: self.keepalive = False
             if self.ws is not None: self.ws.close()
             self.ws = None
-            if final: self.keepalive = False
     def run(self):
         """
         The main loop of an InstantClient.
