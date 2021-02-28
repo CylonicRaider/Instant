@@ -261,6 +261,19 @@ class EventScheduler(object):
                 self.running = False
                 self.cond.notifyAll()
 
+def backoff_linear(counter):
+    """
+    Linear (connection attempt) backoff implementation.
+
+    For the given (zero-based) failed connection attempt counter, this
+    returns the time (in possibly fractional seconds) to wait before trying
+    again.
+
+    This implementation returns the value of counter unchanged (in particular,
+    the second connection attempt is done immediately after the first).
+    """
+    return counter
+
 class AtomicSequence(object):
     """
     AtomicSequence() -> new instance
@@ -286,12 +299,18 @@ class AtomicSequence(object):
 
 class InstantClient(object):
     """
-    InstantClient(url, *, keepalive=False, **kwds) -> new instance
+    InstantClient(url, *, backoff=BACKOFF, keepalive=False, **kwds)
+        -> new instance
 
     Generic Instant API endpoint wrapper.
 
-    url is the URL of the API endpoint; keepalive indicates whether the client
-    should reconnect when its connection breaks.
+    url       is the URL of the API endpoint.
+    backoff   is a backoff strategy for repeatedly failing connection
+              attempts; it defaults to the BACKOFF class attribute, which, in
+              turn defaults to the module-level backoff_linear() function. See
+              the latter for more details.
+    keepalive indicates whether the client should reconnect when its
+              connection breaks.
 
     The following keyword-only arguments are passed on to the underlying
     WebSocket connect() call:
@@ -325,12 +344,14 @@ class InstantClient(object):
     """
     TIMEOUT = None
     COOKIES = None
+    BACKOFF = staticmethod(backoff_linear)
     def __init__(self, url, **kwds):
         "Instance initializer; see the class docstring for details."
         self.url = url
         self.timeout = kwds.get('timeout', self.TIMEOUT)
         self.cookies = kwds.get('cookies', self.COOKIES)
         self.ssl_config = kwds.get('ssl_config', None)
+        self.backoff = kwds.get('backoff', self.BACKOFF)
         self.keepalive = kwds.get('keepalive', False)
         self.ws = None
         self.sequence = AtomicSequence()
@@ -634,7 +655,7 @@ class InstantClient(object):
                     self.connect()
                 except Exception as exc:
                     self.on_connection_error(exc)
-                    time.sleep(reconnect)
+                    time.sleep(self.backoff(reconnect))
                     reconnect += 1
                 else:
                     break
