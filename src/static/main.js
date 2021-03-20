@@ -7390,7 +7390,7 @@ this.Instant = function() {
                *       display notifications with icons to varying rates
                *       (for me). */
               var m = /Firefox\/(\d+)(?=\D)/i.exec(navigator.userAgent);
-              if (m && m[1] < 49) icon = null;
+              if (m && parseInt(m[1]) < 49) icon = null;
               /* Actually create notification */
               var opts = {body: body};
               if (icon != null) opts.icon = icon;
