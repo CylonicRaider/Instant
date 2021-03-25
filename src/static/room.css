@@ -216,6 +216,9 @@ body {
 .message.emote > .line .content .message-text {
   padding-right: 0.25em;
 }
+.message.data > .line .content .message-text {
+  opacity: 0.5;
+}
 /* HACK: Make embeds extend into the padding
  * For .embed-first, a negative top margin seems not to affect the embed (or
  * anything at all), so we transform the embed up instead. */
@@ -293,6 +296,9 @@ body {
 .message-text .monospace.block {
   white-space: pre;
   overflow: auto;
+}
+.message-text .prefix {
+  opacity: 0.75;
 }
 .message-text .hidden.whitespace {
   display: block;

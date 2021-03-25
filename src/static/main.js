@@ -1711,14 +1711,17 @@ this.Instant = function() {
       },
       /* Generate a DOM node for the specified message parameters */
       makeMessage: function(params) {
-        /* Filter out emotes; parse (remaining) content */
+        /* Filter out emote commands; parse (remaining) content */
         var emote = /^\/me(?=\s|$)/.test(params.text);
+        var data = /^\/data(?=\s|$)/.test(params.text);
         var text = (emote) ? params.text.substr(3) : params.text;
         var content = Instant.message.parser.parse(text, 'in-chat');
         /* Collect some values */
         var clsname = 'message';
         if (emote)
           clsname += ' emote';
+        if (data)
+          clsname += ' data';
         if (params.from && params.from == Instant.identity.id)
           clsname += ' mine';
         if (Instant.identity.nick != null &&
@@ -2674,6 +2677,14 @@ this.Instant = function() {
             },
             add: function() {
               return makeNode(null, 'term-line monospace');
+            }
+          },
+          { /* Data message headers */
+            name: 'data',
+            re: /^\/data/,
+            aft: /\s|^$/,
+            cb: function(m, out) {
+              out.push(makeNode(m[0], 'prefix'));
             }
           },
           { /* Leading/trailing whitespace */
