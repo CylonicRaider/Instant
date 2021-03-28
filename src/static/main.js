@@ -1932,6 +1932,12 @@ this.Instant = function() {
         }
         return ret;
       },
+      /* Return the hiding flag of the given message
+       * The effect of the flag may be overridden by unhidden replies; see
+       * also isEffectivelyHidden(). */
+      isHidden: function(message) {
+        return message.classList.contains('is-hidden');
+      },
       /* Return whether the message has been (actually) made invisible by the
        * hiding mechanism */
       isEffectivelyHidden: function(message) {
@@ -2190,8 +2196,12 @@ this.Instant = function() {
           if (threadLatest[rid] == null || latest > threadLatest[rid])
             threadLatest[rid] = latest;
         }
-        /* Update indents */
+        /* Update indents and hiding */
         Instant.message.updateIndents(message);
+        if (Instant.message.isMessage(parent)) {
+          Instant.message._updateHiddenChildren(parent,
+            Instant.message.isHidden(parent));
+        }
         /* Done */
         return message;
       },
@@ -3393,14 +3403,26 @@ this.Instant = function() {
         var oldParent = Instant.message.getParentMessage(inputNode);
         if (oldParent == parent) return false;
         if (oldParent) oldParent.classList.remove('input-host');
-        /* Handle message parents */
+        /* Handle parents that are messages */
+        var appendTo = parent;
         if (Instant.message.isMessage(parent)) {
           /* Add marker class to current parent */
           parent.classList.add('input-host');
-          parent = Instant.message.makeReplies(parent);
+          appendTo = Instant.message.makeReplies(parent);
         }
-        /* Actually relocate the input */
-        parent.appendChild(inputNode);
+        /* Actually relocate the DOM node */
+        appendTo.appendChild(inputNode);
+        /* Refresh message hiding */
+        if (oldParent && Instant.message.isHidden(oldParent) ||
+            parent && Instant.message.isHidden(parent)) {
+          var restore = Instant.input.saveScrollState();
+          if (Instant.message.isMessage(oldParent))
+            Instant.message._updateHiddenChildren(oldParent,
+              Instant.message.isHidden(oldParent));
+          if (Instant.message.isMessage(parent))
+            Instant.message._updateHiddenParent(inputNode, false);
+          restore();
+        }
         /* Handle animation */
         Instant.animation.offscreen._inputMoved();
         /* Update window resizing state */
@@ -3428,8 +3450,14 @@ this.Instant = function() {
       /* Ensure the input is still valid after a re-parenting */
       update: function() {
         var parent = Instant.message.getParentMessage(inputNode);
-        if (Instant.message.isMessage(parent))
+        if (Instant.message.isMessage(parent)) {
           parent.classList.add('input-host');
+          if (Instant.message.isHidden(parent)) {
+            var restore = Instant.input.saveScrollState();
+            Instant.message._updateHiddenParent(inputNode, false);
+            restore();
+          }
+        }
       },
       /* Move the input bar relative to its current position */
       navigate: function(direction) {
