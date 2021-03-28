@@ -7323,7 +7323,9 @@ this.Instant = function() {
       /* Get the notification level of the given message */
       getLevel: function(msg) {
         var mlvl = 'activity';
-        if (msg.classList.contains('mine')) {
+        if (msg.classList.contains('is-hidden')) {
+          /* Hidden messages are unimportant */
+        } else if (msg.classList.contains('mine')) {
           /* The user presumably knows about their own messages */
           mlvl = 'noise';
         } else if (msg.classList.contains('ping')) {
