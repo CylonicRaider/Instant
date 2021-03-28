@@ -163,6 +163,10 @@ body {
   opacity: 0;
 }
 
+.message.is-hidden:not(.hiding-overridden) {
+  display: none;
+}
+
 .message > .line {
   display: -webkit-flex;
   display: flex;

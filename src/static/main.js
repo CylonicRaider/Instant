@@ -1932,6 +1932,58 @@ this.Instant = function() {
         }
         return ret;
       },
+      /* Return whether the message has been (actually) made invisible by the
+       * hiding mechanism */
+      isEffectivelyHidden: function(message) {
+        return (message.classList.contains('is-hidden') &&
+                ! message.classList.contains('hiding-overridden'));
+      },
+      /* Set the given message's hiding state
+       * The message effectively displays as hidden if its hiding status is
+       * set and it has no effectively visible replies.
+       * The input bar counts as effectively visible for the sake of
+       * determining its parents' visibility, but skips over effectively
+       * hidden messages when navigating relative to the current message. */
+      setHidden: function(message, newState) {
+        if (newState) {
+          message.classList.add('is-hidden');
+          Instant.message._updateHiddenChildren(message, newState);
+        } else {
+          message.classList.remove('is-hidden');
+          Instant.message._updateHiddenParent(message, newState);
+        }
+      },
+      /* Internal: Propagate hiding state changes to parent messages */
+      _updateHiddenParent: function(message, newState) {
+        var parent = Instant.message.getParentMessage(message);
+        if (parent == null) return;
+        if (newState) {
+          if (! parent.classList.contains('is-hidden') ||
+              ! parent.classList.contains('hiding-overridden'))
+            return;
+          Instant.message._updateHiddenChildren(parent, newState);
+        } else {
+          if (! Instant.message.isEffectivelyHidden(parent))
+            return;
+          parent.classList.add('hiding-overridden');
+          Instant.message._updateHiddenParent(parent, newState);
+        }
+      },
+      /* Internal: Refresh hiding state depending on children */
+      _updateHiddenChildren: function(message, newState) {
+        if (! newState) return;
+        var replies = Instant.message._getReplyNodeList(message);
+        var allHidden = (replies == null) ? true :
+          Array.prototype.every.call(replies, function(node) {
+            return Instant.message.isEffectivelyHidden(node);
+          });
+        if (allHidden) {
+          message.classList.remove('hiding-overridden');
+        } else {
+          message.classList.add('hiding-overridden');
+        }
+        Instant.message._updateHiddenParent(message, newState);
+      },
       /* Get the node hosting the replies to the given message, or the
        * "message" itself if it's actually not a message at all */
       _getReplyNode: function(message) {
