@@ -2198,7 +2198,9 @@ this.Instant = function() {
         }
         /* Update indents and hiding */
         Instant.message.updateIndents(message);
-        if (Instant.message.isMessage(parent)) {
+        if (message.classList.contains('data')) {
+          Instant.message.setHidden(message, true);
+        } else if (Instant.message.isMessage(parent)) {
           Instant.message._updateHiddenChildren(parent,
             Instant.message.isHidden(parent));
         }
