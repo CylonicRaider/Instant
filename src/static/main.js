@@ -2386,7 +2386,7 @@ this.Instant = function() {
           }
         });
       },
-      /* Message parsing -- has an own namespace to avoid pollution */
+      /* Message parsing -- there is a lot of stuff here */
       parser: function() {
         function sm(s) {
           return new RegExp(s.replace(/%PM%/g, pm).replace(/%ME%/g, me));
@@ -2547,7 +2547,7 @@ this.Instant = function() {
               }
               var url = linkNode.getAttribute('data-url');
               /* Find a matching embedder module */
-              var embedder = Instant.message.parser.queryEmbedder(url);
+              var embedder = Instant.message.embeds.queryEmbedder(url);
               var inline = embedder && embedder.inline;
               /* Disgorge the DOM structure */
               if (embedder) {
@@ -2766,9 +2766,6 @@ this.Instant = function() {
             }
           }
         ];
-        /* Functions that produce DOM nodes for objects to be embedded
-         * See addEmbedder() for the entry format. */
-        var embedders = [];
         /* Functions that may edit the resulting DOM node
          * The return values are ignored. */
         var processors = [
@@ -3141,7 +3138,7 @@ this.Instant = function() {
               }
             }
             /* Otherwise, turn it into an embed or hyperlink. */
-            var embedder = Instant.message.parser.queryEmbedder(url);
+            var embedder = Instant.message.embeds.queryEmbedder(url);
             return ((embedder) ? '<!' : '<') + url + '>';
           },
           /* Add an early matcher */
@@ -3166,6 +3163,26 @@ this.Instant = function() {
           countLateMatchers: function() {
             return lateMatchers;
           },
+          /* Compatibility alias for Instant.message.embeds.addEmbedder() */
+          addEmbedder: function(re, cb, opt) {
+            Instant.message.embeds.addEmbedder(re, cb, opt);
+          },
+          /* Add a processor */
+          addProcessor: function(f) {
+            processors.push(f);
+          },
+          /* Return all processors */
+          getProcessors: function() {
+            return processors;
+          }
+        };
+      }(),
+      /* Embed management */
+      embeds: function() {
+        /* Callbacks producing the embedders
+         * See addEmbedder() for the entry format. */
+        var embedders = [];
+        return {
           /* Add an embedder
            * regex is a regular expression that must match the tentative
            * embed's URL in order to be handled by this embedded.
@@ -3207,7 +3224,7 @@ this.Instant = function() {
           },
           /* Return an embedder for handling url, or null */
           queryEmbedder: function(url) {
-            var normurl = url.replace(ONLY_URL_RE,
+            var normurl = url.replace(Instant.message.parser.ONLY_URL_RE,
               function(m, g1, scheme, g3, userinfo, host, port, path) {
                 return (scheme || '').toLowerCase() + (userinfo || '') +
                   (host || '').toLowerCase() + (port || '') + (path || '');
@@ -3220,14 +3237,6 @@ this.Instant = function() {
             }
             return null;
           },
-          /* Add a processor */
-          addProcessor: function(f) {
-            processors.push(f);
-          },
-          /* Return all processors */
-          getProcessors: function() {
-            return processors;
-          }
         };
       }()
     };
