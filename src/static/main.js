@@ -1715,7 +1715,8 @@ this.Instant = function() {
         var emote = /^\/me(?=\s|$)/.test(params.text);
         var data = /^\/data(?=\s|$)/.test(params.text);
         var text = (emote) ? params.text.substr(3) : params.text;
-        var content = Instant.message.parser.parse(text, 'in-chat');
+        var content = Instant.message.parser.parse(text, 'in-chat',
+                                                   {msgid: params.id});
         /* Collect some values */
         var clsname = 'message';
         if (emote)
@@ -2546,6 +2547,9 @@ this.Instant = function() {
                 return;
               }
               var url = linkNode.getAttribute('data-url');
+              /* Mint a serial number */
+              var serial = (status.embedSerial || 0) + 1;
+              status.embedSerial = serial;
               /* Find a matching embedder module */
               var embedder = Instant.message.embeds.queryEmbedder(url);
               var inline = embedder && embedder.inline;
@@ -2564,7 +2568,15 @@ this.Instant = function() {
                 out.push({add: 'embed', embed: 'inner',
                   className: embedder.className});
                 var res = embedder.cb(url, out, status);
-                if (res != null) out.push(res);
+                if (res != null) {
+                  out.push(res);
+                }
+                if (embedder.active && status.msgid) {
+                  Instant.message.embeds._registerEmbed(
+                    status.msgid + ':' + status.embedSerial,
+                    embedder,
+                    res);
+                }
                 out.push({rem: 'embed'});
                 out.push({rem: 'embed'});
                 out.push({rem: 'embed'});
@@ -2863,12 +2875,14 @@ this.Instant = function() {
           traverse: traverse,
           /* Parse a message into a DOM node
            * classes is a string of additional CSS classes to add to the root
-           * node when it is created. */
-          parse: function(text, classes) {
+           * node when it is created. status is an object containing
+           * additional metadata, and is mutated internally. */
+          parse: function(text, classes, status) {
+            if (status == null) status = {};
             /* Intermediate result; current index; text length; array of
-             * matches; length of matchers; status object */
+             * matches; length of matchers */
             var out = [], idx = 0, len = text.length, matches = [];
-            var mlen = matchers.length, status = {};
+            var mlen = matchers.length;
             /* Duplicate regexes; create index */
             var matcherIndex = {};
             var regexes = matchers.map(function(el) {
@@ -3182,6 +3196,8 @@ this.Instant = function() {
         /* Callbacks producing the embedders
          * See addEmbedder() for the entry format. */
         var embedders = [];
+        /* Active embeds */
+        var liveEmbeds = {};
         return {
           /* Add an embedder
            * regex is a regular expression that must match the tentative
@@ -3237,6 +3253,14 @@ this.Instant = function() {
             }
             return null;
           },
+          /* Enter the given embed into the global registry */
+          _registerEmbed: function(id, embedder, node) {
+            liveEmbeds[id] = {id: id, embedder: embedder, node: node};
+          },
+          /* Get the embed object with the given ID, if any */
+          getEmbed: function(id) {
+            return liveEmbeds[id];
+          }
         };
       }()
     };
