@@ -3279,7 +3279,8 @@ this.Instant = function() {
           _registerEmbed: function(id, embedder, node) {
             activeEmbeds[id] = {id: id, embedder: embedder, node: node,
                                 send: Instant.message.embeds._sendEmbedData};
-            embedder.onInit(activeEmbeds[id]);
+            if (embedder.onInit)
+              embedder.onInit(activeEmbeds[id]);
           },
           /* Publish a piece of data related to this embed */
           _sendEmbedData: function(data) {
