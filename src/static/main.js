@@ -3687,7 +3687,7 @@ this.Instant = function() {
           /* Do not input line feeds in any case */
           event.preventDefault();
           /* Actually submit it */
-          Instant.input.post(text, event);
+          Instant.input.post(text, event, true);
         } else if (event.keyCode == 27) { // Escape
           if (navigate('root'))
             location.hash = '';
@@ -3804,17 +3804,26 @@ this.Instant = function() {
         inputMsg.setSelectionRange(from + text.length, from + text.length);
         Instant.input._updateMessage();
       },
-      /* Post the current status of the input bar */
-      post: function(text, event) {
+      /* Post the current content of the input bar at its current location */
+      post: function(text, event, clearInput) {
+        Instant.input.postAt(text, undefined, event, clearInput);
+      },
+      /* Post the given text (defaulting to the content of the input bar if
+       * null or undefined) in response to the given parent (defaulting to
+       * the parent of the input bar if undefined) */
+      postAt: function(text, parent, event, clearInput) {
+        if (parent === undefined) parent = Instant.input.getParentID();
         var inputMsg = $cls('input-message', inputNode);
         if (text == null) text = inputMsg.value;
         /* Allow event handlers to have a word */
-        var evdata = {text: text, source: event, _cancel: true};
+        var evdata = {text: text, parent: parent, source: event,
+                     _cancel: true};
         var evt = Instant._fireListeners('input.post', evdata);
         if (evt.canceled) return;
         text = evdata.text;
+        parent = evdata.parent;
         /* Whether to clear the input bar */
-        var clear = false;
+        var doClear = false;
         /* Ignore empty sends */
         if (! text) {
           /* NOP */
@@ -3825,21 +3834,20 @@ this.Instant = function() {
           var msgid = 'local-' + leftpad(fakeSeq++, 8, '0');
           Instant.message.importMessage(
             {id: msgid, nick: Instant.identity.nick || '', text: text,
-             parent: Instant.input.getParentID(),
-             timestamp: Date.now()},
+             parent: parent, timestamp: Date.now()},
             Instant.message.getRoot(inputNode));
           /* Restore scroll state */
           restore();
-          clear = true;
+          doClear = true;
         } else if (Instant.connection.isConnected()) {
           /* Send actual message */
           Instant.connection.sendBroadcast({type: 'post',
             nick: Instant.identity.nick, text: text,
-            parent: Instant.input.getParentID()});
-          clear = true;
+            parent: parent});
+          doClear = true;
         }
         /* Clear input bar */
-        if (clear) {
+        if (clearInput && doClear) {
           inputMsg.value = '';
           Instant.input._updateMessage(event);
         }
