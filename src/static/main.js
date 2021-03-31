@@ -618,7 +618,8 @@ this.Instant = function() {
                     text: ent.text, isNew: true};
                   /* Post message */
                   var box = Instant.pane.getBox(inp);
-                  var msg = Instant.message.importMessage(ment, box);
+                  var msg = Instant.message.importMessage(ment, box, false,
+                                                          true);
                   /* Restore scroll state */
                   restore();
                   /* Check whether the message is offscreen */
@@ -2154,8 +2155,9 @@ this.Instant = function() {
       /* Integrate a message into a hierarchy
        * If noPreserve is false and another message node with the same ID is
        * present, certain attributes (i.e. CSS classes) of the "old" node are
-       * carried over to the new one. */
-      importMessage: function(message, root, noPreserve) {
+       * carried over to the new one. live denotes whether this message was
+       * posted "recently" for the purposes of active embed processing. */
+      importMessage: function(message, root, noPreserve, live) {
         /* Parse content */
         if (typeof message == 'object' && message.nodeType === undefined)
           message = Instant.message.makeMessage(message);
@@ -2197,10 +2199,20 @@ this.Instant = function() {
           if (threadLatest[rid] == null || latest > threadLatest[rid])
             threadLatest[rid] = latest;
         }
-        /* Update indents and hiding */
+        /* Update indents and hiding; activate embeds */
         Instant.message.updateIndents(message);
         if (message.classList.contains('data')) {
           Instant.message.setHidden(message, true);
+          var sender = message.getAttribute('data-from');
+          Instant.message.embeds._onEmbedData({
+            id: message.getAttribute('data-id'),
+            parent: message.getAttribute('data-parent') || null,
+            from: sender,
+            fromUUID: Instant.logs.getUUID(sender),
+            text: Instant.message.parser.extractText($cls('message-text',
+                                                          message)),
+            live: !!live
+          });
         } else if (Instant.message.isMessage(parent)) {
           Instant.message._updateHiddenChildren(parent,
             Instant.message.isHidden(parent));
@@ -3197,7 +3209,7 @@ this.Instant = function() {
          * See addEmbedder() for the entry format. */
         var embedders = [];
         /* Active embeds */
-        var liveEmbeds = {};
+        var activeEmbeds = {};
         return {
           /* Add an embedder
            * regex is a regular expression that must match the tentative
@@ -3227,7 +3239,17 @@ this.Instant = function() {
            *            border appearance).
            * normalize: If true, the URL regex is tested against is normalized
            *            by lowercasing the scheme and host (if any). This does
-           *            not affect the "url" parameter of callback. */
+           *            not affect the "url" parameter of callback.
+           * active   : If present, denotes that embeds created by this
+           *            embedder "capture" /data messages sent in response to
+           *            the posts containing them. The value is a string
+           *            containing the embed type's "name" this purpose.
+           * onInit   : If embeds of this type are active, this function is
+           *            called during message parsing to initialize their
+           *            state objects.
+           * onData   : If embeds of this type are active, this function is
+           *            called when data matching this embed (including data
+           *            sent from the local instance of the embed) arrive. */
           addEmbedder: function(regex, callback, options) {
             if (options == null) options = {};
             options.re = regex;
@@ -3255,11 +3277,44 @@ this.Instant = function() {
           },
           /* Enter the given embed into the global registry */
           _registerEmbed: function(id, embedder, node) {
-            liveEmbeds[id] = {id: id, embedder: embedder, node: node};
+            activeEmbeds[id] = {id: id, embedder: embedder, node: node,
+                                send: Instant.message.embeds._sendEmbedData};
+            embedder.onInit(activeEmbeds[id]);
+          },
+          /* Publish a piece of data related to this embed */
+          _sendEmbedData: function(data) {
+            var m = /^([^:]+):(\d+)$/.exec(this.id);
+            if (! m) {
+              console.warn('Unrecognized embed ID:', this.id);
+              return;
+            }
+            var msgid = m[1], embedSerial = m[2];
+            var label = this.embedder.active;
+            if (! label) {
+              console.warn('Unrecognized embed label:', label);
+              return;
+            }
+            Instant.input.postAt('/data ' + label + ':' + embedSerial +
+              ((data) ? ' ' : '') + data, msgid);
+          },
+          /* Process an incoming data message */
+          _onEmbedData: function(info) {
+            if (! info.parent) return;
+            var m = /^\/data\s+([^:]+):(\d+)(?:\s+([^]*))?$/.exec(info.text);
+            if (! m) return;
+            var type = m[1], embedSerial = m[2], payload = m[3];
+            var embedID = info.parent + ':' + embedSerial;
+            info.rawText = info.text;
+            info.text = (payload) ? payload.trim() : '';
+            var embed = activeEmbeds[embedID];
+            if (! embed || embed.embedder.active != type ||
+                ! embed.embedder.onData)
+              return;
+            embed.embedder.onData(embed, info);
           },
           /* Get the embed object with the given ID, if any */
           getEmbed: function(id) {
-            return liveEmbeds[id];
+            return activeEmbeds[id];
           }
         };
       }()
@@ -3835,7 +3890,7 @@ this.Instant = function() {
           Instant.message.importMessage(
             {id: msgid, nick: Instant.identity.nick || '', text: text,
              parent: parent, timestamp: Date.now()},
-            Instant.message.getRoot(inputNode));
+            Instant.message.getRoot(inputNode), false, true);
           /* Restore scroll state */
           restore();
           doClear = true;
