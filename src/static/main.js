@@ -2381,6 +2381,7 @@ this.Instant = function() {
         var level = Instant.notifications.getLevel(msg);
         /* For window title etc. */
         var par = Instant.message.getCommentParent(msg);
+        var isVisible = (! msg.classList.contains('is-hidden'));
         var isReply = (par && par.classList.contains('mine'));
         var isPing = (msg.classList.contains('ping'));
         return Instant.notifications.create({text: text,
@@ -2393,9 +2394,9 @@ this.Instant = function() {
           },
           data: {
             message: msg,
-            unreadMessages: 1,
-            unreadReplies: (isReply) ? 1 : 0,
-            unreadMentions: (isPing) ? 1 : 0
+            unreadMessages: (isVisible) ? 1 : 0,
+            unreadReplies: (isVisible && isReply) ? 1 : 0,
+            unreadMentions: (isVisible && isPing) ? 1 : 0
           }
         });
       },
@@ -6839,11 +6840,15 @@ this.Instant = function() {
           /* Mark multiple messages as offscreen (or not) */
           checkMany: function(msgs) {
             if (Instant.title.isBlurred()) {
+              msgs = msgs.filter(function(m) {
+                return ! Instant.message.isHidden(m);
+              });
               Instant.animation.offscreen._updateOffscreen(msgs, null);
             } else {
               var add = [], rem = [];
               msgs.forEach(function(m) {
-                if (Instant.pane.isVisible(m)) {
+                if (Instant.message.isHidden(m) ||
+                    Instant.pane.isVisible(m)) {
                   rem.push(m);
                 } else {
                   add.push(m);
@@ -6854,8 +6859,9 @@ this.Instant = function() {
           },
           /* Check if a message is offscreen or not */
           check: function(msg) {
-            if (Instant.title.isBlurred() ||
-                ! Instant.pane.isVisible(msg)) {
+            if (! Instant.message.isHidden(msg) &&
+                (Instant.title.isBlurred() ||
+                 ! Instant.pane.isVisible(msg))) {
               Instant.animation.offscreen.set(msg);
             } else {
               Instant.animation.offscreen.clear(msg);
@@ -7438,6 +7444,7 @@ this.Instant = function() {
         var mlvl = 'activity';
         if (msg.classList.contains('is-hidden')) {
           /* Hidden messages are unimportant */
+          mlvl = 'noise';
         } else if (msg.classList.contains('mine')) {
           /* The user presumably knows about their own messages */
           mlvl = 'noise';
