@@ -1341,7 +1341,7 @@ class OptionParser:
 
         The following entries of kwds are interpreted:
         default: If given (and the default argument of this function is true),
-                 this configured the default value of the option.
+                 this configures the default value of the option.
         accum  : If this is a callable, it is an "accumulator" function that
                  is invoked for every appearance of the option on the command
                  line, given two arguments (the current state of the
