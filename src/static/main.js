@@ -2579,7 +2579,13 @@ this.Instant = function() {
                 out.push({rem: 'embed'});
                 out.push({add: 'embed', embed: 'inner',
                   className: embedder.className});
-                var res = embedder.cb(url, out, status);
+                var res = null;
+                try {
+                  res = embedder.cb(url, out, status);
+                } catch (e) {
+                  Instant.errors.handleBackground(e,
+                    'Error in embed callback:');
+                }
                 if (res != null) {
                   out.push(res);
                 }
@@ -3279,8 +3285,13 @@ this.Instant = function() {
           _registerEmbed: function(id, embedder, node) {
             activeEmbeds[id] = {id: id, embedder: embedder, node: node,
                                 send: Instant.message.embeds._sendEmbedData};
-            if (embedder.onInit)
+            if (! embedder.onInit) return;
+            try {
               embedder.onInit(activeEmbeds[id]);
+            } catch (e) {
+              Instant.errors.handleBackground(e,
+                'Error in active embed init callback:');
+            }
           },
           /* Publish a piece of data related to this embed */
           _sendEmbedData: function(data) {
@@ -3311,7 +3322,12 @@ this.Instant = function() {
             if (! embed || embed.embedder.active != type ||
                 ! embed.embedder.onData)
               return;
-            embed.embedder.onData(embed, info);
+            try {
+              embed.embedder.onData(embed, info);
+            } catch (e) {
+              Instant.errors.handleBackground(e,
+                'Error in active embed data callback:');
+            }
           },
           /* Get the embed object with the given ID, if any */
           getEmbed: function(id) {
