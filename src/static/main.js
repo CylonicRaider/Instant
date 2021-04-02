@@ -2204,16 +2204,8 @@ this.Instant = function() {
         Instant.message.updateIndents(message);
         if (message.classList.contains('data')) {
           Instant.message.setHidden(message, true);
-          var sender = message.getAttribute('data-from');
-          Instant.message.embeds._onEmbedData({
-            id: message.getAttribute('data-id'),
-            parent: message.getAttribute('data-parent') || null,
-            from: sender,
-            fromUUID: Instant.logs.getUUID(sender),
-            text: Instant.message.parser.extractText($cls('message-text',
-                                                          message)),
-            live: !!live
-          });
+          if (! parent.classList.contains('message-fake'))
+            Instant.message.embeds._onEmbedDataMessage(message, live);
         } else if (Instant.message.isMessage(parent)) {
           Instant.message._updateHiddenChildren(parent,
             Instant.message.isHidden(parent));
@@ -3311,7 +3303,7 @@ this.Instant = function() {
             Instant.input.postAt('/data ' + label + ':' + embedSerial +
               ((data) ? ' ' : '') + data, msgid);
           },
-          /* Process an incoming data message */
+          /* Process information from an incoming data message */
           _onEmbedData: function(info) {
             if (! info.parent) return;
             var m = /^\/data\s+([^:]+):(\d+)(?:\s+([^]*))?$/.exec(info.text);
@@ -3330,6 +3322,19 @@ this.Instant = function() {
               Instant.errors.handleBackground(e,
                 'Error in active embed data callback:');
             }
+          },
+          /* Extract and process the information of a data message */
+          _onEmbedDataMessage: function(message, live) {
+            var sender = message.getAttribute('data-from');
+            Instant.message.embeds._onEmbedData({
+              id: message.getAttribute('data-id'),
+              parent: message.getAttribute('data-parent') || null,
+              from: sender,
+              fromUUID: Instant.logs.getUUID(sender),
+              text: Instant.message.parser.extractText($cls('message-text',
+                                                            message)),
+              live: live
+            });
           },
           /* Get the embed object with the given ID, if any */
           getEmbed: function(id) {
