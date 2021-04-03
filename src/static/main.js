@@ -619,8 +619,7 @@ this.Instant = function() {
                     text: ent.text, isNew: true};
                   /* Post message */
                   var box = Instant.pane.getBox(inp);
-                  var msg = Instant.message.importMessage(ment, box, false,
-                                                          true);
+                  var msg = Instant.message.importMessage(ment, box, true);
                   /* Restore scroll state */
                   restore();
                   /* Check whether the message is offscreen */
@@ -2154,11 +2153,9 @@ this.Instant = function() {
         return child;
       },
       /* Integrate a message into a hierarchy
-       * If noPreserve is false and another message node with the same ID is
-       * present, certain attributes (i.e. CSS classes) of the "old" node are
-       * carried over to the new one. live denotes whether this message was
-       * posted "recently" for the purposes of active embed processing. */
-      importMessage: function(message, root, noPreserve, live) {
+       * live denotes whether this message was posted "recently" for the
+       * purposes of active embed processing. */
+      importMessage: function(message, root, live) {
         /* Parse content */
         if (typeof message == 'object' && message.nodeType === undefined)
           message = Instant.message.makeMessage(message);
@@ -2181,10 +2178,8 @@ this.Instant = function() {
           $moveCh(Instant.message._getReplyNode(prev),
                   Instant.message.makeReplies(message));
           prev.parentNode.removeChild(prev);
-          if (! noPreserve) {
-            if (prev.classList.contains('offscreen'))
-              message.classList.add('offscreen');
-          }
+          if (prev.classList.contains('offscreen'))
+            message.classList.add('offscreen');
           Instant.input.update();
         }
         if (fake) delete fakeMessages[msgid];
@@ -3914,7 +3909,7 @@ this.Instant = function() {
           Instant.message.importMessage(
             {id: msgid, nick: Instant.identity.nick || '', text: text,
              parent: parent, timestamp: Date.now()},
-            Instant.message.getRoot(inputNode), false, true);
+            Instant.message.getRoot(inputNode), true);
           /* Restore scroll state */
           restore();
           doClear = true;
