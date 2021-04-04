@@ -1242,6 +1242,8 @@ this.Instant = function() {
                   /* Prepare for scrolling */
                   var restore = Instant.input.saveScrollState(true);
                   /* Import messages */
+                  var deferred = [];
+                  var defer = deferred.push.bind(deferred);
                   var msgNodes = added.map(function(key) {
                     /* Sanitize input */
                     var msg = messages[key];
@@ -1250,7 +1252,11 @@ this.Instant = function() {
                     if (typeof msg.text != 'string')
                       msg.text = JSON.stringify(msg.text);
                     /* Import message */
-                    return Instant.message.importMessage(msg, pane);
+                    return Instant.message.importMessage(msg, pane, false,
+                                                         defer);
+                  });
+                  deferred.forEach(function(func) {
+                    func();
                   });
                   /* Scroll back */
                   restore();
@@ -2154,8 +2160,18 @@ this.Instant = function() {
       },
       /* Integrate a message into a hierarchy
        * live denotes whether this message was posted "recently" for the
-       * purposes of active embed processing. */
-      importMessage: function(message, root, live) {
+       * purposes of active embed processing.
+       * defer is a function that takes another function as an argument
+       * and invokes it (with no arguments) some time later. If provided,
+       * this is used to defer the processing of formerly orphaned data
+       * replies (assuming that those come after data replies loaded in one
+       * batch with their parent). */
+      importMessage: function(message, root, live, defer) {
+        function replayDataChildren(dataReplies) {
+          dataReplies.forEach(function(m) {
+            Instant.message.embeds._onEmbedDataMessage(m, live);
+          });
+        }
         /* Parse content */
         if (typeof message == 'object' && message.nodeType === undefined)
           message = Instant.message.makeMessage(message);
@@ -2175,11 +2191,25 @@ this.Instant = function() {
         var old = messages[msgid];
         if (fake || old) {
           var prev = fake || old;
-          $moveCh(Instant.message._getReplyNode(prev),
-                  Instant.message.makeReplies(message));
+          var prevReplies = Instant.message._getReplyNode(prev);
+          var dataReplies;
+          if (prevReplies) {
+            dataReplies = Array.prototype.filter.call(prevReplies.children,
+              function(r) {
+                return r.classList.contains('data');
+              });
+          } else {
+            dataReplies = [];
+          }
+          $moveCh(prevReplies, Instant.message.makeReplies(message));
           prev.parentNode.removeChild(prev);
           if (prev.classList.contains('offscreen'))
             message.classList.add('offscreen');
+          if (defer) {
+            defer(replayDataChildren.bind(null, dataReplies));
+          } else {
+            replayDataChildren(dataReplies);
+          }
           Instant.input.update();
         }
         if (fake) delete fakeMessages[msgid];
@@ -2199,7 +2229,7 @@ this.Instant = function() {
         Instant.message.updateIndents(message);
         if (message.classList.contains('data')) {
           Instant.message.setHidden(message, true);
-          if (! parent.classList.contains('message-fake'))
+          if (! parent.classList.contains('message-fake') && ! old)
             Instant.message.embeds._onEmbedDataMessage(message, live);
         } else if (Instant.message.isMessage(parent)) {
           Instant.message._updateHiddenChildren(parent,
