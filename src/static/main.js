@@ -3549,12 +3549,20 @@ this.Instant = function() {
           parent.classList.add('input-host');
           appendTo = Instant.message.makeReplies(parent);
         }
+        /* Prepare to refresh message hiding
+         * This needs to be done before relocating the input bar as it may
+         * end up inside a display:none-d message, where saveScrollState()
+         * cannot work well. */
+        var restore = null;
+        if (oldParent && Instant.message.isHidden(oldParent) ||
+            parent && Instant.message.isHidden(parent)) {
+          var pane = Instant.pane.getPane(inputNode);
+          restore = Instant.pane.saveScrollState(pane, true);
+        }
         /* Actually relocate the DOM node */
         appendTo.appendChild(inputNode);
         /* Refresh message hiding */
-        if (oldParent && Instant.message.isHidden(oldParent) ||
-            parent && Instant.message.isHidden(parent)) {
-          var restore = Instant.input.saveScrollState();
+        if (restore) {
           if (Instant.message.isMessage(oldParent))
             Instant.message._updateHiddenChildren(oldParent,
               Instant.message.isHidden(oldParent));
@@ -3720,7 +3728,8 @@ this.Instant = function() {
       },
       /* Save the scrolling state of the input bar */
       saveScrollState: function(focus) {
-        scrollState = Instant.pane.saveScrollState(inputNode, 1, true, focus);
+        scrollState = Instant.pane.saveNodeScrollState(inputNode, 1, true,
+                                                       focus);
         return scrollState;
       },
       /* Update the message bar sizer */
@@ -4023,8 +4032,8 @@ this.Instant = function() {
           return ret;
         });
       },
-      /* Save the current (vertical) scrolling position of the pane
-       * containing the given node for later restoration
+      /* Save the current (vertical) position of the given node w.r.t. the
+       * pane containing it for later restoration
        * If bottom is true, calculations are performed w.r.t. the bottom of
        * the pane, which is assumed not have any nontrivial borders or
        * paddings (note that the bottom does intentionally *not* include a
@@ -4035,7 +4044,7 @@ this.Instant = function() {
        * 0.0 -- Restore the top of the child
        * 0.5 -- Restore the middle of the child
        * 1.0 -- Restore the bottom of the child */
-      saveScrollState: function(node, hf, bottom, focus) {
+      saveNodeScrollState: function(node, hf, bottom, focus) {
         var pane = Instant.pane.getPane(node);
         var focused = focus && document.activeElement;
         var nodeRect = node.getBoundingClientRect();
@@ -4052,6 +4061,25 @@ this.Instant = function() {
           pane.scrollTop = Math.round(pane.scrollTop + nodeRect.top +
             nodeRect.height * hf - paneRect.top - height - cookie);
           if (focused) focused.focus();
+        };
+      },
+      /* Save the current scrolling position of the pane
+       * If bottom is false, the offset from the top of the pane to the top of
+       * its visible area is saved; otherwise, the bottoms of the pane and its
+       * visible area are used as references. */
+      saveScrollState: function(pane, bottom) {
+        var cookie;
+        if (bottom) {
+          cookie = pane.scrollHeight - pane.scrollTop - pane.clientHeight;
+        } else {
+          cookie = pane.scrollTop;
+        }
+        return function() {
+          if (bottom) {
+            pane.scrollTop = pane.scrollHeight - cookie - pane.clientHeight;
+          } else {
+            pane.scrollTop = cookie;
+          }
         };
       },
       /* Scroll the pane containing node (vertically) such that the latter is
