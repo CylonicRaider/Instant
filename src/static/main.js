@@ -2210,12 +2210,15 @@ this.Instant = function() {
           } else {
             replayDataChildren(dataReplies);
           }
-          Instant.input.update();
         }
         if (fake) delete fakeMessages[msgid];
         if (old) delete messages[msgid];
         /* Add message to parent */
         Instant.message.addReply(message, parent);
+        /* Ensure the (potentially new) parent of the input bar is valid */
+        if (fake || old) {
+          Instant.input.update();
+        }
         /* Update thread index */
         var troot = Instant.message.getThreadRoot(message);
         if (troot) {
