@@ -302,7 +302,7 @@ body {
   overflow: auto;
 }
 .message-text .prefix {
-  opacity: 0.75;
+  opacity: 0.666;
 }
 .message-text .hidden.whitespace {
   display: block;
