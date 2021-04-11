@@ -1444,8 +1444,9 @@ this.Instant = function() {
   Instant.message = function() {
     /* Message ID -> DOM node */
     var messages = {}, fakeMessages = {};
-    /* ID of thread root -> ID of latest message in thread */
-    var threadLatest = {};
+    /* ID of thread root -> ID of latest message (at all, or non-hidden) in
+     * thread */
+    var threadLatest = {}, threadLatestUnhidden = {};
     /* Message pane */
     var msgPane = null;
     /* Pixel distance that differentiates a click from a drag */
@@ -2219,15 +2220,6 @@ this.Instant = function() {
         if (fake || old) {
           Instant.input.update();
         }
-        /* Update thread index */
-        var troot = Instant.message.getThreadRoot(message);
-        if (troot) {
-          var rid = troot.getAttribute('data-id');
-          var latest = threadLatest[msgid] || msgid;
-          delete threadLatest[msgid];
-          if (threadLatest[rid] == null || latest > threadLatest[rid])
-            threadLatest[rid] = latest;
-        }
         /* Update indents and hiding; activate embeds */
         Instant.message.updateIndents(message);
         if (message.classList.contains('data')) {
@@ -2237,6 +2229,21 @@ this.Instant = function() {
         } else if (Instant.message.isMessage(parent)) {
           Instant.message._updateHiddenChildren(parent,
             Instant.message.isHidden(parent));
+        }
+        /* Update thread index */
+        var troot = Instant.message.getThreadRoot(message);
+        if (troot) {
+          var rid = troot.getAttribute('data-id');
+          var latest = threadLatest[msgid] || msgid;
+          var latestUnhidden = threadLatestUnhidden[msgid] || msgid;
+          delete threadLatest[msgid];
+          delete threadLatestUnhidden[msgid];
+          if (threadLatest[rid] == null || latest > threadLatest[rid])
+            threadLatest[rid] = latest;
+          if (! Instant.message.isHidden(message) &&
+              (threadLatestUnhidden[rid] == null ||
+               latestUnhidden > threadLatestUnhidden[rid]))
+            threadLatestUnhidden[rid] = latestUnhidden;
         }
         /* Done */
         return message;
@@ -2344,11 +2351,13 @@ this.Instant = function() {
         msg.classList.add('highlight');
       },
       /* Retrieve the ID of the latest message in a thread
-       * thread may be either a message ID of DOM node of a thread root. */
-      getLatestMessage: function(thread) {
+       * thread may be either a message ID of DOM node of a thread root.
+       * If ignoreHidden is true, hidden messages are not taken into
+       * consideration. */
+      getLatestMessage: function(thread, ignoreHidden) {
         if (typeof thread == 'object')
           thread = thread.getAttribute('data-id');
-        return threadLatest[thread];
+        return (ignoreHidden ? threadLatestUnhidden : threadLatest)[thread];
       },
       /* Check if the given fragment identifier is a valid message
        * identifier */
