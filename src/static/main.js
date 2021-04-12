@@ -3618,6 +3618,13 @@ this.Instant = function() {
           }
         }
       },
+      /* Find out if the input bar, if hosted at host, would be before or
+       * after message */
+      _compareHostToMessage: function(host, message) {
+        var res = host.compareDocumentPosition(message);
+        return (res & (Node.DOCUMENT_POSITION_FOLLOWING |
+                       Node.DOCUMENT_POSITION_CONTAINS)) ? 1 : -1;
+      },
       /* Inner portion of _findClosestMessage() */
       _findClosestMessageOnce: function(root, parent, direction,
                                         includeHidden) {
