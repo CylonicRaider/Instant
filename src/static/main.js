@@ -3621,14 +3621,25 @@ this.Instant = function() {
       /* Find out if the input bar, if hosted at host, would be before or
        * after message */
       _compareHostToMessage: function(host, message) {
+        if (host == message) return -1;
         var res = host.compareDocumentPosition(message);
-        return (res & (Node.DOCUMENT_POSITION_FOLLOWING |
-                       Node.DOCUMENT_POSITION_CONTAINS)) ? 1 : -1;
+        return (res & (Node.DOCUMENT_POSITION_PRECEDING |
+                       Node.DOCUMENT_POSITION_CONTAINED_BY)) ? -1 : 1;
       },
       /* Inner portion of _findClosestMessage() */
       _findClosestMessageOnce: function(root, parent, direction,
                                         includeHidden) {
-        var troot = Instant.message.getThreadRoot(parent);
+        function getLatestInThread(troot) {
+          return Instant.message.get(
+            Instant.message.getLatestMessage(troot, (! includeHidden)) ||
+            Instant.message.getLatestMessage(troot, false));
+        }
+        function maybeParent(message) {
+          var parent = Instant.message.getParentMessage(message);
+          if (parent == null || Instant.message.getSuccessor(message))
+            return message;
+          return parent;
+        }
         switch (direction) {
           case 'up': /* The visually closest message above the input bar. */
             var pred = Instant.message.getLastReply(parent);
@@ -3688,6 +3699,37 @@ this.Instant = function() {
             return Instant.message.getParent(parent);
           case 'right': /* One position further inwards. */
             return Instant.message.getLastReply(parent);
+          case 'threadUp': /* Up to a thread's most recent message. */
+            var troot = Instant.message.getThreadRoot(parent);
+            var latest = getLatestInThread(troot);
+            // If we are in the root thread, or already are around the latest
+            // message, or are above the latest message, we go to the previous
+            // thread.
+            if (latest == null || latest == parent ||
+                latest == Instant.message.getLastReply(parent) ||
+                Instant.input._compareHostToMessage(parent, latest) > 0) {
+              var prevThread = (parent == root) ?
+                Instant.message.getLastReply(root) :
+                Instant.message.getPredecessor(troot);
+              // If there is no previous thread, we cannot go further.
+              if (prevThread == null) return null;
+              latest = getLatestInThread(prevThread);
+            }
+            return maybeParent(latest);
+          case 'threadDown': /* Down to a thread's most recent message. */
+            var troot = Instant.message.getThreadRoot(parent);
+            var latest = Instant.message.get(
+              Instant.message.getLatestMessage(troot, (! includeHidden)));
+            // There is no way down from the root thread.
+            if (latest == null) return null;
+            // If we are after the message, we go to the successor thread.
+            if (Instant.input._compareHostToMessage(parent, latest) < 0) {
+              var nextThread = Instant.message.getSuccessor(troot);
+              // If there is no next thread, we return to the root.
+              if (nextThread == null) return root;
+              latest = getLatestInThread(nextThread);
+            }
+            return maybeParent(latest);
           case 'root': /* Always the root. */
             return root;
           default:
@@ -3711,58 +3753,11 @@ this.Instant = function() {
       },
       /* Move the input bar relative to its current position */
       navigate: function(direction) {
-        /* Find roots */
-        var troot = Instant.message.getThreadRoot(inputNode);
-        var root = Instant.message.getRoot(troot || inputNode);
-        switch (direction) {
-          case 'up': case 'down': case 'left': case 'right': case 'root':
-            var newParent = Instant.input._findClosestMessage(
-              Instant.message.getParent(inputNode), direction, true);
-            if (newParent == null) return false;
-            Instant.input.jumpTo(newParent);
-            return true;
-          case 'threadUp':
-            /* Locate latest message in the current thread */
-            var latest = Instant.message.get(
-              Instant.message.getLatestMessage(troot));
-            if (latest == null ||
-                Instant.message.documentCmp(inputNode, latest) < 0 ||
-                latest == Instant.message.getParentMessage(inputNode) ||
-                latest == Instant.message.getPredecessor(inputNode)) {
-              /* If we are in the main thread, or before the latest message
-               * or at it, move to the predecessor thread */
-              var prevThread = Instant.message.getPredecessor(troot);
-              if (prevThread == null) return false;
-              latest = Instant.message.get(
-                Instant.message.getLatestMessage(prevThread));
-            }
-            /* Jump to the selected message */
-            Instant.input.moveTo(latest, true);
-            return true;
-          case 'threadDown':
-            /* Locate the latest message in the current thread */
-            var latest = Instant.message.get(
-              Instant.message.getLatestMessage(troot));
-            /* Do nothing if at main thread */
-            if (latest == null) return false;
-            /* If we are after the message, move to the successor thread */
-            if (Instant.message.documentCmp(inputNode, latest) > 0) {
-              var nextThread = Instant.message.getSuccessor(troot);
-              if (nextThread == null) {
-                /* Special case: return to root */
-                Instant.input.jumpTo(root);
-                return true;
-              }
-              latest = Instant.message.get(
-                Instant.message.getLatestMessage(nextThread));
-            }
-            /* Jump to the selected message */
-            Instant.input.moveTo(latest, true);
-            return true;
-          default:
-            throw new Error('Invalid direction for input.navigate(): ' +
-              direction);
-        }
+        var newParent = Instant.input._findClosestMessage(
+          Instant.message.getParent(inputNode), direction, true);
+        if (newParent == null) return false;
+        Instant.input.jumpTo(newParent);
+        return true;
       },
       /* Save the scrolling state of the input bar */
       saveScrollState: function(focus) {
