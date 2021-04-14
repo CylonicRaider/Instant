@@ -3753,8 +3753,9 @@ this.Instant = function() {
       },
       /* Move the input bar relative to its current position */
       navigate: function(direction) {
+        var includeHidden = (!! Instant.storage.get('navigate-to-hidden'));
         var newParent = Instant.input._findClosestMessage(
-          Instant.message.getParent(inputNode), direction, true);
+          Instant.message.getParent(inputNode), direction, includeHidden);
         if (newParent == null) return false;
         Instant.input.jumpTo(newParent);
         return true;
