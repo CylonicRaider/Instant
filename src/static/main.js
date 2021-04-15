@@ -3629,7 +3629,34 @@ this.Instant = function() {
       /* Inner portion of _findClosestMessage() */
       _findClosestMessageOnce: function(root, parent, direction,
                                         includeHidden) {
-        function getLatestInThread(troot) {
+        function isRelevantMessage(msg) {
+          return Instant.message.isMessage(msg) && (includeHidden ||
+            ! Instant.message.isEffectivelyHidden(msg));
+        }
+        function hasRelevantReplies(msg) {
+          var replies = Instant.message._getReplyNodeList(msg);
+          if (! replies) return false;
+          return Array.prototype.some.call(replies, isRelevantMessage);
+        }
+        function getFirstRelevantReply(msg) {
+          var replies = Instant.message._getReplyNodeList(msg);
+          if (! replies) return null;
+          for (var i = 0; i < replies.length; i++) {
+            if (isRelevantMessage(replies[i]))
+              return replies[i];
+          }
+          return null;
+        }
+        function getLastRelevantReply(msg) {
+          var replies = Instant.message._getReplyNodeList(msg);
+          if (! replies) return null;
+          for (var i = replies.length - 1; i >= 0; i--) {
+            if (isRelevantMessage(replies[i]))
+              return replies[i];
+          }
+          return null;
+        }
+        function getLatestRelevantInThread(troot) {
           return Instant.message.get(
             Instant.message.getLatestMessage(troot, (! includeHidden)) ||
             Instant.message.getLatestMessage(troot, false));
@@ -3642,16 +3669,14 @@ this.Instant = function() {
         }
         switch (direction) {
           case 'up': /* The visually closest message above the input bar. */
-            var pred = Instant.message.getLastReply(parent);
+            var pred = getLastRelevantReply(parent);
             if (pred == null) {
               // Traverse parents outwards until we find a predecessor.
-              for (;;) {
+              do {
                 pred = Instant.message.getPredecessor(parent);
                 if (pred) break;
-                var grandparent = Instant.message.getParentOfMessage(parent);
-                if (grandparent == null) break;
-                parent = grandparent;
-              }
+                parent = Instant.message.getParentOfMessage(parent);
+              } while (parent);
             }
             parent = pred;
             // If there is no predecessor, we cannot go any further.
@@ -3659,8 +3684,8 @@ this.Instant = function() {
             // Descend inwards just below the bottommost reply (its
             // intermediate parents being deeemed less interesting).
             for (;;) {
-              var last = Instant.message.getLastReply(parent);
-              if (! last || ! Instant.message.hasReplies(last)) break;
+              var last = getLastRelevantReply(parent);
+              if (! last || ! hasRelevantReplies(last)) break;
               parent = last;
             }
             return parent;
@@ -3669,25 +3694,25 @@ this.Instant = function() {
             if (parent == root) return null;
             // Special case: Move back just below a bottommost reply to mirror
             // upward navigation stopping there.
-            if (! Instant.message.hasReplies(parent) &&
-                ! Instant.message.getSuccessor(parent))
+            if (! hasRelevantReplies(parent) &&
+                ! Instant.message.getSuccessor(parent) &&
+                (includeHidden ||
+                 ! Instant.message.isEffectivelyHidden(parent)))
               return Instant.message.getParent(parent);
             // Traverse parents outwards until we find a successor.
             var succ;
-            for (;;) {
+            do {
               succ = Instant.message.getSuccessor(parent);
               if (succ) break;
-              var grandparent = Instant.message.getParentOfMessage(parent);
-              if (grandparent == null) break;
-              parent = grandparent;
-            }
+              parent = Instant.message.getParentOfMessage(parent);
+            } while (parent);
             parent = succ;
             // If regular traversal fails, we must be in the bottommost
             // thread, and hence go on to the root.
             if (! parent) return root;
             // Descend as far inwards as possible.
             for (;;) {
-              var first = Instant.message.getReply(parent);
+              var first = getFirstRelevantReply(parent);
               if (! first) break;
               parent = first;
             }
@@ -3698,28 +3723,28 @@ this.Instant = function() {
             // Everything else has a parent.
             return Instant.message.getParent(parent);
           case 'right': /* One position further inwards. */
-            return Instant.message.getLastReply(parent);
+            return getLastRelevantReply(parent);
           case 'threadUp': /* Up to a thread's most recent message. */
             var troot = Instant.message.getThreadRoot(parent);
-            var latest = getLatestInThread(troot);
+            var latest = getLatestRelevantInThread(troot);
             // If we are in the root thread, or already are around the latest
             // message, or are above the latest message, we go to the previous
             // thread.
             if (latest == null || latest == parent ||
                 latest == Instant.message.getLastReply(parent) ||
+                latest == getLastRelevantReply(parent) ||
                 Instant.input._compareHostToMessage(parent, latest) > 0) {
               var prevThread = (parent == root) ?
                 Instant.message.getLastReply(root) :
                 Instant.message.getPredecessor(troot);
               // If there is no previous thread, we cannot go further.
               if (prevThread == null) return null;
-              latest = getLatestInThread(prevThread);
+              latest = getLatestRelevantInThread(prevThread);
             }
             return maybeParent(latest);
           case 'threadDown': /* Down to a thread's most recent message. */
             var troot = Instant.message.getThreadRoot(parent);
-            var latest = Instant.message.get(
-              Instant.message.getLatestMessage(troot, (! includeHidden)));
+            var latest = getLatestRelevantInThread(troot);
             // There is no way down from the root thread.
             if (latest == null) return null;
             // If we are after the message, we go to the successor thread.
@@ -3727,7 +3752,7 @@ this.Instant = function() {
               var nextThread = Instant.message.getSuccessor(troot);
               // If there is no next thread, we return to the root.
               if (nextThread == null) return root;
-              latest = getLatestInThread(nextThread);
+              latest = getLatestRelevantInThread(nextThread);
             }
             return maybeParent(latest);
           case 'root': /* Always the root. */
@@ -3748,7 +3773,7 @@ this.Instant = function() {
           ret = Instant.input._findClosestMessageOnce(root, ret, direction,
                                                       includeHidden);
           if (! ret) return null;
-        } while (! includeHidden && Instant.message.isHidden(ret));
+        } while (! includeHidden && Instant.message.isEffectivelyHidden(ret));
         return ret;
       },
       /* Move the input bar relative to its current position */
