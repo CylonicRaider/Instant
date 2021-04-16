@@ -3315,7 +3315,8 @@ this.Instant = function() {
           /* Enter the given embed into the global registry */
           _registerEmbed: function(id, embedder, node) {
             activeEmbeds[id] = {id: id, embedder: embedder, node: node,
-                                send: Instant.message.embeds._sendEmbedData};
+              send: Instant.message.embeds._sendEmbedData,
+              raiseAttention: Instant.message.embeds._raiseAttention};
             if (! embedder.onInit) return;
             try {
               embedder.onInit(activeEmbeds[id]);
@@ -3339,6 +3340,23 @@ this.Instant = function() {
             }
             Instant.input.postAt('/data ' + label + ':' + embedSerial +
               ((data) ? ' ' : '') + data, msgid);
+          },
+          /* Try to get the user's attention. */
+          _raiseAttention: function(text, onclick) {
+            Instant.notifications.submitNew({level: 'embed', text: text,
+              onclick: function(event) {
+                if (this.node.nodeType !== undefined) {
+                  Instant.pane.scrollIntoView(this.node);
+                }
+                if (onclick) {
+                  try {
+                    onclick(event);
+                  } catch (e) {
+                    Instant.errors.handleBackground(e,
+                      'Error in active embed notification callback:');
+                  }
+                }
+              }.bind(this), data: {embed: this}});
           },
           /* Process information from an incoming data message */
           _onEmbedData: function(info) {
@@ -7485,17 +7503,18 @@ this.Instant = function() {
   /* Desktop notifications */
   Instant.notifications = function() {
     /* Notification levels (from most to least severe) */
-    var LEVELS = { none: 0, privmsg: 1, ping: 2, update: 3, reply: 4,
-                   activity: 5, disconnect: 6, noise: 7 };
+    var LEVELS = { none: 0, privmsg: 1, ping: 2, update: 3, embed: 4,
+                   reply: 5, activity: 6, disconnect: 7, noise: 8 };
     /* The colors associated to the levels */
     var COLORS = {
-      none: '#000000', /* No color in particular */
-      privmsg: '#800080', /* Private messages are purple */
-      ping: '#c0c000', /* @-mentions are yellow */
-      update: '#008000', /* The update information is green */
-      reply: '#0040ff', /* Replies are color-coded with blue */
-      activity: '#c0c0c0', /* No color in particular, faint version */
-      disconnect: '#c00000' /* Red... was not used */
+      none      : '#000000', /* No color in particular */
+      privmsg   : '#800080', /* Private messages are purple */
+      ping      : '#c0c000', /* @-mentions are yellow */
+      update    : '#008000', /* The update information is green */
+      embed     : '#00c0c0', /* Embed notifications are similar to replies */
+      reply     : '#0040ff', /* Replies are color-coded with blue */
+      activity  : '#c0c0c0', /* No color in particular, faint version */
+      disconnect: '#c00000'  /* Red... was not used, and is rather fitting */
     };
     /* The default icon to display */
     var ICON_PATH = '/static/logo-static_128x128.png';
