@@ -424,6 +424,12 @@ this.Instant = function() {
           Instant.connection.sendPing(payload);
         }, 30000);
       },
+      /* Convert a given server-side timestamp into a local one, accounting
+       * for clock skew */
+      _serverTimeToLocalTime: function(timestamp) {
+        if (! lastPong) return timestamp;
+        return timestamp + lastPong[0] - lastPong[1];
+      },
       /* Special API call performed before the first connection */
       _preConnect: function() {
         if (Instant.apiURL && ! Instant.connection._dontConnect) {
@@ -9369,6 +9375,11 @@ this.Instant = function() {
         } else {
           if (overflowClass) node.classList.remove(overflowClass);
         }
+      },
+      /* Convert the given timestamp from the server's clock to the local
+       * clock, trying to compensate for skew */
+      serverTimeToLocalTime: function(timestamp) {
+        return Instant.connection._serverTimeToLocalTime(timestamp);
       }
     };
   }();
