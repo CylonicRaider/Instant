@@ -1037,6 +1037,9 @@ button.button-icon > img {
 .notifies-update {
   color: #008000;
 }
+.notifies-embed {
+  color: #008080;
+}
 .notifies-reply {
   color: #0060c0;
 }

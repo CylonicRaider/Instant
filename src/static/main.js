@@ -7334,6 +7334,9 @@ this.Instant = function() {
                   radio('notifies', 'update', 'On updates', 'Notify when ' +
                     'there is a new update (or any of the above)', false,
                     'more-content'),
+                  radio('notifies', 'embed', 'On active embeds', 'Notify ' +
+                    'when embedded contents requires attention (or any of ' +
+                    'the above)', false, 'more-content'),
                   radio('notifies', 'reply', 'When replied to', 'Notify ' +
                     'when one of your messages is replied to (or any of ' +
                     'the above)'),
