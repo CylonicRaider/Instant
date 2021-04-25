@@ -182,10 +182,12 @@ class LogDBList(LogDB):
         self.uuids[uid] = uuid
         self._uuid_list.append(uid)
         if self.maxlen is not None and len(self._uuid_list) > self.maxlen:
-            c = len(self._uuid_list) - self.maxlen
-            for u in self._uuid_list[:c]:
-                del self.uuids[u]
-            self._uuid_list = self._uuid_list[c:]
+            remaining = self._uuid_list[-self.maxlen:]
+            remaining_set = frozenset(remaining)
+            for u in tuple(self.uuids):
+                if u not in remaining_set:
+                    del self.uuids[u]
+            self._uuid_list = remaining
         return ret
     def get_uuid(self, uid):
         return self.uuids.get(uid)
