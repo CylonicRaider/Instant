@@ -356,6 +356,7 @@ class InstantClient(object):
         self.ws = None
         self.sequence = AtomicSequence()
         self._wslock = threading.RLock()
+        self._closed = False
     def connect(self):
         """
         Create a connection to the stored URL and return it.
@@ -637,8 +638,11 @@ class InstantClient(object):
         to ensure that its main loop does not attempt to reconnect.
         """
         with self._wslock:
-            if final: self.keepalive = False
-            if self.ws is not None: self.ws.close()
+            if final:
+                self.keepalive = False
+                self._closed = True
+            if self.ws is not None:
+                self.ws.close()
             self.ws = None
     def run(self):
         """
@@ -650,7 +654,7 @@ class InstantClient(object):
         """
         while 1:
             reconnect = 0
-            while 1:
+            while not self._closed:
                 try:
                     self.connect()
                 except Exception as exc:
@@ -660,25 +664,26 @@ class InstantClient(object):
                 else:
                     break
             try:
-                self.on_open()
-                while 1:
-                    try:
-                        rawmsg = self.recv()
-                    except socket.timeout as exc:
-                        self.on_timeout(exc)
-                        break
-                    if rawmsg is None:
-                        break
-                    elif not rawmsg:
-                        continue
-                    self.on_message(rawmsg)
+                if not self._closed:
+                    self.on_open()
+                    while 1:
+                        try:
+                            rawmsg = self.recv()
+                        except socket.timeout as exc:
+                            self.on_timeout(exc)
+                            break
+                        if rawmsg is None:
+                            break
+                        elif not rawmsg:
+                            continue
+                        self.on_message(rawmsg)
             except websocket_server.ConnectionClosedError:
                 # Server-side timeouts cause the connection to be dropped.
                 pass
             except Exception as exc:
                 self.on_error(exc)
             finally:
-                final = not self.keepalive
+                final = (not self.keepalive or self._closed)
                 try:
                     self.close(final)
                 except Exception as exc:
