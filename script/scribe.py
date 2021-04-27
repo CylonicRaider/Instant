@@ -841,6 +841,7 @@ def main():
             sched.clear()
             ws = bot.ws
             if ws: ws.close_now()
+            bot.close()
             thr.join(1)
             if not bot.reconnect: break
             time.sleep(1)
