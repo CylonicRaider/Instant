@@ -492,10 +492,10 @@ class Scribe(instabot.Bot):
         self._ping_job = None
         self._last_pong = None
         self._ping_lock = threading.RLock()
-    def connect(self):
-        log('CONNECT url=%r' % self.url)
+    def connect(self, force=True):
+        log('CONNECT url=%r force=%r' % (self.url, force))
         self.scheduler.set_forever(True)
-        return instabot.Bot.connect(self)
+        return instabot.Bot.connect(self, force)
     def on_open(self):
         instabot.Bot.on_open(self)
         self._last_pong = None

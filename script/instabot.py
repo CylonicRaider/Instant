@@ -357,15 +357,18 @@ class InstantClient(object):
         self.sequence = AtomicSequence()
         self._wslock = threading.RLock()
         self._closed = False
-    def connect(self):
+    def connect(self, force=True):
         """
         Create a connection to the stored URL and return it.
 
         If there already is an active connection, it is returned without
-        creating a new one.
+        creating a new one. If force is false and close() has been invoked,
+        no connection is made and None is returned.
         """
         with self._wslock:
             if self.ws is not None: return self.ws
+            if self._closed and not force: return None
+            self._closed = False
             jar = self.cookies
             self.ws = websocket_server.client.connect(self.url,
                 cookies=jar, timeout=self.timeout, ssl_config=self.ssl_config)
@@ -638,11 +641,9 @@ class InstantClient(object):
         to ensure that its main loop does not attempt to reconnect.
         """
         with self._wslock:
-            if final:
-                self.keepalive = False
-                self._closed = True
-            if self.ws is not None:
-                self.ws.close()
+            self._closed = True
+            if final: self.keepalive = False
+            if self.ws is not None: self.ws.close()
             self.ws = None
     def run(self):
         """
@@ -656,7 +657,7 @@ class InstantClient(object):
             reconnect = 0
             while not self._closed:
                 try:
-                    self.connect()
+                    self.connect(False)
                 except Exception as exc:
                     self.on_connection_error(exc)
                     time.sleep(self.backoff(reconnect))
