@@ -513,7 +513,7 @@ class Scribe(instabot.Bot):
         instabot.Bot.on_error(self, exc)
     def on_close(self, final):
         instabot.Bot.on_close(self, final)
-        log('CLOSED')
+        log('CLOSED final=%r' % (final,))
         with self._ping_lock:
             if self._ping_job is not None:
                 self.scheduler.cancel(self._ping_job)

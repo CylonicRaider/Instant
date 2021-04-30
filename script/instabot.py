@@ -655,29 +655,30 @@ class InstantClient(object):
         """
         while 1:
             reconnect = 0
-            while not self._closed:
+            while 1:
                 try:
-                    self.connect(False)
+                    conn = self.connect(False)
                 except Exception as exc:
                     self.on_connection_error(exc)
                     time.sleep(self.backoff(reconnect))
                     reconnect += 1
                 else:
                     break
+            if conn is None:
+                break
             try:
-                if not self._closed:
-                    self.on_open()
-                    while 1:
-                        try:
-                            rawmsg = self.recv()
-                        except socket.timeout as exc:
-                            self.on_timeout(exc)
-                            break
-                        if rawmsg is None:
-                            break
-                        elif not rawmsg:
-                            continue
-                        self.on_message(rawmsg)
+                self.on_open()
+                while 1:
+                    try:
+                        rawmsg = self.recv()
+                    except socket.timeout as exc:
+                        self.on_timeout(exc)
+                        break
+                    if rawmsg is None:
+                        break
+                    elif not rawmsg:
+                        continue
+                    self.on_message(rawmsg)
             except websocket_server.ConnectionClosedError:
                 # Server-side timeouts cause the connection to be dropped.
                 pass
