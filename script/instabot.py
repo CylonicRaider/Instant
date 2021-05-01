@@ -25,6 +25,45 @@ RELAXED_COOKIES = bool(os.environ.get('INSTABOT_RELAXED_COOKIES'))
 
 _unicode = websocket_server.compat.unicode
 
+class Canceller(object):
+    """
+    Canceller() -> new instance
+
+    A means of cooperatively cancelling some asynchronous operation.
+
+    Until cancel() is invoked, the Canceller is "active"; after that, it is
+    "cancelled".
+    """
+
+    def __init__(self):
+        "Instance initializer; see the class docstring for details."
+        self.event = threading.Event()
+
+    def active(self):
+        """
+        Return whether the canceller is active.
+        """
+        return not self.event.isSet()
+
+    def wait(self, timeout):
+        """
+        Wait for the specified time (in seconds) or until cancelled.
+
+        Returns whether the canceller was still active at the moment where
+        the wait ended (remark, however, that this could change immediately
+        after).
+        """
+        return not self.event.wait(timeout)
+
+    def cancel(self):
+        """
+        Cancel the canceller.
+
+        After this, active() will return False, and wait() will return False
+        immediately.
+        """
+        self.event.set()
+
 class EventScheduler(object):
     """
     EventScheduler(time=None, sleep=None) -> new instance
