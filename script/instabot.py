@@ -395,19 +395,15 @@ class InstantClient(object):
         self.ws = None
         self.sequence = AtomicSequence()
         self._wslock = threading.RLock()
-        self._closed = False
-    def connect(self, force=True):
+    def connect(self):
         """
         Create a connection to the stored URL and return it.
 
         If there already is an active connection, it is returned without
-        creating a new one. If force is false and close() has been invoked,
-        no connection is made and None is returned.
+        creating a new one.
         """
         with self._wslock:
             if self.ws is not None: return self.ws
-            if self._closed and not force: return None
-            self._closed = False
             jar = self.cookies
             self.ws = websocket_server.client.connect(self.url,
                 cookies=jar, timeout=self.timeout, ssl_config=self.ssl_config)
@@ -680,30 +676,36 @@ class InstantClient(object):
         to ensure that its main loop does not attempt to reconnect.
         """
         with self._wslock:
-            self._closed = True
             if final: self.keepalive = False
             if self.ws is not None: self.ws.close()
             self.ws = None
-    def run(self):
+    def run(self, connect_canceller=None):
         """
         The main loop of an InstantClient.
+
+        connect_canceller, if not None, is a Canceller instance that can be
+        used to cancel connection attempts performed by this invocation;
+        however, cancelling it does not close the WebSocket connection if it
+        is established.
 
         This takes care of (re)connecting, backing off on failing connection
         attempts, message reading, and connection closing. Most on_*() methods
         are dispatched from here.
         """
+        if connect_canceller is None: connect_canceller = Canceller()
         while 1:
-            reconnect = 0
-            while 1:
+            connected, reconnect = False, 0
+            while connect_canceller.active():
                 try:
-                    conn = self.connect(False)
+                    self.connect()
                 except Exception as exc:
                     self.on_connection_error(exc)
-                    time.sleep(self.backoff(reconnect))
+                    connect_canceller.wait(self.backoff(reconnect))
                     reconnect += 1
                 else:
+                    connected = True
                     break
-            if conn is None:
+            if not connected:
                 break
             try:
                 self.on_open()
@@ -724,7 +726,7 @@ class InstantClient(object):
             except Exception as exc:
                 self.on_error(exc)
             finally:
-                final = (not self.keepalive or self._closed)
+                final = not self.keepalive
                 try:
                     self.close(final)
                 except Exception as exc:
@@ -732,13 +734,13 @@ class InstantClient(object):
                 finally:
                     self.on_close(final)
             if final: break
-    def start(self):
+    def start(self, *args, **kwds):
         """
         Create a daemonic background thread running run() and return it.
 
         The thread is already started when this returns.
         """
-        thr = threading.Thread(target=self.run)
+        thr = threading.Thread(target=self.run, args=args, kwargs=kwds)
         thr.setDaemon(True)
         thr.start()
         return thr

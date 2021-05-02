@@ -492,10 +492,10 @@ class Scribe(instabot.Bot):
         self._ping_job = None
         self._last_pong = None
         self._ping_lock = threading.RLock()
-    def connect(self, force=True):
-        log('CONNECT url=%r force=%r' % (self.url, force))
+    def connect(self):
+        log('CONNECT url=%r' % self.url)
         self.scheduler.set_forever(True)
-        return instabot.Bot.connect(self, force)
+        return instabot.Bot.connect(self)
     def on_open(self):
         instabot.Bot.on_open(self)
         self._last_pong = None
@@ -591,9 +591,9 @@ class Scribe(instabot.Bot):
         if verbose:
             log('SEND content=%r' % (rawmsg,))
         return instabot.Bot.send_raw(self, rawmsg)
-    def run(self):
+    def run(self, *args, **kwds):
         try:
-            instabot.Bot.run(self)
+            instabot.Bot.run(self, *args, **kwds)
         except Exception as exc:
             log_exception('CRASHED', exc)
             sys.stderr.write('\n***EXCEPTION*** at %s\n' %
