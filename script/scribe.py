@@ -833,15 +833,18 @@ def main():
     thr = None
     try:
         while 1:
-            thr = bot.start()
+            sched.set_forever(True)
+            canceller = instabot.Canceller()
+            thr = bot.start(canceller)
             try:
                 sched.run()
             except websocket_server.ConnectionClosedError:
                 pass
             sched.clear()
+            canceller.cancel()
             ws = bot.ws
             if ws: ws.close_now()
-            bot.close()
+            bot.close(False)
             thr.join(1)
             if not bot.reconnect: break
             time.sleep(1)
