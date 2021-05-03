@@ -3394,6 +3394,8 @@ this.Instant = function() {
               fromUUID: Instant.logs.getUUID(sender),
               text: Instant.message.parser.extractText($cls('message-text',
                                                             message)),
+              timestamp: parseInt(
+                $sel('time', message).getAttribute('data-timestamp')),
               live: live
             });
           },
