@@ -142,6 +142,9 @@
   border-color: #e0e0e0;
   color: #e0e0e0;
 }
+.dark .button:disabled {
+  border-color: #808080;
+}
 .dark .button-icon > img, .dark .button-icon-cover > img {
   -webkit-filter: invert(1);
   filter: invert(1);

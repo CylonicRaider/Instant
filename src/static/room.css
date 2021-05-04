@@ -992,6 +992,7 @@ button.button-icon > img {
   display: none;
 }
 .button:disabled {
+  border-color: #808080;
   /* Override dynamic color coding */
   color: #808080 !important;
   background: none;
