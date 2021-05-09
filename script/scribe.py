@@ -181,13 +181,26 @@ class LogDBList(LogDB):
         ret = (uid not in self.uuids)
         self.uuids[uid] = uuid
         self._uuid_list.append(uid)
-        if self.maxlen is not None and len(self._uuid_list) > self.maxlen:
-            remaining = self._uuid_list[-self.maxlen:]
-            remaining_set = frozenset(remaining)
-            for u in tuple(self.uuids):
-                if u not in remaining_set:
-                    del self.uuids[u]
-            self._uuid_list = remaining
+        if self.maxlen is not None and len(self._uuid_list) > 4 * self.maxlen:
+            # First, keep the most recent maxlen UUIDs.
+            keep = set()
+            for uid in reversed(self._uuid_list):
+                if len(keep) >= self.maxlen: break
+                keep.add(uid)
+            # Also, retain UUIDs referenced by logs.
+            keep.update(entry['from'] for entry in self.data)
+            # Extract the last appearances of the entries to be retained in
+            # their proper order.
+            new_uuid_list, seen = [], set()
+            for uid in reversed(self._uuid_list):
+                if uid in seen or uid not in keep: continue
+                seen.add(uid)
+                new_uuid_list.append(uid)
+            # Save the transformed usage list and trim old UUID mappings.
+            self._uuid_list[:] = reversed(new_uuid_list)
+            for uid in tuple(self.uuids):
+                if uid in seen: continue
+                del self.uuids[uid]
         return ret
     def get_uuid(self, uid):
         return self.uuids.get(uid)
