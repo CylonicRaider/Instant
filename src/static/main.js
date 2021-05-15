@@ -8000,14 +8000,11 @@ this.Instant = function() {
         } else if (node.classList.contains('collapsed')) {
           $cls('popup-collapse', node).focus();
         } else if (node.getAttribute('data-focus')) {
-          $sel(node.getAttribute('data-focus'), node).focus();
+          var child = $sel(node.getAttribute('data-focus'), node);
+          (child || node).focus();
         } else {
           var close = $cls('popup-close', node);
-          if (close) {
-            close.focus();
-          } else {
-            node.focus();
-          }
+          (close || node).focus();
         }
         if (wrapper.classList.contains('hidden')) {
           Instant.sidebar.flashMessage(hiddenMsg);
