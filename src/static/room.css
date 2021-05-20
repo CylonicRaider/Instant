@@ -1677,6 +1677,7 @@ h2.sidebar-unread .button-icon-cover {
 }
 .popup .popup-message-close-wrapper {
   float: right;
+  margin-left: 1ch;
 }
 .popup .popup-message-close {
   display: inline-block;
@@ -1685,7 +1686,7 @@ h2.sidebar-unread .button-icon-cover {
   padding: 0;
   width: 1.2em;
   height: 1.2em;
-  vertical-align: baseline;
+  vertical-align: top;
   line-height: 0;
 }
 .popup .popup-message-close img {
@@ -1773,6 +1774,7 @@ h2.sidebar-unread .button-icon-cover {
   border-bottom: 0;
 }
 .popup.collapsed .popup-content,
+.popup.collapsed .popup-message,
 .popup.collapsed .popup-bottom {
   display: none;
 }
