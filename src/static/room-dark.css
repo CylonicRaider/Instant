@@ -233,6 +233,19 @@
   filter: invert(1);
 }
 
+.dark .popup .popup-text-error, .dark .popup .popup-text-delete {
+  color: #c00000;
+}
+.dark .popup .popup-text-warning {
+  color: #808000;
+}
+.dark .popup .popup-text-success, .dark .popup .popup-text-create {
+  color: #008000;
+}
+.dark .popup .popup-text-info, .dark .popup .popup-text-update {
+  color: #0080ff;
+}
+
 .dark .input-bar, .dark .input-bar .input-nick-prompt {
   background: black;
 }
