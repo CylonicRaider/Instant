@@ -2740,10 +2740,10 @@ this.Instant = function() {
             re: /(^(?:(?!\n)\s)*)```((?:(?!\n)\s)*$)?|```((?:(?!\n)\s)*$)/m,
             bef: /[^`]|^$/, aft: /[^`]|^$/,
             cb: function(m, out, status) {
-              /* HACK: At least one regex engine skips the optional capturing
-               *       group if it matches no characters although it could
-               *       match otherwise. Therefore, we test the preceding /
-               *       following character explicitly. */
+              /* HACK: JavaScript regex engines, by definition, skip an
+               *       optional capturing group if it matches no characters,
+               *       even if could match something. Therefore, we test the
+               *       preceding / following character explicitly. */
               var nlb = /\n|^$/.test(status.bef);
               var nla = /\n|^$/.test(status.aft);
               var nodes;
