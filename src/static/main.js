@@ -2628,7 +2628,7 @@ this.Instant = function() {
                 }
                 if (embedder.active && status.msgid) {
                   Instant.message.embeds._registerEmbed(
-                    status.msgid + ':' + status.embedSerial,
+                    status.msgid + ':' + serial,
                     embedder,
                     res);
                 }
