@@ -246,6 +246,15 @@
   color: #0080ff;
 }
 
+.dark .message-text .embed-inner.dark-mode-aware {
+  color: white;
+  background: black;
+}
+.dark .message-text .embed-inner .dark-invert {
+  -webkit-filter: invert(1);
+  filter: invert(1);
+}
+
 .dark .input-bar, .dark .input-bar .input-nick-prompt {
   background: black;
 }
