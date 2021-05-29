@@ -38,9 +38,6 @@ public class StaticFileHook extends HookAdapter {
         maxCacheAge = age;
         producer = p;
     }
-    public StaticFileHook() {
-        this(Configuration.DEFAULT, new FileProducer());
-    }
 
     public ListStringMatcher getAliases() {
         return aliases;

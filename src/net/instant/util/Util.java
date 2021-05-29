@@ -26,6 +26,8 @@ public final class Util {
     private static final boolean useFastRNG;
 
     static {
+        // NOTE: This option cannot be set from the Instant command line
+        //       (because that does not touch the default Configuration).
         useFastRNG = isTrue(Configuration.DEFAULT.get(
             "instant.rng._unsafeFast"));
     }
