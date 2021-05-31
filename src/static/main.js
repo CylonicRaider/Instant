@@ -366,6 +366,8 @@ this.Instant = function() {
   }();
   /* Connection handling */
   Instant.connection = function() {
+    /* Regular pinging timeouts */
+    var PING_INTERVAL = 60000, PING_FUZZ = 5000;
     /* Sequence ID of outgoing messages */
     var seqid = null;
     /* The actual WebSocket */
@@ -412,17 +414,18 @@ this.Instant = function() {
           if (lastPong) {
             var now = Date.now();
             var delta = lastPong[1] - lastPong[0];
-            if (lastPong[0] <= now - 35000) {
+            if (lastPong[0] <= now - PING_INTERVAL - PING_FUZZ) {
               console.warn('Last ping response too far in the past; ' +
                   'reconnecting...');
               Instant.connection.reconnect();
               return;
             } else {
-              payload = {next: Date.now() + delta + 35000};
+              payload = {next: Date.now() + delta + PING_INTERVAL +
+                               PING_FUZZ};
             }
           }
           Instant.connection.sendPing(payload);
-        }, 30000);
+        }, PING_INTERVAL);
       },
       /* Convert a given server-side timestamp into a local one, accounting
        * for clock skew */
