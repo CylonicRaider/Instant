@@ -6073,28 +6073,28 @@ this.Instant = function() {
           {text: 'Finish later', onclick: function() {
             Instant.popups.del(popup);
           }, className: 'first pm-finish-later'},
-          {text: 'Delete', color: '#c00000', onclick: function() {
+          {text: 'Delete', onclick: function() {
             Instant.privmsg._remove(popup);
-          }},
-          {text: 'Send', color: '#008000', onclick: function() {
+          }, className: 'popup-text-delete'},
+          {text: 'Send', onclick: function() {
             Instant.privmsg._send(popup);
-          }, className: 'pm-send'}
+          }, className: 'pm-send popup-text-create'}
         ] : [
           {text: 'Read later', onclick: function() {
             Instant.popups.del(popup);
           }, className: 'first'},
-          {text: 'Delete', color: '#c00000', onclick: function() {
+          {text: 'Delete', onclick: function() {
             Instant.privmsg._remove(popup);
-          }},
-          {text: 'Quote & Reply', color: '#008000', onclick: function() {
+          }, className: 'popup-text-delete'},
+          {text: 'Quote & Reply', onclick: function() {
             var nick = data.nick;
             if (nick == undefined) nick = null;
             Instant.privmsg.write(data.from, nick,
                                   Instant.privmsg._makeQuote(data.text),
                                   Instant.privmsg._makeInRe(data.subject),
                                   data.id);
-          }, className: 'pm-quote-reply'},
-          {text: 'Add quote', color: '#008000', onclick: function() {
+          }, className: 'pm-quote-reply popup-text-create'},
+          {text: 'Add quote', onclick: function() {
             var target = preferredReply[data.from];
             if (! target) return;
             var editor = $cls('pm-editor', target);
@@ -6108,13 +6108,13 @@ this.Instant = function() {
             editor.focus();
             Instant.privmsg._updatePreview(target);
             Instant.popups.add(target);
-          }, className: 'pm-quote-add'},
-          {text: 'Reply', color: '#008000', onclick: function() {
+          }, className: 'pm-quote-add popup-text-create'},
+          {text: 'Reply', onclick: function() {
             var nick = data.nick;
             if (nick == undefined) nick = null;
             Instant.privmsg.write(data.from, nick, null,
               Instant.privmsg._makeInRe(data.subject), data.id);
-          }}
+          }, className: 'popup-text-create'}
         ];
         /* Create actual popup */
         var popup = Instant.popups.make({
@@ -6217,10 +6217,10 @@ this.Instant = function() {
         preview.parentNode.removeChild(preview);
         finishLater.classList.remove('pm-finish-later');
         finishLater.textContent = 'Dismiss';
-        var quoteFollowUp = $makeNode('button', 'button',
-          {style: 'color: #008000;'}, 'Quote & Follow up');
-        var followUp = $makeNode('button', 'button',
-          {style: 'color: #008000;'}, 'Follow up');
+        var quoteFollowUp = $makeNode('button', 'button popup-text-create',
+                                      'Quote & Follow up');
+        var followUp = $makeNode('button', 'button popup-text-create',
+                                 'Follow up');
         quoteFollowUp.onclick = function() {
           Instant.privmsg._followUp(popup, true);
         };
@@ -8500,14 +8500,14 @@ this.Instant = function() {
                 {text: 'Dismiss', onclick: function() {
                   Instant.popups.del(popup);
                 }},
-                {text: 'Clear', color: '#c00000', onclick: function() {
+                {text: 'Clear', onclick: function() {
                   Instant.popups.errors.clear();
                   Instant.popups.errors.hide();
                   Instant.popups.del(popup);
-                }},
-                {text: 'Reload', color: '#008000', onclick: function() {
+                }, className: 'popup-text-delete'},
+                {text: 'Reload', onclick: function() {
                   location.reload(false);
-                }}
+                }, className: 'popup-text-create'}
               ]
             });
             Instant.popups.errors._updateCount();
