@@ -336,6 +336,11 @@ body {
   vertical-align: baseline;
   margin: 0;
 }
+.message-text .embed-error {
+  background: #FFE0E0;
+  color: #ff0000;
+  font-style: italic;
+}
 
 .message > .replies {
   display: -webkit-flex;

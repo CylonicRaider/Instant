@@ -2619,17 +2619,20 @@ this.Instant = function() {
                 out.push({rem: 'embed'});
                 out.push({add: 'embed', embed: 'inner',
                   className: embedder.className});
-                var res = null;
+                var res = null, rendered = false;
                 try {
                   res = embedder.cb(url, out, status);
+                  rendered = true;
                 } catch (e) {
                   Instant.errors.handleBackground(e,
                     'Error in embed callback:');
+                  out.push(makeNode('(Error while creating embed.)',
+                                    'embed-error'));
                 }
                 if (res != null) {
                   out.push(res);
                 }
-                if (embedder.active && status.msgid) {
+                if (rendered && embedder.active && status.msgid) {
                   Instant.message.embeds._registerEmbed(
                     status.msgid + ':' + serial,
                     embedder,
@@ -3259,7 +3262,7 @@ this.Instant = function() {
         return {
           /* Add an embedder
            * regex is a regular expression that must match the tentative
-           * embed's URL in order to be handled by this embedded.
+           * embed's URL in order to be handled by this embedder.
            * callback is a function taking three parameters:
            * url   : The (unmodified, aside from adding an http:// scheme is
            *         none is specified in the original) URL being embedded.

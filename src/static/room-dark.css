@@ -246,6 +246,9 @@
   color: #0080ff;
 }
 
+.dark .message-text .embed-error {
+  background: #200000;
+}
 .dark .message-text .embed-inner.dark-mode-aware {
   color: white;
   background: black;
