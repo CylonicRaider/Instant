@@ -995,7 +995,7 @@ class Logger:
     def __init__(self, stream):
         "Instance initializer; see the class docstring for details."
         self.stream = stream
-    def log(self, msg):
+    def log(self, msg, timestamp=None):
         r"""
         Format a logging line containing the given message and write it to
         the underlying stream.
@@ -1011,12 +1011,13 @@ class Logger:
         always flushed.
         """
         if self.stream is None: return
-        m = '[%s] %s\n' % (time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime()),
-                           msg)
+        if timestamp is None: timestamp = time.time()
+        m = '[%s] %s\n' % (time.strftime('%Y-%m-%d %H:%M:%S',
+                                         time.gmtime(timestamp)), msg)
         self.stream.write(m.encode('ascii',
                                    'backslashreplace').decode('ascii'))
         self.stream.flush()
-    def log_exception(self, tag, exc, trailer=None):
+    def log_exception(self, tag, exc, trailer=None, timestamp=None):
         """
         Log a compact message informing about the given exception.
 
@@ -1054,7 +1055,7 @@ class Logger:
             msg = '%s reason=%r last-frame=%s cause-frame=%s' % (tag,
                 repr(exc), self.format(frame), self.format(cause))
         if trailer is not None: msg += ' ' + trailer
-        self.log(msg)
+        self.log(msg, timestamp=timestamp)
 
 DEFAULT_LOGGER = Logger(sys.stdout)
 
