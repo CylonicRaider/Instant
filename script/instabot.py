@@ -8,6 +8,7 @@ A bot library for Instant.
 import sys, os, io, re, time, stat
 import traceback
 import collections, heapq, ast
+import calendar
 import json
 import socket
 import threading
@@ -1111,6 +1112,7 @@ def read_logs(src, filt=None):
         if not m: continue
         ts, tag, args = m.group(1, 2, 3)
         if filt and not filt(tag): continue
+        pts = calendar.timegm(time.strptime(ts, '%Y-%m-%d %H:%M:%S'))
         values = {}
         if args is not None:
             idx = 0
@@ -1137,7 +1139,7 @@ def read_logs(src, filt=None):
                     val = decode_dict(val)
                 values[name] = val
             if idx != len(args): continue
-        yield (ts, tag, values)
+        yield (pts, tag, values)
 
 class ArgScanner:
     """
