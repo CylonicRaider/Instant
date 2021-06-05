@@ -920,15 +920,45 @@ class HookBot(Bot):
         Bot.on_close(self, final)
         if self.close_cb is not None: self.close_cb(self, final)
 
+class StreamLogHandler:
+    """
+    StreamLogHandler(stream, autoflush=True) -> new instance
+
+    A Logger backend that writes messages to the given stream, or discards
+    them if the stream is None.
+
+    stream is the stream to write to; autoflush specifies whether the stream
+    should be flushed after every write.
+    """
+    def __init__(self, stream, autoflush=True):
+        "Instance initializer; see the class docstring for details."
+        self.stream = stream
+        self.autoflush = autoflush
+    def emit(self, text, timestamp):
+        """
+        Process the given log message.
+
+        text is the (fully formatted) log message; timestamp is an easily
+        accessible copy of the message's timestamp (expressed as fractional
+        seconds since the UNIX epoch).
+
+        Unless the underlying stream is None, this implementation appends a
+        newline to the text, writes it to the underlying stream, and (if
+        enabled) flushes the stream.
+        """
+        if self.stream is None: return
+        self.stream.write(text + '\n')
+        if self.autoflush: self.stream.flush()
+
 class Logger:
     """
-    Logger(stream) -> new instance
+    Logger(handler) -> new instance
 
-    A Logger writes timestamp-prefixed messages to a stream or swallows them.
+    A Logger sends timestamp-prefixed messages to a handler or swallows them.
 
-    If stream is None, log() writes nothing; otherwise, each logged message
-    is prefixed with a timestamp, written to stream, and stream is flushed
-    after every message.
+    If handler is None, log() does nothing; otherwise, each logged message is
+    prefixed with a timestamp and handed off to the handler for further
+    processing (such as writing to a file).
 
     The key method of this class is log(), with its extension log_exception()
     for providing a standartized and compact response to exceptions.
@@ -993,9 +1023,9 @@ class Logger:
             return '(' + ','.join(map(cls.format, obj)) + ')'
         else:
             return repr(obj)
-    def __init__(self, stream):
+    def __init__(self, handler):
         "Instance initializer; see the class docstring for details."
-        self.stream = stream
+        self.handler = handler
     def log(self, msg, timestamp=None):
         r"""
         Format a logging line containing the given message and write it to
@@ -1003,7 +1033,8 @@ class Logger:
 
         msg is the message to be written, and should not be empty (for
         aesthetic reasons); it is advisable to format it in the way presented
-        in the class docstring.
+        in the class docstring. timestamp is the point in time with which the
+        message is associated; if None, the current time is used.
 
         If the underlying stream is None, the formatting and writing is not
         done. Otherwise, after prepending a timestamp, the message is
@@ -1011,13 +1042,12 @@ class Logger:
         characters with \uXXXX or \UXXXXXXXX escape sequences) the stream is
         always flushed.
         """
-        if self.stream is None: return
+        if self.handler is None: return
         if timestamp is None: timestamp = time.time()
-        m = '[%s] %s\n' % (time.strftime('%Y-%m-%d %H:%M:%S',
-                                         time.gmtime(timestamp)), msg)
-        self.stream.write(m.encode('ascii',
-                                   'backslashreplace').decode('ascii'))
-        self.stream.flush()
+        m = '[%s] %s' % (time.strftime('%Y-%m-%d %H:%M:%S',
+                                       time.gmtime(timestamp)), msg)
+        em = m.encode('ascii', 'backslashreplace').decode('ascii')
+        self.handler.emit(em, timestamp)
     def log_exception(self, tag, exc, trailer=None, timestamp=None):
         """
         Log a compact message informing about the given exception.
@@ -1058,7 +1088,7 @@ class Logger:
         if trailer is not None: msg += ' ' + trailer
         self.log(msg, timestamp=timestamp)
 
-DEFAULT_LOGGER = Logger(sys.stdout)
+DEFAULT_LOGGER = Logger(StreamLogHandler(sys.stdout))
 
 LOGLINE = re.compile(r'^\[([0-9 Z:-]+)\]\s+([A-Z0-9_-]+)(?:\s+(.*))?$')
 WHITESPACE = re.compile(r'\s+')
