@@ -920,7 +920,21 @@ class HookBot(Bot):
         Bot.on_close(self, final)
         if self.close_cb is not None: self.close_cb(self, final)
 
-class StreamLogHandler:
+class LogHandler:
+    """
+    Abstract class: A Logger backend sending formatted messages somewhere.
+    """
+    def emit(self, text, timestamp):
+        """
+        Process the given log message.
+
+        text is the (fully formatted) log message (excluding trailing
+        newlines); timestamp is an easily accessible copy of the message's
+        timestamp (expressed as fractional seconds since the UNIX epoch).
+        """
+        raise NotImplementedError
+
+class StreamLogHandler(LogHandler):
     """
     StreamLogHandler(stream, autoflush=True) -> new instance
 
@@ -938,9 +952,7 @@ class StreamLogHandler:
         """
         Process the given log message.
 
-        text is the (fully formatted) log message; timestamp is an easily
-        accessible copy of the message's timestamp (expressed as fractional
-        seconds since the UNIX epoch).
+        See the base class' method for interface details.
 
         Unless the underlying stream is None, this implementation appends a
         newline to the text, writes it to the underlying stream, and (if
