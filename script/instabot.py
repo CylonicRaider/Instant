@@ -962,6 +962,29 @@ class StreamLogHandler(LogHandler):
         self.stream.write(text + '\n')
         if self.autoflush: self.stream.flush()
 
+class FileLogHandler(LogHandler):
+    """
+    FileLogHandler(filename, autoflush=True) -> new instance
+
+    A Logger backend that writes to a named file.
+
+    filename is the name of the log file; autoflush specifies whether written
+    data should be passed to the OS after every message.
+    """
+    def __init__(self, filename, autoflush=True):
+        "Instance initializer; see the class docstring for details."
+        self.filename = filename
+        self.autoflush = autoflush
+        self.file = open(filename, 'a')
+    def emit(self, text, timestamp):
+        """
+        Process the given log message.
+
+        See the base class' method for interface details.
+        """
+        self.file.write(text + '\n')
+        if self.autoflush: self.file.flush()
+
 class Logger:
     """
     Logger(handler) -> new instance
