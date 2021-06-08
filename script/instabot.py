@@ -933,6 +933,13 @@ class LogHandler:
         timestamp (expressed as fractional seconds since the UNIX epoch).
         """
         raise NotImplementedError
+    def close(self):
+        """
+        Clean up any resources held by this handler.
+
+        The default implementation does nothing.
+        """
+        pass
 
 class StreamLogHandler(LogHandler):
     """
@@ -984,6 +991,12 @@ class FileLogHandler(LogHandler):
         """
         self.file.write(text + '\n')
         if self.autoflush: self.file.flush()
+    def close(self):
+        """
+        Clean up any resources held by this handler.
+        """
+        old_file, self.file = self.file, sys.stderr
+        old_file.close()
 
 class Logger:
     """
