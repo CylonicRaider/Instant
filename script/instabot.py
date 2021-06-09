@@ -998,6 +998,60 @@ class FileLogHandler(LogHandler):
         old_file, self.file = self.file, sys.stderr
         old_file.close()
 
+class RotatingFileLogHandler(FileLogHandler):
+    """
+    FileLogHandler(filename, granularity='X', autoflush=True) -> new instance
+
+    A log handler that writes to files and regularly changes the files it
+    writes to.
+    """
+    @classmethod
+    def _rotation_params(cls, timestamp, granularity):
+        """
+        Internal: Calculate rotation-related parameters of the given timestamp
+        at the given rotation granularity.
+        """
+        if granularity == 'X':
+            return ('', float('inf'))
+        elif granularity == 'H':
+            period = 3600
+            fmt = '-%Y-%m-%d_%H'
+        elif granularity == 'D':
+            period = 86400
+            fmt = '-%Y-%m-%d'
+        else:
+            raise ValueError('Unrecognized rotation granularity: %s' %
+                             granularity)
+        suffix = time.strftime(fmt, time.gmtime(timestamp))
+        expiry = int(timestamp / period) * period + period
+        return (suffix, expiry)
+    def __init__(self, filename, granularity='X', autoflush=True):
+        "Instance initializer; see the class docstring for details."
+        FileLogHandler.__init__(self, filename, autoflush)
+        self.granularity = granularity
+        self._cur_params = self._rotation_params(os.fstat(self.file.fileno()),
+                                                 self.granularity)
+    def emit(self, text, timestamp):
+        """
+        Process the given log message.
+
+        Before doing anything that FileLogHandler would do, this checks if the
+        current log file is due being rotated out, and does so if necessary.
+        """
+        if timestamp >= self._cur_params[1]:
+            self.rotate(self.file.name + self._cur_params[0])
+            self._cur_params = self._rotation_params(timestamp,
+                                                     self.granularity)
+        FileLogHandler.emit(self, text, timestamp)
+    def rotate(self, move_to):
+        """
+        Move the current log file to the indicated location and create a new
+        log file.
+        """
+        old_name = self.file.name
+        os.rename(old_name, move_to)
+        self.file = open(old_name, 'a')
+
 class Logger:
     """
     Logger(handler) -> new instance
