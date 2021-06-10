@@ -1013,18 +1013,28 @@ class RotatingFileLogHandler(FileLogHandler):
         """
         if granularity == 'X':
             return ('', float('inf'))
-        elif granularity == 'H':
-            period = 3600
-            fmt = '-%Y-%m-%d_%H'
+        elif granularity == 'Y':
+            index = 0
+            fmt = '-%Y'
+        elif granularity == 'M':
+            index = 1
+            fmt = '-%Y-%m'
         elif granularity == 'D':
-            period = 86400
+            index = 2
             fmt = '-%Y-%m-%d'
+        elif granularity == 'H':
+            index = 3
+            fmt = '-%Y-%m-%d_%H'
         else:
             raise ValueError('Unrecognized rotation granularity: %s' %
                              granularity)
-        suffix = time.strftime(fmt, time.gmtime(timestamp))
-        expiry = int(timestamp / period) * period + period
-        return (suffix, expiry)
+        fields = time.gmtime(timestamp)
+        suffix = time.strftime(fmt, fields)
+        expiry_fields = (fields[:index] + (fields[index] + 1,) +
+                         fields[index+1:6] + (-1, -1, 0))
+        if index == 1 and expiry_fields[1] == 13:
+            expiry_fields = (expiry_fields[0] + 1, 1) + expiry_fields[2:]
+        return (suffix, calendar.timegm(expiry_fields))
     def __init__(self, filename, granularity='X', autoflush=True):
         "Instance initializer; see the class docstring for details."
         FileLogHandler.__init__(self, filename, autoflush)
