@@ -1006,7 +1006,7 @@ class RotatingFileLogHandler(FileLogHandler):
     writes to.
     """
     @classmethod
-    def _rotation_params(cls, timestamp, granularity):
+    def _rotation_params(cls, filename, timestamp, granularity):
         """
         Internal: Calculate rotation-related parameters of the given timestamp
         at the given rotation granularity.
@@ -1015,16 +1015,16 @@ class RotatingFileLogHandler(FileLogHandler):
             return ('', float('inf'))
         elif granularity == 'Y':
             index = 0
-            fmt = '-%Y'
+            fmt = '.%Y'
         elif granularity == 'M':
             index = 1
-            fmt = '-%Y-%m'
+            fmt = '.%Y-%m'
         elif granularity == 'D':
             index = 2
-            fmt = '-%Y-%m-%d'
+            fmt = '.%Y-%m-%d'
         elif granularity == 'H':
             index = 3
-            fmt = '-%Y-%m-%d_%H'
+            fmt = '.%Y-%m-%d-%H'
         else:
             raise ValueError('Unrecognized rotation granularity: %s' %
                              granularity)
@@ -1034,13 +1034,15 @@ class RotatingFileLogHandler(FileLogHandler):
                          fields[index+1:6] + (-1, -1, 0))
         if index == 1 and expiry_fields[1] == 13:
             expiry_fields = (expiry_fields[0] + 1, 1) + expiry_fields[2:]
-        return (suffix, calendar.timegm(expiry_fields))
+        filename_fields = os.path.splitext(filename)
+        return (filename_fields[0] + suffix + filename_fields[1],
+                calendar.timegm(expiry_fields))
     def __init__(self, filename, granularity='X', autoflush=True):
         "Instance initializer; see the class docstring for details."
         FileLogHandler.__init__(self, filename, autoflush)
         self.granularity = granularity
-        self._cur_params = self._rotation_params(os.fstat(self.file.fileno()),
-                                                 self.granularity)
+        self._cur_params = self._rotation_params(filename,
+            os.fstat(self.file.fileno()), self.granularity)
     def emit(self, text, timestamp):
         """
         Process the given log message.
@@ -1050,7 +1052,8 @@ class RotatingFileLogHandler(FileLogHandler):
         """
         if timestamp >= self._cur_params[1]:
             self.rotate(self.file.name + self._cur_params[0])
-            self._cur_params = self._rotation_params(timestamp,
+            self._cur_params = self._rotation_params(self.file.name,
+                                                     timestamp,
                                                      self.granularity)
         FileLogHandler.emit(self, text, timestamp)
     def rotate(self, move_to):
