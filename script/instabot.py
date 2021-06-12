@@ -1051,7 +1051,7 @@ class RotatingFileLogHandler(FileLogHandler):
         current log file is due being rotated out, and does so if necessary.
         """
         if timestamp >= self._cur_params[1]:
-            self.rotate(self.file.name + self._cur_params[0])
+            self.rotate(self._cur_params[0])
             self._cur_params = self._rotation_params(self.file.name,
                                                      timestamp,
                                                      self.granularity)
