@@ -1092,7 +1092,8 @@ class Logger:
     read back valid lines in this format.
 
     An instance of this class pre-configured to write to standard output is
-    provided as the module-level DEFAULT_LOGGER variable.
+    provided as the module-level DEFAULT_LOGGER variable. Similarly, the
+    module-level NULL_LOGGER discards all messages.
     """
     @classmethod
     def format(cls, obj):
@@ -1204,6 +1205,7 @@ class Logger:
         self.log(msg, timestamp=timestamp)
 
 DEFAULT_LOGGER = Logger(StreamLogHandler(sys.stdout))
+NULL_LOGGER = Logger(None)
 
 LOGLINE = re.compile(r'^\[([0-9 Z:-]+)\]\s+([A-Z0-9_-]+)(?:\s+(.*))?$')
 WHITESPACE = re.compile(r'\s+')
