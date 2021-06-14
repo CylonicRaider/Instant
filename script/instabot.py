@@ -366,6 +366,11 @@ class InstantClient(object):
                 ca  : A list of CA certificates to trust (exclusively; in PEM
                       format).
 
+    The following keyword-only argument configures the same-named instance
+    attribute:
+    logger: A Logger instance used to record key events in the bot's
+            lifecycle. Defaults to the NULL_LOGGER.
+
     Unrecognized keyword arguments are ignored.
 
     The following groups of methods are provided:
@@ -393,6 +398,7 @@ class InstantClient(object):
         self.ssl_config = kwds.get('ssl_config', None)
         self.backoff = kwds.get('backoff', self.BACKOFF)
         self.keepalive = kwds.get('keepalive', False)
+        self.logger = kwds.get('logger', NULL_LOGGER)
         self.ws = None
         self.sequence = AtomicSequence()
         self._wslock = threading.RLock()
@@ -405,6 +411,7 @@ class InstantClient(object):
         """
         with self._wslock:
             if self.ws is not None: return self.ws
+            self.logger.log('CONNECT url=%r' % (self.url,))
             jar = self.cookies
             self.ws = websocket_server.client.connect(self.url,
                 cookies=jar, timeout=self.timeout, ssl_config=self.ssl_config)
@@ -415,9 +422,9 @@ class InstantClient(object):
         """
         Event handler method invoked when the connection opens.
 
-        The default implementation does nothing.
+        The default implementation merely produces a logging message.
         """
-        pass
+        self.logger.log('OPENED')
     def on_message(self, rawmsg):
         """
         Event handler method invoked when a text frame arrives via the
@@ -471,6 +478,7 @@ class InstantClient(object):
         The default implementation reraises the exception unless the keepalive
         attribute is true.
         """
+        self.logger.log_exception('ERROR', exc)
         if not self.keepalive: raise
     def on_timeout(self, exc):
         """
@@ -484,6 +492,7 @@ class InstantClient(object):
         after this is called. The default implementation re-raises the
         exception unconditionally, effectively handing it off to on_error().
         """
+        self.logger.log_exception('ERROR', exc)
         raise
     def on_error(self, exc):
         """
@@ -495,6 +504,7 @@ class InstantClient(object):
         The default implementation re-raises the exception, causing a calling
         run() to abort.
         """
+        self.logger.log_exception('ERROR', exc)
         raise
     def on_close(self, final):
         """
@@ -504,9 +514,9 @@ class InstantClient(object):
         final indicates whether a reconnect is about to happen (False) or
         whether the close is really final (True).
 
-        The default implementation does nothing.
+        The default implementation merely produces a logging message.
         """
-        pass
+        self.logger.log('CLOSED final=%r' % (final,))
     def handle_identity(self, content, rawmsg):
         """
         Event handler method for "identity" API messages.
