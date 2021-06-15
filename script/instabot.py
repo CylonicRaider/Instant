@@ -492,7 +492,7 @@ class InstantClient(object):
         after this is called. The default implementation re-raises the
         exception unconditionally, effectively handing it off to on_error().
         """
-        self.logger.log_exception('ERROR', exc)
+        self.logger.log_exception('TIMEOUT', exc)
         raise
     def on_error(self, exc):
         """
@@ -787,7 +787,10 @@ class Bot(InstantClient):
 
         See the base class implementation for more details.
         """
-        if self.timeout is None: raise
+        if self.timeout is not None:
+            self.logger.log('TIMEOUT')
+            return
+        InstantClient.on_timeout(self, exc)
     def handle_identity(self, content, rawmsg):
         """
         "identity" API message handler.
@@ -842,6 +845,8 @@ class Bot(InstantClient):
             if nickname is not Ellipsis:
                 self.nickname = nickname
             data['nick'] = self.nickname
+            self.logger.log('SENDPOST parent=%r nick=%r text=%r' % (parent,
+                data['nick'], text))
             return self.send_broadcast(data)
 
 class HookBot(Bot):
