@@ -483,9 +483,6 @@ def read_posts_ex(src, maxlen=None):
 def read_posts(src, maxlen=None):
     return read_posts_ex(src, maxlen)[0]
 
-log = instabot.DEFAULT_LOGGER.log
-log_exception = instabot.DEFAULT_LOGGER.log_exception
-
 class Scribe(instabot.Bot):
     NICKNAME = NICKNAME
     def __init__(self, url, nickname=Ellipsis, **kwds):
@@ -506,27 +503,18 @@ class Scribe(instabot.Bot):
         self._last_pong = None
         self._ping_lock = threading.RLock()
     def connect(self):
-        log('CONNECT url=%r' % self.url)
         self.scheduler.set_forever(True)
         return instabot.Bot.connect(self)
     def on_open(self):
         instabot.Bot.on_open(self)
         self._last_pong = None
-        log('OPENED')
     def on_message(self, rawmsg):
-        log('MESSAGE content=%r' % (rawmsg,))
+        self.logger.log('MESSAGE content=%r' % (rawmsg,))
         instabot.Bot.on_message(self, rawmsg)
     def on_connection_error(self, exc):
-        log_exception('ERROR', exc)
-    def on_timeout(self, exc):
-        log_exception('TIMEOUT', exc)
-        instabot.Bot.on_timeout(self, exc)
-    def on_error(self, exc):
-        log_exception('ERROR', exc)
-        instabot.Bot.on_error(self, exc)
+        self.logger.log_exception('ERROR', exc)
     def on_close(self, final):
         instabot.Bot.on_close(self, final)
-        log('CLOSED final=%r' % (final,))
         with self._ping_lock:
             if self._ping_job is not None:
                 self.scheduler.cancel(self._ping_job)
@@ -602,13 +590,13 @@ class Scribe(instabot.Bot):
             self._process_pm(data)
     def send_raw(self, rawmsg, verbose=True):
         if verbose:
-            log('SEND content=%r' % (rawmsg,))
+            self.logger.log('SEND content=%r' % (rawmsg,))
         return instabot.Bot.send_raw(self, rawmsg)
     def run(self, *args, **kwds):
         try:
             instabot.Bot.run(self, *args, **kwds)
         except Exception as exc:
-            log_exception('CRASHED', exc)
+            self.logger.log_exception('CRASHED', exc)
             sys.stderr.write('\n***EXCEPTION*** at %s\n' %
                 time.strftime('%Y-%m-%d %H:%M:%S Z', time.gmtime()))
             sys.stderr.flush()
@@ -625,12 +613,13 @@ class Scribe(instabot.Bot):
         for e in logs:
             eid = e['id']
             if eid not in added: continue
-            log('LOGPOST id=%r parent=%r from=%r nick=%r text=%r' %
-                (eid, e['parent'], e['from'], e['nick'], e['text']))
+            self.logger.log(
+                'LOGPOST id=%r parent=%r from=%r nick=%r text=%r' %
+                    (eid, e['parent'], e['from'], e['nick'], e['text']))
         uuid_added = self.db.extend_uuid(uuids)
         uuid_added.sort()
         for k in uuid_added:
-            log('LOGUUID id=%r uuid=%r' % (k, uuids[k]))
+            self.logger.log('LOGUUID id=%r uuid=%r' % (k, uuids[k]))
         return (added, uuid_added)
     def send_logs(self, peer, data):
         data.setdefault('type', 'log')
@@ -643,7 +632,7 @@ class Scribe(instabot.Bot):
             ls += ' log-count=0'
         if data.get('key'):
             ls += ' key=%r' % (data.get('key'),)
-        log(ls)
+        self.logger.log(ls)
         return self.send_unicast(peer, data, verbose=False)
     def _execute(self, func, *args, **kwds):
         self.scheduler.add_now(lambda: func(*args, **kwds))
@@ -657,20 +646,21 @@ class Scribe(instabot.Bot):
     def _process_nick(self, uid, nick=None, uuid=None):
         if nick:
             if uuid:
-                log('NICK id=%r uuid=%r nick=%r' % (uid, uuid, nick))
+                self.logger.log('NICK id=%r uuid=%r nick=%r' % (uid, uuid,
+                                                                nick))
             else:
-                log('NICK id=%r nick=%r' % (uid, nick))
+                self.logger.log('NICK id=%r nick=%r' % (uid, nick))
         if uuid:
             if self.db.append_uuid(uid, uuid):
-                log('UUID id=%r uuid=%r' % (uid, uuid))
+                self.logger.log('UUID id=%r uuid=%r' % (uid, uuid))
     def _process_post(self, data):
         post = LogEntry(id=data.get('id'), parent=data.get('parent'),
                         nick=data.get('nick'), text=data.get('text'),
                         timestamp=data.get('timestamp'),
                         **{'from': data.get('from')})
-        log('POST id=%r parent=%r from=%r nick=%r text=%r' %
-            (post['id'], post['parent'], post['from'], post['nick'],
-             post['text']))
+        self.logger.log('POST id=%r parent=%r from=%r nick=%r text=%r' %
+                        (post['id'], post['parent'], post['from'],
+                         post['nick'], post['text']))
         self.db.append(post)
     def _process_log_query(self, uid):
         bounds = self.db.bounds()
@@ -723,16 +713,18 @@ class Scribe(instabot.Bot):
         handled = set()
         for msg in self.db.delete(ids):
             handled.add(msg['id'])
-            log('DELETE by=%r id=%r parent=%r from=%r nick=%r text=%r' %
-                (cause, msg['id'], msg['parent'], msg['from'], msg['nick'],
-                 msg['text']))
+            self.logger.log(
+                'DELETE by=%r id=%r parent=%r from=%r nick=%r text=%r' %
+                    (cause, msg['id'], msg['parent'], msg['from'],
+                     msg['nick'], msg['text']))
         for i in ids:
             if i in handled: continue
-            log('DELETE by=%r id=%r' % (cause, i))
+            self.logger.log('DELETE by=%r id=%r' % (cause, i))
     def _process_pm(self, data):
-        log('PRIVMSG id=%r parent=%r from=%r nick=%r subject=%r text=%r' %
-            (data['id'], data.get('parent'), data['from'], data.get('nick'),
-             data.get('subject'), data.get('text')))
+        self.logger.log(
+            'PRIVMSG id=%r parent=%r from=%r nick=%r subject=%r text=%r' %
+                (data['id'], data.get('parent'), data['from'],
+                 data.get('nick'), data.get('subject'), data.get('text')))
     def _push_logs(self, peer=None):
         if peer is None:
             if not self.push_logs: return
@@ -785,11 +777,11 @@ def main():
         try:
             signal.signal(signal.SIGINT, callback)
         except Exception as e:
-            log_exception('WARNING', e)
+            logger.log_exception('WARNING', e)
     def interrupt(signum, frame):
         raise SystemExit
     def handle_crash(exc):
-        log_exception('CRASHED', e)
+        logger.log_exception('CRASHED', e)
         sys.stderr.write('\n***CRASH*** at %s\n' %
             time.strftime('%Y-%m-%d %H:%M:%S Z', time.gmtime()))
         sys.stderr.flush()
@@ -813,10 +805,11 @@ def main():
     b.parse(sys.argv[1:])
     b.add_args('push_logs', 'dont_stay', 'dont_pull')
     maxlen, msgdb_file, toread = b.get_args('maxlen', 'msgdb', 'read-file')
-    log('SCRIBE version=%s' % VERSION)
+    logger = instabot.DEFAULT_LOGGER
+    logger.log('SCRIBE version=%s' % VERSION)
     install_sighandler(signal.SIGINT, interrupt)
     install_sighandler(signal.SIGTERM, interrupt)
-    log('OPENING file=%r maxlen=%r' % (msgdb_file, maxlen))
+    logger.log('OPENING file=%r maxlen=%r' % (msgdb_file, maxlen))
     try:
         if msgdb_file is None:
             msgdb = LogDBNull(maxlen)
@@ -828,7 +821,7 @@ def main():
     except Exception as e:
         handle_crash(e)
     for fn in toread:
-        log('READING file=%r maxlen=%r' % (fn, msgdb.capacity()))
+        logger.log('READING file=%r maxlen=%r' % (fn, msgdb.capacity()))
         try:
             with openarg(fn) as f:
                 logs, uuids = read_posts_ex(f, msgdb.capacity())
@@ -836,13 +829,13 @@ def main():
                 msgdb.extend_uuid(uuids)
                 logs, uuids = None, None
         except IOError as e:
-            log('ERROR reason=%r' % repr(e))
-    log('LOGBOUNDS from=%r to=%r amount=%r' % msgdb.bounds())
+            logger.log('ERROR reason=%r' % repr(e))
+    logger.log('LOGBOUNDS from=%r to=%r amount=%r' % msgdb.bounds())
     if b.get_args('url') is None:
-        log('EXITING')
+        logger.log('EXITING')
         return
     sched = instabot.EventScheduler()
-    bot = b(scheduler=sched, db=msgdb, keepalive=False)
+    bot = b(scheduler=sched, db=msgdb, keepalive=False, logger=logger)
     thr = None
     try:
         while 1:
@@ -864,9 +857,9 @@ def main():
     except (KeyboardInterrupt, SystemExit) as e:
         bot.close()
         if isinstance(e, SystemExit):
-            log('EXITING')
+            logger.log('EXITING')
         else:
-            log('INTERRUPTED')
+            logger.log('INTERRUPTED')
     except Exception as e:
         handle_crash(e)
     finally:
