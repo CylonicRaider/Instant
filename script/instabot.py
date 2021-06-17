@@ -1952,16 +1952,13 @@ class CmdlineBotBuilder:
         if self.defurl is not Ellipsis: kwargs['default'] = self.defurl
         self.parser.argument('url', help='URL to connect to', **kwargs)
         return self.parser
-    def parse(self, argv=None):
+    def process_args(self):
         """
-        Parse the given arguments.
+        Conert parsed command-line argument into bot constructor parameters.
 
-        If argv is omitted, sys.argv[1:] is used.
-
-        This forwards to the underlying OptionParser's parse() method, and
-        configures this instance's state depending on the result.
+        The parsed arguments are taken from instance state, and the parameters
+        are recorded there.
         """
-        self.parser.parse(argv)
         c = self.parser.get('cookies')
         if c is None:
             self.cookies = None
@@ -1981,6 +1978,17 @@ class CmdlineBotBuilder:
             self.kwds.pop('ssl_config', None)
         else:
             self.kwds['ssl_config'] = sc
+    def parse(self, argv=None):
+        """
+        Parse the given arguments.
+
+        If argv is omitted, sys.argv[1:] is used.
+
+        This forwards to the underlying OptionParser's parse() method, and
+        configures this instance's state depending on the result.
+        """
+        self.parser.parse(argv)
+        self.process_args()
     def add(self, *args, **kwds):
         """
         Store the given arguments for passing to the Bot constructor.
