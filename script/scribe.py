@@ -805,7 +805,7 @@ def main():
     b.parse(sys.argv[1:])
     b.add_args('push_logs', 'dont_stay', 'dont_pull')
     maxlen, msgdb_file, toread = b.get_args('maxlen', 'msgdb', 'read-file')
-    logger = instabot.DEFAULT_LOGGER
+    logger = b.kwds.get('logger', instabot.DEFAULT_LOGGER)
     logger.log('SCRIBE version=%s' % VERSION)
     install_sighandler(signal.SIGINT, interrupt)
     install_sighandler(signal.SIGTERM, interrupt)

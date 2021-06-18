@@ -1948,6 +1948,10 @@ class CmdlineBotBuilder:
                            placeholder='<key>=<value>[,...]',
                            varname='ssl_config',
                            help='TLS configuration.')
+        self.parser.option('logfile', '-',
+                           help='Where to write logs ("-" -> stdout)')
+        self.parser.flag_ex('no-log', None, 'logfile',
+                            help='Disable logging entirely')
         kwargs = {}
         if self.defurl is not Ellipsis: kwargs['default'] = self.defurl
         self.parser.argument('url', help='URL to connect to', **kwargs)
@@ -1978,6 +1982,13 @@ class CmdlineBotBuilder:
             self.kwds.pop('ssl_config', None)
         else:
             self.kwds['ssl_config'] = sc
+        lf = self.parser.get('logfile')
+        if lf is None:
+            self.kwds.pop('logger', None)
+        elif lf == '-':
+            self.kwds['logger'] = DEFAULT_LOGGER
+        else:
+            self.kwds['logger'] = Logger(FileLogHandler(lf))
     def parse(self, argv=None):
         """
         Parse the given arguments.
