@@ -1057,7 +1057,7 @@ class RotatingFileLogHandler(FileLogHandler):
         FileLogHandler.__init__(self, filename, autoflush)
         self.granularity = granularity
         self._cur_params = self._rotation_params(filename,
-            os.fstat(self.file.fileno()), self.granularity)
+            os.fstat(self.file.fileno()).st_mtime, self.granularity)
     def emit(self, text, timestamp):
         """
         Process the given log message.
@@ -1950,6 +1950,8 @@ class CmdlineBotBuilder:
                            help='TLS configuration.')
         self.parser.option('logfile', '-',
                            help='Where to write logs ("-" -> stdout)')
+        self.parser.option('logrotate', placeholder='<X|Y|M|D|H>',
+                           help='How often to rotate log files (X = never)')
         self.parser.flag_ex('no-log', None, 'logfile',
                             help='Disable logging entirely')
         kwargs = {}
@@ -1982,11 +1984,13 @@ class CmdlineBotBuilder:
             self.kwds.pop('ssl_config', None)
         else:
             self.kwds['ssl_config'] = sc
-        lf = self.parser.get('logfile')
+        lf, lr = self.parser.get('logfile', 'logrotate')
         if lf is None:
             self.kwds.pop('logger', None)
         elif lf == '-':
             self.kwds['logger'] = DEFAULT_LOGGER
+        elif lr not in (None, 'X'):
+            self.kwds['logger'] = Logger(RotatingFileLogHandler(lf, lr))
         else:
             self.kwds['logger'] = Logger(FileLogHandler(lf))
     def parse(self, argv=None):
