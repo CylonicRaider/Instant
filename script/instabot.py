@@ -1058,6 +1058,7 @@ class RotatingFileLogHandler(FileLogHandler):
         self.granularity = granularity
         self._cur_params = self._rotation_params(filename,
             os.fstat(self.file.fileno()).st_mtime, self.granularity)
+        self._lock = threading.RLock()
     def emit(self, text, timestamp):
         """
         Process the given log message.
@@ -1065,12 +1066,13 @@ class RotatingFileLogHandler(FileLogHandler):
         Before doing anything that FileLogHandler would do, this checks if the
         current log file is due being rotated out, and does so if necessary.
         """
-        if timestamp >= self._cur_params[1]:
-            self.rotate(self._cur_params[0])
-            self._cur_params = self._rotation_params(self.file.name,
-                                                     timestamp,
-                                                     self.granularity)
-        FileLogHandler.emit(self, text, timestamp)
+        with self._lock:
+            if timestamp >= self._cur_params[1]:
+                self.rotate(self._cur_params[0])
+                self._cur_params = self._rotation_params(self.file.name,
+                                                         timestamp,
+                                                         self.granularity)
+            FileLogHandler.emit(self, text, timestamp)
     def rotate(self, move_to):
         """
         Move the current log file to the indicated location and create a new
