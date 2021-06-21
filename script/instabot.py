@@ -1021,6 +1021,22 @@ class RotatingFileLogHandler(FileLogHandler):
     writes to.
     """
     @classmethod
+    def _parse_compression(cls, label):
+        """
+        Internal: Validate a compression scheme and prepare for using it.
+        """
+        if label is None:
+            return None
+        elif label == 'gz':
+            import gzip as compressor
+        elif label == 'bz2':
+            import bz2 as compressor
+        elif label == 'lzma':
+            import lzma as compressor
+        else:
+            raise ValueError('Unrecognized compression scheme %r' % (label,))
+        return (label, lambda filename: compressor.open(filename, 'wt'))
+    @classmethod
     def _rotation_params(cls, filename, timestamp, granularity):
         """
         Internal: Calculate rotation-related parameters of the given timestamp
@@ -1052,10 +1068,12 @@ class RotatingFileLogHandler(FileLogHandler):
         filename_fields = os.path.splitext(filename)
         return (filename_fields[0] + suffix + filename_fields[1],
                 calendar.timegm(expiry_fields))
-    def __init__(self, filename, granularity='X', autoflush=True):
+    def __init__(self, filename, granularity='X', compression=None,
+                 autoflush=True):
         "Instance initializer; see the class docstring for details."
         FileLogHandler.__init__(self, filename, autoflush)
         self.granularity = granularity
+        self.compression = self._parse_compression(compression)
         self._cur_params = self._rotation_params(filename,
             os.fstat(self.file.fileno()).st_mtime, self.granularity)
         self._lock = threading.RLock()
@@ -1068,19 +1086,27 @@ class RotatingFileLogHandler(FileLogHandler):
         """
         with self._lock:
             if timestamp >= self._cur_params[1]:
-                self.rotate(self._cur_params[0])
+                compress_to, compress_using = None, None
+                if self.compression is not None:
+                    compress_to = self._cur_params[0] + self.compression[0]
+                    compress_using = self.compression[1]
+                self.rotate(self._cur_params[0], compress_to, compress_using)
                 self._cur_params = self._rotation_params(self.file.name,
                                                          timestamp,
                                                          self.granularity)
             FileLogHandler.emit(self, text, timestamp)
-    def rotate(self, move_to):
+    def rotate(self, move_to, compress_to, compress_using):
         """
         Move the current log file to the indicated location and create a new
         log file.
         """
-        old_name = self.file.name
+        old_file = self.file
         os.rename(old_name, move_to)
         self.file = open(old_name, 'a')
+        if compress_to is not None:
+            with compress_using(compress_to) as drain:
+                shutil.copyfileobj(old_file, drain)
+        old_file.close()
 
 class Logger:
     """
