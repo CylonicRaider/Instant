@@ -12,6 +12,7 @@ import calendar
 import json
 import socket
 import threading
+import shutil
 
 import websocket_server
 
@@ -997,7 +998,7 @@ class FileLogHandler(LogHandler):
         "Instance initializer; see the class docstring for details."
         self.filename = filename
         self.autoflush = autoflush
-        self.file = open(filename, 'a')
+        self.file = open(filename, 'a+')
     def emit(self, text, timestamp):
         """
         Process the given log message.
@@ -1027,10 +1028,12 @@ class RotatingFileLogHandler(FileLogHandler):
         """
         if label is None:
             return None
-        elif label == 'gz':
+        elif label in ('gz', 'gzip'):
             import gzip as compressor
-        elif label == 'bz2':
+            label = 'gz'
+        elif label in ('bz2', 'bzip2'):
             import bz2 as compressor
+            label = 'bz2'
         elif label == 'lzma':
             import lzma as compressor
         else:
@@ -1088,7 +1091,8 @@ class RotatingFileLogHandler(FileLogHandler):
             if timestamp >= self._cur_params[1]:
                 compress_to, compress_using = None, None
                 if self.compression is not None:
-                    compress_to = self._cur_params[0] + self.compression[0]
+                    compress_to = '%s.%s' % (self._cur_params[0],
+                                             self.compression[0])
                     compress_using = self.compression[1]
                 self.rotate(self._cur_params[0], compress_to, compress_using)
                 self._cur_params = self._rotation_params(self.file.name,
@@ -1101,11 +1105,13 @@ class RotatingFileLogHandler(FileLogHandler):
         log file.
         """
         old_file = self.file
-        os.rename(old_name, move_to)
-        self.file = open(old_name, 'a')
+        os.rename(old_file.name, move_to)
+        self.file = open(old_file.name, 'a+')
         if compress_to is not None:
+            old_file.seek(0)
             with compress_using(compress_to) as drain:
                 shutil.copyfileobj(old_file, drain)
+            os.remove(move_to)
         old_file.close()
 
 class Logger:
