@@ -1064,10 +1064,12 @@ class RotatingFileLogHandler(FileLogHandler):
                              granularity)
         fields = time.gmtime(timestamp)
         suffix = time.strftime(fmt, fields)
-        expiry_fields = (fields[:index] + (fields[index] + 1,) +
-                         fields[index+1:6] + (-1, -1, 0))
+        expiry_fields = [1970, 1, 1, 0, 0, 0, -1, -1, 0]
+        expiry_fields[:index] = fields[:index]
+        expiry_fields[index] = fields[index] + 1
         if index == 1 and expiry_fields[1] == 13:
-            expiry_fields = (expiry_fields[0] + 1, 1) + expiry_fields[2:]
+            expiry_fields[0] += 1
+            expiry_fields[1] = 1
         filename_fields = os.path.splitext(filename)
         return (filename_fields[0] + suffix + filename_fields[1],
                 calendar.timegm(expiry_fields))
