@@ -1022,11 +1022,21 @@ class RotatingFileLogHandler(FileLogHandler):
     writes to.
     """
     @classmethod
+    def parse_cli_config(cls, arg):
+        """
+        Parse the given given command-line argument into keyword arguments to
+        pass to the constructor.
+        """
+        granularity, sep, compression = arg.partition(':')
+        if not granularity: granularity = 'X'
+        if not compression: compression = None
+        return {'granularity': granularity, 'compression': compression}
+    @classmethod
     def _parse_compression(cls, label):
         """
         Internal: Validate a compression scheme and prepare for using it.
         """
-        if label is None:
+        if label in (None, 'none'):
             return None
         elif label in ('gz', 'gzip'):
             import gzip as compressor
@@ -1037,7 +1047,8 @@ class RotatingFileLogHandler(FileLogHandler):
         elif label == 'lzma':
             import lzma as compressor
         else:
-            raise ValueError('Unrecognized compression scheme %r' % (label,))
+            raise ValueError('Unrecognized compression scheme: %s '
+                                 '(must be one of gz, bz2, lzma)' % (label,))
         return (label, lambda filename: compressor.open(filename, 'wt'))
     @classmethod
     def _rotation_params(cls, filename, timestamp, granularity):
@@ -1060,8 +1071,9 @@ class RotatingFileLogHandler(FileLogHandler):
             index = 3
             fmt = '.%Y-%m-%d-%H'
         else:
-            raise ValueError('Unrecognized rotation granularity: %s' %
-                             granularity)
+            raise ValueError('Unrecognized rotation granularity: %s '
+                                 '(must be one of X, Y, M, D, H)' %
+                             (granularity,))
         fields = time.gmtime(timestamp)
         suffix = time.strftime(fmt, fields)
         expiry_fields = [1970, 1, 1, 0, 0, 0, -1, -1, 0]
@@ -1986,8 +1998,10 @@ class CmdlineBotBuilder:
                            help='TLS configuration.')
         self.parser.option('logfile', '-',
                            help='Where to write logs ("-" -> stdout)')
-        self.parser.option('logrotate', placeholder='<X|Y|M|D|H>',
-                           help='How often to rotate log files (X = never)')
+        self.parser.option('logrotate',
+                           type=RotatingFileLogHandler.parse_cli_config,
+                           placeholder='<time>[:<compress>]',
+                           help='Enable log rotation and configure it')
         self.parser.flag_ex('no-log', None, 'logfile',
                             help='Disable logging entirely')
         kwargs = {}
@@ -2025,8 +2039,8 @@ class CmdlineBotBuilder:
             self.kwds.pop('logger', None)
         elif lf == '-':
             self.kwds['logger'] = DEFAULT_LOGGER
-        elif lr not in (None, 'X'):
-            self.kwds['logger'] = Logger(RotatingFileLogHandler(lf, lr))
+        elif lr is not None:
+            self.kwds['logger'] = Logger(RotatingFileLogHandler(lf, **lr))
         else:
             self.kwds['logger'] = Logger(FileLogHandler(lf))
     def parse(self, argv=None):
