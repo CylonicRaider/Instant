@@ -956,6 +956,16 @@ class LogHandler:
         The default implementation does nothing.
         """
         pass
+    def read_back(self):
+        """
+        Return an iterable of all past log lines, where applicable.
+
+        The lines are formatted similarly to those passed to emit(), and, in
+        particular, have no trailing newlines.
+
+        The default implementation raises a RuntimeError.
+        """
+        raise RuntimeError('Read-back not supported')
 
 class StreamLogHandler(LogHandler):
     """
@@ -984,6 +994,18 @@ class StreamLogHandler(LogHandler):
         if self.stream is None: return
         self.stream.write(text + '\n')
         if self.autoflush: self.stream.flush()
+    def read_back(self):
+        """
+        Read log lines from the stream and yield them.
+
+        See the base class' method for interface details.
+
+        If the stream is not readable, this raises a RuntimeError.
+        """
+        if not self.stream.readable():
+            raise RuntimeError('Cannot read-back: Stream not readable')
+        for line in self.stream:
+            yield line.rstrip('\n')
 
 class FileLogHandler(LogHandler):
     """
@@ -1013,6 +1035,24 @@ class FileLogHandler(LogHandler):
         """
         old_file, self.file = self.file, sys.stderr
         old_file.close()
+    def read_back(self):
+        """
+        Read log lines back from the file and yield them.
+
+        See the base class' method for interface details.
+
+        Particular care should be taken to ensure the returned generator is
+        properly cleaned up (e.g. by being exhausted), as it seeks back to the
+        end of the file when done.
+        """
+        if not self.file.seekable():
+            raise RuntimeError('Cannot read-back: File not seekable')
+        self.file.seek(0)
+        try:
+            for line in self.file:
+                yield line.rstrip('\n')
+        finally:
+            self.file.seek(0, os.SEEK_END)
 
 class RotatingFileLogHandler(FileLogHandler):
     """
@@ -1021,6 +1061,7 @@ class RotatingFileLogHandler(FileLogHandler):
     A log handler that writes to files and regularly changes the files it
     writes to.
     """
+    TIME_SUFFIX_RE = re.compile('^\.[0-9-]+$')
     @classmethod
     def parse_cli_config(cls, arg):
         """
@@ -1049,7 +1090,8 @@ class RotatingFileLogHandler(FileLogHandler):
         else:
             raise ValueError('Unrecognized compression scheme: %s '
                                  '(must be one of gz, bz2, lzma)' % (label,))
-        return (label, lambda filename: compressor.open(filename, 'wt'))
+        return (label, lambda filename: compressor.open(filename, 'wt'),
+                       lambda filename: compressor.open(filename, 'rt'))
     @classmethod
     def _rotation_params(cls, filename, timestamp, granularity):
         """
@@ -1127,6 +1169,34 @@ class RotatingFileLogHandler(FileLogHandler):
                 shutil.copyfileobj(old_file, drain)
             os.remove(move_to)
         old_file.close()
+    def read_back(self):
+        """
+        Read log lines back from the file (and from rotated-out log files)
+        and yield them.
+
+        See the base classes' methods for interface details.
+        """
+        def name_matches(fn):
+            if not fn.startswith(prefix) or not fn.endswith(suffix):
+                return False
+            middle = fn[prefix_end:suffix_start]
+            return self.TIME_SUFFIX_RE.match(middle)
+        dirname, filename = os.path.split(self.file.name)
+        prefix, suffix = os.path.splitext(filename)
+        if self.compression is not None:
+            suffix += '.' + self.compression[0]
+            open_file = self.compression[2]
+        else:
+            open_file = open
+        prefix_end = len(prefix)
+        suffix_start = -len(suffix) if suffix else None
+        rotated_files = sorted(filter(name_matches, os.listdir(dirname)))
+        for fn in rotated_files:
+            with open_file(os.path.join(dirname, fn)) as fp:
+                for line in fp:
+                    yield line.rstrip('\n')
+        for line in FileLogHandler.read_back(self):
+            yield line
 
 class Logger:
     """
