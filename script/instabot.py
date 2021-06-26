@@ -1336,6 +1336,20 @@ class Logger:
                 repr(exc), self.format(frame), self.format(cause))
         if trailer is not None: msg += ' ' + trailer
         self.log(msg, timestamp=timestamp)
+    def read_back(self, filt=None):
+        """
+        Parse machine-readable logs taken from this logger's handler.
+
+        filt is invoked on the tag of every log line; the line is discarded if
+        filt returns false; the default is to accept every line.
+
+        If this logger has no handler, this produces an empty iterable.
+
+        See also the read_back() method of the handler for additional notes.
+        """
+        source = () if self.handler is None else self.handler.read_back()
+        for record in read_logs(source, filt):
+            yield record
 
 DEFAULT_LOGGER = Logger(StreamLogHandler(sys.stdout))
 NULL_LOGGER = Logger(None)
