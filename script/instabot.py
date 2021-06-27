@@ -1183,6 +1183,8 @@ class RotatingFileLogHandler(FileLogHandler):
             return self.TIME_SUFFIX_RE.match(middle)
         dirname, filename = os.path.split(self.file.name)
         prefix, suffix = os.path.splitext(filename)
+        if not dirname:
+            dirname = '.'
         if self.compression is not None:
             suffix += '.' + self.compression[0]
             open_file = self.compression[2]
