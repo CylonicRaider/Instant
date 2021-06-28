@@ -1213,6 +1213,9 @@ class Logger:
     The key method of this class is log(), with its extension log_exception()
     for providing a standartized and compact response to exceptions.
 
+    Logger instances support the context manager protocol, close()ing
+    themselves on __exit__.
+
     It is encouraged to write logs in a particular machine-readable fashion,
     which is followed by log_exception(). A machine-readable log line consists
     of the following items:
@@ -1277,6 +1280,12 @@ class Logger:
     def __init__(self, handler):
         "Instance initializer; see the class docstring for details."
         self.handler = handler
+    def __enter__(self):
+        "Context management support; see the class docstring for details."
+        return self
+    def __exit__(self, *exc_info):
+        "Context management support; see the class docstring for details."
+        self.close()
     def log(self, msg, timestamp=None):
         r"""
         Format a logging line containing the given message and write it to
@@ -1352,6 +1361,11 @@ class Logger:
         source = () if self.handler is None else self.handler.read_back()
         for record in read_logs(source, filt):
             yield record
+    def close(self):
+        """
+        Close the logger's underlying handler, if any.
+        """
+        if self.handler is not None: self.handler.close()
 
 DEFAULT_LOGGER = Logger(StreamLogHandler(sys.stdout))
 NULL_LOGGER = Logger(None)
