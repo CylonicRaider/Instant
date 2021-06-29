@@ -1394,7 +1394,11 @@ def read_logs(src, filt=None):
 
     src is an iterable producing lines (e.g. a file object); filt is invoked
     on the tag of every line before parsing its key-value section to allow
-    quickly rejecting irrelevant lines (a filt of None admits all lines).
+    quickly rejecting irrelevant lines.
+
+    If filt is None, all lines are (fully) processed. If filt returns the
+    Ellipsis singleton for a tag, the line's content is not parsed and yielded
+    as a single string instead.
 
     See the Logger class for aid with producing machine-readable logs, as well
     as for documentation on how they are formatted.
@@ -1417,12 +1421,17 @@ def read_logs(src, filt=None):
         if idx != len(val):
             raise RuntimeError('Invalid dictionary literal %r?!' % (val,))
         return ret
+    if filt is None: filt = lambda tag: True
     for line in src:
         m = LOGLINE.match(line)
         if not m: continue
         ts, tag, args = m.group(1, 2, 3)
-        if filt and not filt(tag): continue
+        fr = filt(tag)
+        if not fr: continue
         pts = calendar.timegm(time.strptime(ts, '%Y-%m-%d %H:%M:%S'))
+        if fr is Ellipsis:
+            yield (fr, tag, args)
+            continue
         values = {}
         if args is not None:
             idx = 0
