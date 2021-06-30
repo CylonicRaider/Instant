@@ -404,7 +404,7 @@ class LogDBSQLite(LogDB):
     def close(self):
         self.conn.close()
 
-def read_posts_ex(src, maxlen=None):
+def read_posts_ex(logger, maxlen=None):
     def truncate(ret, uuids):
         delset, kset = set(dels), set(sorted(uuids)[-maxlen:])
         ret = [i for i in ret if i['id'] not in delset]
@@ -420,7 +420,8 @@ def read_posts_ex(src, maxlen=None):
     TAGS = frozenset(('SCRIBE', 'POST', 'LOGPOST', 'MESSAGE', 'DELETE',
                       'UUID'))
     cver, froms, dels, ret, uuids = (), {}, [], [], {}
-    for ts, tag, values in instabot.read_logs(src, TAGS.__contains__):
+    n = 0
+    for ts, tag, values in logger.read_back(TAGS.__contains__):
         if tag == 'SCRIBE':
             cver = parse_version(values.get('version'))
             continue
@@ -480,8 +481,8 @@ def read_posts_ex(src, maxlen=None):
         if 'from' not in e and e['id'] in froms:
             e['from'] = froms[e['id']]
     return (ret, uuids)
-def read_posts(src, maxlen=None):
-    return read_posts_ex(src, maxlen)[0]
+def read_posts(logger, maxlen=None):
+    return read_posts_ex(logger, maxlen)[0]
 
 class Scribe(instabot.Bot):
     NICKNAME = NICKNAME
@@ -824,7 +825,8 @@ def main():
         logger.log('READING file=%r maxlen=%r' % (fn, msgdb.capacity()))
         try:
             with openarg(fn) as f:
-                logs, uuids = read_posts_ex(f, msgdb.capacity())
+                l = instabot.Logger(instabot.StreamLogHandler(f))
+                logs, uuids = read_posts_ex(l, msgdb.capacity())
                 msgdb.extend(logs)
                 msgdb.extend_uuid(uuids)
                 logs, uuids = None, None
