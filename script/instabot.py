@@ -969,18 +969,22 @@ class LogHandler:
 
 class StreamLogHandler(LogHandler):
     """
-    StreamLogHandler(stream, autoflush=True) -> new instance
+    StreamLogHandler(stream, autoflush=True, *, read_stream=None)
+        -> new instance
 
     A Logger backend that writes messages to the given stream, or discards
     them if the stream is None.
 
     stream is the stream to write to; autoflush specifies whether the stream
-    should be flushed after every write.
+    should be flushed after every write; read_stream is the stream to read
+    logs back from (if None, this is resolved to stream on every read_back()
+    call).
     """
-    def __init__(self, stream, autoflush=True):
+    def __init__(self, stream, autoflush=True, read_stream=None):
         "Instance initializer; see the class docstring for details."
         self.stream = stream
         self.autoflush = autoflush
+        self.read_stream = read_stream
     def emit(self, text, timestamp):
         """
         Process the given log message.
@@ -1000,11 +1004,14 @@ class StreamLogHandler(LogHandler):
 
         See the base class' method for interface details.
 
-        If the stream is not readable, this raises a RuntimeError.
+        This reads from the read_stream instance attribute, or, if that is
+        None, from the stream also used for writing. If the chosen stream is
+        not readable, this raises a RuntimeError.
         """
-        if not self.stream.readable():
+        stream = self.stream if self.read_stream is None else self.read_stream
+        if not stream.readable():
             raise RuntimeError('Cannot read-back: Stream not readable')
-        for line in self.stream:
+        for line in stream:
             yield line.rstrip('\n')
 
 class FileLogHandler(LogHandler):
@@ -1367,7 +1374,7 @@ class Logger:
         """
         if self.handler is not None: self.handler.close()
 
-DEFAULT_LOGGER = Logger(StreamLogHandler(sys.stdout))
+DEFAULT_LOGGER = Logger(StreamLogHandler(sys.stdout, read_stream=sys.stdin))
 NULL_LOGGER = Logger(None)
 
 LOGLINE = re.compile(r'^\[([0-9 Z:-]+)\]\s+([A-Z0-9_-]+)(?:\s+(.*))?$')
