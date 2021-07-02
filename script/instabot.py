@@ -2076,6 +2076,19 @@ class CmdlineBotBuilder:
     """
     Parser = OptionParser
     RELAXED_COOKIES = RELAXED_COOKIES
+    @classmethod
+    def build_logger(cls, logfile, rotation):
+        """
+        Create a Logger from the given command-line configuration.
+        """
+        if logfile is None:
+            return NULL_LOGGER
+        elif logfile == '-':
+            return DEFAULT_LOGGER
+        elif rotation is not None:
+            return Logger(RotatingLogHandler(logfile, **rotation))
+        else:
+            return Logger(FileLogHandler(logfile))
     def __init__(self, botcls=None, defnick=None, defurl=Ellipsis):
         "Instance initializer; see the class docstring for details."
         if botcls is None: botcls = HookBot
@@ -2150,15 +2163,11 @@ class CmdlineBotBuilder:
             self.kwds.pop('ssl_config', None)
         else:
             self.kwds['ssl_config'] = sc
-        lf, lr = self.parser.get('logfile', 'logrotate')
-        if lf is None:
+        logger = self.build_logger(*self.parser.get('logfile', 'logrotate'))
+        if logger is NULL_LOGGER:
             self.kwds.pop('logger', None)
-        elif lf == '-':
-            self.kwds['logger'] = DEFAULT_LOGGER
-        elif lr is not None:
-            self.kwds['logger'] = Logger(RotatingFileLogHandler(lf, **lr))
         else:
-            self.kwds['logger'] = Logger(FileLogHandler(lf))
+            self.kwds['logger'] = logger
     def parse(self, argv=None):
         """
         Parse the given arguments.
