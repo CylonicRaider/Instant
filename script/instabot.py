@@ -2077,7 +2077,7 @@ class CmdlineBotBuilder:
     Parser = OptionParser
     RELAXED_COOKIES = RELAXED_COOKIES
     @classmethod
-    def build_logger(cls, logfile, rotation):
+    def build_logger(cls, logfile, rotate=None):
         """
         Create a Logger from the given command-line configuration.
         """
@@ -2085,8 +2085,9 @@ class CmdlineBotBuilder:
             return NULL_LOGGER
         elif logfile == '-':
             return DEFAULT_LOGGER
-        elif rotation is not None:
-            return Logger(RotatingLogHandler(logfile, **rotation))
+        elif rotate is not None:
+            rotate_params = RotatingFileLogHandler.parse_cli_config(rotate)
+            return Logger(RotatingLogHandler(logfile, **rotate_params))
         else:
             return Logger(FileLogHandler(logfile))
     def __init__(self, botcls=None, defnick=None, defurl=Ellipsis):
@@ -2127,9 +2128,7 @@ class CmdlineBotBuilder:
                            help='TLS configuration.')
         self.parser.option('logfile', '-',
                            help='Where to write logs ("-" -> stdout)')
-        self.parser.option('logrotate',
-                           type=RotatingFileLogHandler.parse_cli_config,
-                           placeholder='<time>[:<compress>]',
+        self.parser.option('logrotate', placeholder='<time>[:<compress>]',
                            help='Enable log rotation and configure it')
         self.parser.flag_ex('no-log', None, 'logfile',
                             help='Disable logging entirely')
@@ -2139,7 +2138,7 @@ class CmdlineBotBuilder:
         return self.parser
     def process_args(self):
         """
-        Conert parsed command-line argument into bot constructor parameters.
+        Convert parsed command-line arguments into bot constructor parameters.
 
         The parsed arguments are taken from instance state, and the parameters
         are recorded there.
@@ -2163,7 +2162,11 @@ class CmdlineBotBuilder:
             self.kwds.pop('ssl_config', None)
         else:
             self.kwds['ssl_config'] = sc
-        logger = self.build_logger(*self.parser.get('logfile', 'logrotate'))
+        try:
+            logger = self.build_logger(*self.parser.get('logfile',
+                                                        'logrotate'))
+        except ValueError as exc:
+            raise SystemExit('ERROR: ' + str(exc))
         if logger is NULL_LOGGER:
             self.kwds.pop('logger', None)
         else:
