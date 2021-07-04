@@ -796,8 +796,10 @@ def main():
              help='SQLite database file for messages')
     p.flag_ex('no-msgdb', None, 'msgdb',
               help='Do not store messages at all')
-    p.option('read-file', [], accum=True, placeholder='<file>',
+    p.option('read-file', placeholder='<file>',
              help='Parse log file for messages')
+    p.option('read-rotate', placeholder='<time>[:<compress>]',
+             help='Assume the file has been rotated as given')
     p.option('push-logs', [], accum=True, varname='push_logs',
              placeholder='<id>', help='Send logs to given ID without asking')
     p.flag('dont-stay', varname='dont_stay',
@@ -805,7 +807,8 @@ def main():
     p.flag('dont-pull', varname='dont_pull', help='Do not collect logs')
     b.parse(sys.argv[1:])
     b.add_args('push_logs', 'dont_stay', 'dont_pull')
-    maxlen, msgdb_file, toread = b.get_args('maxlen', 'msgdb', 'read-file')
+    maxlen, msgdb_file = b.get_args('maxlen', 'msgdb')
+    read_file, read_rotate = b.get_args('read-file', 'read-rotate')
     logger = b.kwds.get('logger', instabot.DEFAULT_LOGGER)
     logger.log('SCRIBE version=%s' % VERSION)
     install_sighandler(signal.SIGINT, interrupt)
@@ -821,11 +824,11 @@ def main():
         msgdb.init()
     except Exception as e:
         handle_crash(e)
-    for fn in toread:
-        logger.log('READING file=%r maxlen=%r' % (fn, msgdb.capacity()))
+    if read_file is not None:
+        logger.log('READING file=%r rotation=%r maxlen=%r' % (read_file,
+            read_rotate, msgdb.capacity()))
         try:
-            with openarg(fn) as f:
-                l = instabot.Logger(instabot.StreamLogHandler(f))
+            with b.build_logger(read_file, read_rotate) as l:
                 logs, uuids = read_posts_ex(l, msgdb.capacity())
                 msgdb.extend(logs)
                 msgdb.extend_uuid(uuids)
