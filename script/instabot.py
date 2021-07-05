@@ -1052,14 +1052,15 @@ class FileLogHandler(LogHandler):
         properly cleaned up (e.g. by being exhausted), as it seeks back to the
         end of the file when done.
         """
-        if not self.file.seekable():
+        fp = self.file
+        if not fp.seekable():
             raise RuntimeError('Cannot read-back: File not seekable')
-        self.file.seek(0)
+        fp.seek(0)
         try:
-            for line in self.file:
+            for line in fp:
                 yield line.rstrip('\n')
         finally:
-            self.file.seek(0, os.SEEK_END)
+            fp.seek(0, os.SEEK_END)
 
 class RotatingFileLogHandler(FileLogHandler):
     """
