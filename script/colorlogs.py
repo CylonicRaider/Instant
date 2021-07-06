@@ -19,29 +19,29 @@ COLORS = {None: '\033[0m', 'bold': '\033[1m', 'black': '\033[30m',
 
 def highlight(line, filt=None):
     def highlight_scalar(val):
-        if val in instabot.CONSTANTS:
+        if val in instabot.LOG_CONSTANTS:
             return (COLORS['magenta'], val)
-        elif instabot.INTEGER.match(val) or instabot.FLOAT.match(val):
+        elif instabot.INTEGER_RE.match(val) or instabot.FLOAT_RE.match(val):
             return (COLORS['cyan'], val)
         else:
             return (COLORS[None], val)
     def highlight_tuple(val):
         if val[:1] != '(': return (COLORS['red'], val)
         idx, ret = 1, [COLORS['orange'], '(']
-        m = instabot.WHITESPACE.match(val, idx)
+        m = instabot.WHITESPACE_RE.match(val, idx)
         if m:
             ret.append(m.group())
             idx = m.end()
         while idx < len(val):
-            m = instabot.SCALAR.match(val, idx)
+            m = instabot.SCALAR_RE.match(val, idx)
             if not m: break
             ret.extend(highlight_scalar(m.group()))
             idx = m.end()
-            m = instabot.COMMA.match(val, idx)
+            m = instabot.COMMA_RE.match(val, idx)
             if not m: break
             ret.extend((COLORS['orange'], m.group()))
             idx = m.end()
-        m = instabot.WHITESPACE.match(val, idx)
+        m = instabot.WHITESPACE_RE.match(val, idx)
         if m:
             ret.extend((COLORS['orange'], m.group()))
             idx = m.end()
@@ -59,22 +59,22 @@ def highlight(line, filt=None):
     def highlight_dict(val):
         if val[:1] != '{': return (COLORS['red'], val)
         idx, ret = 1, [COLORS['orange'], '{']
-        m = instabot.WHITESPACE.match(val, idx)
+        m = instabot.WHITESPACE_RE.match(val, idx)
         if m:
             ret.append(m.group())
             idx = m.end()
         while idx < len(val):
-            m = instabot.DICT_ENTRY.match(val, idx)
+            m = instabot.DICT_ENTRY_RE.match(val, idx)
             if not m: break
             ret.extend(highlight_scalar_or_tuple(m.group(1)))
             ret.extend((COLORS['orange'], val[m.end(1):m.start(2)]))
             ret.extend(highlight_scalar_or_tuple(m.group(2)))
             idx = m.end()
-            m = instabot.COMMA.match(val, idx)
+            m = instabot.COMMA_RE.match(val, idx)
             if not m: break
             ret.extend((COLORS['orange'], m.group()))
             idx = m.end()
-        m = instabot.WHITESPACE.match(val, idx)
+        m = instabot.WHITESPACE_RE.match(val, idx)
         if m:
             ret.extend((COLORS['orange'], m.group()))
             idx = m.end()
@@ -91,7 +91,7 @@ def highlight(line, filt=None):
             return highlight_tuple(val)
         else:
             return highlight_scalar(val)
-    m = instabot.LOGLINE.match(line)
+    m = instabot.LOGLINE_RE.match(line)
     if not m: return line
     if filt and not filt(m.group(2)): return None
     ret = [line[:m.start(2)], COLORS['bold'], m.group(2), COLORS[None],
@@ -100,13 +100,13 @@ def highlight(line, filt=None):
     if idx != -1:
         while idx < len(line):
             # Skip whitespace
-            m = instabot.WHITESPACE.match(line, idx)
+            m = instabot.WHITESPACE_RE.match(line, idx)
             if m:
                 ret.extend((COLORS[None], m.group()))
                 idx = m.end()
                 if idx == len(line): break
             # Match the next parameter; output name
-            m = instabot.PARAM.match(line, idx)
+            m = instabot.PARAM_RE.match(line, idx)
             if not m: break
             name, val = m.group(1, 2)
             ret.extend((COLORS['green'], name, '='))

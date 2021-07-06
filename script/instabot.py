@@ -1378,24 +1378,28 @@ class Logger:
 DEFAULT_LOGGER = Logger(StreamLogHandler(sys.stdout, read_stream=sys.stdin))
 NULL_LOGGER = Logger(None)
 
-LOGLINE = re.compile(r'^\[([0-9 Z:-]+)\]\s+([A-Z0-9_-]+)(?:\s+(.*))?$')
-WHITESPACE = re.compile(r'\s+')
-SCALAR = re.compile(r'[^"\'()[\]{},:\s]+|u?"(?:[^"\\]|\\.)*"|'
-                    r'u?\'(?:[^\'\\]|\\.)*\'')
-COMMA = re.compile(r'\s*,\s*')
-TUPLE_ENTRY = re.compile(r'(%s)\s*(,)\s*' % SCALAR.pattern) # for colorlogs.py
-TUPLE = re.compile(r'\(\s*(?:(?:%s)%s)*(?:(?:%s)\s*)?\)' %
-                   (SCALAR.pattern, COMMA.pattern, SCALAR.pattern))
-DICT_ENTRY = re.compile(r'(%s|%s)\s*:\s*(%s|%s)' %
-    (SCALAR.pattern, TUPLE.pattern, SCALAR.pattern, TUPLE.pattern))
-DICT = re.compile(r'\{\s*(?:%s%s)*(?:%s\s*)?\}' %
-                  (DICT_ENTRY.pattern, COMMA.pattern, DICT_ENTRY.pattern))
-PARAM = re.compile(r'([a-zA-Z0-9_-]+)=(%s|%s|%s)(?=\s|$)' %
-                   (SCALAR.pattern, TUPLE.pattern, DICT.pattern))
-INTEGER = re.compile(r'^[+-]?[0-9]+$')
-FLOAT = re.compile(r'^[+-]?[0-9]+(\.[0-9]+)?([eE][+-]?[0-9]+)?$')
-CONSTANTS = {'None': None, 'True': True, 'False': False,
-             'Ellipsis': Ellipsis}
+LOGLINE_RE = re.compile(r'^\[([0-9 Z:-]+)\]\s+([A-Z0-9_-]+)(?:\s+(.*))?$')
+WHITESPACE_RE = re.compile(r'\s+')
+SCALAR_RE = re.compile(r'[^"\'()[\]{},:\s]+|u?"(?:[^"\\]|\\.)*"|'
+                       r'u?\'(?:[^\'\\]|\\.)*\'')
+COMMA_RE = re.compile(r'\s*,\s*')
+TUPLE_ENTRY_RE = re.compile(r'(%s)\s*(,)\s*' % SCALAR_RE.pattern)
+    # for colorlogs.py
+TUPLE_RE = re.compile(r'\(\s*(?:(?:%s)%s)*(?:(?:%s)\s*)?\)' %
+                      (SCALAR_RE.pattern, COMMA_RE.pattern,
+                       SCALAR_RE.pattern))
+DICT_ENTRY_RE = re.compile(r'(%s|%s)\s*:\s*(%s|%s)' %
+                           (SCALAR_RE.pattern, TUPLE_RE.pattern,
+                            SCALAR_RE.pattern, TUPLE_RE.pattern))
+DICT_RE = re.compile(r'\{\s*(?:%s%s)*(?:%s\s*)?\}' %
+                     (DICT_ENTRY_RE.pattern, COMMA_RE.pattern,
+                      DICT_ENTRY_RE.pattern))
+PARAM_RE = re.compile(r'([a-zA-Z0-9_-]+)=(%s|%s|%s)(?=\s|$)' %
+                      (SCALAR_RE.pattern, TUPLE_RE.pattern, DICT_RE.pattern))
+INTEGER_RE = re.compile(r'^[+-]?[0-9]+$')
+FLOAT_RE = re.compile(r'^[+-]?[0-9]+(\.[0-9]+)?([eE][+-]?[0-9]+)?$')
+LOG_CONSTANTS = {'None': None, 'True': True, 'False': False,
+                 'Ellipsis': Ellipsis}
 def read_logs(src, filt=None):
     """
     Parse machine-readable logs taken from src.
@@ -1416,14 +1420,14 @@ def read_logs(src, filt=None):
     def decode_dict(val):
         val, idx, ret = val[1:-1], 0, {}
         while 1:
-            m = DICT_ENTRY.match(val, idx)
+            m = DICT_ENTRY_RE.match(val, idx)
             if not m: break
             idx = m.end()
             rk, rv = m.group(1, 2)
             k = decode_tuple(rk) if rk[0] == '(' else ast.literal_eval(rk)
             v = decode_tuple(rv) if rv[0] == '(' else ast.literal_eval(rv)
             ret[k] = v
-            m = COMMA.match(val, idx)
+            m = COMMA_RE.match(val, idx)
             if not m: break
             idx = m.end()
         if idx != len(val):
@@ -1431,7 +1435,7 @@ def read_logs(src, filt=None):
         return ret
     if filt is None: filt = lambda tag: True
     for line in src:
-        m = LOGLINE.match(line)
+        m = LOGLINE_RE.match(line)
         if not m: continue
         ts, tag, args = m.group(1, 2, 3)
         fr = filt(tag)
@@ -1444,19 +1448,19 @@ def read_logs(src, filt=None):
         if args is not None:
             idx = 0
             while idx < len(args):
-                m = WHITESPACE.match(args, idx)
+                m = WHITESPACE_RE.match(args, idx)
                 if m:
                     idx = m.end()
                     if idx == len(args): break
-                m = PARAM.match(args, idx)
+                m = PARAM_RE.match(args, idx)
                 if not m: break
                 idx = m.end()
                 name, val = m.group(1, 2)
-                if val in CONSTANTS:
-                    val = CONSTANTS[val]
-                elif INTEGER.match(val):
+                if val in LOG_CONSTANTS:
+                    val = LOG_CONSTANTS[val]
+                elif INTEGER_RE.match(val):
                     val = int(val)
-                elif FLOAT.match(val):
+                elif FLOAT_RE.match(val):
                     val = float(val)
                 elif val[0] in '\'"' or val[:2] in ('u"', "u'"):
                     val = ast.literal_eval(val)
