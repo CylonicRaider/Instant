@@ -509,11 +509,16 @@ option. (Refer to the `--help` message for a listing.)
 - `--read-file` *file* — *Scrape messages from logfile*: Scribe formats its
   logfile in a machine-readable way, and indeed supports restoring messages
   from it. Since this may be time-consuming, users are encouraged to use
-  `--msgdb` instead. There may be multiple instances of this option.
+  `--msgdb` instead.
 
     Ancient versions (without `--msgdb`) used this to persist messages across
     restarts; the name of the bot is derived from the very first version only
     noting down messages (which the second version would deliver to clients).
+
+- `--read-rotate` *pattern* — *Read-back file rotation*: Makes Scribe assume
+  that the `--read-file` file has been subject to log rotation (see
+  `--logrotate`), and extract historical messages from rotated-out versions of
+  the file.
 
 - `--push-logs` *client-ID* — *Push logs*: Can be used to (crudely) transfer
   logs between instances. When specified, Scribe pushes all of its logs to
@@ -554,6 +559,23 @@ option. (Refer to the `--help` message for a listing.)
 - `--tls` *params* — *TLS configuration*: A comma-separated list of
   `<KEY>=<VALUE>` pairs providing TLS configuration (if a `wss` URL is used).
   See [the *HTTPS* section](#https) for details.
+
+- `--logfile` *file* — *Logging file*: A file to write logs to. If this is
+  `-`, messages are written to standard output (as is the default).
+
+- `--logrotate` *pattern* — *Logfile rotation*: Lets Scribe regularly stow
+  away old logs and optionally compress them.
+
+    The *pattern* consists of a *period*, optionally followed by a
+    *compression name*. The period is one of `X` (never), `Y` (yearly),
+    `M` (monthly), `D` (daily), `H` (hourly); the logfile will be rotated at
+    the beginning of each corresponding interval (_e.g._, at midnight for
+    `D`). The compression specification is one of `none`, `gz`, `bz2`, or
+    `lzma`, and specifies that rotated-out logfiles be compressed using the
+    named algorithm.
+
+    For example, the rotation pattern `D:gz` rotates logs daily and
+    GZip-compresses rotated-out logfiles.
 
 - *url* — *WebSocket URL to connect to*: The single optional positional
   argument specifies (indeed) where to connect to. It is the resource `ws`
