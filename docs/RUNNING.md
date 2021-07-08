@@ -486,8 +486,8 @@ client library (i.e., most aptly called,
 [`websocket_server`](https://github.com/CylonicRaider/websocket-server/)) are
 required.
 
-Scribe supports the following features, each controlled by a command-line
-option. (Refer to the `--help` message for a listing.)
+Scribe accepts the following command-line options: (Also refer to the `--help`
+message for a listing.)
 
 - `--maxlen` *num* — *Maximum log chunk length*: As default (and as the
   browser-based client does), Scribe delivers the entirety of its log
@@ -540,6 +540,9 @@ option. (Refer to the `--help` message for a listing.)
     updating its logs. Intended to provide short-term coverage when the
     “main” instance of Scribe is being restarted.
 
+The following options are not specific to Scribe, but provided by the
+underlying bot library:
+
 - `--nick` *name* — *Nickname*: Allows setting a custom nickname for the
   bot. An empty nickname will make the bot invisible to users, although it
   will still respond with the empty nickname upon request and contribute to
@@ -568,11 +571,11 @@ option. (Refer to the `--help` message for a listing.)
 
     The *pattern* consists of a *period*, optionally followed by a
     *compression name*. The period is one of `X` (never), `Y` (yearly),
-    `M` (monthly), `D` (daily), `H` (hourly); the logfile will be rotated at
-    the beginning of each corresponding interval (_e.g._, at midnight for
-    `D`). The compression specification is one of `none`, `gz`, `bz2`, or
-    `lzma`, and specifies that rotated-out logfiles be compressed using the
-    named algorithm.
+    `M` (monthly), `D` (daily), `H` (hourly); the logfile is rotated at
+    the beginning of each corresponding interval (e.g., at midnight for
+    `D`). The compression specification is one of `none` (the default), `gz`,
+    `bz2`, or `lzma`, and specifies that rotated-out logfiles be compressed
+    using the named algorithm.
 
     For example, the rotation pattern `D:gz` rotates logs daily and
     GZip-compresses rotated-out logfiles.
