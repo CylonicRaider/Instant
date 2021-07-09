@@ -10,9 +10,6 @@ import sys, time
 import operator
 import instabot, id2time, scribe
 
-# Provide a fancy __name__ for help display.
-class msgid(id2time.MessageID): pass
-
 # Return msglist sorted in the order it would be put into by the Web client.
 # NOTE that messages' immediate parents might be missing.
 def sort_threads(msglist):
@@ -95,6 +92,10 @@ class LogFormatter:
     # newline.
     def format_logs(self, msglist, uuids=None):
         return '\n'.join(self.format_logs_stream(msglist, uuids))
+
+# Provide a fancy __name__ for help display.
+def msgid(text):
+    return id2time.MessageID(text)
 
 def main():
     # Parse command line
