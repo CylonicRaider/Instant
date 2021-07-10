@@ -14,6 +14,7 @@ import json
 import sqlite3
 
 import websocket_server
+
 import instabot
 
 NICKNAME = 'Scribe'

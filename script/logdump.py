@@ -8,6 +8,7 @@ pretty-printer.
 
 import sys, time
 import operator
+
 import instabot, id2time, scribe
 
 # Return msglist sorted in the order it would be put into by the Web client.

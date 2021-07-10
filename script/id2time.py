@@ -7,6 +7,7 @@ A script converting Instant message ID-s from and to timestamps.
 
 import sys, re, time, calendar
 import collections
+
 import instabot
 
 __all__ = ['MessageID', 'id2time', 'time2id', 'parse_time', 'parse',
