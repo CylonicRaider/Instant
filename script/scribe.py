@@ -411,6 +411,7 @@ def read_posts_ex(logger, maxlen=None):
         ret = [i for i in ret if i['id'] not in delset]
         ret.sort()
         ret = ret[-maxlen:]
+        kset.update(i['from'] for i in ret)
         uuids = dict((k, v) for k, v in uuids.items() if k in kset)
         dels[:] = []
         return (ret, uuids)
