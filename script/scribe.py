@@ -408,12 +408,14 @@ class LogDBSQLite(LogDB):
 def read_posts_ex(logger, maxlen=None):
     def truncate(ret, uuids):
         delset, kset = set(dels), set(sorted(uuids)[-maxlen:])
+        cur_ids = set(i['id'] for i in ret)
+        dels[:] = [d for d in dels if d not in cur_ids]
         ret = [i for i in ret if i['id'] not in delset]
         ret.sort()
         ret = ret[-maxlen:]
         kset.update(i['from'] for i in ret)
         uuids = dict((k, v) for k, v in uuids.items() if k in kset)
-        dels[:] = []
+        seen.intersection_update(i['id'] for i in ret)
         return (ret, uuids)
     def prune(ret, uuids):
         delset = set(dels)
@@ -421,7 +423,7 @@ def read_posts_ex(logger, maxlen=None):
         return (ret, uuids)
     TAGS = frozenset(('SCRIBE', 'POST', 'LOGPOST', 'MESSAGE', 'DELETE',
                       'UUID'))
-    cver, froms, dels, ret, uuids = (), {}, [], [], {}
+    cver, froms, dels, ret, uuids, seen = (), {}, [], [], {}, set()
     n = 0
     for ts, tag, values in logger.read_back(TAGS.__contains__):
         if tag == 'SCRIBE':
@@ -464,13 +466,17 @@ def read_posts_ex(logger, maxlen=None):
             continue
         else:
             continue
-        if 'id' not in values: continue
+        if 'id' not in values or values['id'] in seen:
+            continue
+        seen.add(values['id'])
         values = LogEntry(values)
         if 'timestamp' not in values:
             values['timestamp'] = LogEntry.derive_timestamp(values['id'])
         if 'text' not in values and 'content' in values:
             values['text'] = values['content']
             del values['content']
+        if 'from' not in values and values['id'] in froms:
+            values['from'] = froms[values['id']]
         ret.append(values)
         if maxlen is not None and len(ret) >= 2 * maxlen:
             ret, uuids = truncate(ret, uuids)
@@ -479,9 +485,6 @@ def read_posts_ex(logger, maxlen=None):
     else:
         ret, uuids = prune(ret, uuids)
     ret.sort(key=lambda x: x['id'])
-    for e in ret:
-        if 'from' not in e and e['id'] in froms:
-            e['from'] = froms[e['id']]
     return (ret, uuids)
 def read_posts(logger, maxlen=None):
     return read_posts_ex(logger, maxlen)[0]
