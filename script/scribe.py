@@ -405,7 +405,7 @@ class LogDBSQLite(LogDB):
     def close(self):
         self.conn.close()
 
-def read_posts_ex(logger, maxlen=None):
+def read_posts_ex(logger, maxlen=None, filt=None):
     def truncate(ret, uuids):
         delset, kset = set(dels), set(sorted(uuids)[-maxlen:])
         cur_ids = set(i['id'] for i in ret)
@@ -477,6 +477,8 @@ def read_posts_ex(logger, maxlen=None):
             del values['content']
         if 'from' not in values and values['id'] in froms:
             values['from'] = froms[values['id']]
+        if filt and not filt(values, {'uuid': uuids.get(values['id'])}):
+            continue
         ret.append(values)
         if maxlen is not None and len(ret) >= 2 * maxlen:
             ret, uuids = truncate(ret, uuids)
@@ -486,8 +488,8 @@ def read_posts_ex(logger, maxlen=None):
         ret, uuids = prune(ret, uuids)
     ret.sort(key=lambda x: x['id'])
     return (ret, uuids)
-def read_posts(logger, maxlen=None):
-    return read_posts_ex(logger, maxlen)[0]
+def read_posts(logger, maxlen=None, filt=None):
+    return read_posts_ex(logger, maxlen, filt)[0]
 
 class Scribe(instabot.Bot):
     NICKNAME = NICKNAME
