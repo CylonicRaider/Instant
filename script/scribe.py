@@ -421,17 +421,18 @@ def read_posts_ex(logger, maxlen=None, filt=None):
         delset = set(dels)
         ret = [i for i in ret if i['id'] not in delset]
         return (ret, uuids)
-    TAGS = frozenset(('SCRIBE', 'POST', 'LOGPOST', 'MESSAGE', 'DELETE',
+    allow_tags = set(('SCRIBE', 'POST', 'LOGPOST', 'MESSAGE', 'DELETE',
                       'UUID'))
     cver, froms, dels, ret, uuids, seen = (), {}, [], [], {}, set()
     n = 0
-    for ts, tag, values in logger.read_back(TAGS.__contains__):
+    for ts, tag, values in logger.read_back(allow_tags.__contains__):
         if tag == 'SCRIBE':
             cver = parse_version(values.get('version'))
+            if cver >= (1, 2): allow_tags.discard('MESSAGE')
             continue
         if tag in ('POST', 'LOGPOST'):
             pass
-        elif cver < (1, 2) and tag == 'MESSAGE':
+        elif tag == 'MESSAGE':
             try:
                 msg = json.loads(values.get('content'))
             except (TypeError, ValueError):
@@ -476,7 +477,7 @@ def read_posts_ex(logger, maxlen=None, filt=None):
             values['text'] = values['content']
             del values['content']
         if 'from' not in values and values['id'] in froms:
-            values['from'] = froms[values['id']]
+            values['from'] = froms.pop(values['id'])
         if filt and not filt(values, {'uuid': uuids.get(values['id'])}):
             continue
         ret.append(values)
