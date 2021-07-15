@@ -1841,8 +1841,8 @@ class OptionParser:
         see _set_accum() for means of doing otherwise.
         """
         opt = {'option': name, 'varname': varname or name, 'value': value,
-            'omissible': True, 'help': kwds.get('help'),
-            'short': kwds.get('short')}
+               'omissible': not kwds.get('required'),
+               'help': kwds.get('help'), 'short': kwds.get('short')}
         self._set_accum(opt, kwds)
         self._make_desc(opt, name, None)
         self._add_option(opt, kwds)
@@ -1868,8 +1868,9 @@ class OptionParser:
         function: A callable to execute when the option is encountered. Takes
                   no arguments and the return value is ignored.
         """
-        opt = {'option': name, 'omissible': True, 'action': function,
-            'help': kwds.get('help'), 'short': kwds.get('short')}
+        opt = {'option': name, 'omissible': not kwds.get('required'),
+               'action': function, 'help': kwds.get('help'),
+               'short': kwds.get('short')}
         self._make_desc(opt, name, None)
         self._add_option(opt, kwds)
     def argument(self, name=None, type=None, **kwds):
@@ -1894,7 +1895,8 @@ class OptionParser:
         """
         if type is None: type = str
         placeholder = kwds.get('placeholder', '<%s>' % name)
-        arg = {'varname': name, 'convert': type, 'help': kwds.get('help')}
+        arg = {'varname': name, 'convert': type, 'help': kwds.get('help'),
+               'omissible': not kwds.get('required')}
         self._set_accum(arg, kwds)
         self._make_desc(arg, None, placeholder)
         self.arguments.append(arg)
