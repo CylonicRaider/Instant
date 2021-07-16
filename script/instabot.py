@@ -1815,8 +1815,8 @@ class OptionParser:
         except KeyError:
             placeholder = '<%s>' % type.__name__
         opt = {'option': name, 'argument': True, 'convert': type,
-            'varname': kwds.get('varname', name), 'default': default,
-            'help': kwds.get('help'), 'short': kwds.get('short')}
+              'varname': kwds.get('varname', name), 'default': default,
+              'help': kwds.get('help'), 'short': kwds.get('short')}
         self._set_accum(opt, kwds)
         self._make_desc(opt, name, placeholder)
         self._add_option(opt, kwds)
@@ -1979,6 +1979,9 @@ class OptionParser:
             if opt.get('action'):
                 opt['action']()
                 return
+            sv, varname = self.values, opt['varname']
+            if varname not in sv and 'default' in opt:
+                sv[varname] = opt['default']
             if value is None:
                 try:
                     value = opt['value']
@@ -1986,15 +1989,21 @@ class OptionParser:
                     value = parser.argument(opt.get('convert'))
             else:
                 value = opt.get('convert', str)(value)
-            sv, varname = self.values, opt['varname']
             if 'accum' in opt:
                 sv[varname] = opt['accum'](sv[varname], value)
             else:
                 sv[varname] = value
+        def process_final(opt):
+            if opt.get('action'):
+                return True
+            sv, varname = self.values, opt['varname']
+            if varname in sv:
+                return True
+            elif 'default' in opt:
+                sv[varname] = opt['default']
+                return True
+            return opt.get('omissible')
         if args is None: args = sys.argv[1:]
-        for item in list(self.options.values()) + self.arguments:
-            if 'default' not in item: continue
-            self.values.setdefault(item['varname'], item['default'])
         parser = self.Scanner(args)
         for tp, arg in parser:
             if tp == 'arg':
@@ -2017,12 +2026,10 @@ class OptionParser:
                     parser.unknown()
                 process(opt)
         for opt in self.options.values():
-            if opt.get('omissible') or opt['varname'] in self.values:
-                continue
+            if process_final(opt): continue
             parser.die('Missing required option %r' % ('--' + opt['option']))
         for opt in self.arguments:
-            if opt.get('omissible') or opt['varname'] in self.values:
-                continue
+            if process_final(opt): continue
             parser.toofew()
     def get(self, *names, **kwds):
         """
