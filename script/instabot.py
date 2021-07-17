@@ -1999,10 +1999,10 @@ class OptionParser:
             sv, varname = self.values, opt['varname']
             if varname in sv:
                 return True
-            elif 'default' in opt:
+            elif 'default' in opt and opt.get('omissible'):
                 sv[varname] = opt['default']
                 return True
-            return opt.get('omissible')
+            return False
         if args is None: args = sys.argv[1:]
         parser = self.Scanner(args)
         for tp, arg in parser:
