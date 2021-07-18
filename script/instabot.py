@@ -1784,7 +1784,7 @@ class OptionParser:
             res += ' ' + placeholder
         if opt.get('accum'):
             res += ' [...]'
-        if 'default' in opt or opt.get('omissible'):
+        if opt.get('omissible'):
             res = '[%s]' % res
         opt['desc'] = res
     def option(self, name, default=None, type=None, **kwds):
@@ -1801,6 +1801,8 @@ class OptionParser:
                      name.
         default    : The default value for the argument (note that this does
                      *not* undergo conversion via type).
+        required   : Whether the option must be specified. This need not
+                     conflict with default (such as for accumulating options).
         type       : A callable that takes a string and converts it to some
                      desired type; defaults to str().
         placeholder: A string to represent the argument in usage listings;
@@ -1815,8 +1817,9 @@ class OptionParser:
         except KeyError:
             placeholder = '<%s>' % type.__name__
         opt = {'option': name, 'argument': True, 'convert': type,
-              'varname': kwds.get('varname', name), 'default': default,
-              'help': kwds.get('help'), 'short': kwds.get('short')}
+               'varname': kwds.get('varname', name), 'default': default,
+               'omissible': not kwds.get('required'),
+               'help': kwds.get('help'), 'short': kwds.get('short')}
         self._set_accum(opt, kwds)
         self._make_desc(opt, name, placeholder)
         self._add_option(opt, kwds)
@@ -1825,18 +1828,20 @@ class OptionParser:
         Declare an option taking no argument.
 
         The following arguments may be passed:
-        name   : The name of the flag (without the leading "--").
-        short  : A single letter (or character) naming a short equivalent for
-                 this flag.
-        help   : A description of the flag for the help listing.
-        value  : The value to store when the flag is specified.
-        varname: At which key to store the value True if the flag is
-                 specified; defaults to name.
-        default: The default value to use when the flag is not specified. If
-                 omitted, nothing is stored when the flag does not appear on
-                 the command line; this allows letting a flag set a special
-                 value for another option without messing up its default
-                 value.
+        name    : The name of the flag (without the leading "--").
+        short   : A single letter (or character) naming a short equivalent for
+                  this flag.
+        help    : A description of the flag for the help listing.
+        value   : The value to store when the flag is specified.
+        varname : At which key to store the value True if the flag is
+                  specified; defaults to name.
+        default : The default value to use when the flag is not specified. If
+                  omitted, nothing is stored when the flag does not appear on
+                  the command line; this allows letting a flag set a special
+                  value for another option without messing up its default
+                  value.
+        required: Whether the flag must necessarily be specified. Rarely
+                  useful.
         As default subsequent appearances of the flag override earlier ones;
         see _set_accum() for means of doing otherwise.
         """
@@ -1868,9 +1873,8 @@ class OptionParser:
         function: A callable to execute when the option is encountered. Takes
                   no arguments and the return value is ignored.
         """
-        opt = {'option': name, 'omissible': not kwds.get('required'),
-               'action': function, 'help': kwds.get('help'),
-               'short': kwds.get('short')}
+        opt = {'option': name, 'action': function, 'omissible': True,
+               'help': kwds.get('help'), 'short': kwds.get('short')}
         self._make_desc(opt, name, None)
         self._add_option(opt, kwds)
     def argument(self, name=None, type=None, **kwds):
@@ -1884,6 +1888,7 @@ class OptionParser:
         default    : The default value to use if the argument is not
                      specified. If no default is specified and the argument
                      is not passed, the parser aborts.
+        required   : Whether the argument must necessarily be specified.
         type       : A callable that takes a string and converts it to some
                      desired type; defaults to str().
         placeholder: A string to represent the argument in usage listings;
