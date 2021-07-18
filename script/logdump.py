@@ -94,6 +94,12 @@ class LogFormatter:
     def format_logs(self, msglist, uuids=None):
         return '\n'.join(self.format_logs_stream(msglist, uuids))
 
+    # Write formatted message logs to the given stream.
+    # Each message (including the last one) is written as a full line.
+    def format_logs_to(self, stream, msglist, uuids=None):
+        for msg in self.format_logs_stream(msglist, uuids):
+            stream.write(msg + '\n')
+
 # Provide a fancy __name__ for help display.
 def msgid(text):
     return id2time.MessageID(text)
@@ -138,7 +144,6 @@ def main():
     fmt = LogFormatter(detail=p.get('detail'), mono=p.get('mono'))
     output, outmode = p.get('output', 'outmode')
     with instabot.open_file(output, outmode) as outfile:
-        for s in fmt.format_logs_stream(messages, uuids):
-            outfile.write(s + '\n')
+        fmt.format_logs_to(outfile, messages, uuids)
 
 if __name__ == '__main__': main()
