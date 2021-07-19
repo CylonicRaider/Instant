@@ -5,11 +5,14 @@
 A script converting Instant message logs between different formats.
 """
 
-import sys
+import sys, os
 
 import instabot
 import scribe
 import logdump
+
+FORMAT_EXTENSIONS = {'sqlite': 'db', 'db': 'db', 'log': 'log', 'txt': 'text',
+                     None: 'text'}
 
 READERS, WRITERS = {}, {}
 
@@ -80,12 +83,26 @@ def write_text(filename, messages, uuids):
         fmt.format_logs_to(fp, messages, uuids)
 
 def main():
+    def guess_format(filename):
+        if filename == '-':
+            return FORMAT_EXTENSIONS[None]
+        stem, ext = os.path.splitext(filename)
+        if not ext:
+            return FORMAT_EXTENSIONS[None]
+        try:
+            return FORMAT_EXTENSIONS[ext.replace('.', '')]
+        except KeyError:
+            raise SystemExit('ERROR: Cannot guess format of file %r' %
+                             (filename,))
+
     p = instabot.OptionParser(sys.argv[0])
     p.help_action(desc='Interconvert various Instant message log formats.')
-    p.option('from', short='f', required=True,
-             help='Format of the input data')
-    p.option('to', short='t', required=True,
-             help='Format of the output')
+    p.option('from', short='f',
+             help='Format of the input data (default: guessed from file '
+                  'extension, or an error for standard input)')
+    p.option('to', short='t',
+             help='Format of the output (default: guessed from file '
+                  'extension, or "text" for standard output)')
     p.option('output', short='o', default='-',
              help='Where to write the results (- is standard output and the '
                   'default)')
@@ -95,10 +112,12 @@ def main():
     p.parse(sys.argv[1:])
     fmt_f, fmt_t, file_f, file_t = p.get('from', 'to', 'input', 'output')
     try:
+        if fmt_f is None: fmt_f = guess_format(file_f)
         reader = READERS[fmt_f]
     except KeyError:
         raise SystemExit('ERROR: Unrecognized --from format: %r' % fmt_f)
     try:
+        if fmt_t is None: fmt_t = guess_format(file_t)
         writer = WRITERS[fmt_t]
     except KeyError:
         raise SystemExit('ERROR: Unrecognized --to format: %r' % fmt_f)
