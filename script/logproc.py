@@ -9,7 +9,7 @@ import sys, os
 
 import instabot
 import scribe
-import logdump
+import id2time, logdump
 
 FORMAT_EXTENSIONS = {'sqlite': 'db', 'db': 'db', 'log': 'log', 'txt': 'text',
                      None: 'text'}
@@ -83,6 +83,19 @@ def write_text(filename, messages, uuids):
         fmt.format_logs_to(fp, messages, uuids)
 
 def main():
+    def select(text):
+        key, sep, value = text.partition('=')
+        if not sep:
+            raise ValueError('Invalid selection: %r' % (text,))
+        elif key in ('from', 'to'):
+            reference = id2time.parse(value)
+            return ((0 if key == 'from' else 1), reference.format_id())
+        elif key == 'count':
+            count = int(value)
+            return (2, count)
+        else:
+            raise ValueError('Invalid selection key: %r' % (key,))
+
     def guess_format(filename):
         if filename == '-':
             return FORMAT_EXTENSIONS[None]
@@ -103,6 +116,8 @@ def main():
     p.option('to', short='t',
              help='Format of the output (default: guessed from file '
                   'extension, or "text" for standard output)')
+    p.option('select', short='s', type=select, accum=True, default=[],
+             help='Only process the messages matching the given criterion')
     p.option('output', short='o', default='-',
              help='Where to write the results (- is standard output and the '
                   'default)')
@@ -121,7 +136,10 @@ def main():
         writer = WRITERS[fmt_t]
     except KeyError:
         raise SystemExit('ERROR: Unrecognized --to format: %r' % fmt_f)
-    messages, uuids = reader(file_f, (None, None, None))
+    bounds = [None, None, None]
+    for i, v in p.get('select'):
+        bounds[i] = v
+    messages, uuids = reader(file_f, bounds)
     writer(file_t, messages, uuids)
 
 if __name__ == '__main__': main()
