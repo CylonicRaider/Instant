@@ -1618,8 +1618,8 @@ class ArgScanner:
             return arg
         except StopIteration:
             self._die_opt('Missing required argument')
-        except ValueError:
-            self._die_opt('Bad argument', tail=': %r' % (arg,))
+        except ValueError as exc:
+            self._die_opt('Bad argument %r' % (arg,), tail=': %s' % (exc,))
     def die(self, msg=None):
         """
         Raise a SystemExit exception with the given (optional) message.
