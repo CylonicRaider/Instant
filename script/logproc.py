@@ -14,6 +14,8 @@ import id2time, logdump
 FORMAT_EXTENSIONS = {'sqlite': 'db', 'db': 'db', 'log': 'log', 'txt': 'text',
                      None: 'text'}
 
+class OptionError(Exception): pass
+
 READERS, WRITERS = {}, {}
 
 def reader(fmt):
@@ -21,11 +23,32 @@ def reader(fmt):
         READERS[fmt] = func
         return func
     return cb
-def writer(fmt):
+def writer(fmt, option_descs=None):
     def cb(func):
-        WRITERS[fmt] = func
+        WRITERS[fmt] = (func, option_descs)
         return func
+    if option_descs is None: option_descs = {}
     return cb
+
+def parse_options(values, types):
+    seen, result = set(), {}
+    for k, v in values.items():
+        try:
+            cvt, empty = types[k][:2]
+        except KeyError:
+            raise OptionError('Unrecognized option %r' % (key,))
+        if v is None:
+            result[k] = empty
+            continue
+        try:
+            result[k] = cvt(v)
+        except ValueError as exc:
+            raise OptionError('Invalid value %r for option %r: %s' %
+                              (v, k, exc))
+    for key, desc in types.items():
+        if len(desc) >= 3 and key not in result:
+            result[key] = desc[2]
+    return result
 
 @reader('log')
 def read_scribe(filename, bounds):
@@ -64,7 +87,7 @@ def read_db(filename, bounds):
     return messages, uuids
 
 @writer('db')
-def write_db(filename, messages, uuids):
+def write_db(filename, messages, uuids, options):
     if filename == '-':
         raise RuntimeError('Cannot write database to standard output')
     db = scribe.LogDBSQLite(filename)
@@ -76,13 +99,17 @@ def write_db(filename, messages, uuids):
         db.close()
 
 @writer('text')
-def write_text(filename, messages, uuids):
+def write_text(filename, messages, uuids, options):
     messages = logdump.sort_threads(messages)
     fmt = logdump.LogFormatter()
     with instabot.open_file(filename, 'w') as fp:
         fmt.format_logs_to(fp, messages, uuids)
 
 def main():
+    def pair(text):
+        key, sep, value = text.partition('=')
+        return (key, None) if not sep else (key, value)
+
     def select(text):
         key, sep, value = text.partition('=')
         if not sep:
@@ -121,6 +148,8 @@ def main():
     p.option('output', short='o', default='-',
              help='Where to write the results (- is standard output and the '
                   'default)')
+    p.option('option', short='v', type=pair, accum=True, default=[],
+             help='Pass generic options to the output writer')
     p.argument('input', default='-',
                help='Where to read data from (- is standard input and the '
                     'default)')
@@ -133,13 +162,17 @@ def main():
         raise SystemExit('ERROR: Unrecognized --from format: %r' % fmt_f)
     try:
         if fmt_t is None: fmt_t = guess_format(file_t)
-        writer = WRITERS[fmt_t]
+        writer, option_descs = WRITERS[fmt_t]
     except KeyError:
         raise SystemExit('ERROR: Unrecognized --to format: %r' % fmt_f)
+    try:
+        options = parse_options(dict(p.get('option')), option_descs)
+    except OptionError as exc:
+        raise SystemExit('ERROR: %s' % (exc,))
     bounds = [None, None, None]
     for i, v in p.get('select'):
         bounds[i] = v
     messages, uuids = reader(file_f, bounds)
-    writer(file_t, messages, uuids)
+    writer(file_t, messages, uuids, options)
 
 if __name__ == '__main__': main()
