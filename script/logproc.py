@@ -34,20 +34,23 @@ def parse_options(values, types):
     seen, result = set(), {}
     for k, v in values.items():
         try:
-            cvt, empty = types[k][:2]
+            desc = types[k]
         except KeyError:
             raise OptionError('Unrecognized option %r' % (key,))
+        seen.add(k)
         if v is None:
-            result[k] = empty
-            continue
+            if len(desc) >= 3:
+                result[k] = desc[2]
+                continue
+            v = ''
         try:
-            result[k] = cvt(v)
+            result[k] = desc[0](v)
         except ValueError as exc:
             raise OptionError('Invalid value %r for option %r: %s' %
                               (v, k, exc))
     for key, desc in types.items():
-        if len(desc) >= 3 and key not in result:
-            result[key] = desc[2]
+        if len(desc) >= 2 and key not in seen:
+            result[key] = desc[1]
     return result
 
 @reader('log')
