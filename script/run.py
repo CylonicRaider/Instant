@@ -738,7 +738,10 @@ def operation(**params):
         if not func.__name__.startswith('do_'):
             raise ValueError('Unrecognized operation function name')
         opname = func.__name__[3:]
-        argspec = inspect.getargspec(func)
+        try:
+            argspec = inspect.getfullargspec(func)
+        except AttributeError:
+            argspec = inspect.getargspec(func)
         defaultlist = argspec.defaults or ()
         defaults = dict(zip(argspec.args[-len(defaultlist):], defaultlist))
         OPERATIONS[opname] = {'cb': func, 'doc': func.__doc__, 'types': types,
