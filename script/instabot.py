@@ -1724,23 +1724,41 @@ class OptionParser:
         The following entries of kwds are interpreted:
         default: If given (and the default argument of this function is true),
                  this configures the default value of the option.
-        accum  : If this is a callable, it is an "accumulator" function that
-                 is invoked for every appearance of the option on the command
-                 line, given two arguments (the current state of the
-                 accumulator, initialized as the option's default value (which
-                 must be provided in this case, or parsing fails), and the
-                 converted value of the latest incarnation of the option), and
-                 returns the new value for the option. Otherwise, if this is a
-                 truthy value, a default accumulator function is substituted
-                 depending on the option's default value: If the default is
-                 absent or a Python list, a function that appends to the given
-                 list is used; otherwise, a function that invokes the "+="
-                 operator on the accumulator is used. Finally, if accum is
-                 falsy or absent, no accumulation is done and each appearance
-                 of the option overwrites any values stored by previous ones.
+        accum  : This can be one of multiple things.
+                 - If this is a callable, it is an "accumulator" function that
+                   is invoked for every appearance of the option on the
+                   command line, given two arguments (the current state of the
+                   accumulator, initialized as the option's default value
+                   (which must be provided in this case, or parsing fails),
+                   and the converted value of the latest incarnation of the
+                   option), and returns the new value for the option.
+                 - If this is a string, it refers to one of the built-in
+                   accumulator options provided for convenience:
+                   increment: Invokes the "+=" operator on the
+                              already-accumulated value and the new item.
+                   append   : Assumes that the accumulator is a list, and
+                              appends the new item to it.
+                   extend   : Assumes that the accumulator is a list, and
+                              extends it by the new item (which, hence, must
+                              be iterable).
+                   Unknown string values result in failure to build the option
+                   parser.
+                 - Otherwise, if this is a truthy value, a default accumulator
+                   function is substituted depending on the option's default
+                   value:
+                   - If the default is absent or a Python list, a function
+                     that appends to the given list is used;
+                   - Otherwise, a function that invokes the "+=" operator on
+                     the accumulator is used.
+                 - Finally, if accum is falsy or absent, no accumulation is
+                   done and each appearance of the option overwrites any
+                   values stored by previous ones.
         """
         def accum_list(list, item):
             list.append(item)
+            return list
+        def accum_list_multi(list, items):
+            list.extend(items)
             return list
         def accum_add(accum, item):
             accum += item
@@ -1751,6 +1769,9 @@ class OptionParser:
             pass
         elif callable(kwds['accum']):
             opt['accum'] = kwds['accum']
+        elif isinstance(kwds['accum'], str):
+            opt['accum'] = {'increment': accum_add, 'append': accum_list,
+                            'extend': accum_list_multi}[kwds['accum']]
         elif kwds['accum']:
             if 'default' not in opt:
                 opt['default'] = []
