@@ -80,7 +80,8 @@ class LogFormatter:
         if uuids is None: uuids = {}
         stack, res = [], []
         for m in msglist:
-            while stack and stack[-1] != m.get('parent'): stack.pop()
+            while stack and stack[-1] != m.get('parent'):
+                stack.pop()
             if m.get('parent') is not None and not stack:
                 yield prefix(None) + '| ' * len(stack) + '...'
                 stack.append(m['parent'])
