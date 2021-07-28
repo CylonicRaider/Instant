@@ -66,6 +66,11 @@ class LogDB:
     def __init__(self, maxlen=None):
         if maxlen is None: maxlen = MAXLEN
         self.maxlen = maxlen
+    def __enter__(self):
+        self.init()
+        return self
+    def __exit__(self, *exc_info):
+        self.close()
     def init(self):
         pass
     def capacity(self):
