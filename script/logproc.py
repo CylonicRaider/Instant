@@ -72,22 +72,13 @@ def read_scribe(filename, bounds):
                                            message_filter)
         db.extend(logs)
         db.extend_uuid(uuids)
-    messages = db.query(bounds[0], bounds[1], bounds[2])
-    uuids = db.query_uuid(m['from'] for m in messages)
-    return messages, uuids
+    return db
 
 @reader('db')
 def read_db(filename, bounds):
     if filename == '-':
         raise RuntimeError('Cannot read database from standard input')
-    db = scribe.LogDBSQLite(filename)
-    db.init()
-    try:
-        messages = db.query(bounds[0], bounds[1], bounds[2])
-        uuids = db.query_uuid(m['from'] for m in messages)
-    finally:
-        db.close()
-    return messages, uuids
+    return scribe.LogDBSQLite(filename)
 
 @writer('db')
 def write_db(filename, messages, uuids, options):
@@ -176,7 +167,10 @@ def main():
     bounds = [None, None, None]
     for i, v in p.get('select'):
         bounds[i] = v
-    messages, uuids = reader(file_f, bounds)
+    db = reader(file_f, bounds)
+    with db:
+        messages = db.query(bounds[0], bounds[1], bounds[2])
+        uuids = db.query_uuid(m['from'] for m in messages)
     writer(file_t, messages, uuids, options)
 
 if __name__ == '__main__': main()
