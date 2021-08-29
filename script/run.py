@@ -37,6 +37,10 @@ ESCAPE_CHARS = {'\\\\': '\\', '\\ ': ' ', '\\n': '\n', '\\z': ''}
 WHITESPACE_RE = re.compile(r'\s')
 LEADING_WORD_RE = re.compile(r'^\S+?(?=:?\s|$)')
 
+SHELL_BAREWORD_RE = re.compile(r'^[a-zA-Z0-9%+,./:^_-]+$')
+SHELL_SQUOTE_RE = re.compile(r"^[^']*$")
+SHELL_DQUOTE_ESCAPE = re.compile(r'["$`\\]')
+
 THIS_FILE = os.path.abspath(inspect.getfile(lambda: None))
 
 class RunnerError(Exception): pass
@@ -69,11 +73,28 @@ def find_dict_key(data, value):
     else:
         raise LookupError(value)
 
+def keep_keys(data, keys):
+    result = {}
+    for k in keys:
+        if k in data:
+            result[k] = data[k]
+    return result
+
 def cast_if_true(tp, value, default=None):
     if value:
         return tp(value)
     else:
         return default
+
+def shell_quote(s):
+    def escape_char(m):
+        return '\\%s' % m.group(0)
+    if SHELL_BAREWORD_RE.match(s):
+        return s
+    elif SHELL_SQUOTE_RE.match(s):
+        return "'%s'" % s
+    else:
+        return '"' + SHELL_DQUOTE_ESCAPE.sub(escape_char, s) + '"'
 
 def safe_makedirs(path):
     try:
@@ -423,11 +444,25 @@ class BaseProcess:
         status = self._extra_status(status)
         yield exit(status)
 
+    def _show_detail(self):
+        status = yield coroutines.Call(self.status())
+        yield coroutines.Exit('status=%s' % (status,))
+
+    def show(self, verbose=False):
+        details = yield coroutines.Call(self._show_detail())
+        result = '[%s]\n%s' % (self.name, details)
+        yield VerboseExit(result, verbose, None)
+
 class Process(BaseProcess):
     def __init__(self, name, command, config, manager=None):
         BaseProcess.__init__(self, name, PIDFile(config.get('pid-file',
             DEFAULT_PIDFILE_TEMPLATE % name)), manager)
+        config = keep_keys(config, ('name', 'cmdline', 'env', 'mkdirs',
+            'pid-file-warmup', 'work-dir', 'stdin', 'stdout', 'stderr',
+            'stop-wait', 'restart-delay', 'restart-min-alive',
+            'startup-notify'))
         self.command = command
+        self.config = config
         self.env = config.get('env', {})
         self.mkdirs = config.get('mkdirs', ())
         self.pidfile_next = PIDFile(config.get('pid-file-warmup',
@@ -607,6 +642,27 @@ class Process(BaseProcess):
         finally:
             self._lock.release()
 
+    def _show_detail(self):
+        base_result = yield coroutines.Call(BaseProcess._show_detail(self))
+        result = []
+        for key, value in self.config.items():
+            if key == 'name':
+                # The name is included in the heading.
+                continue
+            elif isinstance(value, str):
+                value_str = value
+            elif isinstance(value, (tuple, list)):
+                value_str = ' '.join(map(shell_quote, value))
+            elif isinstance(value, dict):
+                value_str = ' '.join('%s=%s' % (k, shell_quote(v))
+                                     for k, v in value.items())
+            else:
+                raise TypeError('Invalid configuration type %r' %
+                                (type(value),))
+            result.append('%s=%s' % (key, value_str.replace('\n', ' ')))
+        result.append(base_result)
+        yield coroutines.Exit('\n'.join(result))
+
 class ProcessHusk(BaseProcess):
     def warmup(self, wait=True, verbose=False):
         exit = self._make_exit('warmup', verbose)
@@ -636,6 +692,11 @@ class ProcessHusk(BaseProcess):
             yield exit(status)
         finally:
             self._lock.release()
+
+    def _show_detail(self):
+        base_result = yield coroutines.Call(BaseProcess._show_detail(self))
+        result = 'type=HUSK\n' + base_result
+        yield coroutines.Exit(result)
 
 class ProcessGroup:
     def __init__(self):
@@ -670,6 +731,22 @@ class ProcessGroup:
                 proc.restore_inherit(value)
                 self.add(proc)
 
+    def _resolve_procs(self, procs):
+        if procs is None:
+            return self.processes
+        result = []
+        lookup = {p.name: p for p in self.processes}
+        lookup.update({p: p for p in self.processes})
+        remaining = set(procs)
+        for p in procs:
+            resolved = lookup.get(p)
+            if not resolved: continue
+            result.append(resolved)
+            remaining.discard(p)
+        if remaining:
+            raise NoSuchProcessesError(remaining)
+        return result
+
     def _for_each(self, procs, handler, prune=False, sort=False, **kwds):
         def sort_key(report):
             m = LEADING_WORD_RE.match(report)
@@ -687,20 +764,7 @@ class ProcessGroup:
             kwds['verbose'] = lambda text: reports.append(text)
         else:
             orig_verbose = None
-        if procs is None:
-            eff_procs = self.processes
-        else:
-            eff_procs = []
-            lookup = {p.name: p for p in self.processes}
-            lookup.update({p: p for p in self.processes})
-            remaining = set(procs)
-            for p in procs:
-                resolved = lookup.get(p)
-                if not resolved: continue
-                eff_procs.append(resolved)
-                remaining.discard(p)
-            if remaining:
-                raise NoSuchProcessesError(remaining)
+        eff_procs = self._resolve_procs(procs)
         sort_groups = [p.name for p in eff_procs]
         reports = []
         calls = [coroutines.Call(handler(p, **kwds)) for p in eff_procs]
@@ -731,6 +795,9 @@ class ProcessGroup:
 
     def status(self, verbose=False, procs=None, sort=False):
         return self._for_each(procs, 'status', sort=sort, verbose=verbose)
+
+    def show(self, verbose=False, procs=None):
+        return self._for_each(procs, 'show', verbose=verbose)
 
 OPERATIONS = {}
 def operation(**params):
@@ -930,6 +997,12 @@ class ProcessManager:
         "Query the status of the given processes"
         kwds = {'verbose': verbose, 'procs': procs, 'sort': sort}
         yield coroutines.Call(self.group.status(**kwds))
+
+    @operation(verbose=(bool, 'Whether to show anything'),
+               procs=(list, 'The processes to query', 'all'))
+    def do_show(self, verbose=True, procs=None):
+        "Display detailed information about the given processes"
+        yield coroutines.Call(self.group.show(verbose=verbose, procs=procs))
 
 REMOTE_COMMANDS = {}
 def command(name, minargs=0, maxargs=None):
