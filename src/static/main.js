@@ -2445,8 +2445,22 @@ this.Instant = function() {
           return new RegExp(s.replace(/%PM%/g, pm).replace(/%ME%/g, me));
         }
         /* Important regexes */
-        var URL_RE = new RegExp('(((?!javascript:)[a-zA-Z]+:(//)?)?' +
-          '([a-zA-Z0-9._~-]+@)?([a-zA-Z0-9.-]+)(:[0-9]+)?(/[^>]*)?)');
+        var URL_RE = new RegExp('(' +
+          // Alternative 1: Traditional URL syntax, mildly abused to allow
+          //                starting immediately at the host name.
+          // Scheme.
+          '((?!javascript:)[a-zA-Z+-]+://)?' +
+          // Userinfo.
+          '([a-zA-Z0-9%._~-]+@)?' +
+          // Host.
+          '([a-zA-Z0-9.-]+|\\[[a-zA-Z0-9.:-]+\\])' +
+          // Port.
+          '(:[0-9]+)?' +
+          // Path, query, fragment.
+          '(/[^>]*)?|' +
+          // Alternative 2: Scheme with bare scheme-specific-part.
+          '((?!javascript:)[a-zA-Z+-]+:)([^/][^>]*)?' +
+        ')', 'i');
         var pm = '[^()\\s]*', me = '[^.,:;!?()\\s]';
         var MENTION_RE = sm('%PM%(?:\\(%PM%\\)%PM%)*(?:\\(%PM%\\)|%ME%)');
         var PARTIAL_MENTION = sm('%PM%(?:\\(%PM%\\)%PM%)*(?:\\(%PM%)?');
@@ -2475,7 +2489,7 @@ this.Instant = function() {
         };
         var SMILEY_DEFAULT = '#c0c000';
         /* Auxiliary regex */
-        var ONLY_URL_RE = new RegExp('^' + URL_RE.source + '$');
+        var ONLY_URL_RE = new RegExp('^' + URL_RE.source + '$', 'i');
         /* Used for normalizing URL-s */
         var linkProbe = document.createElement('a');
         /* Helper: Quickly create a DOM node */
@@ -2495,8 +2509,59 @@ this.Instant = function() {
          * non-alphanumerical character, and, if strict is true, have a
          * scheme. */
         function urlIsValid(m, strict) {
-          if (strict && ! m[2]) return false;
+          if (strict && ! (m[2] || m[7])) return false;
           return /\w/.test(m[1]) && /\W/.test(m[1]);
+        }
+        /* Helper: Decompose the given URL into its parts
+         * url is either a string (which is parsed by applying URL_RE) or a
+         * match array corresponding to URL_RE. strict is forwarded to
+         * urlIsValid(). Returns an object detailing the elements of the URL,
+         * or null if the input is not recognized as a URL.
+         * The original URL can be reconstructed from the properties of the
+         * result objects in any of the following ways:
+         * - full
+         * - scheme + delim + authority + rest
+         * - scheme + delim + userinfo + host + port + rest */
+        function parseURL(url, strict) {
+          if (typeof url == 'string') url = ONLY_URL_RE.exec(url);
+          if (! url || ! urlIsValid(url, strict)) return null;
+          return (url[7]) ? {
+            scheme: url[7].replace(':', ''),
+            delim: ':',
+            userinfo: '',
+            host: '',
+            port: '',
+            authority: '',
+            rest: url[8],
+            full: url[1]
+          } : {
+            scheme: url[2].replace('://', ''),
+            delim: '://',
+            userinfo: url[3] || '',
+            host: url[4],
+            port: url[5] || '',
+            authority: (url[3] || '') + url[4] + (url[5] || ''),
+            rest: url[6] || '',
+            full: url[1]
+          };
+        }
+        /* Normalize the given URL description for equality comparison
+         * The scheme and the host name are converted into lower case. */
+        function normalizeURLDesc(desc) {
+          if (desc == null) return desc;
+          var normScheme = desc.scheme.toLowerCase();
+          var normHost = desc.host.toLowerCase();
+          return {
+            scheme: normScheme,
+            delim: desc.delim,
+            userinfo: desc.userinfo,
+            host: normHost,
+            port: desc.port,
+            authority: desc.userinfo + normHost + desc.port,
+            rest: desc.rest,
+            full: normScheme + desc.delim + desc.userinfo + normHost +
+                  desc.port + desc.rest
+          };
         }
         /* Helper: Create a link node
          * m must be a match of URL_RE (pattern fragments without capturing
@@ -2508,7 +2573,7 @@ this.Instant = function() {
             return null;
           /* Compute effective URL */
           var url = m[1];
-          if (! m[2]) url = 'http://' + url;
+          if (! m[2] && ! m[7]) url = 'http://' + url;
           /* Create result */
           var node = makeNode(m[1], 'link', null, 'a');
           node.href = url;
@@ -2574,7 +2639,7 @@ this.Instant = function() {
           },
           { /* Hyperlinks */
             name: 'link',
-            re: new RegExp('<' + URL_RE.source + '>'),
+            re: new RegExp('<' + URL_RE.source + '>', 'i'),
             cb: function(m, out, status) {
               /* Perform plausibility check and obtain link node */
               var linkNode = makeLink(m);
@@ -2590,7 +2655,7 @@ this.Instant = function() {
           },
           { /* Embeds */
             name: 'embed',
-            re: new RegExp('<!' + URL_RE.source + '>'),
+            re: new RegExp('<!' + URL_RE.source + '>', 'i'),
             cb: function(m, out, status) {
               /* Perform plausibility check and obtain link node */
               var linkNode = makeLink(m);
@@ -2926,12 +2991,15 @@ this.Instant = function() {
           PARTIAL_MENTION: PARTIAL_MENTION,
           SMILEY_RE: SMILEY_RE,
           ONLY_URL_RE: ONLY_URL_RE,
-          /* Helper: Quickly create a DOM node */
+          /* Helpers: Quickly create a generic/sigil DOM node */
           makeNode: makeNode,
-          /* Helper: Quickly create a sigil node */
           makeSigil: makeSigil,
-          /* Helper: Return whether the URL_RE match m is a plausible URL */
+          /* Helpers: Check if a URL_RE match is a plausible URL; decompose
+           *          the match (or a string) into components; normalize the
+           *          case of those. */
           urlIsValid: urlIsValid,
+          parseURL: parseURL,
+          normalizeURLDesc: normalizeURLDesc,
           /* Helper: Traverse all descendants of a given DOM node */
           traverse: traverse,
           /* Parse a message into a DOM node
@@ -3311,11 +3379,8 @@ this.Instant = function() {
           },
           /* Return an embedder for handling url, or null */
           queryEmbedder: function(url) {
-            var normurl = url.replace(Instant.message.parser.ONLY_URL_RE,
-              function(m, g1, scheme, g3, userinfo, host, port, path) {
-                return (scheme || '').toLowerCase() + (userinfo || '') +
-                  (host || '').toLowerCase() + (port || '') + (path || '');
-              });
+            var normurl = Instant.message.parser.normalizeURLDesc(
+              Instant.message.parser.parseURL(url)) || url;
             for (var i = 0; i < embedders.length; i++) {
               var emb = embedders[i];
               if (emb.re.test((emb.normalize) ? normurl : url)) {
