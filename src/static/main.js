@@ -3380,7 +3380,7 @@ this.Instant = function() {
           /* Return an embedder for handling url, or null */
           queryEmbedder: function(url) {
             var normurl = Instant.message.parser.normalizeURLDesc(
-              Instant.message.parser.parseURL(url)) || url;
+              Instant.message.parser.parseURL(url)).full || url;
             for (var i = 0; i < embedders.length; i++) {
               var emb = embedders[i];
               if (emb.re.test((emb.normalize) ? normurl : url)) {
