@@ -2521,7 +2521,12 @@ this.Instant = function() {
          * result objects in any of the following ways:
          * - full
          * - scheme + delim + authority + rest
-         * - scheme + delim + userinfo + host + port + rest */
+         * - scheme + delim + userinfo + host + port + rest
+         * The delimiter after scheme ("://" or ":") is provided separately;
+         * in particular, scheme does not include a colon. userinfo and port
+         * include their respective delimiters from host (or are entirely
+         * blank). rest contains path, query, and fragment (including any
+         * delimiters). */
         function parseURL(url, strict) {
           if (typeof url == 'string') url = ONLY_URL_RE.exec(url);
           if (! url || ! urlIsValid(url, strict)) return null;
