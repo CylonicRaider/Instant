@@ -81,9 +81,10 @@ def read_db(filename, bounds):
     return scribe.LogDBSQLite(filename)
 
 @writer('db')
-def write_db(filename, messages, uuids, options):
+def write_db(filename, data, options):
     if filename == '-':
         raise RuntimeError('Cannot write database to standard output')
+    messages, uuids = data
     db = scribe.LogDBSQLite(filename)
     db.init()
     try:
@@ -93,7 +94,8 @@ def write_db(filename, messages, uuids, options):
         db.close()
 
 @writer('text', {'detail': (int, 0), 'monospaced': (bool, False)})
-def write_text(filename, messages, uuids, options):
+def write_text(filename, data, options):
+    messages, uuids = data
     messages = logdump.sort_threads(messages)
     fmt = logdump.LogFormatter(detail=options['detail'],
                                mono=options['monospaced'])
@@ -171,6 +173,6 @@ def main():
     with db:
         messages = db.query(bounds[0], bounds[1], bounds[2])
         uuids = db.query_uuid(m['from'] for m in messages)
-    writer(file_t, messages, uuids, options)
+    writer(file_t, (messages, uuids), options)
 
 if __name__ == '__main__': main()
