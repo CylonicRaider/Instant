@@ -6,6 +6,7 @@ A script converting Instant message logs between different formats.
 """
 
 import sys, os
+import collections
 
 import instabot
 import scribe
@@ -16,11 +17,18 @@ FORMAT_EXTENSIONS = {'sqlite': 'db', 'db': 'db', 'log': 'log', 'txt': 'text',
 
 class OptionError(Exception): pass
 
-READERS, WRITERS = {}, {}
+READERS, CONVERTERS, WRITERS = {}, {}, {}
 
 def reader(fmt):
     def cb(func):
         READERS[fmt] = func
+        return func
+    return cb
+def converter(fmt_from, fmt_to):
+    def cb(func):
+        if fmt_from not in CONVERTERS:
+            CONVERTERS[fmt_from] = {}
+        CONVERTERS[fmt_from][fmt_to] = func
         return func
     return cb
 def writer(fmt, option_descs=None):
@@ -29,6 +37,30 @@ def writer(fmt, option_descs=None):
         return func
     if option_descs is None: option_descs = {}
     return cb
+
+def find_converters(fmt_from, fmt_to):
+    if fmt_from == fmt_to: return ()
+    if fmt_from not in CONVERTERS: return None
+    if fmt_to in CONVERTERS[fmt_from]: return (CONVERTERS[fmt_from][fmt_to],)
+    # Breadth-first search to find a shortest path.
+    pending, seen = collections.deque((fmt_from,)), {fmt_from: (None, None)}
+    while pending:
+        cur = pending.popleft()
+        if cur not in CONVERTERS:
+            continue
+        for fmt, cvt in CONVERTERS[cur]:
+            if fmt in seen: continue
+            seen[fmt] = (cur, cvt)
+            pending.append(fmt)
+            if fmt != fmt_to: continue
+            result = []
+            while 1:
+                fmt, cvt = seen[fmt]
+                if fmt is None: break
+                result.append(cvt)
+            result.reverse()
+            return tuple(result)
+    return None
 
 def parse_options(values, types):
     seen, result = set(), {}
