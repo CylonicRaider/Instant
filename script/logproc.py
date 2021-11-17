@@ -19,10 +19,11 @@ class OptionError(Exception): pass
 
 READERS, CONVERTERS, WRITERS = {}, {}, {}
 
-def reader(fmt):
+def reader(fmt, res_type=None):
     def cb(func):
-        READERS[fmt] = func
+        READERS[fmt] = (func, res_type)
         return func
+    if res_type is None: res_type = fmt
     return cb
 def converter(fmt_from, fmt_to):
     def cb(func):
@@ -31,11 +32,12 @@ def converter(fmt_from, fmt_to):
         CONVERTERS[fmt_from][fmt_to] = func
         return func
     return cb
-def writer(fmt, option_descs=None):
+def writer(fmt, exp_type=None, options=None):
     def cb(func):
-        WRITERS[fmt] = (func, option_descs)
+        WRITERS[fmt] = (func, exp_type, options)
         return func
-    if option_descs is None: option_descs = {}
+    if exp_type is None: exp_type = fmt
+    if options is None: options = {}
     return cb
 
 def find_converters(fmt_from, fmt_to):
@@ -85,7 +87,7 @@ def parse_options(values, types):
             result[key] = desc[1]
     return result
 
-@reader('log')
+@reader('log', 'db')
 def read_scribe(filename, bounds):
     if bounds[0] is None and bounds[1] is None:
         message_filter, db_capacity = None, None
@@ -112,7 +114,14 @@ def read_db(filename, bounds):
         raise RuntimeError('Cannot read database from standard input')
     return scribe.LogDBSQLite(filename)
 
-@writer('db')
+@converter('db', 'messages')
+def convert_db_messages(db, bounds):
+    with db:
+        messages = db.query(bounds[0], bounds[1], bounds[2])
+        uuids = db.query_uuid(m['from'] for m in messages)
+    return (messages, uuids)
+
+@writer('db', 'messages')
 def write_db(filename, data, options):
     if filename == '-':
         raise RuntimeError('Cannot write database to standard output')
@@ -125,7 +134,7 @@ def write_db(filename, data, options):
     finally:
         db.close()
 
-@writer('text', {'detail': (int, 0), 'monospaced': (bool, False)})
+@writer('text', 'messages', {'detail': (int, 0), 'monospaced': (bool, False)})
 def write_text(filename, data, options):
     messages, uuids = data
     messages = logdump.sort_threads(messages)
@@ -186,14 +195,18 @@ def main():
     fmt_f, fmt_t, file_f, file_t = p.get('from', 'to', 'input', 'output')
     try:
         if fmt_f is None: fmt_f = guess_format(file_f)
-        reader = READERS[fmt_f]
+        reader, fmt_fr = READERS[fmt_f]
     except KeyError:
         raise SystemExit('ERROR: Unrecognized --from format: %r' % fmt_f)
     try:
         if fmt_t is None: fmt_t = guess_format(file_t)
-        writer, option_descs = WRITERS[fmt_t]
+        writer, fmt_tr, option_descs = WRITERS[fmt_t]
     except KeyError:
         raise SystemExit('ERROR: Unrecognized --to format: %r' % fmt_f)
+    converters = find_converters(fmt_fr, fmt_tr)
+    if converters is None:
+        raise SystemExit('ERROR: Cannot convert from %r to %r' %
+                         (fmt_f, fmt_t))
     try:
         options = parse_options(dict(p.get('option')), option_descs)
     except OptionError as exc:
@@ -201,10 +214,9 @@ def main():
     bounds = [None, None, None]
     for i, v in p.get('select'):
         bounds[i] = v
-    db = reader(file_f, bounds)
-    with db:
-        messages = db.query(bounds[0], bounds[1], bounds[2])
-        uuids = db.query_uuid(m['from'] for m in messages)
-    writer(file_t, (messages, uuids), options)
+    data = reader(file_f, bounds)
+    for cvt in converters:
+        data = cvt(data, bounds)
+    writer(file_t, data, options)
 
 if __name__ == '__main__': main()
