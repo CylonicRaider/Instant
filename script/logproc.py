@@ -50,7 +50,7 @@ def find_converters(fmt_from, fmt_to):
         cur = pending.popleft()
         if cur not in CONVERTERS:
             continue
-        for fmt, cvt in CONVERTERS[cur]:
+        for fmt, cvt in CONVERTERS[cur].items():
             if fmt in seen: continue
             seen[fmt] = (cur, cvt)
             pending.append(fmt)
@@ -87,8 +87,18 @@ def parse_options(values, types):
             result[key] = desc[1]
     return result
 
-@reader('log', 'db')
+@reader('log')
 def read_scribe(filename, bounds):
+    return instabot.CmdlineBotBuilder.build_logger(filename)
+
+@reader('db')
+def read_db(filename, bounds):
+    if filename == '-':
+        raise RuntimeError('Cannot read database from standard input')
+    return scribe.LogDBSQLite(filename)
+
+@converter('log', 'db')
+def convert_log_db(logger, bounds):
     if bounds[0] is None and bounds[1] is None:
         message_filter, db_capacity = None, None
     elif bounds[0] is None:
@@ -101,18 +111,12 @@ def read_scribe(filename, bounds):
         message_filter = lambda m: bounds[0] <= m['id'] <= bounds[1]
         db_capacity = bounds[2]
     db = scribe.LogDBList(db_capacity)
-    with instabot.CmdlineBotBuilder.build_logger(filename) as l:
-        logs, uuids = scribe.read_posts_ex(l, db.capacity(),
+    with logger:
+        logs, uuids = scribe.read_posts_ex(logger, db.capacity(),
                                            message_filter)
         db.extend(logs)
         db.extend_uuid(uuids)
     return db
-
-@reader('db')
-def read_db(filename, bounds):
-    if filename == '-':
-        raise RuntimeError('Cannot read database from standard input')
-    return scribe.LogDBSQLite(filename)
 
 @converter('db', 'messages')
 def convert_db_messages(db, bounds):
