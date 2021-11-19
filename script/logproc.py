@@ -65,13 +65,12 @@ def find_converters(fmt_from, fmt_to):
     return None
 
 def parse_options(values, types):
-    seen, result = set(), {}
+    result = {}
     for k, v in values.items():
         try:
             desc = types[k]
         except KeyError:
-            raise OptionError('Unrecognized option %r' % (key,))
-        seen.add(k)
+            raise OptionError('Unrecognized option %r' % (k,))
         if v is None:
             if len(desc) >= 3:
                 result[k] = desc[2]
@@ -83,7 +82,7 @@ def parse_options(values, types):
             raise OptionError('Invalid value %r for option %r: %s' %
                               (v, k, exc))
     for key, desc in types.items():
-        if len(desc) >= 2 and key not in seen:
+        if len(desc) >= 2 and key not in result:
             result[key] = desc[1]
     return result
 
