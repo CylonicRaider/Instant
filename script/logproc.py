@@ -122,6 +122,7 @@ def convert_db_messages(db, bounds):
     with db:
         messages = db.query(bounds[0], bounds[1], bounds[2])
         uuids = db.query_uuid(m['from'] for m in messages)
+    bounds[:] = [None, None, None]
     return (messages, uuids)
 
 @writer('db', 'messages')
@@ -220,6 +221,8 @@ def main():
     data = reader(file_f, bounds)
     for cvt in converters:
         data = cvt(data, bounds)
+    if bounds != [None, None, None]:
+        raise SystemExit('ERROR: Could not select messages')
     writer(file_t, data, options)
 
 if __name__ == '__main__': main()
