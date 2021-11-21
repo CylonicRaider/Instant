@@ -44,9 +44,12 @@ class LogFormatter:
     # There is no trailing newline.
     def format_message(self, msg, indent='', first_indent=None):
         if first_indent is None: first_indent = indent
-        # Historical data have null nicks in some instances.
-        prefix = '<%s> ' % (msg['nick'] or '')
-        lines = msg['text'].split('\n')
+        # A few historical messages have weird things in these positions.
+        nick, text = msg['nick'], msg['text']
+        if nick is None: nick = ''
+        if text is None: text = ''
+        prefix = '<%s> ' % (nick,)
+        lines = str(text).split('\n')
         align = ' ' * len(prefix) if self.mono else '  '
         return '\n'.join((first_indent + prefix if n == 0 else
                           indent + align) + l for n, l in enumerate(lines))
