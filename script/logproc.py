@@ -25,11 +25,11 @@ def reader(fmt, res_type=None):
         return func
     if res_type is None: res_type = fmt
     return cb
-def converter(fmt_from, fmt_to):
+def converter(fmt_from, fmt_to, bounding=False):
     def cb(func):
         if fmt_from not in CONVERTERS:
             CONVERTERS[fmt_from] = {}
-        CONVERTERS[fmt_from][fmt_to] = func
+        CONVERTERS[fmt_from][fmt_to] = (func, bounding)
         return func
     return cb
 def writer(fmt, exp_type=None, options=None):
@@ -40,29 +40,54 @@ def writer(fmt, exp_type=None, options=None):
     if options is None: options = {}
     return cb
 
-def find_converters(fmt_from, fmt_to):
-    if fmt_from == fmt_to: return ()
-    if fmt_from not in CONVERTERS: return None
-    if fmt_to in CONVERTERS[fmt_from]: return (CONVERTERS[fmt_from][fmt_to],)
+def find_converters(fmt_from, fmt_to, need_bounding=False):
     # Breadth-first search to find a shortest path.
-    pending, seen = collections.deque((fmt_from,)), {fmt_from: (None, None)}
+    pending = collections.deque((fmt_from,))
+    seen = {fmt_from: (None, None, None)}
     while pending:
         cur = pending.popleft()
         if cur not in CONVERTERS:
             continue
-        for fmt, cvt in CONVERTERS[cur].items():
+        for fmt, (cvt, bounding) in CONVERTERS[cur].items():
             if fmt in seen: continue
-            seen[fmt] = (cur, cvt)
+            seen[fmt] = (cur, cvt, bounding)
             pending.append(fmt)
-            if fmt != fmt_to: continue
-            result = []
-            while 1:
-                fmt, cvt = seen[fmt]
-                if fmt is None: break
-                result.append(cvt)
-            result.reverse()
-            return tuple(result)
-    return None
+            if fmt == fmt_to: break
+        else:
+            continue
+        break
+    else:
+        return None
+    # Gather the elements of the path; check if any of them applies full
+    # bounding.
+    next_fmt, bounded, result = fmt_to, False, []
+    while 1:
+        fmt, cvt, bounding = seen[next_fmt]
+        if fmt is None: break
+        result.append((cvt, fmt, next_fmt))
+        if bounding: bounded = True
+        next_fmt = fmt
+    # Insert a bounding converter if necessary.
+    if need_bounding and not bounded:
+        if (fmt_to in CONVERTERS and fmt_to in CONVERTERS[fmt_to] and
+                CONVERTERS[fmt_to][fmt_to][1]):
+            desc = CONVERTERS[fmt_to][fmt_to]
+            index = 0
+        else:
+            for index, (cvt, fmt, next_fmt) in enumerate(result):
+                if fmt not in CONVERTERS[fmt]: continue
+                desc = CONVERTERS[fmt][fmt]
+                if not desc[1]: continue
+                index += 1
+                break
+            else:
+                index = None
+        if index is not None:
+            result.insert(index, (desc[0], None, None))
+            bounded = True
+    # Emit the converter chain in application order.
+    result.reverse()
+    return (tuple(item[0] for item in result), bounded)
 
 def parse_options(values, types):
     result = {}
@@ -117,7 +142,7 @@ def convert_log_db(logger, bounds):
         db.extend_uuid(uuids)
     return db
 
-@converter('db', 'messages')
+@converter('db', 'messages', True)
 def convert_db_messages(db, bounds):
     with db:
         messages = db.query(bounds[0], bounds[1], bounds[2])
@@ -207,17 +232,21 @@ def main():
         writer, fmt_tr, option_descs = WRITERS[fmt_t]
     except KeyError:
         raise SystemExit('ERROR: Unrecognized --to format: %r' % fmt_f)
-    converters = find_converters(fmt_fr, fmt_tr)
+    bounds = [None, None, None]
+    for i, v in p.get('select'):
+        bounds[i] = v
+    need_bounds = any(b is not None for b in bounds)
+    converters, bounded = find_converters(fmt_fr, fmt_tr, need_bounds)
     if converters is None:
         raise SystemExit('ERROR: Cannot convert from %r to %r' %
                          (fmt_f, fmt_t))
+    elif need_bounds and not bounded:
+        raise SystemExit('ERROR: Cannot filter messages while converting '
+                         'from %r to %r' % (fmt_f, fmt_t))
     try:
         options = parse_options(dict(p.get('option')), option_descs)
     except OptionError as exc:
         raise SystemExit('ERROR: %s' % (exc,))
-    bounds = [None, None, None]
-    for i, v in p.get('select'):
-        bounds[i] = v
     data = reader(file_f, bounds)
     for cvt in converters:
         data = cvt(data, bounds)
