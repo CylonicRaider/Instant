@@ -19,11 +19,12 @@ class OptionError(Exception): pass
 
 READERS, CONVERTERS, WRITERS = {}, {}, {}
 
-def reader(fmt, res_type=None):
+def reader(fmt, res_type=None, close=None):
     def cb(func):
-        READERS[fmt] = (func, res_type)
+        READERS[fmt] = (func, res_type, close)
         return func
     if res_type is None: res_type = fmt
+    if close and not callable(close): close = lambda x: x.close()
     return cb
 def converter(fmt_from, fmt_to, bounding=False):
     def cb(func):
@@ -111,11 +112,11 @@ def parse_options(values, types):
             result[key] = desc[1]
     return result
 
-@reader('log')
+@reader('log', close=True)
 def read_scribe(filename, bounds):
     return instabot.CmdlineBotBuilder.build_logger(filename)
 
-@reader('db')
+@reader('db', close=True)
 def read_db(filename, bounds):
     if filename == '-':
         raise RuntimeError('Cannot read database from standard input')
@@ -224,7 +225,7 @@ def main():
     fmt_f, fmt_t, file_f, file_t = p.get('from', 'to', 'input', 'output')
     try:
         if fmt_f is None: fmt_f = guess_format(file_f)
-        reader, fmt_fr = READERS[fmt_f]
+        reader, fmt_fr, close_reader = READERS[fmt_f]
     except KeyError:
         raise SystemExit('ERROR: Unrecognized --from format: %r' % fmt_f)
     try:
@@ -248,10 +249,14 @@ def main():
     except OptionError as exc:
         raise SystemExit('ERROR: %s' % (exc,))
     data = reader(file_f, bounds)
-    for cvt in converters:
-        data = cvt(data, bounds)
-    if bounds != [None, None, None]:
-        raise SystemExit('ERROR: Could not select messages')
-    writer(file_t, data, options)
+    try:
+        for cvt in converters:
+            data = cvt(data, bounds)
+        if bounds != [None, None, None]:
+            raise SystemExit('ERROR: Could not select messages')
+        writer(file_t, data, options)
+    finally:
+        if close_reader is not None:
+            close_reader(data)
 
 if __name__ == '__main__': main()
