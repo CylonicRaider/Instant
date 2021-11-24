@@ -151,6 +151,12 @@ def convert_db_messages(db, bounds):
     bounds[:] = [None, None, None]
     return (messages, uuids)
 
+@writer('log', 'log')
+def write_log(filename, logger, options):
+    with instabot.CmdlineBotBuilder.build_logger(filename) as drain:
+        for ts, tag, args in logger.read_back(lambda t: Ellipsis):
+            drain.log((tag if args is None else '%s %s' % (tag, args)), ts)
+
 @writer('db', 'messages')
 def write_db(filename, data, options):
     if filename == '-':
