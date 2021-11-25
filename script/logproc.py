@@ -47,18 +47,16 @@ def find_converters(fmt_from, fmt_to, need_bounding=False):
     seen = {fmt_from: (None, None, None)}
     while pending:
         cur = pending.popleft()
+        if cur == fmt_to:
+            break
         if cur not in CONVERTERS:
             continue
         for fmt, (cvt, bounding) in CONVERTERS[cur].items():
             if fmt in seen: continue
             seen[fmt] = (cur, cvt, bounding)
             pending.append(fmt)
-            if fmt == fmt_to: break
-        else:
-            continue
-        break
     else:
-        return None
+        return (None, False)
     # Gather the elements of the path; check if any of them applies full
     # bounding.
     next_fmt, bounded, result = fmt_to, False, []

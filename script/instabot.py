@@ -1442,7 +1442,7 @@ def read_logs(src, filt=None):
         if not fr: continue
         pts = calendar.timegm(time.strptime(ts, '%Y-%m-%d %H:%M:%S'))
         if fr is Ellipsis:
-            yield (fr, tag, args)
+            yield (pts, tag, args)
             continue
         values = {}
         if args is not None:
