@@ -210,10 +210,10 @@ def main():
 
     p = instabot.OptionParser(sys.argv[0])
     p.help_action(desc='Interconvert various Instant message log formats.')
-    p.option('from', short='f',
+    p.option('fmt-from', short='F',
              help='Format of the input data (default: guessed from file '
                   'extension, or an error for standard input)')
-    p.option('to', short='t',
+    p.option('fmt-to', short='f',
              help='Format of the output (default: guessed from file '
                   'extension, or "text" for standard output)')
     p.option('select', short='s', type=select, accum=True, default=[],
@@ -221,13 +221,14 @@ def main():
     p.option('output', short='o', default='-',
              help='Where to write the results (- is standard output and the '
                   'default)')
-    p.option('option', short='v', type=pair, accum=True, default=[],
+    p.option('opt-to', short='v', type=pair, accum=True, default=[],
              help='Pass generic options to the output writer')
     p.argument('input', default='-',
                help='Where to read data from (- is standard input and the '
                     'default)')
     p.parse(sys.argv[1:])
-    fmt_f, fmt_t, file_f, file_t = p.get('from', 'to', 'input', 'output')
+    fmt_f, fmt_t = p.get('fmt-from', 'fmt-to')
+    file_f, file_t = p.get('input', 'output')
     try:
         if fmt_f is None: fmt_f = guess_format(file_f)
         reader, fmt_fr, close_reader = READERS[fmt_f]
