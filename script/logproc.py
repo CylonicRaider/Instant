@@ -19,11 +19,12 @@ class OptionError(Exception): pass
 
 READERS, CONVERTERS, WRITERS = {}, {}, {}
 
-def reader(fmt, res_type=None, close=None):
+def reader(fmt, res_type=None, options=None, close=None):
     def cb(func):
-        READERS[fmt] = (func, res_type, close)
+        READERS[fmt] = (func, res_type, options, close)
         return func
     if res_type is None: res_type = fmt
+    if options is None: options = {}
     if close and not callable(close): close = lambda x: x.close()
     return cb
 def converter(fmt_from, fmt_to, bounding=False):
@@ -111,11 +112,11 @@ def parse_options(values, types):
     return result
 
 @reader('log', close=True)
-def read_scribe(filename, bounds):
+def read_log(filename, bounds, options):
     return instabot.CmdlineBotBuilder.build_logger(filename)
 
 @reader('db', close=True)
-def read_db(filename, bounds):
+def read_db(filename, bounds, options):
     if filename == '-':
         raise RuntimeError('Cannot read database from standard input')
     return scribe.LogDBSQLite(filename)
@@ -221,6 +222,8 @@ def main():
     p.option('output', short='o', default='-',
              help='Where to write the results (- is standard output and the '
                   'default)')
+    p.option('opt-from', shortcut='V', type=pair, accum=True, default=[],
+             help='Pass generic options to the input reader')
     p.option('opt-to', short='v', type=pair, accum=True, default=[],
              help='Pass generic options to the output writer')
     p.argument('input', default='-',
@@ -231,12 +234,12 @@ def main():
     file_f, file_t = p.get('input', 'output')
     try:
         if fmt_f is None: fmt_f = guess_format(file_f)
-        reader, fmt_fr, close_reader = READERS[fmt_f]
+        reader, fmt_fr, descs_f, close_reader = READERS[fmt_f]
     except KeyError:
         raise SystemExit('ERROR: Unrecognized --from format: %r' % fmt_f)
     try:
         if fmt_t is None: fmt_t = guess_format(file_t)
-        writer, fmt_tr, option_descs = WRITERS[fmt_t]
+        writer, fmt_tr, descs_t = WRITERS[fmt_t]
     except KeyError:
         raise SystemExit('ERROR: Unrecognized --to format: %r' % fmt_f)
     bounds = [None, None, None]
@@ -251,18 +254,20 @@ def main():
         raise SystemExit('ERROR: Cannot filter messages while converting '
                          'from %r to %r' % (fmt_f, fmt_t))
     try:
-        options = parse_options(dict(p.get('option')), option_descs)
+        options_f = parse_options(dict(p.get('opt-from')), descs_f)
+        options_t = parse_options(dict(p.get('opt-to')), descs_t)
     except OptionError as exc:
         raise SystemExit('ERROR: %s' % (exc,))
-    data = reader(file_f, bounds)
+    read_data = reader(file_f, bounds, options_f)
     try:
+        data = read_data
         for cvt in converters:
             data = cvt(data, bounds)
         if bounds != [None, None, None]:
             raise SystemExit('ERROR: Could not select messages')
-        writer(file_t, data, options)
+        writer(file_t, data, options_t)
     finally:
         if close_reader is not None:
-            close_reader(data)
+            close_reader(read_data)
 
 if __name__ == '__main__': main()
