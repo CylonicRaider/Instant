@@ -111,9 +111,10 @@ def parse_options(values, types):
             result[key] = desc[1]
     return result
 
-@reader('log', close=True)
+@reader('log', options={'rotate': (str, None)}, close=True)
 def read_log(filename, bounds, options):
-    return instabot.CmdlineBotBuilder.build_logger(filename)
+    return instabot.CmdlineBotBuilder.build_logger(filename,
+                                                   options['rotate'])
 
 @reader('db', close=True)
 def read_db(filename, bounds, options):
@@ -150,7 +151,7 @@ def convert_db_messages(db, bounds):
     bounds[:] = [None, None, None]
     return (messages, uuids)
 
-@writer('log', 'log', {'rotate': (str, None)})
+@writer('log', options={'rotate': (str, None)})
 def write_log(filename, logger, options):
     with instabot.CmdlineBotBuilder.build_logger(filename,
                                                  options['rotate']) as drain:
