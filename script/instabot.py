@@ -2127,7 +2127,7 @@ class CmdlineBotBuilder:
             return DEFAULT_LOGGER
         elif rotate is not None:
             rotate_params = RotatingFileLogHandler.parse_cli_config(rotate)
-            return Logger(RotatingLogHandler(logfile, **rotate_params))
+            return Logger(RotatingFileLogHandler(logfile, **rotate_params))
         else:
             return Logger(FileLogHandler(logfile))
     def __init__(self, botcls=None, defnick=None, defurl=Ellipsis):

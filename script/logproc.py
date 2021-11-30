@@ -223,7 +223,7 @@ def main():
     p.option('output', short='o', default='-',
              help='Where to write the results (- is standard output and the '
                   'default)')
-    p.option('opt-from', shortcut='V', type=pair, accum=True, default=[],
+    p.option('opt-from', short='V', type=pair, accum=True, default=[],
              help='Pass generic options to the input reader')
     p.option('opt-to', short='v', type=pair, accum=True, default=[],
              help='Pass generic options to the output writer')
