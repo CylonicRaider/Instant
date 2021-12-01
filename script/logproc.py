@@ -15,7 +15,7 @@ import id2time, logdump
 FORMAT_EXTENSIONS = {'sqlite': 'db', 'db': 'db', 'log': 'log', 'txt': 'text',
                      None: 'text'}
 
-class OptionError(Exception): pass
+class OptionError(ValueError): pass
 
 READERS, CONVERTERS, WRITERS = {}, {}, {}
 
@@ -89,13 +89,14 @@ def find_converters(fmt_from, fmt_to, need_bounding=False):
     result.reverse()
     return (tuple(item[0] for item in result), bounded)
 
-def parse_options(values, types):
+def parse_options(values, types, error_label=None):
+    error_label = '' if error_label is None else '%s ' % (error_label,)
     result = {}
     for k, v in values.items():
         try:
             desc = types[k]
         except KeyError:
-            raise OptionError('Unrecognized option %r' % (k,))
+            raise OptionError('Unrecognized %soption %r' % (error_label, k))
         if v is None:
             if len(desc) >= 3:
                 result[k] = desc[2]
@@ -104,8 +105,8 @@ def parse_options(values, types):
         try:
             result[k] = desc[0](v)
         except ValueError as exc:
-            raise OptionError('Invalid value %r for option %r: %s' %
-                              (v, k, exc))
+            raise OptionError('Invalid value %r for %soption %r: %s' %
+                              (v, error_label, k, exc))
     for key, desc in types.items():
         if len(desc) >= 2 and key not in result:
             result[key] = desc[1]
@@ -255,8 +256,10 @@ def main():
         raise SystemExit('ERROR: Cannot filter messages while converting '
                          'from %r to %r' % (fmt_f, fmt_t))
     try:
-        options_f = parse_options(dict(p.get('opt-from')), descs_f)
-        options_t = parse_options(dict(p.get('opt-to')), descs_t)
+        options_f = parse_options(dict(p.get('opt-from')), descs_f,
+                                  error_label='input')
+        options_t = parse_options(dict(p.get('opt-to')), descs_t,
+                                  error_label='output')
     except OptionError as exc:
         raise SystemExit('ERROR: %s' % (exc,))
     read_data = reader(file_f, bounds, options_f)
