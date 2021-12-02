@@ -172,12 +172,12 @@ def write_db(filename, data, options):
     finally:
         db.close()
 
-@writer('text', 'messages', {'detail': (int, 0), 'monospaced': (bool, False)})
+@writer('text', 'messages', {'detail': (int, 0),
+                             'mono': (bool, False, True)})
 def write_text(filename, data, options):
     messages, uuids = data
     messages = logdump.sort_threads(messages)
-    fmt = logdump.LogFormatter(detail=options['detail'],
-                               mono=options['monospaced'])
+    fmt = logdump.LogFormatter(detail=options['detail'], mono=options['mono'])
     with instabot.open_file(filename, 'w') as fp:
         fmt.format_logs_to(fp, messages, uuids)
 
