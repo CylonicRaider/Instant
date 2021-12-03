@@ -17,6 +17,10 @@ COLORS = {None: '\033[0m', 'bold': '\033[1m', 'black': '\033[30m',
     'blue': '\033[34m', 'magenta': '\033[35m', 'cyan': '\033[36m',
     'gray': '\033[37m'}
 
+# ECMA-48 CSI control sequence ("ANSI escape sequence"), in the commonly used
+# seven-bit shape.
+ESCAPE_SEQENCE_RE = re.compile(r'\x1b\[[0-?]*[ -/]*[@-~]')
+
 def highlight(line, filt=None):
     def highlight_scalar(val):
         if val in instabot.LOG_CONSTANTS:
@@ -116,19 +120,35 @@ def highlight(line, filt=None):
         ret.extend((COLORS[None], line[idx:]))
     return ''.join(ret)
 
-def highlight_stream(it, newlines=False, filt=None):
+def unhighlight(line, filt=None):
+    raw_line = ESCAPE_SEQENCE_RE.sub('', line)
+    if filt:
+        m = instabot.LOGLINE_RE.match(raw_line)
+        if not m: return raw_line
+        if not filt(m.group(2)): return None
+    return raw_line
+
+def process_stream(stream, handler, newlines=False, filt=None):
     if not newlines:
-        for line in it:
-            hl = highlight(line, filt)
+        for line in stream:
+            hl = handler(line, filt)
             if hl is not None: yield hl
     else:
-        for line in it:
-            hl = highlight(line.rstrip('\n'), filt)
+        for line in stream:
+            hl = handler(line.rstrip('\n'), filt)
             if hl is not None: yield hl + '\n'
+
+def highlight_stream(it, newlines=False, filt=None):
+    return process_stream(it, highlight, newlines, filt)
+
+def unhighlight_stream(it, newlines=False, filt=None):
+    return process_stream(it, unhighlight, newlines, filt)
 
 def main():
     p = instabot.OptionParser(sys.argv[0])
     p.help_action(desc='A syntax highlighter for Scribe logs.')
+    p.flag('reverse', short='r',
+           help='Strip highlighting instead of adding it')
     p.option('exclude', short='x', default=[], accum=True,
              help='Filter out lines of this type (may be repeated)')
     p.option('out', short='o',
@@ -142,13 +162,14 @@ def main():
                help='File to read from (- is standard input and '
                    'the default)')
     p.parse(sys.argv[1:])
-    ignore, inpath, outpath = p.get('exclude', 'in', 'out')
+    rev, ignore, inpath, outpath = p.get('reverse', 'exclude', 'in', 'out')
     outmode, linebuf = p.get('outmode', 'line-buffered')
     try:
         filt = (lambda t: t not in ignore) if ignore else None
         of = instabot.open_file
         with of(inpath, 'r') as fi, of(outpath, outmode) as fo:
-            for l in highlight_stream(fi, True, filt):
+            processor = (unhighlight_stream if rev else highlight_stream)
+            for l in processor(fi, True, filt):
                 fo.write(l)
                 if linebuf: fo.flush()
     except KeyboardInterrupt:
