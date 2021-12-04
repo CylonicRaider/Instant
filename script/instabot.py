@@ -1241,6 +1241,21 @@ class Logger:
     provided as the module-level DEFAULT_LOGGER variable. Similarly, the
     module-level NULL_LOGGER discards all messages.
     """
+    @staticmethod
+    def format_timestamp(ts):
+        """
+        Format the given UNIX timestamp for inclusion into a log line.
+
+        The timezone is always an implicit UTC. The surrounding brackets are
+        not included.
+        """
+        return time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime(ts))
+    @staticmethod
+    def parse_timestamp(text):
+        """
+        Reverse the transformation done by format_timestamp().
+        """
+        return calendar.timegm(time.strptime(text, '%Y-%m-%d %H:%M:%S'))
     @classmethod
     def format(cls, obj):
         """
@@ -1307,13 +1322,12 @@ class Logger:
         If the underlying stream is None, the formatting and writing is not
         done. Otherwise, after prepending a timestamp, the message is
         formatted into an ASCII-only form (replacing non-ASCII Unicode
-        characters with \uXXXX or \UXXXXXXXX escape sequences) the stream is
-        always flushed.
+        characters with \uXXXX or \UXXXXXXXX escape sequences), and passed to
+        the handler.
         """
         if self.handler is None: return
         if timestamp is None: timestamp = time.time()
-        m = '[%s] %s' % (time.strftime('%Y-%m-%d %H:%M:%S',
-                                       time.gmtime(timestamp)), msg)
+        m = '[%s] %s' % (self.format_timestamp(timestamp), msg)
         em = m.encode('ascii', 'backslashreplace').decode('ascii')
         self.handler.emit(em, timestamp)
     def log_exception(self, tag, exc, trailer=None, timestamp=None):
@@ -1440,7 +1454,7 @@ def read_logs(src, filt=None):
         ts, tag, args = m.group(1, 2, 3)
         fr = filt(tag)
         if not fr: continue
-        pts = calendar.timegm(time.strptime(ts, '%Y-%m-%d %H:%M:%S'))
+        pts = Logger.parse_timestamp(ts)
         if fr is Ellipsis:
             yield (pts, tag, args)
             continue
