@@ -95,12 +95,21 @@ def highlight(line, filt=None):
             return highlight_tuple(val)
         else:
             return highlight_scalar(val)
-    m = instabot.LOGLINE_RE.match(line)
-    if not m: return line
-    if filt and not filt(m.group(2)): return None
-    ret = [line[:m.start(2)], COLORS['bold'], m.group(2), COLORS[None],
-           line[m.end(2):m.start(3)]]
-    idx = m.start(3)
+    if isinstance(line, (tuple, list)):
+        ret = ['[%s] ' % instabot.Logger.format_timestamp(line[0]),
+               COLORS['bold'], line[1], COLORS[None]]
+        if line[2] is not None:
+            line, idx = line[2], 0
+            ret.append(' ')
+        else:
+            line, idx = None, -1
+    else:
+        m = instabot.LOGLINE_RE.match(line)
+        if not m: return line
+        if filt and not filt(m.group(2)): return None
+        ret = [line[:m.start(2)], COLORS['bold'], m.group(2), COLORS[None],
+               line[m.end(2):m.start(3)]]
+        idx = m.start(3)
     if idx != -1:
         while idx < len(line):
             # Skip whitespace
