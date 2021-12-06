@@ -1690,7 +1690,7 @@ def open_file(path, mode, **kwds):
         if mode[:1] == 'r':
             return io.open(sys.stdin.fileno(), mode, **kwds)
         elif mode[:1] in ('w', 'a'):
-            return io.open(sys.stdout.fileno(), mode, **kwds)
+            return io.open(sys.stdout.fileno(), 'w' + mode[1:], **kwds)
         else:
             raise ValueError('Unrecognized open_file() mode: %r' %
                              (mode,))
