@@ -10,7 +10,7 @@ import collections
 
 import instabot
 import scribe
-import id2time, logdump
+import colorlogs, id2time, logdump
 
 FORMAT_EXTENSIONS = {'sqlite': 'db', 'db': 'db', 'log': 'log', 'txt': 'text',
                      None: 'text'}
@@ -158,6 +158,13 @@ def write_log(filename, logger, options):
                                                  options['rotate']) as drain:
         for ts, tag, args in logger.read_back(lambda t: Ellipsis):
             drain.log((tag if args is None else '%s %s' % (tag, args)), ts)
+
+@writer('log-color', 'log')
+def write_log_color(filename, logger, options):
+    with instabot.open_file(filename, 'a') as fp:
+        stream = logger.read_back(lambda t: Ellipsis)
+        for line in colorlogs.highlight_stream(stream):
+            fp.write(line + '\n')
 
 @writer('db', 'messages')
 def write_db(filename, data, options):
