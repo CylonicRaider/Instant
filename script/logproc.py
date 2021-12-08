@@ -27,12 +27,13 @@ def reader(fmt, res_type=None, options=None, close=None):
     if options is None: options = {}
     if close and not callable(close): close = lambda x: x.close()
     return cb
-def converter(fmt_from, fmt_to, bounding=False):
+def converter(fmt_from, fmt_to, bounding=False, close=None):
     def cb(func):
         if fmt_from not in CONVERTERS:
             CONVERTERS[fmt_from] = {}
-        CONVERTERS[fmt_from][fmt_to] = (func, bounding)
+        CONVERTERS[fmt_from][fmt_to] = (func, bounding, close)
         return func
+    if close and not callable(close): close = lambda x: x.close()
     return cb
 def writer(fmt, exp_type=None, options=None):
     def cb(func):
@@ -45,16 +46,16 @@ def writer(fmt, exp_type=None, options=None):
 def find_converters(fmt_from, fmt_to, need_bounding=False):
     # Breadth-first search to find a shortest path.
     pending = collections.deque((fmt_from,))
-    seen = {fmt_from: (None, None, None)}
+    seen = {fmt_from: (None, None, None, None)}
     while pending:
         cur = pending.popleft()
         if cur == fmt_to:
             break
         if cur not in CONVERTERS:
             continue
-        for fmt, (cvt, bounding) in CONVERTERS[cur].items():
+        for fmt, (cvt, bounding, close) in CONVERTERS[cur].items():
             if fmt in seen: continue
-            seen[fmt] = (cur, cvt, bounding)
+            seen[fmt] = (cur, cvt, bounding, close)
             pending.append(fmt)
     else:
         return (None, False)
@@ -62,9 +63,9 @@ def find_converters(fmt_from, fmt_to, need_bounding=False):
     # bounding.
     next_fmt, bounded, result = fmt_to, False, []
     while 1:
-        fmt, cvt, bounding = seen[next_fmt]
+        fmt, cvt, bounding, close = seen[next_fmt]
         if fmt is None: break
-        result.append((cvt, fmt, next_fmt))
+        result.append((cvt, close, fmt, next_fmt))
         if bounding: bounded = True
         next_fmt = fmt
     # Insert a bounding converter if necessary.
@@ -83,11 +84,11 @@ def find_converters(fmt_from, fmt_to, need_bounding=False):
             else:
                 index = None
         if index is not None:
-            result.insert(index, (desc[0], None, None))
+            result.insert(index, (desc[0], desc[2], None, None))
             bounded = True
     # Emit the converter chain in application order.
     result.reverse()
-    return (tuple(item[0] for item in result), bounded)
+    return (tuple(item[:2] for item in result), bounded)
 
 def parse_options(values, types, error_label=None):
     error_label = '' if error_label is None else '%s ' % (error_label,)
@@ -111,6 +112,34 @@ def parse_options(values, types, error_label=None):
         if len(desc) >= 2 and key not in result:
             result[key] = desc[1]
     return result
+
+class CloseStack:
+    def __init__(self):
+        self.pending = []
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc_info):
+        self.close()
+
+    def add(self, item, cb):
+        if cb is None: return item
+        self.pending.append((item, cb))
+        return item
+
+    def close(self):
+        def handle(index):
+            if index == len(pending):
+                return
+            try:
+                handle(index + 1)
+            finally:
+                record = pending[index]
+                record[1](record[0])
+
+        pending, self.pending = self.pending, []
+        handle(0)
 
 @reader('log', options={'rotate': (str, None)}, close=True)
 def read_log(filename, bounds, options):
@@ -269,16 +298,12 @@ def main():
                                   error_label='output')
     except OptionError as exc:
         raise SystemExit('ERROR: %s' % (exc,))
-    read_data = reader(file_f, bounds, options_f)
-    try:
-        data = read_data
-        for cvt in converters:
-            data = cvt(data, bounds)
+    with CloseStack() as cs:
+        data = cs.add(reader(file_f, bounds, options_f), close_reader)
+        for cvt, close in converters:
+            data = cs.add(cvt(data, bounds), close)
         if bounds != [None, None, None]:
             raise SystemExit('ERROR: Could not select messages')
         writer(file_t, data, options_t)
-    finally:
-        if close_reader is not None:
-            close_reader(read_data)
 
 if __name__ == '__main__': main()
