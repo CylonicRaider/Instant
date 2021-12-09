@@ -152,7 +152,7 @@ def read_db(filename, bounds, options):
         raise RuntimeError('Cannot read database from standard input')
     return scribe.LogDBSQLite(filename)
 
-@converter('log', 'db')
+@converter('log', 'db', close=True)
 def convert_log_db(logger, bounds):
     if bounds[0] is None and bounds[1] is None:
         message_filter, db_capacity = None, None
@@ -166,6 +166,7 @@ def convert_log_db(logger, bounds):
         message_filter = lambda m: bounds[0] <= m['id'] <= bounds[1]
         db_capacity = bounds[2]
     db = scribe.LogDBList(db_capacity)
+    db.init()
     with logger:
         logs, uuids = scribe.read_posts_ex(logger, db.capacity(),
                                            message_filter)
@@ -200,13 +201,9 @@ def write_db(filename, data, options):
     if filename == '-':
         raise RuntimeError('Cannot write database to standard output')
     messages, uuids = data
-    db = scribe.LogDBSQLite(filename)
-    db.init()
-    try:
+    with scribe.LogDBSQLite(filename) as db:
         db.extend(messages)
         db.extend_uuid(uuids)
-    finally:
-        db.close()
 
 @writer('text', 'messages', {'detail': (int, 0),
                              'mono': (bool, False, True)})
