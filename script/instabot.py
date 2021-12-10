@@ -1106,8 +1106,10 @@ class RotatingFileLogHandler(FileLogHandler):
         Internal: Calculate rotation-related parameters of the given timestamp
         at the given rotation granularity.
         """
-        if granularity == 'X':
-            return ('', float('inf'))
+        if timestamp is None:
+            return (None, float('-inf'))
+        elif granularity == 'X':
+            return (None, float('inf'))
         elif granularity == 'Y':
             index = 0
             fmt = '.%Y'
@@ -1141,8 +1143,10 @@ class RotatingFileLogHandler(FileLogHandler):
         FileLogHandler.__init__(self, filename, autoflush)
         self.granularity = granularity
         self.compression = self._parse_compression(compression)
+        stats = os.fstat(self.file.fileno())
         self._cur_params = self._rotation_params(filename,
-            os.fstat(self.file.fileno()).st_mtime, self.granularity)
+            (None if stats.st_size == 0 else stats.st_mtime),
+            self.granularity)
         self._lock = threading.RLock()
     def emit(self, text, timestamp):
         """
@@ -1153,12 +1157,14 @@ class RotatingFileLogHandler(FileLogHandler):
         """
         with self._lock:
             if timestamp >= self._cur_params[1]:
-                compress_to, compress_using = None, None
-                if self.compression is not None:
-                    compress_to = '%s.%s' % (self._cur_params[0],
-                                             self.compression[0])
-                    compress_using = self.compression[1]
-                self.rotate(self._cur_params[0], compress_to, compress_using)
+                if self._cur_params[0] is not None:
+                    compress_to, compress_using = None, None
+                    if self.compression is not None:
+                        compress_to = '%s.%s' % (self._cur_params[0],
+                                                 self.compression[0])
+                        compress_using = self.compression[1]
+                    self.rotate(self._cur_params[0],
+                                compress_to, compress_using)
                 self._cur_params = self._rotation_params(self.file.name,
                                                          timestamp,
                                                          self.granularity)
