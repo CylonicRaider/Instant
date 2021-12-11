@@ -113,6 +113,16 @@ def parse_options(values, types, error_label=None):
             result[key] = desc[1]
     return result
 
+class DummyReadbackLogHandler(instabot.LogHandler):
+    def __init__(self, stream):
+        self.stream = stream
+
+    def close(self):
+        self.stream.close()
+
+    def read_back(self):
+        return self.stream
+
 class CloseStack:
     def __init__(self):
         self.pending = []
@@ -145,6 +155,14 @@ class CloseStack:
 def read_log(filename, bounds, options):
     return instabot.CmdlineBotBuilder.build_logger(filename,
                                                    options['rotate'])
+
+@reader('log-color', 'log', close=True)
+def read_log_color(filename, bounds, options):
+    def stream():
+        with instabot.open_file(filename, 'r') as fp:
+            for item in colorlogs.unhighlight_stream(fp, True):
+                yield item
+    return instabot.Logger(DummyReadbackLogHandler(stream()))
 
 @reader('db', close=True)
 def read_db(filename, bounds, options):
