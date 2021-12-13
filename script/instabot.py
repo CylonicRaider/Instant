@@ -1060,7 +1060,8 @@ class FileLogHandler(LogHandler):
             for line in fp:
                 yield line.rstrip('\n')
         finally:
-            fp.seek(0, os.SEEK_END)
+            if not fp.closed:
+                fp.seek(0, os.SEEK_END)
 
 class RotatingFileLogHandler(FileLogHandler):
     """
