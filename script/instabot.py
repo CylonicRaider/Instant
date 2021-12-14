@@ -1176,8 +1176,9 @@ class RotatingFileLogHandler(FileLogHandler):
         log file.
         """
         old_file = self.file
-        os.rename(old_file.name, move_to)
-        self.file = open(old_file.name, 'a+')
+        old_name = old_file.name
+        os.rename(old_name, move_to)
+        self.file = open(old_name, 'a+')
         if compress_to is not None:
             old_file.seek(0)
             with compress_using(compress_to) as drain:
