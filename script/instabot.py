@@ -1145,9 +1145,10 @@ class RotatingFileLogHandler(FileLogHandler):
         self.granularity = granularity
         self.compression = self._parse_compression(compression)
         stats = os.fstat(self.file.fileno())
-        self._cur_params = self._rotation_params(filename,
-            (None if stats.st_size == 0 else stats.st_mtime),
-            self.granularity)
+        timestamp = None if stats.st_size == 0 else stats.st_mtime
+        self._cur_params = self._rotation_params(filename, timestamp,
+                                                 self.granularity)
+        self._last_timestamp = timestamp
         self._lock = threading.RLock()
     def emit(self, text, timestamp):
         """
@@ -1164,16 +1165,25 @@ class RotatingFileLogHandler(FileLogHandler):
                         compress_to = '%s.%s' % (self._cur_params[0],
                                                  self.compression[0])
                         compress_using = self.compression[1]
-                    self.rotate(self._cur_params[0],
-                                compress_to, compress_using)
+                    self.rotate(self._cur_params[0], compress_to,
+                                compress_using, self._last_timestamp)
                 self._cur_params = self._rotation_params(self.file.name,
                                                          timestamp,
                                                          self.granularity)
+            self._last_timestamp = timestamp
             FileLogHandler.emit(self, text, timestamp)
-    def rotate(self, move_to, compress_to, compress_using):
+    def rotate(self, move_to, compress_to, compress_using, timestamp):
         """
         Move the current log file to the indicated location and create a new
         log file.
+
+        move_to is the path to which to move the old log file.
+
+        compress_to and compress_using, if not None, define a compression
+        operation to be performed on the old file.
+
+        timestamp is the timestamp of the latest entry in the old file, if
+        available, or None.
         """
         old_file = self.file
         old_name = old_file.name
@@ -1184,6 +1194,9 @@ class RotatingFileLogHandler(FileLogHandler):
             with compress_using(compress_to) as drain:
                 shutil.copyfileobj(old_file, drain)
             os.remove(move_to)
+            move_to = compress_to
+        if timestamp is not None:
+            os.utime(move_to, (timestamp, timestamp))
         old_file.close()
     def read_back(self):
         """
