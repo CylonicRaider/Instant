@@ -1196,8 +1196,24 @@ class RotatingFileLogHandler(FileLogHandler):
             os.remove(move_to)
             move_to = compress_to
         if timestamp is not None:
-            os.utime(move_to, (timestamp, timestamp))
+            try:
+                os.utime(move_to, (timestamp, timestamp))
+            except OSError:
+                pass
         old_file.close()
+    def close(self):
+        """
+        Clean up any resources held by this handler.
+
+        See the base classes' methods for additional details.
+        """
+        fp, ts = self.file, self._last_timestamp
+        if ts is not None:
+            try:
+                os.utime(fp.name, (ts, ts))
+            except OSError:
+                pass
+        FileLogHandler.close(self)
     def read_back(self):
         """
         Read log lines back from the file (and from rotated-out log files)
