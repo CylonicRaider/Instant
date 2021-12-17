@@ -1071,6 +1071,7 @@ class RotatingFileLogHandler(FileLogHandler):
     writes to.
     """
     TIME_SUFFIX_RE = re.compile('^\.[0-9-]+$')
+    TIMESTAMP_FUZZ = 1.0
     @classmethod
     def parse_cli_config(cls, arg):
         """
@@ -1172,6 +1173,37 @@ class RotatingFileLogHandler(FileLogHandler):
                                                          self.granularity)
             self._last_timestamp = timestamp
             FileLogHandler.emit(self, text, timestamp)
+    def _retime(self, path, fileid, ts):
+        """
+        Internal: Update the file timestamps of the given path if it still
+        denotes the named file.
+
+        path is a filesystem path of a file to modify. fileid is a (st_dev,
+        st_ino) pair identifying the file path is supposed to point to, or
+        None if any file is allowed. ts is a UNIX timestamp (in units of
+        seconds) to apply.
+
+        The file timestamp is not modified if it is within the same hour as
+        the new timestamp and does not differ by more than the TIMESTAMP_FUZZ
+        class attribute (which defaults to one second).
+
+        This function suffers from a race condition, but the "window of
+        opportunity" is significantly less than the potentially unbounded time
+        between the opening of a log file and its clean-up (where this
+        function is called).
+
+        Any errors by the underlying OS functions are silently ignored.
+        """
+        try:
+            stats = os.stat(path)
+            if fileid is not None and (stats.st_dev, stats.st_ino) != fileid:
+                return
+            if (abs(stats.st_mtime - ts) < self.TIMESTAMP_FUZZ and
+                    time.gmtime(stats.st_mtime)[:4] == time.gmtime(ts)[:4]):
+                return
+            os.utime(path, (ts, ts))
+        except OSError:
+            pass
     def rotate(self, move_to, compress_to, compress_using, timestamp):
         """
         Move the current log file to the indicated location and create a new
@@ -1196,10 +1228,7 @@ class RotatingFileLogHandler(FileLogHandler):
             os.remove(move_to)
             move_to = compress_to
         if timestamp is not None:
-            try:
-                os.utime(move_to, (timestamp, timestamp))
-            except OSError:
-                pass
+            self._retime(move_to, None, timestamp)
         old_file.close()
     def close(self):
         """
@@ -1210,7 +1239,8 @@ class RotatingFileLogHandler(FileLogHandler):
         fp, ts = self.file, self._last_timestamp
         if ts is not None:
             try:
-                os.utime(fp.name, (ts, ts))
+                fp_stats = os.fstat(fp.fileno())
+                self._retime(fp.name, (fp_stats.st_dev, fp_stats.st_ino), ts)
             except OSError:
                 pass
         FileLogHandler.close(self)
