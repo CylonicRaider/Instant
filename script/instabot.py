@@ -1069,6 +1069,11 @@ class RotatingFileLogHandler(FileLogHandler):
 
     A log handler that writes to files and regularly changes the files it
     writes to.
+
+    In order to maintain log rotation across program restarts, the timestamps
+    of the log files are changed to reflect those of the latest log entries
+    written to them upon closing. Be careful when renaming files that are in
+    active use.
     """
     TIME_SUFFIX_RE = re.compile('^\.[0-9-]+$')
     TIMESTAMP_FUZZ = 1.0
