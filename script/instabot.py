@@ -1226,15 +1226,17 @@ class RotatingFileLogHandler(FileLogHandler):
         old_name = old_file.name
         os.rename(old_name, move_to)
         self.file = open(old_name, 'a+')
-        if compress_to is not None:
-            old_file.seek(0)
-            with compress_using(compress_to) as drain:
-                shutil.copyfileobj(old_file, drain)
-            os.remove(move_to)
-            move_to = compress_to
-        if timestamp is not None:
-            self._retime(move_to, None, timestamp)
-        old_file.close()
+        try:
+            if compress_to is not None:
+                old_file.seek(0)
+                with compress_using(compress_to) as drain:
+                    shutil.copyfileobj(old_file, drain)
+                os.remove(move_to)
+                move_to = compress_to
+            if timestamp is not None:
+                self._retime(move_to, None, timestamp)
+        finally:
+            old_file.close()
     def close(self):
         """
         Clean up any resources held by this handler.
