@@ -204,6 +204,7 @@ def convert_db_messages(db, bounds):
 def write_log(filename, logger, options):
     with instabot.CmdlineBotBuilder.build_logger(filename,
                                                  options['rotate']) as drain:
+        drain.ADJUST_FILE_TIMESTAMPS = True
         for ts, tag, args in logger.read_back(lambda t: Ellipsis):
             drain.log((tag if args is None else '%s %s' % (tag, args)), ts)
 

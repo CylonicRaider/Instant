@@ -1070,12 +1070,13 @@ class RotatingFileLogHandler(FileLogHandler):
     A log handler that writes to files and regularly changes the files it
     writes to.
 
-    In order to maintain log rotation across program restarts, the timestamps
-    of the log files are changed to reflect those of the latest log entries
-    written to them upon closing. Be careful when renaming files that are in
-    active use.
+    If the ADJUST_FILE_TIMESTAMPS attribute is true, the timestamps of the log
+    files are changed to reflect those of the latest log entries written to
+    them upon closing (this is useful for manipulating log files after they
+    had been recorded). Be careful when renaming files that are in active use.
     """
     TIME_SUFFIX_RE = re.compile('^\.[0-9-]+$')
+    ADJUST_FILE_TIMESTAMPS = False
     TIMESTAMP_FUZZ = 1.0
     @classmethod
     def parse_cli_config(cls, arg):
@@ -1233,7 +1234,7 @@ class RotatingFileLogHandler(FileLogHandler):
                     shutil.copyfileobj(old_file, drain)
                 os.remove(move_to)
                 move_to = compress_to
-            if timestamp is not None:
+            if timestamp is not None and self.ADJUST_FILE_TIMESTAMPS:
                 self._retime(move_to, None, timestamp)
         finally:
             old_file.close()
@@ -1244,7 +1245,7 @@ class RotatingFileLogHandler(FileLogHandler):
         See the base classes' methods for additional details.
         """
         fp, ts = self.file, self._last_timestamp
-        if ts is not None:
+        if ts is not None and self.ADJUST_FILE_TIMESTAMPS:
             try:
                 fp_stats = os.fstat(fp.fileno())
                 self._retime(fp.name, (fp_stats.st_dev, fp_stats.st_ino), ts)
