@@ -9,3 +9,14 @@
  		} else {
  			throw new IllegalArgumentException( "unknown role" );
  		}
+--- org/java_websocket/server/WebSocketServer.java
++++ org/java_websocket/server/WebSocketServer.java
+@@ -608,7 +608,7 @@
+ 				} catch ( IOException e ) {
+ 					// there is nothing that must be done here
+ 				}
+-				log.trace("Connection closed because of exception",ex);
++				log.warn("Connection closed because of exception", ex);
+ 			}
+ 		}
+ 	}

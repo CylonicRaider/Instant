@@ -608,7 +608,7 @@ public abstract class WebSocketServer extends AbstractWebSocket implements Runna
 				} catch ( IOException e ) {
 					// there is nothing that must be done here
 				}
-				log.trace("Connection closed because of exception",ex);
+				log.warn("Connection closed because of exception", ex);
 			}
 		}
 	}
