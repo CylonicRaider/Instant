@@ -54,9 +54,9 @@ function $query(str, ret, noStrip) {
     var m = regex.exec(str);
     if (! m) return null;
     if (m[3] != null) break;
-    var n = decodeURIComponent(m[1]).replace(/\+/g, ' ');
+    var n = decodeURIComponent(m[1].replace(/\+/g, ' '));
     var v = (m[2] == null) ? true :
-      decodeURIComponent(m[2]).replace(/\+/g, ' ');
+      decodeURIComponent(m[2].replace(/\+/g, ' '));
     if (ret[n] == null) {
       ret[n] = v;
     } else if (typeof ret[n] == 'object') {
