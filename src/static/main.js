@@ -4769,6 +4769,7 @@ this.Instant = function() {
                 ['button', 'button button-noborder unread-main', [
                   $cls('nick', msg).cloneNode(true),
                   tcnt,
+                  ['span', 'spacer'],
                   Instant.animation.timers.create(ts)
                 ]],
                 ['button', 'button button-noborder button-icon-cover ' +
@@ -4782,6 +4783,11 @@ this.Instant = function() {
               ]]
             ]);
             var nickNode = $cls('nick', ret);
+            if (msg.classList.contains('emote')) {
+              ret.classList.add('emote');
+              var bgclr = Instant.nick.emoteColor(nickNode.textContent);
+              $cls('message-text', ret).style.backgroundColor = bgclr;
+            }
             var level = Instant.notifications.getLevel(msg);
             ret.classList.add('unread-message-' + level);
             nickNode.title = nickNode.textContent;

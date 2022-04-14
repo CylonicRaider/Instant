@@ -1120,8 +1120,6 @@ h2.sidebar-unread .button-icon-cover {
 }
 .unread-message-line .message-text {
   padding: 1px 0.25em 1px 0.25em;
-  -webkit-flex-grow: 1;
-  flex-grow: 1;
 }
 .unread-message-line .copy-placeholder {
   display: inline-block;
@@ -1132,6 +1130,10 @@ h2.sidebar-unread .button-icon-cover {
 }
 .unread-message-line .copy-truncated::after {
   content: "\2026";
+}
+.unread-message-line .spacer {
+  -webkit-flex-grow: 1;
+  flex-grow: 1;
 }
 .unread-message-line .timer {
   padding: 1px 0;
