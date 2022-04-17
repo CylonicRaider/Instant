@@ -2353,11 +2353,32 @@ this.Instant = function() {
       },
       /* Highlight the given message visually */
       highlight: function(msg) {
+        function clearHighlight() {
+          var newNow = msg.getAttribute('data-last-highlight');
+          if (! newNow) {
+            /* Something happened */
+          } else if (newNow != now) {
+            /* The message has been highlighted again */
+            now = newNow;
+            setTimeout(clearHighlight, (+now) + 4000 - Date.now());
+          } else {
+            /* Time to clear the highlight */
+            msg.classList.remove('highlight');
+            msg.removeAttribute('data-last-highlight');
+          }
+        }
+
         if (msg.classList.contains('highlight')) {
           msg.classList.remove('highlight');
           void msg.offsetWidth; // Force a reflow.
         }
         msg.classList.add('highlight');
+        var now = Date.now().toString();
+        var hasTimer = (!! msg.getAttribute('data-last-highliught'));
+        msg.setAttribute('data-last-highlight', now);
+        // When the timer expires, it will automatically extend itself.
+        if (hasTimer) return;
+        setTimeout(clearHighlight, 4000);
       },
       /* Retrieve the ID of the latest message in a thread
        * thread may be either a message ID of DOM node of a thread root.
