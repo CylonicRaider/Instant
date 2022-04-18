@@ -803,6 +803,9 @@ def main():
     b = instabot.CmdlineBotBuilder(Scribe, NICKNAME, None)
     p = b.make_parser(sys.argv[0],
                       desc='An Instant bot storing room logs.')
+    p.option('ping-delay', PING_DELAY, type=float, varname='ping_delay',
+             placeholder='<seconds>',
+             help='Time in between keep-alive pings')
     p.option('maxlen', MAXLEN, type=int,
              help='Maximum amount of logs to deliver')
     p.option('msgdb', placeholder='<file>', default=Ellipsis,
@@ -819,7 +822,7 @@ def main():
            help='Exit after collecting logs')
     p.flag('dont-pull', varname='dont_pull', help='Do not collect logs')
     b.parse(sys.argv[1:])
-    b.add_args('push_logs', 'dont_stay', 'dont_pull')
+    b.add_args('ping_delay', 'push_logs', 'dont_stay', 'dont_pull')
     maxlen, msgdb_file = b.get_args('maxlen', 'msgdb')
     read_file, read_rotate = b.get_args('read-file', 'read-rotate')
     logger = b.kwds.get('logger', instabot.DEFAULT_LOGGER)
