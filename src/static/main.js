@@ -2478,9 +2478,9 @@ this.Instant = function() {
           // Port.
           '(:[0-9]+)?' +
           // Path, query, fragment.
-          '(/[^>]*)?|' +
+          '(/[^>\\s]*)?|' +
           // Alternative 2: Scheme with bare scheme-specific-part.
-          '((?!javascript:)[a-zA-Z+-]+:)([^/][^>]*)?' +
+          '((?!javascript:)[a-zA-Z+-]+:)([^/>\\s][^>\\s]*)?' +
         ')', 'i');
         var pm = '[^()\\s]*', me = '[^.,:;!?()\\s]';
         var MENTION_RE = sm('%PM%(?:\\(%PM%\\)%PM%)*(?:\\(%PM%\\)|%ME%)');
