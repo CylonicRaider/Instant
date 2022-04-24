@@ -1411,19 +1411,19 @@ this.Instant = function() {
         return 'hsl(' + hue + ', 75%, 40%)';
       },
       /* Generate a DOM node carrying the nick */
-      makeNode: function(name) {
+      makeNode: function(name, addTitle) {
         var node = document.createElement('span');
         node.className = 'nick';
-        Instant.nick.updateNode(node, name);
+        Instant.nick.updateNode(node, name, addTitle);
         return node;
       },
       /* Generate a DOM node carrying a mention of the nick
        * name is the nickname with an @-sign. */
-      makeMention: function(name) {
+      makeMention: function(name, addTitle) {
         if (name[0] != '@') throw new Error('Bad nick for makeMention()');
         var node = document.createElement('span');
         node.className = 'mention';
-        Instant.nick.updateMention(node, name);
+        Instant.nick.updateMention(node, name, addTitle);
         return node;
       },
       /* Make a nickname node for an anonymous user */
@@ -1434,18 +1434,28 @@ this.Instant = function() {
         return node;
       },
       /* Change a node to reflect a new nickname */
-      updateNode: function(node, name) {
+      updateNode: function(node, name, addTitle) {
         node.textContent = name;
         node.style.backgroundColor = Instant.nick.nickColor(name);
         node.setAttribute('data-nick', name);
+        if (addTitle) {
+          node.setAttribute('title', name);
+        } else {
+          node.removeAttribute('title');
+        }
       },
       /* Change a mention node to reflect a new nickname */
-      updateMention: function(node, name) {
+      updateMention: function(node, name, addTitle) {
         if (name[0] != '@') throw new Error('Bad nick for updateMention()');
         var realName = name.substr(1);
         node.textContent = name;
         node.style.color = Instant.nick.pingColor(realName);
         node.setAttribute('data-nick', realName);
+        if (addTitle) {
+          node.setAttribute('title', realName);
+        } else {
+          node.removeAttribute('title');
+        }
       }
     };
   }();
