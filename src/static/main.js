@@ -5243,14 +5243,9 @@ this.Instant = function() {
           newWrapper = newNode.parentNode;
           node.removeChild(newWrapper);
         } else {
-          newNode = document.createElement('span');
-          newNode.className = 'nick';
-          newNode.setAttribute('data-id', id);
-          newNode.id = 'user-' + id;
-          newNode.tabIndex = 0;
-          newWrapper = document.createElement('div');
-          newWrapper.className = 'nick-box';
-          newWrapper.appendChild(newNode);
+          newNode = $makeNode('span', 'nick', {id: 'user-' + id, tabindex: 0,
+                                               'data-id': id});
+          newWrapper = $makeNode('div', 'nick-box', [newNode]);
           newNode.addEventListener('click', toggleMenu);
           newNode.addEventListener('keydown', function(event) {
             // Return or Space
@@ -5265,6 +5260,7 @@ this.Instant = function() {
         newNode.setAttribute('data-last-active', Date.now());
         newNode.setAttribute('data-nick', name);
         newNode.textContent = name;
+        newNode.title = name;
         newNode.style.background = Instant.nick.nickColor(name);
         newWrapper.style.display = ((name) ? '' : 'none');
         /* Update animation */
