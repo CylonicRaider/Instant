@@ -1108,7 +1108,7 @@ this.Instant = function() {
             }
             /* Initiate new pull if necessary */
             if (goal && Instant.connection.isConnected())
-                Instant.logs.pull.more();
+              Instant.logs.pull.more();
           },
           /* Collect log information */
           _check: function() {
