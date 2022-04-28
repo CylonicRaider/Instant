@@ -4491,8 +4491,7 @@ this.Instant = function() {
             ['div', 'sidebar-bottom', [
               Instant.userList.getCollapserNode()
             ]],
-            Instant.sidebar.unread.getHeadingNode(),
-            Instant.sidebar.unread.getNode()
+            Instant.sidebar.unread.getWrapperNode()
           ]]
         ]);
         handleNode = $sel('.sidebar-drawer-handle button', node);
@@ -4732,34 +4731,37 @@ this.Instant = function() {
         var previews = {};
         /* The length to trim message texts to */
         var trimLength = 100;
-        /* The heading, main, and counter DOM nodes */
-        var headingNode = null, node = null, sizeNode = null;
+        /* The wrapper, main, and counter DOM nodes */
+        var wrapperNode = null, node = null, sizeNode = null;
         /* Initialize submodule */
         return {
           init: function() {
-            headingNode = $makeNode('h2', 'sidebar-unread', [
-              ['span', 'unread-top-left', [
-                'Unread messages',
-                ['span', 'unread-size', ' ???'],
+            wrapperNode = $makeNode('div', 'sidebar-unread-wrapper', [
+              ['h2', 'sidebar-unread', [
+                ['span', 'unread-top-left', [
+                  'Unread messages',
+                  ['span', 'unread-size', ' ???'],
+                ]],
+                ['button', 'button button-noborder button-icon-cover ' +
+                    'unread-collapse-all', {title: 'Collapse all'}, [
+                  Instant.icons.makeNode('arrowBar', 'unread-collapsed'),
+                  Instant.icons.makeNode('arrowBarDown')
+                ]],
+                ['button', 'button button-noborder button-icon-cover ' +
+                    'unread-clear', {title: 'Remove all'}, [
+                  Instant.icons.makeNode('close')
+                ]]
               ]],
-              ['button', 'button button-noborder button-icon-cover ' +
-                  'unread-collapse-all', {title: 'Collapse all'}, [
-                Instant.icons.makeNode('arrowBar', 'unread-collapsed'),
-                Instant.icons.makeNode('arrowBarDown')
-              ]],
-              ['button', 'button button-noborder button-icon-cover ' +
-                  'unread-clear', {title: 'Remove all'}, [
-                Instant.icons.makeNode('close')
-              ]]
+              ['div', 'sidebar-unread sidebar-unread-content']
             ]);
-            node = $makeNode('div', 'sidebar-unread sidebar-unread-content');
-            sizeNode = $cls('unread-size', headingNode);
-            $cls('unread-collapse-all', headingNode).addEventListener('click',
+            node = $cls('sidebar-unread-content', wrapperNode);
+            sizeNode = $cls('unread-size', wrapperNode);
+            $cls('unread-collapse-all', wrapperNode).addEventListener('click',
               function() {
                 Instant.sidebar.unread.collapseAll();
               }
             );
-            $cls('unread-clear', headingNode).addEventListener('click',
+            $cls('unread-clear', wrapperNode).addEventListener('click',
               function() {
                 if (Object.getOwnPropertyNames(previews).length == 0) return;
                 Instant.popups.dialog({
@@ -4981,11 +4983,9 @@ this.Instant = function() {
           /* Show or hide the entire unread message pane */
           setEnabled: function(enabled) {
             if (enabled) {
-              headingNode.classList.add('visible');
-              node.classList.add('visible');
+              wrapperNode.classList.add('visible');
             } else {
-              headingNode.classList.remove('visible');
-              node.classList.remove('visible');
+              wrapperNode.classList.remove('visible');
             }
           },
           /* Retrieve the preview node corresponding to msg, if any */
@@ -5041,7 +5041,7 @@ this.Instant = function() {
           collapseAll: function(newState) {
             if (newState == null)
               newState = (! node.classList.contains('unread-collapsed'));
-            var collapser = $cls('unread-collapse-all', headingNode);
+            var collapser = $cls('unread-collapse-all', wrapperNode);
             if (newState) {
               node.classList.add('unread-collapsed');
               collapser.classList.add('unread-collapsed');
@@ -5052,9 +5052,9 @@ this.Instant = function() {
               collapser.title = 'Collapse all';
             }
           },
-          /* Retrieve the heading node */
-          getHeadingNode: function() {
-            return headingNode;
+          /* Retrieve the wrapper node */
+          getWrapperNode: function() {
+            return wrapperNode;
           },
           /* Retrieve the main node */
           getNode: function() {
