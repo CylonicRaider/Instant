@@ -1177,6 +1177,12 @@ h2.sidebar-unread .button-icon-cover {
 .unread-message-line {
   margin-top: 2px;
 }
+.unread-message-line .block {
+  display: inline;
+}
+.unread-message-line .monospace.block {
+  white-space: nowrap;
+}
 
 .sidebar.user-list-collapsed .sidebar-unread-wrapper {
   -webkit-flex-shrink: 1;
