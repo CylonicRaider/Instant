@@ -4942,7 +4942,7 @@ this.Instant = function() {
           _insert: function(preview) {
             var parent = Instant.sidebar.unread._findParentByMessage(preview);
             if (parent == null) {
-              node.appendChild(preview);
+              node.insertBefore(preview, node.firstChild);
             } else {
               var replies = Instant.sidebar.unread._getReplyNode(parent,
                                                                  true);
@@ -5072,7 +5072,7 @@ this.Instant = function() {
             var pid = preview.id;
             while (b != e) {
               var m = (b + e) >> 1;
-              if (array[m].id <= pid) {
+              if (array[m].id >= pid) {
                 b = m + 1;
               } else {
                 e = m;
