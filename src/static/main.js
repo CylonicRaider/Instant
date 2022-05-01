@@ -4807,7 +4807,7 @@ this.Instant = function() {
                 ]],
                 ['button', 'button button-noborder button-icon-cover ' +
                     'unread-collapse', {title: 'Collapse'}, [
-                  Instant.icons.makeNode('chevron', 'turn')
+                  Instant.icons.makeNode('chevron')
                 ]],
                 ['button', 'button button-noborder button-icon-cover ' +
                     'unread-drop', {title: 'Remove'}, [
@@ -4892,17 +4892,23 @@ this.Instant = function() {
               return null;
             return parent;
           },
+          /* Retrieve the preview's main line
+           * Since replies are ordered before the line node, this operation is
+           * nontrivial. */
+          _getLineNode: function(preview) {
+            return preview.lastElementChild;
+          },
           /* Retrieve (or create) the DOM node hosting preview's replies
            * If there is no replies node and create is true, a new node is
            * created (and returned). */
           _getReplyNode: function(preview, create) {
-            var lastChild = preview.lastElementChild;
-            if (! lastChild.classList.contains('replies')) {
+            var result = preview.firstElementChild;
+            if (! result.classList.contains('replies')) {
               if (! create) return null;
-              lastChild = $makeNode('div', 'replies');
-              preview.appendChild(lastChild);
+              result = $makeNode('div', 'replies');
+              preview.insertBefore(result, preview.firstChild);
             }
-            return lastChild;
+            return result;
           },
           /* Update the importance of the given preview as appropriate
            * If descendants is true, all descendants of preview are updated as
@@ -5013,8 +5019,9 @@ this.Instant = function() {
           collapse: function(preview, newState) {
             if (newState == null)
               newState = (! preview.classList.contains('unread-collapsed'));
-            var collapser = $cls('unread-collapse', preview);
-            var collapserIcon = $sel('img', collapser);
+            var line = Instant.sidebar.unread._getLineNode(preview);
+            var collapser = $cls('unread-collapse', line);
+            var collapserIcon = $sel('img', line);
             if (newState) {
               preview.classList.add('unread-collapsed');
               collapser.title = 'Expand';
@@ -5022,7 +5029,7 @@ this.Instant = function() {
             } else {
               preview.classList.remove('unread-collapsed');
               collapser.title = 'Collapse';
-              collapserIcon.className = 'turn';
+              collapserIcon.className = '';
             }
           },
           /* Remove all previews */
