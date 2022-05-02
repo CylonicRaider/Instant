@@ -4948,7 +4948,9 @@ this.Instant = function() {
           _insert: function(preview) {
             var parent = Instant.sidebar.unread._findParentByMessage(preview);
             if (parent == null) {
-              node.insertBefore(preview, node.firstChild);
+              var succ = Instant.sidebar.unread.bisect(node.childNodes,
+                                                       preview);
+              node.insertBefore(preview, succ);
             } else {
               var replies = Instant.sidebar.unread._getReplyNode(parent,
                                                                  true);
