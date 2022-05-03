@@ -4945,7 +4945,7 @@ this.Instant = function() {
             traverse(preview, boundingRank);
           },
           /* Insert the given preview into the preview node hierarchy */
-          _insert: function(preview) {
+          _doInsert: function(preview) {
             var parent = Instant.sidebar.unread._findParentByMessage(preview);
             if (parent == null) {
               var succ = Instant.sidebar.unread.bisect(node.childNodes,
@@ -4963,7 +4963,7 @@ this.Instant = function() {
             Instant.sidebar.unread._updateSize();
           },
           /* Remove the given node from the preview hierarchy */
-          _remove: function(preview) {
+          _doRemove: function(preview) {
             Instant.animation.timers.destroy($sel('.timer', preview));
             var parent = Instant.sidebar.unread._getParent(preview);
             var sibling = preview.nextSibling;
@@ -4971,7 +4971,7 @@ this.Instant = function() {
             var replies = Instant.sidebar.unread._getReplyNode(preview);
             if (replies) {
               var replyList = Array.prototype.slice.call(replies.childNodes);
-              replyList.forEach(Instant.sidebar.unread._insert);
+              replyList.forEach(Instant.sidebar.unread._doInsert);
             }
             if (parent) {
               var parReplies = Instant.sidebar.unread._getReplyNode(parent);
@@ -5007,7 +5007,7 @@ this.Instant = function() {
             if (previews[msgid]) return;
             var preview = Instant.sidebar.unread._makePreview(msg);
             previews[msgid] = preview;
-            Instant.sidebar.unread._insert(preview);
+            Instant.sidebar.unread._doInsert(preview);
           },
           /* Remove the preview of a message from the list */
           remove: function(msg) {
@@ -5015,7 +5015,7 @@ this.Instant = function() {
             if (! previews[msgid]) return;
             var preview = previews[msgid];
             delete previews[msgid];
-            Instant.sidebar.unread._remove(preview);
+            Instant.sidebar.unread._doRemove(preview);
           },
           /* Collapse or expand a preview */
           collapse: function(preview, newState) {
