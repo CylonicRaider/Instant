@@ -5001,21 +5001,29 @@ this.Instant = function() {
             var msgid = msg.getAttribute('data-id');
             return previews[msgid] || null;
           },
-          /* Add an unread message to the list */
-          add: function(msg) {
+          /* Actual implementation of add() */
+          _add: function(msg) {
             var msgid = msg.getAttribute('data-id');
             if (previews[msgid]) return;
             var preview = Instant.sidebar.unread._makePreview(msg);
             previews[msgid] = preview;
             Instant.sidebar.unread._doInsert(preview);
           },
-          /* Remove the preview of a message from the list */
-          remove: function(msg) {
+          /* Actual implementation of remove() */
+          _remove: function(msg) {
             var msgid = msg.getAttribute('data-id');
             if (! previews[msgid]) return;
             var preview = previews[msgid];
             delete previews[msgid];
             Instant.sidebar.unread._doRemove(preview);
+          },
+          /* Add an unread message to the list */
+          add: function(msg) {
+            Instant.sidebar.unread._add(msg);
+          },
+          /* Remove the preview of a message from the list */
+          remove: function(msg) {
+            Instant.sidebar.unread._remove(msg);
           },
           /* Collapse or expand a preview */
           collapse: function(preview, newState) {
