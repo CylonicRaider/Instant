@@ -4733,6 +4733,8 @@ this.Instant = function() {
         var trimLength = 100;
         /* The wrapper, main, and counter DOM nodes */
         var wrapperNode = null, node = null, sizeNode = null;
+        /* Delayed actions */
+        var buffer = null;
         /* Initialize submodule */
         return {
           init: function() {
@@ -4984,6 +4986,44 @@ this.Instant = function() {
             }
             Instant.sidebar.unread._updateSize();
           },
+          /* Upper-layer implementation of add() */
+          _add: function(msg) {
+            var msgid = msg.getAttribute('data-id');
+            if (previews[msgid]) return;
+            var preview = Instant.sidebar.unread._makePreview(msg);
+            previews[msgid] = preview;
+            Instant.sidebar.unread._doInsert(preview);
+          },
+          /* Upper-layer implementation of remove() */
+          _remove: function(msg) {
+            var msgid = msg.getAttribute('data-id');
+            if (! previews[msgid]) return;
+            var preview = previews[msgid];
+            delete previews[msgid];
+            Instant.sidebar.unread._doRemove(preview);
+          },
+          /* Configure whether any automatic changes should be delayed until
+           * buffering is disabled again */
+          _setBuffering: function(enabled) {
+            if (enabled) {
+              if (! buffer) {
+                buffer = [];
+              }
+            } else {
+              if (buffer) {
+                for (var i = 0; i < buffer.length; i++) {
+                  var entry = buffer[i];
+                  try {
+                    entry[0].apply(entry[1], entry.slice(2));
+                  } catch (error) {
+                    Instant.errors.handleBackground(error,
+                      'Unread message list update failed:');
+                  }
+                }
+              }
+              buffer = null;
+            }
+          },
           /* Return whether the unread message pane itself is visible */
           isEnabled: function() {
             return node.classList.contains('visible');
@@ -5001,29 +5041,21 @@ this.Instant = function() {
             var msgid = msg.getAttribute('data-id');
             return previews[msgid] || null;
           },
-          /* Actual implementation of add() */
-          _add: function(msg) {
-            var msgid = msg.getAttribute('data-id');
-            if (previews[msgid]) return;
-            var preview = Instant.sidebar.unread._makePreview(msg);
-            previews[msgid] = preview;
-            Instant.sidebar.unread._doInsert(preview);
-          },
-          /* Actual implementation of remove() */
-          _remove: function(msg) {
-            var msgid = msg.getAttribute('data-id');
-            if (! previews[msgid]) return;
-            var preview = previews[msgid];
-            delete previews[msgid];
-            Instant.sidebar.unread._doRemove(preview);
-          },
           /* Add an unread message to the list */
           add: function(msg) {
-            Instant.sidebar.unread._add(msg);
+            if (buffer == null) {
+              Instant.sidebar.unread._add(msg);
+            } else {
+              buffer.push([Instant.sidebar.unread, '_add', msg]);
+            }
           },
           /* Remove the preview of a message from the list */
           remove: function(msg) {
-            Instant.sidebar.unread._remove(msg);
+            if (buffer == null) {
+              Instant.sidebar.unread._remove(msg);
+            } else {
+              buffer.push([Instant.sidebar.unread, '_remove', msg]);
+            }
           },
           /* Collapse or expand a preview */
           collapse: function(preview, newState) {
