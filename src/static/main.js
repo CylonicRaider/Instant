@@ -5014,7 +5014,7 @@ this.Instant = function() {
                 for (var i = 0; i < buffer.length; i++) {
                   var entry = buffer[i];
                   try {
-                    entry[0].apply(entry[1], entry.slice(2));
+                    entry[0][entry[1]].apply(entry[0], entry.slice(2));
                   } catch (error) {
                     Instant.errors.handleBackground(error,
                       'Unread message list update failed:');
