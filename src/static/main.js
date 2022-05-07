@@ -4758,6 +4758,12 @@ this.Instant = function() {
             ]);
             node = $cls('sidebar-unread-content', wrapperNode);
             sizeNode = $cls('unread-size', wrapperNode);
+            wrapperNode.addEventListener('mouseenter', function() {
+              Instant.sidebar.unread._setBuffering(true);
+            });
+            wrapperNode.addEventListener('mouseleave', function() {
+              Instant.sidebar.unread._setBuffering(false);
+            });
             $cls('unread-collapse-all', wrapperNode).addEventListener('click',
               function() {
                 Instant.sidebar.unread.collapseAll();
@@ -4790,7 +4796,8 @@ this.Instant = function() {
           /* Update the counter in the heading */
           _updateSize: function() {
             var size = Object.getOwnPropertyNames(previews).length;
-            sizeNode.textContent = ' (' + size + ')';
+            var bufferIndicator = (buffer && buffer.length) ? '...' : '';
+            sizeNode.textContent = ' (' + size + bufferIndicator + ')';
           },
           /* Create a preview node for the given message */
           _makePreview: function(msg) {
@@ -5022,6 +5029,7 @@ this.Instant = function() {
                 }
               }
               buffer = null;
+              Instant.sidebar.unread._updateSize();
             }
           },
           /* Return whether the unread message pane itself is visible */
@@ -5047,6 +5055,7 @@ this.Instant = function() {
               Instant.sidebar.unread._add(msg);
             } else {
               buffer.push([Instant.sidebar.unread, '_add', msg]);
+              Instant.sidebar.unread._updateSize();
             }
           },
           /* Remove the preview of a message from the list */
@@ -5055,6 +5064,7 @@ this.Instant = function() {
               Instant.sidebar.unread._remove(msg);
             } else {
               buffer.push([Instant.sidebar.unread, '_remove', msg]);
+              Instant.sidebar.unread._updateSize();
             }
           },
           /* Collapse or expand a preview */
