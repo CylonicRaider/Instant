@@ -4844,7 +4844,7 @@ this.Instant = function() {
                 Instant.sidebar.unread.collapse(ret);
               });
             $cls('unread-drop', ret).addEventListener('click', function() {
-              Instant.sidebar.unread.remove(ret);
+              Instant.sidebar.unread._remove(ret);
             });
             return ret;
           },
