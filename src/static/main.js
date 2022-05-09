@@ -4782,7 +4782,7 @@ this.Instant = function() {
                   ],
                   closeAction: 'cancel',
                   cb: function(action) {
-                    if (action == 'continue') Instant.sidebar.unread.clear();
+                    if (action == 'continue') Instant.sidebar.unread._clear();
                   }
                 });
               }
@@ -5084,8 +5084,8 @@ this.Instant = function() {
               collapserIcon.className = '';
             }
           },
-          /* Remove all previews */
-          clear: function() {
+          /* Backing implementation of clear() */
+          _clear: function() {
             Object.getOwnPropertyNames(previews).forEach(function(k) {
               var p = previews[k];
               Instant.animation.timers.destroy($sel('.timer', p));
@@ -5095,6 +5095,15 @@ this.Instant = function() {
               node.removeChild(node.firstChild);
             }
             Instant.sidebar.unread._updateSize();
+          },
+          /* Remove all previews */
+          clear: function() {
+            if (buffer == null) {
+              Instant.sidebar.unread._clear();
+            } else {
+              buffer.push([Instant.sidebar.unread, '_remove']);
+              Instant.sidebar.unread._updateSize();
+            }
           },
           /* Collapse or expand the entire area */
           collapseAll: function(newState) {
