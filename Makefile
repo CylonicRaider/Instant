@@ -1,5 +1,5 @@
 
-JAVACFLAGS = -Xlint:all -Xlint:-serial -Werror
+JAVACFLAGS += -Xlint:all -Xlint:-serial -Werror
 
 SOURCES = $(shell find src/ -name '*.java' 2>/dev/null)
 LIBRARIES = $(shell find src/org/ 2>/dev/null)
