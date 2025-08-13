@@ -38,4 +38,5 @@ whereafter Instant should be available at
 The “original” developer should be regularly present on the “upstream”
 instance — look for *@Xyzzy* in
 [&welcome](https://instant.leet.nu/room/welcome/). If he's not there, asking
-around in [&xkcd on euphoria.io](https://euphoria.io/room/xkcd/) might help.
+around in [&xkcd on euphoria.leet.nu](https://euphoria.leet.nu/room/xkcd/)
+might help.
