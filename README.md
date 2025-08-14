@@ -5,7 +5,7 @@ A threaded chat platform.
 ## What is this?
 
 Instant is a clone of the threaded chat platform
-[*euphoria.io*](https://euphoria.io/). It arose out of the developer's
+[*euphoria.leet.nu*](https://euphoria.leet.nu/). It arose out of the developer's
 discontentment with some design decisions of the latter, and the desire to
 make something like that himself.
 
